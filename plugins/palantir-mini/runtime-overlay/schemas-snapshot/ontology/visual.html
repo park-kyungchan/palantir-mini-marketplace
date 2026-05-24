@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ontology Schema — Interactive Visual</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --data-color: #58a6ff;
+    --data-bg: rgba(88,166,255,.08);
+    --logic-color: #d2a8ff;
+    --logic-bg: rgba(210,168,255,.08);
+    --action-color: #f78166;
+    --action-bg: rgba(247,129,102,.08);
+    --security-color: #7ee787;
+    --security-bg: rgba(126,231,135,.08);
+    --accent: #f0883e;
+    --transition-zone: #ffa657;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* === Header === */
+  .header {
+    padding: 32px 40px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+  .header .badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--data-bg);
+    border: 1px solid var(--data-color);
+    color: var(--data-color);
+  }
+  .header .stats {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 16px;
+  }
+  .header .stats span { color: var(--text); font-weight: 600; }
+
+  /* === Tab Navigation === */
+  .tabs {
+    display: flex;
+    padding: 0 40px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .tab {
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  /* === Panels === */
+  .panel { display: none; padding: 32px 40px; }
+  .panel.active { display: block; }
+
+  /* === Domain Flow (Panel 1) === */
+  .flow-container {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-top: 24px;
+    position: relative;
+  }
+  .domain-card {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    transition: transform .2s, box-shadow .2s;
+    cursor: pointer;
+  }
+  .domain-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+  .domain-card.data { background: var(--data-bg); border-color: rgba(88,166,255,.25); }
+  .domain-card.logic { background: var(--logic-bg); border-color: rgba(210,168,255,.25); }
+  .domain-card.action { background: var(--action-bg); border-color: rgba(247,129,102,.25); }
+
+  .domain-card .domain-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .domain-card.data .domain-label { color: var(--data-color); }
+  .domain-card.logic .domain-label { color: var(--logic-color); }
+  .domain-card.action .domain-label { color: var(--action-color); }
+
+  .domain-card h3 {
+    font-size: 16px;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .domain-card .semantic-q {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .domain-card .analogy {
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    background: rgba(0,0,0,.2);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .concept-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .concept-chip {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,.3);
+    cursor: pointer;
+    transition: all .15s;
+    position: relative;
+  }
+  .concept-chip:hover {
+    background: rgba(255,255,255,.08);
+    transform: scale(1.05);
+  }
+  .concept-chip.transition-zone {
+    border-color: var(--transition-zone);
+    border-style: dashed;
+  }
+  .concept-chip.transition-zone::after {
+    content: 'TZ';
+    font-size: 8px;
+    color: var(--transition-zone);
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    background: var(--bg);
+    padding: 0 3px;
+    border-radius: 3px;
+  }
+
+  /* Flow arrows between cards */
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .flow-arrow svg { overflow: visible; }
+
+  /* === Reads Legend === */
+  .reads-info {
+    margin-top: 24px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 2;
+  }
+  .reads-info .arrow-label {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin: 0 4px;
+  }
+
+  /* === Type Hierarchy (Panel 2) === */
+  .type-tree {
+    margin-top: 20px;
+  }
+  .tree-domain {
+    margin-bottom: 24px;
+  }
+  .tree-domain-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tree-domain-header .toggle {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+  .tree-domain-header .toggle.collapsed { transform: rotate(-90deg); }
+  .tree-domain-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .tree-domain-header .count {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .tree-types {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+    padding-left: 32px;
+    overflow: hidden;
+    transition: max-height .3s;
+  }
+  .tree-types.collapsed { max-height: 0 !important; padding: 0 0 0 32px; }
+  .type-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .type-card:hover {
+    border-color: var(--accent);
+    background: rgba(240,136,62,.04);
+  }
+  .type-card .type-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .type-card .type-fields {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .type-card .type-fields .field-name { color: var(--data-color); }
+  .type-card .type-fields .field-type { color: var(--logic-color); }
+
+  /* === Heuristics (Panel 3) === */
+  .heuristic-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .heuristic-card:hover { border-color: var(--accent); }
+  .heuristic-header {
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    user-select: none;
+  }
+  .heuristic-id {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(240,136,62,.15);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .heuristic-question {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+    flex: 1;
+  }
+  .heuristic-toggle {
+    color: var(--text-dim);
+    transition: transform .2s;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .heuristic-toggle.open { transform: rotate(180deg); }
+  .heuristic-body {
+    display: none;
+    padding: 0 20px 20px;
+  }
+  .heuristic-body.open { display: block; }
+  .heuristic-option {
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border-left: 3px solid var(--border);
+    background: rgba(0,0,0,.15);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .heuristic-option.data-opt { border-left-color: var(--data-color); }
+  .heuristic-option.logic-opt { border-left-color: var(--logic-color); }
+  .heuristic-option.action-opt { border-left-color: var(--action-color); }
+  .heuristic-option .opt-choice {
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .heuristic-option .opt-condition { color: var(--text-dim); margin-bottom: 4px; }
+  .heuristic-option .opt-reasoning { color: var(--text); }
+  .heuristic-example {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(240,136,62,.06);
+    border: 1px solid rgba(240,136,62,.2);
+    border-radius: 8px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  /* === Hard Constraints (Panel 4) === */
+  .constraint-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .constraint-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    border-left: 3px solid;
+    transition: all .15s;
+  }
+  .constraint-card:hover {
+    background: rgba(255,255,255,.02);
+  }
+  .constraint-card.data-c { border-left-color: var(--data-color); }
+  .constraint-card.logic-c { border-left-color: var(--logic-color); }
+  .constraint-card.action-c { border-left-color: var(--action-color); }
+  .constraint-card.security-c { border-left-color: var(--security-color); }
+  .constraint-id {
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .constraint-id .severity {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(248,81,73,.2);
+    color: #f85149;
+    font-size: 9px;
+  }
+  .constraint-rule {
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .constraint-rationale {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* === Invariants (Panel 5) === */
+  .invariant-list { margin-top: 16px; }
+  .invariant-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 16px;
+    align-items: start;
+    transition: border-color .15s;
+  }
+  .invariant-card:hover { border-color: var(--security-color); }
+  .invariant-id {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--security-bg);
+    border: 1px solid rgba(126,231,135,.25);
+    color: var(--security-color);
+    text-align: center;
+  }
+  .invariant-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .invariant-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+  .invariant-logic {
+    font-size: 11px;
+    padding: 6px 10px;
+    background: rgba(0,0,0,.2);
+    border-radius: 6px;
+    color: var(--logic-color);
+    font-family: monospace;
+  }
+
+  /* === Transition Zones (Panel 6) === */
+  .tz-card {
+    background: var(--surface);
+    border: 1px dashed var(--transition-zone);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .tz-card::before {
+    content: 'TRANSITION ZONE';
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--transition-zone);
+    position: absolute;
+    top: -8px;
+    left: 20px;
+    background: var(--surface);
+    padding: 0 8px;
+  }
+  .tz-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .tz-concept {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tz-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .tz-badge {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .tz-badge.structural { background: var(--data-bg); color: var(--data-color); border: 1px solid rgba(88,166,255,.25); }
+  .tz-badge.semantic { background: var(--logic-bg); color: var(--logic-color); border: 1px solid rgba(210,168,255,.25); }
+  .tz-explanation {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  /* === Detail Modal === */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: min(700px, 90vw);
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 28px 32px;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .modal h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  .modal-section {
+    margin-bottom: 16px;
+  }
+  .modal-section h4 {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .modal-section p, .modal-section ul {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .modal-section ul { padding-left: 18px; }
+  .modal-section li { margin-bottom: 4px; }
+
+  /* === Sector filter for examples === */
+  .sector-filters {
+    display: flex;
+    gap: 8px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .sector-btn {
+    padding: 5px 12px;
+    font-size: 11px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .sector-btn:hover, .sector-btn.active {
+    color: var(--text);
+    border-color: var(--accent);
+    background: rgba(240,136,62,.08);
+  }
+  .example-cards { margin-top: 12px; }
+  .example-card {
+    background: rgba(0,0,0,.15);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    transition: all .15s;
+  }
+  .example-card.hidden { display: none; }
+  .example-card .sector-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+  .example-card .concept-text { font-size: 12px; line-height: 1.6; margin-bottom: 6px; }
+  .example-card .reasoning-text { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+  /* === Section headers === */
+  .section-header {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .section-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+
+  /* === Domain color filter === */
+  .domain-filter {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .domain-filter-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .domain-filter-btn:hover { color: var(--text); }
+  .domain-filter-btn.active { color: var(--text); }
+  .domain-filter-btn.active.data-f { border-color: var(--data-color); background: var(--data-bg); color: var(--data-color); }
+  .domain-filter-btn.active.logic-f { border-color: var(--logic-color); background: var(--logic-bg); color: var(--logic-color); }
+  .domain-filter-btn.active.action-f { border-color: var(--action-color); background: var(--action-bg); color: var(--action-color); }
+  .domain-filter-btn.active.security-f { border-color: var(--security-color); background: var(--security-bg); color: var(--security-color); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Ontology Schema</h1>
+  <div class="badge">Palantir-style 3-Domain</div>
+  <div class="stats">
+    <div><span>20</span> Concept Types</div>
+    <div><span>3</span> Semantic Domains</div>
+    <div><span>88</span> Hard Constraints</div>
+    <div><span>8</span> Invariants</div>
+    <div><span>452</span> Tests</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-panel="flow">Domain Flow</div>
+  <div class="tab" data-panel="types">Type Hierarchy</div>
+  <div class="tab" data-panel="heuristics">Semantic Heuristics</div>
+  <div class="tab" data-panel="constraints">Hard Constraints</div>
+  <div class="tab" data-panel="invariants">Consistency Invariants</div>
+  <div class="tab" data-panel="transitions">Transition Zones</div>
+  <div class="tab" data-panel="examples">Commercial Examples</div>
+</div>
+
+<!-- ======= Panel 1: Domain Flow ======= -->
+<div class="panel active" id="panel-flow">
+  <div class="section-header">Domain Architecture</div>
+  <div class="section-desc">
+    Three semantic domains with unidirectional dependency: DATA (ground truth) → LOGIC (reasoning) → ACTION (execution).
+    Security is a governance overlay, not a semantic domain.
+  </div>
+
+  <div class="flow-container">
+    <!-- DATA -->
+    <div class="domain-card data" data-domain="data">
+      <div class="domain-label">DATA — Ground Truth</div>
+      <h3>What EXISTS right now</h3>
+      <div class="semantic-q">"Does this describe WHAT EXISTS right now — independent of interpretation or action?"</div>
+      <div class="analogy">A library's catalog: records what books exist, their titles, ISBNs, page counts, shelf locations — facts independent of how anyone uses them.</div>
+      <div class="concept-list">
+        <div class="concept-chip" data-concept="ObjectType">ObjectType</div>
+        <div class="concept-chip" data-concept="Property">Property</div>
+        <div class="concept-chip" data-concept="ValueType">ValueType</div>
+        <div class="concept-chip" data-concept="StructType">StructType</div>
+        <div class="concept-chip" data-concept="SharedPropertyType">SharedPropType</div>
+        <div class="concept-chip" data-concept="GeoPointProperty">GeoPoint</div>
+        <div class="concept-chip" data-concept="GeoShapeProperty">GeoShape</div>
+        <div class="concept-chip" data-concept="GeoTemporalProperty">GeoTemporal</div>
+        <div class="concept-chip" data-concept="TimeSeriesProperty">TimeSeries</div>
+        <div class="concept-chip" data-concept="AttachmentProperty">Attachment</div>
+        <div class="concept-chip" data-concept="VectorProperty">Vector</div>
+        <div class="concept-chip" data-concept="CipherProperty">Cipher</div>
+      </div>
+    </div>
+
+    <!-- Arrow DATA → LOGIC -->
+    <div class="flow-arrow">
+      <svg width="60" height="48">
+        <defs>
+          <marker id="arrowhead1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#8b949e"/>
+          </marker>
+        </defs>
+        <line x1="4" y1="24" x2="50" y2="24" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrowhead1)" stroke-dasharray="4,3"/>
+        <text x="27" y="14" fill="#8b949e" font-size="9" text-anchor="middle" font-family="monospace">reads</text>
+      </svg>
+    </div>
+
+    <!-- LOGIC -->
+    <div class="domain-card logic" data-domain="logic">
+      <div class="domain-label">LOGIC — Intelligence Layer</div>
+      <h3>How to REASON about data</h3>
+      <div class="semantic-q">"Does this describe HOW TO REASON about what exists — connections, interpretations, derived understanding?"</div>
+      <div class="analogy">A librarian's expertise: knowing author influences, reader preferences, citation chains — intelligence that makes the catalog useful.</div>
+      <div class="concept-list">
+        <div class="concept-chip transition-zone" data-concept="LinkType">LinkType</div>
+        <div class="concept-chip transition-zone" data-concept="Interface">Interface</div>
+        <div class="concept-chip transition-zone" data-concept="Query">Query</div>
+        <div class="concept-chip transition-zone" data-concept="DerivedProperty">DerivedProperty</div>
+        <div class="concept-chip" data-concept="Function">Function</div>
+      </div>
+    </div>
+
+    <!-- Arrow LOGIC → ACTION -->
+    <div class="flow-arrow">
+      <svg width="60" height="48">
+        <defs>
+          <marker id="arrowhead2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#8b949e"/>
+          </marker>
+        </defs>
+        <line x1="4" y1="24" x2="50" y2="24" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrowhead2)" stroke-dasharray="4,3"/>
+        <text x="27" y="14" fill="#8b949e" font-size="9" text-anchor="middle" font-family="monospace">reads</text>
+      </svg>
+    </div>
+
+    <!-- ACTION -->
+    <div class="domain-card action" data-domain="action">
+      <div class="domain-label">ACTION — Execution Layer</div>
+      <h3>What CHANGES reality</h3>
+      <div class="semantic-q">"Does this CHANGE REALITY when executed — creating, modifying, deleting, or triggering external effects?"</div>
+      <div class="analogy">The circulation desk: checking out books, processing returns, ordering acquisitions, sending notices — operations that change state.</div>
+      <div class="concept-list">
+        <div class="concept-chip" data-concept="Mutation">Mutation</div>
+        <div class="concept-chip" data-concept="Webhook">Webhook</div>
+        <div class="concept-chip" data-concept="Automation">Automation</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reads-info">
+    <strong>Dependency Rules:</strong><br>
+    <span class="arrow-label" style="background:var(--data-bg);color:var(--data-color)">DATA</span> reads nothing (foundational, standalone)<br>
+    <span class="arrow-label" style="background:var(--logic-bg);color:var(--logic-color)">LOGIC</span> reads
+      <span class="arrow-label" style="background:var(--data-bg);color:var(--data-color)">ObjectType, Property, ValueType</span> from DATA<br>
+    <span class="arrow-label" style="background:var(--action-bg);color:var(--action-color)">ACTION</span> reads
+      <span class="arrow-label" style="background:var(--data-bg);color:var(--data-color)">ObjectType, Property</span> +
+      <span class="arrow-label" style="background:var(--logic-bg);color:var(--logic-color)">Function, LinkType</span><br>
+    <span class="arrow-label" style="background:var(--security-bg);color:var(--security-color)">SECURITY</span> is a governance overlay — cross-cuts all three domains
+  </div>
+</div>
+
+<!-- ======= Panel 2: Type Hierarchy ======= -->
+<div class="panel" id="panel-types">
+  <div class="section-header">Type Hierarchy</div>
+  <div class="section-desc">
+    All TypeScript interfaces from <code>types.ts</code>. Click any type to see its field definitions.
+    <span style="color:var(--transition-zone)">Dashed border</span> = transition zone concept.
+  </div>
+
+  <div class="type-tree" id="type-tree"></div>
+</div>
+
+<!-- ======= Panel 3: Semantic Heuristics ======= -->
+<div class="panel" id="panel-heuristics">
+  <div class="section-header">Semantic Heuristics</div>
+  <div class="section-desc">
+    Decision tree for domain placement. These questions resolve where a concept belongs.
+    The <code>semanticQuestion</code> is the tiebreaker for any ambiguous classification.
+  </div>
+  <div id="heuristics-container"></div>
+</div>
+
+<!-- ======= Panel 4: Hard Constraints ======= -->
+<div class="panel" id="panel-constraints">
+  <div class="section-header">Hard Constraints</div>
+  <div class="section-desc">
+    Platform constraints that cannot be violated. All severity = <span style="color:#f85149">error</span>.
+    88 constraints across 4 domains (DATA: 23, LOGIC: 25, ACTION: 28, SECURITY: 12).
+  </div>
+
+  <div class="domain-filter" id="constraint-domain-filter">
+    <button class="domain-filter-btn data-f active" data-filter="all">All (88)</button>
+    <button class="domain-filter-btn data-f" data-filter="data">DATA (23)</button>
+    <button class="domain-filter-btn logic-f" data-filter="logic">LOGIC (25)</button>
+    <button class="domain-filter-btn action-f" data-filter="action">ACTION (28)</button>
+    <button class="domain-filter-btn security-f" data-filter="security">SECURITY (12)</button>
+  </div>
+
+  <div class="constraint-grid" id="constraints-grid"></div>
+</div>
+
+<!-- ======= Panel 5: Consistency Invariants ======= -->
+<div class="panel" id="panel-invariants">
+  <div class="section-header">Consistency Invariants</div>
+  <div class="section-desc">
+    8 cross-domain verification rules that guarantee the ontology schema is internally consistent.
+    These are checked by <code>semantics.test.ts</code> (43 tests, 248 assertions).
+  </div>
+  <div class="invariant-list" id="invariants-list"></div>
+</div>
+
+<!-- ======= Panel 6: Transition Zones ======= -->
+<div class="panel" id="panel-transitions">
+  <div class="section-header">Transition Zones</div>
+  <div class="section-desc">
+    Concepts where structural home (data/) differs from semantic domain (LOGIC).
+    These 4 concepts look like DATA but serve LOGIC purposes — the <code>semanticQuestion</code> test is decisive.
+  </div>
+  <div id="tz-container"></div>
+</div>
+
+<!-- ======= Panel 7: Commercial Examples ======= -->
+<div class="panel" id="panel-examples">
+  <div class="section-header">Commercial Examples</div>
+  <div class="section-desc">
+    Real-world examples across 7 sectors showing how each domain manifests in production ontologies.
+  </div>
+
+  <div class="domain-filter" id="example-domain-filter">
+    <button class="domain-filter-btn data-f active" data-filter="all">All Domains</button>
+    <button class="domain-filter-btn data-f" data-filter="data">DATA</button>
+    <button class="domain-filter-btn logic-f" data-filter="logic">LOGIC</button>
+    <button class="domain-filter-btn action-f" data-filter="action">ACTION</button>
+  </div>
+  <div class="sector-filters" id="sector-filters"></div>
+  <div class="example-cards" id="example-cards"></div>
+</div>
+
+<!-- ======= Modal ======= -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modal-close">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// DATA
+// =====================================================================
+
+const DOMAINS = {
+  data: {
+    label: 'DATA', color: '#58a6ff', cssClass: 'data',
+    owns: ['ObjectType','Property','ValueType','StructType','SharedPropertyType',
+           'GeoPointProperty','GeoShapeProperty','GeoTemporalProperty',
+           'TimeSeriesProperty','AttachmentProperty','VectorProperty','CipherProperty'],
+    reads: [],
+  },
+  logic: {
+    label: 'LOGIC', color: '#d2a8ff', cssClass: 'logic',
+    owns: ['LinkType','Interface','Query','DerivedProperty','Function'],
+    reads: ['ObjectType','Property','ValueType'],
+  },
+  action: {
+    label: 'ACTION', color: '#f78166', cssClass: 'action',
+    owns: ['Mutation','Webhook','Automation'],
+    reads: ['ObjectType','Property','Function','LinkType'],
+  },
+  security: {
+    label: 'SECURITY', color: '#7ee787', cssClass: 'security',
+    owns: [],
+    reads: [],
+    isOverlay: true,
+  },
+};
+
+const TRANSITION_ZONES = ['LinkType','Interface','Query','DerivedProperty'];
+
+const TYPE_FIELDS = {
+  ObjectType: [
+    {n:'apiName',t:'string'},{n:'displayName',t:'string'},{n:'pluralName',t:'string'},
+    {n:'primaryKey',t:'string'},{n:'titleKey',t:'string'},{n:'description',t:'BilingualDesc?'},
+    {n:'properties',t:'Property[]'},{n:'structs',t:'string[]?'},{n:'geoProperties',t:'GeoProperty[]?'},
+    {n:'timeSeriesProperties',t:'TimeSeries[]?'},{n:'attachments',t:'Attachment[]?'},
+    {n:'vectors',t:'Vector[]?'},{n:'ciphers',t:'Cipher[]?'},{n:'derivedProperties',t:'Derived[]?'},
+    {n:'implements',t:'string[]?'},{n:'indexCandidates',t:'string[]?'},
+  ],
+  Property: [
+    {n:'apiName',t:'string'},{n:'type',t:'string'},{n:'baseType',t:'BasePropertyType'},
+    {n:'required',t:'boolean'},{n:'readonly',t:'boolean'},{n:'description',t:'BilingualDesc'},
+    {n:'constraints',t:'ValueConstraint[]?'},{n:'valueType',t:'string?'},
+    {n:'targetEntity',t:'string?'},{n:'isArray',t:'boolean?'},{n:'defaultValue',t:'string?'},
+    {n:'indexCandidate',t:'boolean?'},
+  ],
+  ValueType: [{n:'apiName',t:'string'},{n:'baseType',t:'BasePropertyType'},{n:'description',t:'BilingualDesc'},{n:'constraints',t:'ValueConstraint[]'},{n:'validatorFn',t:'string'}],
+  StructType: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'fields',t:'Property[]'}],
+  SharedPropertyType: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'properties',t:'Property[]'},{n:'usedBy',t:'string[]'}],
+  GeoPointProperty: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'crs',t:'"WGS84"'}],
+  GeoShapeProperty: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'geometryTypes',t:'GeoType[]'},{n:'indexed',t:'boolean'}],
+  GeoTemporalProperty: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'timestampType',t:'"timestamp"'},{n:'includesAltitude',t:'boolean?'}],
+  TimeSeriesProperty: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'valueType',t:'"number"|"string"|"boolean"'},{n:'regularity',t:'"regular"|"irregular"'},{n:'partitioning',t:'string?'},{n:'retentionDays',t:'number?'}],
+  AttachmentProperty: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'kind',t:'"attachment"|"mediaReference"'},{n:'mimeTypes',t:'string[]'},{n:'maxSizeMB',t:'number?'}],
+  VectorProperty: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'dimensions',t:'number'},{n:'similarity',t:'"cosine"|"euclidean"|"dotProduct"'}],
+  CipherProperty: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'encryption',t:'"aes256"|"rsa"|"applicationLevel"'}],
+  LinkType: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'sourceEntity',t:'string'},{n:'targetEntity',t:'string'},{n:'cardinality',t:'LinkCardinality'},{n:'fkProperty',t:'string?'},{n:'fkSide',t:'"source"|"target"?'},{n:'joinEntity',t:'string?'},{n:'reverseApiName',t:'string?'}],
+  Interface: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'properties',t:'string[]'},{n:'linkConstraints',t:'LinkConstraint[]?'},{n:'implementedBy',t:'string[]'}],
+  Query: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'entityApiName',t:'string'},{n:'queryType',t:'QueryType'},{n:'filterFields',t:'FilterField[]?'},{n:'parameters',t:'Parameter[]?'},{n:'returnType',t:'string?'},{n:'traversalPath',t:'string[]?'}],
+  DerivedProperty: [{n:'apiName',t:'string'},{n:'entityApiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'mode',t:'"onRead"|"cached"'},{n:'returnType',t:'string'},{n:'sourceProperties',t:'string[]'},{n:'computeFn',t:'string'}],
+  Function: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'category',t:'FunctionCategory'},{n:'parameters',t:'Parameter[]'},{n:'returnType',t:'string'},{n:'operatesOn',t:'string?'},{n:'pureLogic',t:'string'}],
+  Mutation: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'mutationType',t:'MutationType'},{n:'entityApiName',t:'string'},{n:'parameters',t:'Parameter[]'},{n:'validationFns',t:'string[]?'},{n:'edits',t:'MutationEdit[]'},{n:'sideEffects',t:'SideEffect[]?'}],
+  Webhook: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'kind',t:'WebhookKind'},{n:'transactional',t:'boolean'},{n:'triggeredBy',t:'string[]'},{n:'endpoint',t:'string'},{n:'payload',t:'string[]?'}],
+  Automation: [{n:'apiName',t:'string'},{n:'description',t:'BilingualDesc'},{n:'kind',t:'AutomationKind'},{n:'schedule',t:'string?'},{n:'triggerEvent',t:'string?'},{n:'targetMutation',t:'string'},{n:'idempotent',t:'boolean'}],
+};
+
+const HEURISTICS = [
+  {
+    id: 'SH-01',
+    question: 'Does this describe what EXISTS, how to REASON, or how to CHANGE reality?',
+    options: [
+      { condition: 'It represents a stored fact about the world — an entity, attribute, measurement, or classification that exists independently of interpretation', choice: 'DATA', reasoning: 'DATA is ground truth. If you deleted all LOGIC and ACTION, this would still describe what exists.', domain: 'data' },
+      { condition: 'It represents how to interpret, connect, traverse, or derive understanding from what exists', choice: 'LOGIC', reasoning: "LOGIC is the intelligence layer. It encodes expert reasoning — the 'tribal knowledge' that makes raw data useful.", domain: 'logic' },
+      { condition: 'It represents a lever that, when pulled, changes the state of the real world', choice: 'ACTION', reasoning: "ACTION is the execution layer. It follows LOGIC's blueprint to commit changes and fire side effects.", domain: 'action' },
+    ],
+    source: 'vision.md — Decision-Centric Systems table',
+    example: "ERP inventory levels are DATA. 'If stock < reorder point, flag' is LOGIC. 'Create purchase order' is ACTION.",
+  },
+  {
+    id: 'SH-02',
+    question: 'If I deleted all LOGIC and ACTION, would this still describe reality?',
+    options: [
+      { condition: 'Yes — this concept exists as a stored fact independent of any interpretation', choice: 'DATA', reasoning: 'DATA is foundational and standalone. It has no upstream dependencies.', domain: 'data' },
+      { condition: 'No — this concept depends on DATA to exist first', choice: 'Not DATA — apply SH-01', reasoning: 'LOGIC and ACTION both depend on DATA.', domain: 'logic' },
+    ],
+    source: 'data/README.md',
+    example: 'A Patient record survives deletion of all reasoning. A Diagnosis→Treatment link only makes sense because Patient and Treatment exist.',
+  },
+  {
+    id: 'SH-03',
+    question: 'Does this return Edits[] (describe impact) or commit edits (execute change)?',
+    options: [
+      { condition: 'Returns Edits[] without committing — describes what SHOULD happen', choice: 'LOGIC', reasoning: 'Edit functions compute impact descriptions. They are the causality blueprint.', domain: 'logic' },
+      { condition: 'Commits edits permanently, triggers webhooks, or schedules execution', choice: 'ACTION', reasoning: 'Function-backed Actions wrap edit functions and COMMIT.', domain: 'action' },
+    ],
+    source: 'logic/README.md',
+    example: 'An edit function computing Alert.status="Resolved" is LOGIC. The function-backed Action that commits those edits is ACTION.',
+  },
+];
+
+const HARD_CONSTRAINTS = [
+  // DATA (23)
+  { id:'HC-DATA-01', domain:'data', rule:'Cipher properties cannot be indexed or used in filters', rationale:'Encrypted data cannot be compared without decryption' },
+  { id:'HC-DATA-02', domain:'data', rule:'Primary key property is immutable after object creation', rationale:'PK immutability ensures referential integrity' },
+  { id:'HC-DATA-03', domain:'data', rule:'Maximum 2,000 properties per ObjectType (OSv2)', rationale:'Object Storage V2 hard limit' },
+  { id:'HC-DATA-04', domain:'data', rule:'KNN vector search maximum K=100 results', rationale:'Platform limit on nearest-neighbor result count' },
+  { id:'HC-DATA-05', domain:'data', rule:'KNN vector maximum 2,048 dimensions', rationale:'Platform limit on embedding dimensionality' },
+  { id:'HC-DATA-06', domain:'data', rule:'API name: lowercase start, alphanumeric, NFKC normalized, 1-100 chars', rationale:'Platform-enforced naming format' },
+  { id:'HC-DATA-07', domain:'data', rule:'API name must be unique within the Ontology', rationale:'Duplicate API names cause compilation ambiguity' },
+  { id:'HC-DATA-08', domain:'data', rule:'PK must be non-nullable scalar (string|integer|long|BrandedType)', rationale:'PKs need equality comparison for link resolution' },
+  { id:'HC-DATA-09', domain:'data', rule:'Exactly 1 primary key per ObjectType', rationale:'Single PK for deterministic object identity' },
+  { id:'HC-DATA-10', domain:'data', rule:'Struct types cannot nest other structs (max depth 1)', rationale:'Flat inverted index cannot decompose nesting' },
+  { id:'HC-DATA-11', domain:'data', rule:'Array properties cannot contain Vector or TimeSeries types', rationale:'Vector/TimeSeries require dedicated indexing' },
+  { id:'HC-DATA-12', domain:'data', rule:'Cipher properties cannot be aggregated', rationale:'Encrypted values are opaque to aggregation engine' },
+  { id:'HC-DATA-13', domain:'data', rule:'Cipher only applies to scalar base types', rationale:'Cipher channel operates on individual property values' },
+  { id:'HC-DATA-14', domain:'data', rule:'Long type wire format must be string (JS precision)', rationale:'JS number safely represents only up to 2^53-1' },
+  { id:'HC-DATA-15', domain:'data', rule:'Vector query dimensions must match indexed dimensions exactly', rationale:'ANN index is built for specific dimensionality' },
+  { id:'HC-DATA-16', domain:'data', rule:'GeoShape must be bare GeoJSON geometry (RFC 7946)', rationale:'OSDK 2.0 requires standard GeoJSON format' },
+  { id:'HC-DATA-17', domain:'data', rule:'GeoPoint CRS must be WGS84', rationale:'Platform standardizes on WGS84 (EPSG:4326)' },
+  { id:'HC-DATA-18', domain:'data', rule:'Cipher key management is platform-managed only', rationale:'No developer-managed keys allowed' },
+  { id:'HC-DATA-19', domain:'data', rule:'Attachment properties inherit parent object security', rationale:'No independent attachment-level ACL exists' },
+  { id:'HC-DATA-20', domain:'data', rule:'PK is immutable: cannot be modified after creation', rationale:'Changing PK would orphan all downstream refs' },
+  { id:'HC-DATA-21', domain:'data', rule:'Required array properties must have at least one item', rationale:'OSv2 enforces non-null AND non-empty for required arrays' },
+  { id:'HC-DATA-22', domain:'data', rule:'GeoShape circles are NOT indexed for search', rationale:'Spatial index does not support circle geometries' },
+  { id:'HC-DATA-23', domain:'data', rule:'Cipher properties cannot be used in search', rationale:'Encrypted data is opaque to search engine' },
+  // LOGIC (25)
+  { id:'HC-LOGIC-01', domain:'logic', rule:'SearchAround maximum 3 hops per traversal chain', rationale:'Exponential expansion beyond 3 hops' },
+  { id:'HC-LOGIC-02', domain:'logic', rule:'ObjectSet .all() maximum 100,000 objects', rationale:'Memory limit on materializing Object Sets' },
+  { id:'HC-LOGIC-03', domain:'logic', rule:'No circular dependencies in derived property chains', rationale:'Circular dependencies cause infinite loops' },
+  { id:'HC-LOGIC-04', domain:'logic', rule:'Aggregation maximum 10,000 buckets', rationale:'Performance limit on aggregation granularity' },
+  { id:'HC-LOGIC-05', domain:'logic', rule:'Cross-ontology links are not supported', rationale:'Links must be within a single Ontology namespace' },
+  { id:'HC-LOGIC-06', domain:'logic', rule:'FK property must exist on declared fkSide entity', rationale:'FK backing requires the property on the correct entity' },
+  { id:'HC-LOGIC-07', domain:'logic', rule:'M:N links require joinEntity or objectBacked mechanism', rationale:'No direct M:N without backing entity' },
+  { id:'HC-LOGIC-08', domain:'logic', rule:'Search sees pre-edit state during function execution', rationale:'Search indexes not yet updated within transaction' },
+  { id:'HC-LOGIC-09', domain:'logic', rule:'Link traversal .get()/.all() sees post-edit state', rationale:'Direct object access reflects committed edits' },
+  { id:'HC-LOGIC-10', domain:'logic', rule:'Interface properties must exist on all implementing types', rationale:'Interface contract enforcement' },
+  { id:'HC-LOGIC-11', domain:'logic', rule:'Interface linkConstraints must reference valid link types', rationale:'Constraint must point to existing links' },
+  { id:'HC-LOGIC-12', domain:'logic', rule:'Edit functions must declare Edits on all modified types', rationale:'Missing declarations cause silent permission failures' },
+  { id:'HC-LOGIC-13', domain:'logic', rule:'Join link edits require declarations on BOTH sides', rationale:'Both source and target types need edit declaration' },
+  { id:'HC-LOGIC-14', domain:'logic', rule:'Query functions cannot modify state', rationale:'Query functions must be side-effect-free' },
+  { id:'HC-LOGIC-15', domain:'logic', rule:'Primary key cannot be edited via edit function', rationale:'PK immutability applies to function edits too' },
+  { id:'HC-LOGIC-16', domain:'logic', rule:'v2 functions limited to 8 vCPUs and 5 GB memory', rationale:'Platform compute limits for function execution' },
+  { id:'HC-LOGIC-17', domain:'logic', rule:'Model functions I/O limited to 50 MB per call', rationale:'Serialization limit for model function payloads' },
+  { id:'HC-LOGIC-18', domain:'logic', rule:'Derived properties cannot chain (no derived-from-derived)', rationale:'Platform does not support transitive derivation' },
+  { id:'HC-LOGIC-19', domain:'logic', rule:'SearchAround OSv2 max 10M objects in result scope', rationale:'Platform limit on traversal result size' },
+  { id:'HC-LOGIC-20', domain:'logic', rule:'SearchAround OSv1 max 100K objects in result scope', rationale:'Legacy platform limit for OSv1' },
+  { id:'HC-LOGIC-21', domain:'logic', rule:'Filter combinators: and, or, not — no xor or nand', rationale:'Platform supports only standard Boolean combinators' },
+  { id:'HC-LOGIC-22', domain:'logic', rule:'Object Set operations: union, intersect, subtract only', rationale:'No symmetric difference or custom set operations' },
+  { id:'HC-LOGIC-23', domain:'logic', rule:'Temporary Object Sets expire after 24 hours', rationale:'Platform garbage collection for ephemeral sets' },
+  { id:'HC-LOGIC-24', domain:'logic', rule:'Model functions must be deterministic (same input → same output)', rationale:'Required for caching and reproducibility' },
+  { id:'HC-LOGIC-25', domain:'logic', rule:'Derived property apiName must not collide with base properties', rationale:'Name collision causes ambiguous property resolution' },
+  // ACTION (28)
+  { id:'HC-ACTION-01', domain:'action', rule:'Maximum 10,000 objects editable per single Action (OSv2)', rationale:'Transaction size limit' },
+  { id:'HC-ACTION-02', domain:'action', rule:'$validateOnly and $returnEdits are mutually exclusive', rationale:'Different modes of non-execution' },
+  { id:'HC-ACTION-03', domain:'action', rule:'Function-backed rule is exclusive — no other rules allowed', rationale:'Function takes full responsibility for all edits' },
+  { id:'HC-ACTION-04', domain:'action', rule:'Search APIs see OLD state during function execution', rationale:'Search indexes not yet updated in transaction' },
+  { id:'HC-ACTION-05', domain:'action', rule:'ALL submission criteria must pass before action execute', rationale:'Hard precondition gate on execution' },
+  { id:'HC-ACTION-06', domain:'action', rule:'Action API name must be camelCase, 1-100 characters', rationale:'Platform-enforced naming convention' },
+  { id:'HC-ACTION-07', domain:'action', rule:'Parameters must have unique names within an action', rationale:'Duplicate parameter names cause binding ambiguity' },
+  { id:'HC-ACTION-08', domain:'action', rule:'createObject rule requires PK value in parameters', rationale:'New objects need deterministic identity' },
+  { id:'HC-ACTION-09', domain:'action', rule:'deleteObject rule cannot be combined with modifyObject', rationale:'Cannot modify and delete in same rule set' },
+  { id:'HC-ACTION-10', domain:'action', rule:'interfaceRule must reference a valid interface apiName', rationale:'Rule must target existing interface' },
+  { id:'HC-ACTION-11', domain:'action', rule:'Webhook endpoint must be a valid URL or platform reference', rationale:'Invalid endpoints cause delivery failure' },
+  { id:'HC-ACTION-12', domain:'action', rule:'Side-effect webhooks fire AFTER rules (not transactional)', rationale:'Side effects cannot roll back on failure' },
+  { id:'HC-ACTION-13', domain:'action', rule:'Writeback webhooks fire BEFORE rules (transactional)', rationale:'Writeback output feeds into subsequent rules' },
+  { id:'HC-ACTION-14', domain:'action', rule:'Automation conditions must reference valid Object Sets', rationale:'Automation monitors an Object Set for changes' },
+  { id:'HC-ACTION-15', domain:'action', rule:'Maximum 1 writeback webhook per action', rationale:'Single writeback to prevent conflicting outputs' },
+  { id:'HC-ACTION-16', domain:'action', rule:'Notification recipients must be resolvable at execution time', rationale:'Unresolvable recipients cause silent delivery failure' },
+  { id:'HC-ACTION-17', domain:'action', rule:'AIP Automate human-reviewed proposals expire after 24 hours', rationale:'Stale proposals may reference outdated state' },
+  { id:'HC-ACTION-18', domain:'action', rule:'Live pipeline edit cycle minimum 6 hours', rationale:'Prevents excessive pipeline churn' },
+  { id:'HC-ACTION-19', domain:'action', rule:'Full reindex triggered at 80% data change threshold', rationale:'Incremental sync inefficient beyond this point' },
+  { id:'HC-ACTION-20', domain:'action', rule:'Changelog limited to 1 row per PK per sync cycle', rationale:'Deduplication ensures idempotent processing' },
+  { id:'HC-ACTION-21', domain:'action', rule:'No direct linked-object trigger in automations', rationale:'Use Object Set membership change instead' },
+  { id:'HC-ACTION-22', domain:'action', rule:'Streaming indexing latency ≤ 60 seconds', rationale:'Platform SLA for near-real-time indexing' },
+  { id:'HC-ACTION-23', domain:'action', rule:'Change detection latency ≤ 5 minutes', rationale:'Platform SLA for dataset change detection' },
+  { id:'HC-ACTION-24', domain:'action', rule:'OSv2 supports up to 10B objects per type', rationale:'Platform scale limit for Object Storage V2' },
+  { id:'HC-ACTION-25', domain:'action', rule:'Conflict resolution: lastWriteWins or failOnConflict only', rationale:'No custom merge strategies supported' },
+  { id:'HC-ACTION-26', domain:'action', rule:'Media upload side effects require mediaReference property', rationale:'Upload target must be a valid media reference' },
+  { id:'HC-ACTION-27', domain:'action', rule:'Action atomicity: all edits succeed or all fail', rationale:'No partial application of edit sets' },
+  { id:'HC-ACTION-28', domain:'action', rule:'Funnel pipeline stages: detect → filter → transform → write', rationale:'Fixed pipeline order, stages cannot be reordered' },
+  // SECURITY (12)
+  { id:'HC-SEC-01', domain:'security', rule:'All three security layers must independently permit access', rationale:'Defense-in-depth — no layer can override another' },
+  { id:'HC-SEC-02', domain:'security', rule:'Marking removal requires both remove AND apply permissions', rationale:'Dual-permission prevents unauthorized declassification' },
+  { id:'HC-SEC-03', domain:'security', rule:'CLS requires Object Storage V2 multi-datasource architecture', rationale:'OSv1 does not support per-datasource column permissions' },
+  { id:'HC-SEC-04', domain:'security', rule:'RLS restricted views use union semantics (additive visibility)', rationale:'Multiple views grant OR visibility, not AND' },
+  { id:'HC-SEC-05', domain:'security', rule:'RBAC roles must cover ALL resource types a workflow requires', rationale:'Incomplete coverage causes runtime permission errors' },
+  { id:'HC-SEC-06', domain:'security', rule:'Marking property type NOT supported by OSDK', rationale:'External apps cannot interact with marking data via SDK' },
+  { id:'HC-SEC-07', domain:'security', rule:'Functions execute within caller\'s permission context', rationale:'No privilege escalation through function composition' },
+  { id:'HC-SEC-08', domain:'security', rule:'Aggregations inherit highest classification of contributing records', rationale:'Prevents information leakage through statistics' },
+  { id:'HC-SEC-09', domain:'security', rule:'SearchAround respects markings/RLS on BOTH source and target', rationale:'Link traversal filtered at both endpoints' },
+  { id:'HC-SEC-10', domain:'security', rule:'Interface permissions propagate to ALL implementing types', rationale:'Dynamic, prospective inheritance of permissions' },
+  { id:'HC-SEC-11', domain:'security', rule:'Mandatory markings use conjunctive (AND) logic', rationale:'User must possess ALL applied markings' },
+  { id:'HC-SEC-12', domain:'security', rule:'Derived datasets inherit markings from ALL upstream inputs', rationale:'Union of input markings for derived data' },
+];
+
+const INVARIANTS = [
+  { id:'CI-01', name:'Partition Completeness', desc:'The union of all domains\' owns arrays equals ALL_CONCEPT_TYPES', logic:'Set([...DATA.owns, ...LOGIC.owns, ...ACTION.owns]) = Set(ALL_CONCEPT_TYPES)' },
+  { id:'CI-02', name:'No Owns Overlap', desc:'The intersection of any two domains\' owns arrays is empty', logic:'For pair (A,B): A.owns ∩ B.owns = ∅' },
+  { id:'CI-03', name:'Acyclic Reads', desc:'DATA reads nothing; LOGIC reads only DATA; ACTION reads DATA ∪ LOGIC', logic:'DATA.reads=[]; LOGIC.reads ⊆ DATA.owns; ACTION.reads ⊆ DATA.owns ∪ LOGIC.owns' },
+  { id:'CI-04', name:'mustNotContain = Complement', desc:'Each domain\'s mustNotContain is exactly ALL minus its owns', logic:'domain.mustNotContain = ALL_CONCEPT_TYPES \\ domain.owns' },
+  { id:'CI-05', name:'Semantic Question Uniqueness', desc:'No concept satisfies two domains\' semanticQuestions simultaneously', logic:'For each CR: semanticTest yields exactly one domain' },
+  { id:'CI-06', name:'Reads Only What Others Own', desc:'Every item in reads exists in some other domain\'s owns', logic:'For D: D.reads ⊆ (ALL_CONCEPT_TYPES \\ D.owns)' },
+  { id:'CI-07', name:'HC Domain Alignment', desc:'Each hard constraint\'s domain field matches its containing DomainSemantics', logic:'For D: HC.domain === D.domain for all HC in D.hardConstraints' },
+  { id:'CI-08', name:'Classification Rule Consistency', desc:'No concept is classified differently across classification rules', logic:'Same concept → same domain in all CRs' },
+];
+
+const TZ_DATA = [
+  { concept:'LinkType', structural:'data/links.md', semantic:'LOGIC', explanation:'Links have structural definitions (cardinality, FK) that feel DATA-like. But their PRIMARY purpose is enabling reasoning and traversal — edges of the Impact Propagation Graph.' },
+  { concept:'Interface', structural:'data/interfaces.md', semantic:'LOGIC', explanation:'Interfaces declare shape contracts that feel DATA-like. But their PRIMARY purpose is connection polymorphism — reasoning categories, not entity definitions.' },
+  { concept:'Query / ObjectSet', structural:'data/queries.md', semantic:'LOGIC', explanation:'Queries define API surface that feel DATA-like. But their computational use is graph traversal for reasoning — SearchAround, multi-hop cascading.' },
+  { concept:'DerivedProperty', structural:'data/derived-properties.md', semantic:'LOGIC', explanation:'Derived Properties have schema definitions that feel DATA-like. But their role is computation — link traversal formulas, weighted aggregations. Interpretation, not stored state.' },
+];
+
+const EXAMPLES = [
+  ...[ // DATA
+    {domain:'data',sector:'healthcare',concept:'Patient record — demographics (name, DOB, blood type), diagnoses (ICD-10 codes), vital signs, lab results',reasoning:'Stored facts about a person independent of clinical interpretation'},
+    {domain:'data',sector:'logistics',concept:'Warehouse — GPS coordinates, storage capacity (50,000 m³), throughput rate, temperature zones',reasoning:'Physical facility with measurable attributes independent of routing decisions'},
+    {domain:'data',sector:'finance',concept:'Financial instrument — ticker (AAPL), ISIN, market cap ($2.8T), sector, exchange, currency',reasoning:'Security exists on exchange with these attributes — describes what is'},
+    {domain:'data',sector:'education',concept:'Student enrollment — ID, enrolled credits (15), GPA (3.7), degree program, standing',reasoning:'Current state in institution — stored ground truth'},
+    {domain:'data',sector:'manufacturing',concept:'CNC machine — serial, model (DMG MORI CMX 600V), 5-axis, spindle 12000 RPM, tool magazine 30',reasoning:'Engineering specifications — measurable physical facts'},
+    {domain:'data',sector:'military',concept:'Intelligence report — classification (SECRET), source reliability (B), geolocation, corroboration status',reasoning:'Collected artifact — existence and attributes are facts'},
+    {domain:'data',sector:'energy',concept:'Power generation unit — 500 MW, natural gas combined cycle, heat rate 6200 BTU/kWh, availability 92%',reasoning:'Engineering parameters — physical facts independent of dispatch decisions'},
+  ],
+  ...[ // LOGIC
+    {domain:'logic',sector:'healthcare',concept:'Diagnosis → Treatment protocol link chain with Drug → Contraindication traversal',reasoning:'Expert clinical reasoning encoded as computable traversal'},
+    {domain:'logic',sector:'logistics',concept:'Shipment → Route → Checkpoint with estimatedArrival derived + supplierDelay SearchAround (2 hops)',reasoning:'Supply chain reasoning — understanding delay propagation through the network'},
+    {domain:'logic',sector:'finance',concept:'Portfolio → Holding → Security with portfolioBeta derived (weighted sum) + sectorConcentration validation',reasoning:'Risk analysis — computing exposure and checking concentration limits'},
+    {domain:'logic',sector:'education',concept:'Course prerequisite chain (recursive) + meetsPrerequisites derived property',reasoning:'Graph traversal reasoning about enrollment eligibility'},
+    {domain:'logic',sector:'manufacturing',concept:'Predictive maintenance: vibration > 4.5mm/s AND hours > 2000 AND inspection > 90d → maintenanceUrgency',reasoning:'Veteran machinist knowledge encoded as computable logic'},
+    {domain:'logic',sector:'military',concept:'Link analysis: communication nodes to entity IDs via signal metadata + confidenceScore (Bayesian)',reasoning:'Intelligence analysis — connecting disparate data points'},
+    {domain:'logic',sector:'energy',concept:'Grid load: generation → grid nodes with netLoadFactor derived + contingency SearchAround (2 hops)',reasoning:'Understanding how power flows and what happens when something changes'},
+  ],
+  ...[ // ACTION
+    {domain:'action',sector:'healthcare',concept:'Prescribe medication: create PrescriptionOrder, link to Patient/Pharmacy, fire dispensing webhook',reasoning:'Prescribing changes reality — new order, pharmacy notified'},
+    {domain:'action',sector:'logistics',concept:'Dispatch shipment: assign Driver, update Route to in-transit, create TrackingEvent, fire notification',reasoning:'Dispatching changes the real world — driver committed, truck moving'},
+    {domain:'action',sector:'finance',concept:'Execute trade: create TradeOrder, update Portfolio holdings, fire compliance webhook',reasoning:'Trade changes financial reality — capital committed, positions shift'},
+    {domain:'action',sector:'education',concept:'Enroll student: create Enrollment, decrement seats, fire prerequisite check, waitlist automation',reasoning:'Enrollment changes reality — seat taken, schedule altered'},
+    {domain:'action',sector:'manufacturing',concept:'Create work order: assign Technician to Machine, set priority, fire notification, escalation automation',reasoning:'Work order commits resources — technician scheduled, production affected'},
+    {domain:'action',sector:'military',concept:'Authorize operation: commit resource allocations, update force readiness, fire encrypted command webhook',reasoning:'Authorization changes world irreversibly — forces committed'},
+    {domain:'action',sector:'energy',concept:'Adjust generation: modify MW setpoint, trigger SCADA webhook, auto-dispatch reserve if frequency > 0.5Hz deviation',reasoning:'Adjusting output changes physical reality — turbines respond, grid rebalances'},
+  ],
+];
+
+// =====================================================================
+// RENDER
+// =====================================================================
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`panel-${tab.dataset.panel}`).classList.add('active');
+  });
+});
+
+// Type Hierarchy
+function renderTypeTree() {
+  const container = document.getElementById('type-tree');
+  for (const [domainId, domain] of Object.entries(DOMAINS)) {
+    const section = document.createElement('div');
+    section.className = 'tree-domain';
+
+    const header = document.createElement('div');
+    header.className = 'tree-domain-header';
+    header.innerHTML = `
+      <div class="toggle">▼</div>
+      <h3 style="color:${domain.color}">${domain.label}</h3>
+      <div class="count">${domain.owns.length} types</div>
+    `;
+    section.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'tree-types';
+    grid.style.maxHeight = '2000px';
+
+    for (const typeName of domain.owns) {
+      const fields = TYPE_FIELDS[typeName] || [];
+      const card = document.createElement('div');
+      card.className = 'type-card';
+      if (TRANSITION_ZONES.includes(typeName)) {
+        card.style.borderStyle = 'dashed';
+        card.style.borderColor = 'var(--transition-zone)';
+      }
+      card.innerHTML = `
+        <div class="type-name" style="color:${domain.color}">${typeName}</div>
+        <div class="type-fields">${fields.slice(0,6).map(f =>
+          `<span class="field-name">${f.n}</span>: <span class="field-type">${f.t}</span>`
+        ).join('<br>')}${fields.length > 6 ? `<br><span style="color:var(--text-dim)">... +${fields.length - 6} more</span>` : ''}</div>
+      `;
+      card.addEventListener('click', () => showTypeModal(typeName, domain, fields));
+      grid.appendChild(card);
+    }
+
+    section.appendChild(grid);
+    container.appendChild(section);
+
+    header.addEventListener('click', () => {
+      const toggle = header.querySelector('.toggle');
+      toggle.classList.toggle('collapsed');
+      grid.classList.toggle('collapsed');
+    });
+  }
+}
+
+function showTypeModal(name, domain, fields) {
+  const modal = document.getElementById('modal-content');
+  const isTZ = TRANSITION_ZONES.includes(name);
+  modal.innerHTML = `
+    <h2 style="color:${domain.color}">${name} ${isTZ ? '<span style="color:var(--transition-zone);font-size:12px;font-weight:400">(transition zone)</span>' : ''}</h2>
+    <div class="modal-section">
+      <h4>Domain</h4>
+      <p>${domain.label} — ${domain.color === '#58a6ff' ? 'Ground Truth' : domain.color === '#d2a8ff' ? 'Intelligence Layer' : 'Execution Layer'}</p>
+    </div>
+    <div class="modal-section">
+      <h4>Fields (${fields.length})</h4>
+      <div style="font-size:13px;line-height:2;font-family:monospace">
+        ${fields.map(f => `<span style="color:${domain.color}">${f.n}</span>: <span style="color:var(--logic-color)">${f.t}</span>`).join('<br>')}
+      </div>
+    </div>
+    ${isTZ ? `<div class="modal-section"><h4>Transition Zone</h4><p style="color:var(--transition-zone)">Structural home is in data/ but semantic domain is LOGIC. The semanticQuestion test is decisive.</p></div>` : ''}
+  `;
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+// Heuristics
+function renderHeuristics() {
+  const container = document.getElementById('heuristics-container');
+  for (const h of HEURISTICS) {
+    const card = document.createElement('div');
+    card.className = 'heuristic-card';
+    card.innerHTML = `
+      <div class="heuristic-header">
+        <div class="heuristic-id">${h.id}</div>
+        <div class="heuristic-question">${h.question}</div>
+        <div class="heuristic-toggle">▼</div>
+      </div>
+      <div class="heuristic-body">
+        ${h.options.map(o => `
+          <div class="heuristic-option ${o.domain}-opt">
+            <div class="opt-choice">→ ${o.choice}</div>
+            <div class="opt-condition">${o.condition}</div>
+            <div class="opt-reasoning">${o.reasoning}</div>
+          </div>
+        `).join('')}
+        <div class="heuristic-example"><strong>Example:</strong> ${h.example}</div>
+      </div>
+    `;
+    const header = card.querySelector('.heuristic-header');
+    const body = card.querySelector('.heuristic-body');
+    const toggle = card.querySelector('.heuristic-toggle');
+    header.addEventListener('click', () => {
+      body.classList.toggle('open');
+      toggle.classList.toggle('open');
+    });
+    container.appendChild(card);
+  }
+}
+
+// Hard Constraints
+function renderConstraints() {
+  const grid = document.getElementById('constraints-grid');
+  function render(filter) {
+    grid.innerHTML = '';
+    for (const c of HARD_CONSTRAINTS) {
+      if (filter !== 'all' && c.domain !== filter) continue;
+      const card = document.createElement('div');
+      card.className = `constraint-card ${c.domain}-c`;
+      card.innerHTML = `
+        <div class="constraint-id">
+          <span style="color:${DOMAINS[c.domain].color}">${c.id}</span>
+          <span class="severity">ERROR</span>
+        </div>
+        <div class="constraint-rule">${c.rule}</div>
+        <div class="constraint-rationale">${c.rationale}</div>
+      `;
+      grid.appendChild(card);
+    }
+  }
+  render('all');
+
+  document.querySelectorAll('#panel-constraints .domain-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#panel-constraints .domain-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render(btn.dataset.filter);
+    });
+  });
+}
+
+// Invariants
+function renderInvariants() {
+  const list = document.getElementById('invariants-list');
+  for (const inv of INVARIANTS) {
+    const card = document.createElement('div');
+    card.className = 'invariant-card';
+    card.innerHTML = `
+      <div class="invariant-id">${inv.id}</div>
+      <div>
+        <div class="invariant-name">${inv.name}</div>
+        <div class="invariant-desc">${inv.desc}</div>
+        <div class="invariant-logic">${inv.logic}</div>
+      </div>
+    `;
+    list.appendChild(card);
+  }
+}
+
+// Transition Zones
+function renderTZ() {
+  const container = document.getElementById('tz-container');
+  for (const tz of TZ_DATA) {
+    const card = document.createElement('div');
+    card.className = 'tz-card';
+    card.innerHTML = `
+      <div class="tz-header">
+        <div class="tz-concept">${tz.concept}</div>
+        <div class="tz-flow">
+          <span class="tz-badge structural">${tz.structural}</span>
+          <span style="color:var(--text-dim)">→</span>
+          <span class="tz-badge semantic">${tz.semantic}</span>
+        </div>
+      </div>
+      <div class="tz-explanation">${tz.explanation}</div>
+    `;
+    container.appendChild(card);
+  }
+}
+
+// Commercial Examples
+function renderExamples() {
+  const sectors = [...new Set(EXAMPLES.map(e => e.sector))];
+  const sectorContainer = document.getElementById('sector-filters');
+  const btn0 = document.createElement('button');
+  btn0.className = 'sector-btn active';
+  btn0.textContent = 'All Sectors';
+  btn0.dataset.sector = 'all';
+  sectorContainer.appendChild(btn0);
+  for (const s of sectors) {
+    const btn = document.createElement('button');
+    btn.className = 'sector-btn';
+    btn.textContent = s;
+    btn.dataset.sector = s;
+    sectorContainer.appendChild(btn);
+  }
+
+  const cardsContainer = document.getElementById('example-cards');
+  let activeDomain = 'all';
+  let activeSector = 'all';
+
+  function render() {
+    cardsContainer.innerHTML = '';
+    for (const ex of EXAMPLES) {
+      if (activeDomain !== 'all' && ex.domain !== activeDomain) continue;
+      if (activeSector !== 'all' && ex.sector !== activeSector) continue;
+      const card = document.createElement('div');
+      card.className = 'example-card';
+      card.innerHTML = `
+        <div class="sector-tag" style="color:${DOMAINS[ex.domain].color}">${ex.domain.toUpperCase()} · ${ex.sector}</div>
+        <div class="concept-text">${ex.concept}</div>
+        <div class="reasoning-text">${ex.reasoning}</div>
+      `;
+      cardsContainer.appendChild(card);
+    }
+  }
+  render();
+
+  document.querySelectorAll('#example-domain-filter .domain-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#example-domain-filter .domain-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeDomain = btn.dataset.filter;
+      render();
+    });
+  });
+
+  sectorContainer.querySelectorAll('.sector-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      sectorContainer.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeSector = btn.dataset.sector;
+      render();
+    });
+  });
+}
+
+// Modal close
+document.getElementById('modal-close').addEventListener('click', () => {
+  document.getElementById('modal-overlay').classList.remove('active');
+});
+document.getElementById('modal-overlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
+});
+
+// Concept chip clicks on flow panel
+document.querySelectorAll('.concept-chip').forEach(chip => {
+  chip.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const name = chip.dataset.concept;
+    const domainId = Object.entries(DOMAINS).find(([,d]) => d.owns.includes(name))?.[0];
+    if (domainId) {
+      showTypeModal(name, DOMAINS[domainId], TYPE_FIELDS[name] || []);
+    }
+  });
+});
+
+// Init
+renderTypeTree();
+renderHeuristics();
+renderConstraints();
+renderInvariants();
+renderTZ();
+renderExamples();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "_description": "Minimal valid IntentRouterInput for pm_intent_router parity smoke tests.",
+  "_shape_only": true,
+  "intent": "Add a new TypeScript utility function to lib/event-log/append.ts",
+  "scopePaths": ["lib/event-log/append.ts"],
+  "complexityHint": "trivial",
+  "acceptApprovalAutoCreate": false
+}

@@ -1,0 +1,116 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-05-08T03:36:31.606Z",
+  "files": [
+    {
+      "path": "runtime-overlay/rules/01-ontology-first-core.md",
+      "sha256": "c2609f9cac80760119c5247b44ac70df49f851435e1266aee07a4cf3e7cedef8",
+      "ruleId": 1,
+      "slug": "ontology-first-core"
+    },
+    {
+      "path": "runtime-overlay/rules/02-research-retrieval.md",
+      "sha256": "aeef7f20f53f49cef9210105b6bade5c17e2e0cd98d6d4cf1c59166d6eef0325",
+      "ruleId": 2,
+      "slug": "research-retrieval"
+    },
+    {
+      "path": "runtime-overlay/rules/07-plugins-and-mcp.md",
+      "sha256": "e49bfdf5b1ec0aac3eb80c23bbc57dda4d04b97062648302af1b1f876400d3bc",
+      "ruleId": 7,
+      "slug": "plugins-and-mcp"
+    },
+    {
+      "path": "runtime-overlay/rules/08-schema-versioning.md",
+      "sha256": "dc03631d0e3bff38446a99e30235292fab607e988b1c1f1db85bde7eb71086ab",
+      "ruleId": 8,
+      "slug": "schema-versioning"
+    },
+    {
+      "path": "runtime-overlay/rules/10-events-jsonl.md",
+      "sha256": "696e1ed296e330a5ca80a5258b141448a34cf1df6b5006280d089dac41e50ab5",
+      "ruleId": 10,
+      "slug": "events-jsonl"
+    },
+    {
+      "path": "runtime-overlay/rules/12-lead-protocol-v2.md",
+      "sha256": "e37c6395f6158ca4193e35b0401a018a1a501c642c3160fcc8638dabe3ce870f",
+      "ruleId": 12,
+      "slug": "lead-protocol-v2"
+    },
+    {
+      "path": "runtime-overlay/rules/16-3-agent-harness.md",
+      "sha256": "69549bf2233533e6a8dee685d2002744e9d14798f8fb3fa8f3652c1b0680eac7",
+      "ruleId": 16,
+      "slug": "3-agent-harness"
+    },
+    {
+      "path": "runtime-overlay/rules/19-multi-plugin-precedence.md",
+      "sha256": "5b4a4e3a3bdc630b381223ecff1ea2f8051dd82c09d34618371c025526ce86dc",
+      "ruleId": 19,
+      "slug": "multi-plugin-precedence"
+    },
+    {
+      "path": "runtime-overlay/rules/20-swarm-orchestration-mode.md",
+      "sha256": "dc3aebb9df69a96de998cef757bb76af4b68283046f4599657a995deb2b752ad",
+      "ruleId": 20,
+      "slug": "swarm-orchestration-mode"
+    },
+    {
+      "path": "runtime-overlay/rules/21-project-agent-authority.md",
+      "sha256": "fab0bfc173507775e37d33efc05d7fc21baa72604fa9aa3106fba2cd86ded845",
+      "ruleId": 21,
+      "slug": "project-agent-authority"
+    },
+    {
+      "path": "runtime-overlay/rules/22-hook-citation-validation.md",
+      "sha256": "77befabf63e54eae383cd50e81b53e9c0ba83b39f1bf29bba337f784292b52cc",
+      "ruleId": 22,
+      "slug": "hook-citation-validation"
+    },
+    {
+      "path": "runtime-overlay/rules/23-project-rule-formalization.md",
+      "sha256": "9fd6c82c6f75467151a4a7bd8ee10526f2169ad61fc36741578d42e39c0edb20",
+      "ruleId": 23,
+      "slug": "project-rule-formalization"
+    },
+    {
+      "path": "runtime-overlay/rules/24-lead-dispatch-router.md",
+      "sha256": "7e003137714c68097a4ebd5100c289b2cdcff4ae107af67aa414b430b4a5ada7",
+      "ruleId": 24,
+      "slug": "lead-dispatch-router"
+    },
+    {
+      "path": "runtime-overlay/rules/25-auto-merge-cleanup-default.md",
+      "sha256": "07b5d9bc1b07f08eb81023a782a23a2f0e7c93d561b99b37ef3ed04c77c9181d",
+      "ruleId": 25,
+      "slug": "auto-merge-cleanup-default"
+    },
+    {
+      "path": "runtime-overlay/rules/26-valuable-data-standard.md",
+      "sha256": "ceb0161f06d6e09c78f0a360e5aa1a7251d9099f18e103acdb6fa046e6569536",
+      "ruleId": 26,
+      "slug": "valuable-data-standard"
+    },
+    {
+      "path": "runtime-overlay/rules/27-cross-runtime-substrate.md",
+      "sha256": "7d03eb06d1435c6fe4f94b26e0b26261868f8c1c1ce57efc67d89de56fcd0c97",
+      "ruleId": 27,
+      "slug": "cross-runtime-substrate"
+    },
+    {
+      "path": "runtime-overlay/rules/BROWSE.md",
+      "sha256": "7e34611cdc4950b6831180a90b68782abaf32a0959a79d1976695618dac7b830"
+    },
+    {
+      "path": "runtime-overlay/rules/CONTEXT.md",
+      "sha256": "c333f19aedea40a53e705a67a9526b4b34a676381a57903ba6eacac849a8294a"
+    },
+    {
+      "path": "runtime-overlay/rules/CORE.md",
+      "sha256": "8dcba2f0b0efbd65f94510f3eaebb2d99a709c0a3caeb743ef810f24a3ee2a1c"
+    }
+  ],
+  "schemaCount": 0,
+  "rulesCount": 16
+}

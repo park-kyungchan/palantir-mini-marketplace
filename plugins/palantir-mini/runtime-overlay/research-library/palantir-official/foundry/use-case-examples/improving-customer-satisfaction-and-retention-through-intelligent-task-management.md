@@ -1,0 +1,50 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/use-case-examples/improving-customer-satisfaction-and-retention-through-intelligent-task-management/"
+canonicalUrl: "https://palantir.com/docs/foundry/use-case-examples/improving-customer-satisfaction-and-retention-through-intelligent-task-management/"
+sourceLastmod: "2026-05-12T17:06:26.158Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "1321e04230f71ceafeeaf89347f40e0306b9e3902b33b0c9204064bc0f40ee6d"
+product: "foundry"
+docsArea: "use-case-examples"
+locale: "en"
+upstreamTitle: "Documentation | Logistics and transportation > Improve customer satisfaction and retention through intelligent task management"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Improving customer satisfaction and retention through intelligent task management
+
+> Industry Sector: **Logistics & Transportation**
+>
+> Business Function: **Customer Relations**
+
+At a global shipping company, Palantir Foundry was used as an end-to-end operational task management system to prioritize, assign, and action key tasks across thousands of agents in more than 100 countries to improve customer satisfaction and retention.
+
+## Challenge
+
+To get shipments from origin to destination, thousands of interdependent tasks must be assigned to thousands of customer service agents. Even one misstep in the chain of tasks can cause serious shipping delays – and frustrated customers to move on to competitors.
+
+When a global shipping company set out to reduce costs, they discovered that improving task completion could help save tens of millions of dollars. They needed a technological solution to overcome siloed legacy systems, improve visibility into tasks, and automate manual workflows.
+
+## Solution
+
+Applying logic and automation to a unified data asset allows customer service agents to quickly prioritize and complete hundreds of thousands of operational tasks. The solution enables:
+
+* Task prioritization -- Tasks are now systematically prioritized by impact so agents can focus on completing the tasks that are most important to customer satisfaction.
+* Task exploration -- A detailed task view joins data from booking systems, container tracking systems, CRM sources, and more, giving agents complete context.
+* Task assignment -- Task assignment logic allows the company, without any human effort, to intelligently distribute the global workload and incorporate local department-controlled criteria.
+* Task monitoring -- Management tracks overall performance to monitor how task completion is contributing to organizational efficiency and customer satisfaction.
+
+## Impact
+
+* Key tasks are scored by impact and prioritized in seconds (versus hundreds of hours) – this helps ensure retention of the organization’s most valuable customers.
+* Tasks automatically assigned to thousands of agents across more than 100 countries.
+* Procedural efficiencies have saved the company tens of millions of dollars.
+
+## Implement a similar use case
+
+This use case implements the following Pattern. Follow the link below to read more about a particular Pattern and learn how it is implemented within Foundry.
+
+* [Operational process coordination](/docs/foundry/use-case-patterns/operational-process-coordination/) (used for 8 other use cases)
+
+Want more information on this use case? Looking to implement something similar? [Get started with Palantir. ↗](https://www.palantir.com/contact/get-started/)

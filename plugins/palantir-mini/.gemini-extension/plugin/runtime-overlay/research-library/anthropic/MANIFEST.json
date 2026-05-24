@@ -1,0 +1,49 @@
+{
+  "manifestId": "manifest:research/anthropic",
+  "version": "1.0.0",
+  "owner": "ontology-steward",
+  "sources": [
+    {
+      "sourceUrl": "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents",
+      "mirrorPath": "effective-harnesses-2025-11-26.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-05-06T11:58:19Z"
+    },
+    {
+      "sourceUrl": "https://www.anthropic.com/engineering/harness-design-for-long-running-application-development",
+      "mirrorPath": "harness-design-2026-03-24.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-05-06T11:58:19Z"
+    },
+    {
+      "sourceUrl": "https://www.anthropic.com/engineering/scaling-managed-agents",
+      "mirrorPath": "scaling-managed-agents-2026-04-08.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-05-06T11:58:19Z"
+    },
+    {
+      "sourceUrl": "https://www.anthropic.com/news/claude-opus-4-7",
+      "mirrorPath": "opus-4-7-introducing-2026-04-16.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-05-06T12:35:00Z"
+    },
+    {
+      "sourceUrl": "https://www.anthropic.com/engineering/april-23-postmortem",
+      "mirrorPath": "opus-4-7-postmortem-2026-04-23.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-05-06T12:35:00Z"
+    },
+    {
+      "sourceUrl": "https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7",
+      "mirrorPath": "opus-4-7-whats-new-platform.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-05-06T12:35:00Z"
+    }
+  ]
+}

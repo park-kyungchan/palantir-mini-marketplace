@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DTC Conversation Gap HITL Pilot</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --ink: #182230;
+      --muted: #667085;
+      --line: #d0d7df;
+      --blue: #155eef;
+      --green: #067647;
+      --amber: #b54708;
+      --red: #b42318;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    main {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px;
+      padding-bottom: 16px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 28px; letter-spacing: 0; }
+    h2 { font-size: 18px; letter-spacing: 0; margin-bottom: 10px; }
+    h3 { font-size: 15px; letter-spacing: 0; margin-bottom: 6px; }
+    .muted { color: var(--muted); }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+      gap: 14px;
+    }
+    .stack { display: grid; gap: 14px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfd;
+    }
+    .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    button, .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: #ffffff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+    }
+    button { cursor: pointer; }
+    button[aria-pressed="true"] {
+      border-color: var(--blue);
+      color: var(--blue);
+      font-weight: 700;
+    }
+    textarea {
+      width: 100%;
+      min-height: 190px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      resize: vertical;
+    }
+    ul { margin: 8px 0 0; padding-left: 20px; }
+    @media (max-width: 900px) {
+      main { width: min(100vw - 18px, 720px); }
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <script id="pilot-state" type="application/json">
+    {
+      "stage": "DTC boundary review",
+      "proposal": "palantir-mini DTC Conversation Gap Proposal For Claude Review",
+      "leadInference": "DTC is not missing as a data shape. The gap is a first-class user-confirmed conversation layer with provenance, grading, and downstream consumption.",
+      "userChoices": [
+        "Approve conversation-first thesis",
+        "Prefer schema-first path",
+        "Prefer enforcement-first path",
+        "Hold and ask Claude to falsify"
+      ],
+      "nextActions": [
+        "request-claude-review",
+        "draft-dtc-conversation-plan",
+        "hold-before-runtime-change"
+      ],
+      "runtimeGaps": [
+        "Codex must call pm_semantic_intent_gate manually",
+        "Codex lacks native",
+        "No new DTC API is approved by this pilot"
+      ]
+    }
+  </script>
+
+  <main>
+    <header>
+      <h1>DTC Conversation Gap HITL Pilot</h1>
+      <p class="muted">A static review artifact for the existing Claude-facing proposal.</p>
+    </header>
+
+    <div class="layout">
+      <section class="stack">
+        <div class="panel">
+          <h2>Lead Inference</h2>
+          <p id="leadInference"></p>
+        </div>
+        <div class="panel">
+          <h2>User Review</h2>
+          <div class="choices" id="choices"></div>
+        </div>
+        <div class="panel">
+          <h2>What Approval Means</h2>
+          <ul>
+            <li>Claude may review the conversation-first thesis.</li>
+            <li>No schema, handler, hook, or gate change is approved.</li>
+            <li>The next step remains a proposal review, not implementation.</li>
+          </ul>
+        </div>
+      </section>
+
+      <aside class="stack">
+        <div class="panel">
+          <h2>Next Actions</h2>
+          <div class="choices" id="actions"></div>
+        </div>
+        <div class="panel">
+          <h2>Runtime Gaps</h2>
+          <div class="choices" id="gaps"></div>
+        </div>
+        <div class="panel">
+          <h2>Copy Prompt</h2>
+          <textarea id="copyPrompt" readonly></textarea>
+          <div class="choices">
+            <button type="button" id="copyButton">Copy</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const state = JSON.parse(document.getElementById("pilot-state").textContent);
+    let selected = "";
+
+    function chips(id, values) {
+      const root = document.getElementById(id);
+      values.forEach((value) => {
+        const span = document.createElement("span");
+        span.className = "chip";
+        span.textContent = value;
+        root.appendChild(span);
+      });
+    }
+
+    function renderPrompt() {
+      document.getElementById("copyPrompt").value = [
+        "Review this DTC conversation gap proposal using the HITL pilot result.",
+        "",
+        `Proposal: ${state.proposal}`,
+        `User choice: ${selected || "not selected"}`,
+        "",
+        "Lead inference:",
+        state.leadInference,
+        "",
+        "Guardrail: do not implement schema, handler, hook, or gate changes unless a later plan is approved."
+      ].join("\n");
+    }
+
+    document.getElementById("leadInference").textContent = state.leadInference;
+    chips("actions", state.nextActions);
+    chips("gaps", state.runtimeGaps);
+
+    const choices = document.getElementById("choices");
+    state.userChoices.forEach((choice) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = choice;
+      button.setAttribute("aria-pressed", "false");
+      button.addEventListener("click", () => {
+        selected = choice;
+        [...choices.querySelectorAll("button")].forEach((node) => {
+          node.setAttribute("aria-pressed", node === button ? "true" : "false");
+        });
+        renderPrompt();
+      });
+      choices.appendChild(button);
+    });
+
+    document.getElementById("copyButton").addEventListener("click", async () => {
+      const field = document.getElementById("copyPrompt");
+      try {
+        await navigator.clipboard.writeText(field.value);
+      } catch (_error) {
+        field.focus();
+        field.select();
+      }
+    });
+    renderPrompt();
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+---
+sourceUrl: "https://www.palantir.com/docs/apollo/managing-changes/required-approvers/"
+canonicalUrl: "https://palantir.com/docs/apollo/managing-changes/required-approvers/"
+sourceLastmod: "2026-05-12T17:06:26.159Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "68cc4d97b1ec3cc03342d38e3120be0df2e919257a044969a64e689eaf4a4942"
+product: "apollo"
+docsArea: "managing-changes"
+locale: "en"
+upstreamTitle: "Documentation | Managing Changes > Required Approvers"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Required Approvers
+
+Approval requirements for changes in Apollo depend on the change type and the Entity that is being changed. There are several guidelines listed below that determine the average behavior. Contact your Palantir representative if you need to customize these requirements.
+
+The most typical requirement is that teams designated as [operators](/docs/apollo/core/authorization/) for the Entity associated with the change request must approve the change. For Environment settings changes, or for additions or removals of Entities in an Environment, one of the Environment editors would typically be required as a reviewer. The responsible party for changes scoped to an Entity may change based on whether operational responsibility is enabled for an Environment. If there is not an obvious existing Entity associated with a change (for instance, when a *new* Team is being created), an appropriate administrative group will be required to review the change request.
+
+Another typical requirement is based on the accreditation or compliance standard associated with the Entity. Dedicated compliance Teams or user attributes may be required for approvers to changes impacting certain accreditation policies supported by the change request system. Contact your Palantir representative to configure special compliance groups to pull in for review of changes impacting IL5, FedRAMP, or other highly regulated security domains.
+
+Because production software systems are often mission-critical, unless the change impacts an Environment marked with the `DEV` accreditation, Apollo requires at least one approver for changes. This ensures robust change management that easily satisfies various approval and audit requirements.
+
+Because the change request system covers so many types of changes and has several layers of customization, you may need to contact your Palantir representative for a full listing of the approval requirements for your Environment.

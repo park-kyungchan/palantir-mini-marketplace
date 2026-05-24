@@ -1,0 +1,56 @@
+{
+  "_shape_only": true,
+  "_description": "Multi-RID query: 5 scopePaths spanning schemas + shared-core + handlers + lib. 2 requestedAxes. Verifies axisRids length == 7 (2 axes + 5 scopePaths), requiredContracts includes SemanticIntentContract + DigitalTwinChangeContract because paths touch schemas/ and handlers/ mutation surfaces.",
+  "applicationState": {
+    "status": "composed",
+    "scopePaths": [
+      "schemas/ontology/primitives/sprint-contract.ts",
+      "schemas/ontology/primitives/rule.ts",
+      "ontology/shared-core/index.ts",
+      "bridge/handlers/ontology-context-query.ts",
+      "lib/capability-registry/index.ts"
+    ],
+    "userNonGoals": [],
+    "composedAt": "<volatile:iso8601>"
+  },
+  "retrievalContext": {
+    "status": "composed",
+    "impactGraphNeighborhood": {
+      "available": true,
+      "referenceField": "impactContext",
+      "axisRidCount": 7
+    },
+    "composedAt": "<volatile:iso8601>"
+  },
+  "impactContext": {
+    "axisRids": [
+      "axis:impact-radius",
+      "axis:schema-surface",
+      "file:schemas/ontology/primitives/sprint-contract.ts",
+      "file:schemas/ontology/primitives/rule.ts",
+      "file:ontology/shared-core/index.ts",
+      "file:bridge/handlers/ontology-context-query.ts",
+      "file:lib/capability-registry/index.ts"
+    ],
+    "perRidImpact": "<volatile:array_length_7>"
+  },
+  "capabilityContext": {
+    "totalCapabilities": "<volatile:number>",
+    "scopedCapabilityIds": "<volatile:array>",
+    "skillCount": "<volatile:number>",
+    "mcpToolCount": "<volatile:number>",
+    "agentCount": "<volatile:number>"
+  },
+  "riskContext": { "status": "composed", "risks": [] },
+  "lineageContext": {
+    "recentT3PlusEventCount": "<volatile:number>",
+    "lastEventWhen": "<volatile:string|null>",
+    "perProjectCounts": "<volatile:object>"
+  },
+  "evalContext": { "status": "pending-later-pr", "evalRuns": [] },
+  "graphConfidence": "<volatile:number_0_to_1>",
+  "missingEdges": "<volatile:array_max_50>",
+  "recommendedAgentUse": "<volatile:enum:lead-direct|targeted-verification|bounded-explorer|none>",
+  "requiredContracts": ["SemanticIntentContract", "DigitalTwinChangeContract"],
+  "nonGoals": []
+}

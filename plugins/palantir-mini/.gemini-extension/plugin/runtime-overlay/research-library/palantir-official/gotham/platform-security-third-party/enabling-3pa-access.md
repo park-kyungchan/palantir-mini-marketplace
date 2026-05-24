@@ -1,0 +1,37 @@
+---
+sourceUrl: "https://www.palantir.com/docs/gotham/platform-security-third-party/enabling-3pa-access/"
+canonicalUrl: "https://palantir.com/docs/gotham/platform-security-third-party/enabling-3pa-access/"
+sourceLastmod: "2026-05-12T17:06:26.159Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "d03c2eb34ad347c9be6225c2908f164832c2fb82036314d13d7f971a4d018c19"
+product: "gotham"
+docsArea: "platform-security-third-party"
+locale: "en"
+upstreamTitle: "Documentation | Third-party applications > Enabling third-party applications"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Enabling third-party applications
+
+Palantir's third-party application enablement framework allows organizations to maintain control of the third-party applications that they have enabled.
+
+Once a third-party application has been registered in the platform, it needs to be enabled for an organization before users in the organization can use the application, since applications are not automatically enabled.
+
+After an application has been enabled, users can perform the [OAuth2 authorization flow](/docs/gotham/platform-security-third-party/authorizing-3pa-access/) in order to grant Gotham access to a third-party application. Thus, an application’s access to platform resources still requires the user to affirmatively agree to grant access.
+
+## Required permissions
+
+If you have the **Manage OAuth 2.0 clients** permission for your Organization and the third-party application has been made discoverable to that Organization, then you are allowed to enable the application, edit the enablement details of the application, or disable the application.
+
+## Enable or disable applications
+
+From the **Actions** dropdown menu to the right of an application in the [third-party applications user interface](/docs/gotham/platform-security-third-party/third-party-apps-overview/#accessing-the-third-party-applications-user-interface), you can access the enablement interface selecting **Enable application** if an application has not yet been enabled, or **Enablement details** if the application has been enabled.
+
+Click the green **Enable application** button to enable the application, as shown below; if the application has been enabled, there will be a red **Disable application** available instead.
+
+![Enablement settings page](/docs/resources/gotham/platform-security-third-party/3PA-enablement-settings-page.png)
+
+:::callout{theme="danger" title="Warning"}
+Disabling an application is not a simple on and off toggle as re-enabling an application requires the application enablement workflow to be completed again. Existing authorizations for the application will not be reactivated and every user must reauthorize the newly-enabled application.
+:::

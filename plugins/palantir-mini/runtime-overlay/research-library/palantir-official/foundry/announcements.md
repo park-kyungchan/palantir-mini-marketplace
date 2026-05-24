@@ -1,0 +1,321 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/announcements/"
+canonicalUrl: "https://palantir.com/docs/foundry/announcements/"
+sourceLastmod: "2026-05-12T17:06:26.160Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "8189a9756906853a1f41a706167b45eaa6b1749203c12b57763a180d6661aa3c"
+product: "foundry"
+docsArea: "announcements"
+locale: "en"
+upstreamTitle: "Documentation | Announcements > May 2026"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Announcements
+
+**REMINDER:** Sign up for the Foundry Newsletter to receive a summary of new products, features, and improvements across the platform directly to your inbox. For more information on how to subscribe, see the [Foundry Newsletter and Product Feedback channels announcement](/docs/foundry/announcements/2023-11/#foundry-newsletter-and-product-feedback-channels-available-for-sign-up-now-ga).
+
+Share your thoughts about these announcements in our [Developer Community Forum ↗](https://community.palantir.com/c/announcements/6).
+
+***
+
+## Claude Opus 4.7, Opus 4.6, and Sonnet 4.6 are now available from Anthropic on commercial US georestricted enrollments
+
+Date published: 2026-05-12
+
+Claude Opus 4.7, Claude Opus 4.6, and Claude Sonnet 4.6 are now available from Anthropic Direct on commercial US georestricted enrollments. This is in addition to the models previously made available for enrollments via AWS Bedrock and Google Vertex AI.
+
+Benefits of enabling Anthropic Direct in addition to Bedrock and Vertex AI include:
+
+* **Higher capacity:** Additional enrollment capacity is granted for each enabled model provider, increasing an enrollment's total available capacity.
+* **Greater stability:** If one provider experiences disruption, traffic can continue flowing through other enabled providers, improving overall reliability.
+* **Faster access to new features:** Anthropic Direct typically receives new model capabilities — such as extended thinking improvements and updated tool use — ahead of hosted providers, so enrollments with Anthropic Direct enabled are first in line to receive those enhancements.
+
+### Getting started
+
+To use these models:
+
+* [Confirm that your enrollment administrator has enabled the relevant model family](/docs/foundry/aip/enable-aip-features/#enable-llms).
+* Review [token costs and pricing](/docs/foundry/aip/aip-compute-usage/#tokens-in-aip).
+* See the complete [list of all available models in AIP](/docs/foundry/aip/supported-llms/).
+
+### Your feedback matters
+
+We want to hear about your experiences using language models in the Palantir platform and welcome your feedback. Share your thoughts with Palantir Support channels or on our [Developer Community ↗](https://community.palantir.com/) using the [`language-model-service` tag ↗](https://community.palantir.com/tag/language-model-service).
+
+***
+
+## Additional Gemini and Claude models are now available on IL2 and IL4 enrollments via Google Vertex
+
+Date published: 2026-05-12
+
+Additional models from the Google Gemini and Anthropic Claude model families are now accessible from AIP applications in IL2 and IL4 enrollments via Google Vertex.
+
+### Frontier models
+
+You can access the following frontier models via Google Vertex after your enrollment administrator enables each model family:
+
+* **Google Gemini**
+  * [Gemini 3.1 Pro ↗](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/3-1-pro)
+  * [Gemini 3 Flash ↗](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/3-flash)
+* **Anthropic Claude**
+  * [Claude Opus 4.7 ↗](https://www.anthropic.com/claude/opus)
+  * [Claude Sonnet 4.6 ↗](https://www.anthropic.com/claude/sonnet)
+  * [Claude Haiku 4.5 ↗](https://www.anthropic.com/claude/haiku)
+
+### Legacy models
+
+Additionally, you can access the following legacy models via Google Vertex after your enrollment administrator enables each model family:
+
+* **Google Gemini**
+  * [Gemini 2.5 Pro ↗](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-pro)
+  * [Gemini 2.5 Flash ↗](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash)
+  * [Gemini 2.5 Flash Lite ↗](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-lite)
+* **Anthropic Claude**
+  * [Claude Opus 4.6 ↗](https://www-cdn.anthropic.com/14e4fb01875d2a69f646fa5e574dea2b1c0ff7b5.pdf)
+
+### Getting started
+
+To use these models:
+
+* [Confirm that your enrollment administrator has enabled the relevant model family.](/docs/foundry/aip/enable-aip-features/#enable-llms)
+* Review [token costs and pricing.](/docs/foundry/aip/aip-compute-usage/#tokens-in-aip)
+* See the complete [list of all models available in AIP.](/docs/foundry/aip/supported-llms/)
+
+### Your feedback matters
+
+We want to hear about your experiences using language models in the Palantir platform and welcome your feedback. Share your thoughts with Palantir Support channels or on our [Developer Community ↗](https://community.palantir.com/) using the [`language-model-service` tag ↗](https://community.palantir.com/tag/language-model-service).
+
+***
+
+## Develop OSDK React applications using Palantir's `@osdk/react` library
+
+Date published: 2026-05-12
+
+You can now develop [OSDK React applications](/docs/foundry/ontology-sdk-react-applications/overview/) in an idiomatic, React-first way using Palantir's [`@osdk/react` library ↗](https://palantir.github.io/osdk-ts/react/getting-started/). Generally available as of the week of May 11, the library provides React hooks and built-in performance optimizations, such as global caching, optimistic updates, and more to make it easier to build frontend OSDK applications that interact with Foundry.
+
+### Library benefits
+
+Use `@osdk/react` when your application primarily consumes data through [the OSDK](/docs/foundry/ontology-sdk/overview/) to streamline how you query data and execute actions in your ontology. The library provides the following benefits to enhance your development experience:
+
+* **Normalized object caching:** The library stores every object once. When you call an action to edit an object, every list, link, and view referencing the object updates automatically.
+* **Action-driven invalidation:** Action responses specify which objects were added, modified, or deleted. Lists are re-evaluated against their `where` clauses without manual invalidation.
+* **Optimistic updates with automatic rollback:** Immediately update the local cache before the server responds after creating, editing, or deleting an object. The optimistic changes are applied to a temporary store layer and automatically roll back if the action fails.
+* **Cross-component deduplication:** Two components running the same query share one network request and one cache entry.
+
+To improve development simplicity, the library also provides idiomatic React hooks for every Ontology primitive, platform APIs you can use with OSDK React hooks, and default guidance for LLMs through an `AGENTS.md` file.
+
+[Learn more about the development benefits gained through the `@osdk/react` library ↗.](https://palantir.github.io/osdk-ts/react/cache-management)
+
+### Get started and migrate from the beta version
+
+To begin using the `@osdk/react` library, review the [installation and setup guide ↗](https://palantir.github.io/osdk-ts/react/getting-started). Additionally, [Developer Console](/docs/foundry/developer-console/overview/) provides React code snippets you can copy and paste for your generated SDK.
+
+You can migrate from the beta version by importing `@osdk/react` instead of `@osdk/react/experimental`. The `@osdk/react/experimental` paths still resolve as `@deprecated` backwards-compatible re-exports, so you can upgrade incrementally before they are removed in a future release.
+
+### Contribute to the library
+
+Review the [contribution guide ↗](https://github.com/palantir/osdk-ts/blob/main/packages/react/CONTRIBUTING.md) to add new features to the `@osdk/react` library.
+
+***
+
+## Workflow Lineage now supports Global Branching
+
+Date published: 2026-05-12
+
+[Workflow Lineage](/docs/foundry/workflow-lineage/overview/) now supports [**Global Branching**](/docs/foundry/global-branching/overview/). You can use a global branch to manage, edit, and collaborate on workflow resources, and to develop and test end-to-end workflows in the Palantir platform before merging changes into a live production environment. [For more information on branching in Workflow Lineage, review the documentation.](/docs/foundry/workflow-lineage/branching-workflow-lineage/)
+
+![A Workflow Lineage graph on the new resources on branch global branch with the Resources on branch side panel.](/docs/resources/foundry/announcements/release-notes/2026-05-12-095719-workflow-lineage-workflow-lineage-global-branching-pn.png)
+
+*A Workflow Lineage graph on the "new resources on branch" global branch with the Resources on branch side panel.*
+
+Additionally, the new branch side panel allows you to view all modified resources on the graph, add modified resources that are not yet displayed, and navigate to relevant apps for unsupported Workflow Lineage resource nodes.
+
+### Bulk edits on a global branch
+
+Global Branching introduces several new capabilities in Workflow Lineage. You can now perform bulk edits on a global branch, including bulk upgrading function versions for action types and Workshop modules, bulk updating submission criteria for action types, and bulk deleting ontology resources.
+
+![Example of the update application panel where you can bulk update functions in Workshop on a global branch.](/docs/resources/foundry/announcements/release-notes/2026-05-12-095722-workflow-lineage-update-application-panel-pn.png)
+
+*Example of the update application panel where you can bulk update functions in Workshop on a global branch.*
+
+### Branch navigation shortcuts
+
+When viewing a resource on a branch, use `Cmd + I` on Mac or `Ctrl + I` on Windows to open a new Workflow Lineage tab on that branch. The shortcut works in Workshop, Ontology Manager, Logic, and Pipeline Builder object outputs.
+
+Global branches can also be opened from external apps, including AI FDE, through right-click actions on global branch tags or when selecting a global branch context, as well as from the branch bottom bar, branch page, and proposal page. Workflow Lineage automatically places eligible nodes on the graph and opens the sidebar panel to provide additional context.
+
+![Open in Workflow Lineage option in AI FDE.](/docs/resources/foundry/announcements/release-notes/2026-05-12-095726-workflow-lineage-pasted_image-pn.png)
+
+*Open in Workflow Lineage option in AI FDE.*
+
+![Open Workflow Lineage option from the bottom branch picker.](/docs/resources/foundry/announcements/release-notes/2026-05-12-095729-workflow-lineage-global-branching-bottom-bar-pn.png)
+
+*Open Workflow Lineage option from the bottom branch picker.*
+
+![The Workflow lineage option on a proposal page.](/docs/resources/foundry/announcements/release-notes/2026-05-12-095733-workflow-lineage-global-branching-proposals-pn.png)
+
+*The Workflow Lineage option on a proposal page.*
+
+### Color modes on global branches
+
+Global branches now support color modes, including functions repository, action rule, ontology status, usages, and out-of-date dependencies color modes.
+
+![Out-of-date-dependencies coloring on the testBranch global branch.](/docs/resources/foundry/announcements/release-notes/2026-05-12-095737-workflow-lineage-globa-branching-color-modes-pn.png)
+
+*Out-of-date-dependencies coloring on the testBranch global branch.*
+
+### We want to hear from you
+
+As we continue to develop Workflow Lineage, we want to hear about your experiences and welcome your feedback. Share your thoughts with Palantir Support channels or our [Developer Community ↗](https://community.palantir.com/) using the [`Workflow-lineage` ↗](https://community.palantir.com/tag/workflow-lineage) tag.
+
+[Learn more about Workflow Lineage.](https://www.palantir.com/docs/foundry/workflow-lineage/getting-started/)
+
+***
+
+## Introducing SQL Studio, Foundry's dedicated SQL application
+
+Date published: 2026-05-07
+
+[SQL Studio](/docs/foundry/sql-warehousing/sql-studio/), Foundry's dedicated application for writing and running SQL queries, is now available in beta. SQL Studio brings interactive SQL analysis to Foundry across both tabular data and ontology object types, backed by purpose-built SQL engines and AI-assisted query writing.
+
+![SQL Studio provides an interactive AI-assisted interface for SQL analysis of tabular data and Ontology objects.](/docs/resources/foundry/announcements/release-notes/2026-05-07-203536-sql-studio-image-pn.png)
+
+*SQL Studio provides an interactive, AI-assisted interface for SQL analysis of tabular data and Ontology objects.*
+
+SQL Studio builds on the contextual [SQL console](/docs/foundry/sql-warehousing/sql-console/) embedded in applications such as Dataset Preview, Data Lineage, and Ontology Manager, now providing a dedicated application with read and write SQL support for tabular data, read support for ontology object types, and the ability to publish reusable Ontology SQL functions.
+
+### Powered by Ontology SQL and Furnace
+
+SQL Studio is built on two Foundry SQL engines that share a common [Spark SQL dialect](/docs/foundry/sql-warehousing/sql-dialect/): Ontology SQL for querying ontology object types, and Furnace for querying tabular data.
+
+[**Ontology SQL**](/docs/foundry/sql-warehousing/ontology-sql/) is Foundry's SQL engine for querying ontology object types and many-to-many links. Queries execute directly against object storage using an in-memory compute path for fast response times on supported query shapes, with more complex queries automatically routed to Spark.
+
+[**Furnace**](/docs/foundry/sql-warehousing/furnace/) is Foundry's SQL engine for tabular data. It dynamically routes queries between Trino and Spark, delivering meaningfully faster query times for the right workloads. Furnace supports both read and write operations.
+
+### Key features
+
+SQL Studio brings together a complete SQL analysis experience in one place:
+
+* **Unified data and object querying:** Query tabular data and ontology object types from a single application, switching between data mode and object mode, while using a common Spark SQL dialect.
+* **Low-latency, interactive analysis:** SQL Studio is built for iterative, interactive development workflows. Queries are dynamically routed to the most appropriate compute engine, including faster non-Spark options for supported query shapes, and run on warm, fully managed compute.
+* **AI-assisted code generation:** A conversational AIP side panel helps you write, explain, and debug queries. It understands Foundry's supported SQL dialect and has visibility into your editor, including the current code and schemas for any referenced datasets, tables, object types.
+* **Preview results as tables or charts:** View query results as tabular output or visualize them with built-in line and bar charts. Result limits are configurable, with the option to return up to 10,000 rows per query rather than the default 1,000-row preview for users with the appropriate permissions.
+* **Save and share SQL worksheets:** Use the scratchpad for one-off analyses, or save your work as a SQL worksheet. Worksheets can be saved privately for personal reuse or in a project to share with colleagues. Saving creates a new version that you can review and restore later; unsaved changes are auto-staged so a user’s in-progress work persists between sessions.
+* **Read and write support:** In addition to `SELECT` queries, SQL Studio supports `CREATE TABLE` operations on datasets and `CREATE`, `INSERT`, `UPDATE`, and `DELETE` operations on Iceberg tables.
+* **Ontology SQL functions (Beta):** Define reusable, parameterized SQL queries over object types and publish them as [SQL functions](/docs/foundry/sql-warehousing/sql-functions/). Supported query shapes can execute with low latency on the same in-memory path as Ontology SQL queries. Use them across Foundry, including in Workshop, Actions, Automate, and the Ontology SDK. SQL functions are experimental and are not enabled on all Foundry environments, contact your Palantir representative to enroll.
+
+### Getting started
+
+To get started with SQL Studio, Foundry administrators should enable the application from the [Application access](/docs/foundry/administration/configure-application-access/) page of Control Panel. Once enabled, SQL Studio is directly accessible from the Applications menu.
+
+For information about SQL Studio features, see the [SQL Studio documentation](/docs/foundry/sql-warehousing/sql-studio/). For syntax guidance, refer to the [SQL dialect documentation](/docs/foundry/sql-warehousing/sql-dialect/). To learn more about the underlying engines, see the [Furnace](/docs/foundry/sql-warehousing/furnace/) and [Ontology SQL](/docs/foundry/sql-warehousing/ontology-sql/) overviews.
+
+### What's coming next
+
+SQL Studio is under active development, and several capabilities are on the near-term roadmap, including:
+
+* [Global branching](/docs/foundry/global-branching/overview/)  and [Marketplace packaging](/docs/foundry/marketplace/overview/) support for SQL worksheets.
+* Application usability improvements, such as multiple editor tabs, improved query history, and more chart type options.
+* Integration with Foundry's production pipeline tooling and Git-based CI/CD development workflows.
+
+### We want to hear from you
+
+As we continue to develop SQL Studio, we want to hear about your experiences and welcome your feedback, both about the SQL Studio application and the broader SQL experience in Foundry. Share your thoughts with Palantir Support channels or our [Developer Community ↗](https://community.palantir.com/).
+
+***
+
+## Replace language models used by AIP Logic functions in bulk from Workflow Lineage
+
+Date published: 2026-05-07
+
+You can now replace a language model used by multiple [AIP Logic](/docs/foundry/logic/overview/) functions in a single action from Workflow Lineage instead of opening each function and updating the model individually. The ability to bulk replace models is now generally available across Foundry enrollments, making it easier to migrate workflows off [deprecated models](/docs/foundry/model-catalog/model-deprecation/) and evaluate new models across an entire workflow.
+
+![Choose an existing language model node on a Workflow Lineage graph to swap models in multiple AIP Logic functions.](/docs/resources/foundry/announcements/release-notes/2026-05-05-185354-workflow-lineage-workflow-lineage-replace-model-view-pn.png)
+
+*Choose an existing language model node on a Workflow Lineage graph to swap models in multiple AIP Logic functions.*
+
+Follow the instructions in the [Workflow Lineage documentation](/docs/foundry/workflow-lineage/refactor-and-understand-workflows/#bulk-replace-models) to bulk replace models backing your AIP Logic functions with any [model provided by Palantir](/docs/foundry/model-catalog/overview/). Support for bulk model replacement with additional resource types beyond AIP Logic functions is in development.
+
+To migrate off deprecated models, review the [model deprecation guide](/docs/foundry/model-catalog/model-deprecation/).
+
+### Your feedback matters
+
+We want to hear about your experience using the **Replace model** feature in Workflow Lineage. Share your thoughts with Palantir Support channels or on our [Developer Community ↗](https://community.palantir.com) using the [workflow-lineage tag ↗](https://community.palantir.com/tag/workflow-lineage/106).
+
+***
+
+## GPT-5.5 is now available in AIP
+
+Date published: 2026-05-05
+
+GPT-5.5 is now available from Azure on US and EU georestricted, and non-georestricted enrollments. The model is available from OpenAI on US georestricted and non-georestricted enrollments.
+
+### Model overview
+
+GPT-5.5 is OpenAI's newest model, excelling at agentic coding, debugging, research, tool calling, and a wide range of other tasks. For more information, review [OpenAI's model documentation ↗](https://openai.com/index/introducing-gpt-5-5/).
+
+* **Context window:** 1,050,000 tokens
+* **Knowledge cutoff:** December 1, 2025
+* **Modalities:** Text, image
+* **Capabilities:** Reasoning tokens, function calling, structured outputs
+
+### Getting started
+
+To use this model:
+
+* [Confirm that your enrollment administrator has enabled the relevant model family.](/docs/foundry/aip/enable-aip-features/#enable-llms)
+* Review [token costs and pricing](/docs/foundry/aip/aip-compute-usage/#tokens-in-aip).
+* See the complete [list of all available models in AIP](/docs/foundry/aip/supported-llms/).
+
+### Your feedback matters
+
+We want to hear about your experiences using language models in the Palantir platform and welcome your feedback. Share your thoughts with Palantir Support channels or on our [Developer Community ↗](https://community.palantir.com/) using the [ `language-model-service` tag ↗](https://community.palantir.com/tag/language-model-service).
+
+***
+
+## Global Branching is generally available May 18: branch, test, and merge across applications
+
+Date published: 2026-05-05
+
+Starting the week of May 18, 2026, Global Branching (formerly Foundry Branching) will be generally available to all users on all enrollments. Global Branching provides a shared workflow to make changes across multiple applications on a single branch, test those changes end-to-end without disrupting production workflows, and merge them back into `Main`. Consult the [Global Branching documentation](/docs/foundry/global-branching/overview/) to learn more.
+
+![Reviewing main branch updates and resource check status in Ontology Manager.](/docs/resources/foundry/announcements/release-notes/2026-05-05-084529-global-branching-updated-branching-image2-pn.png)
+
+*Reviewing main branch updates and resource check status in Ontology Manager.*
+
+### Supported applications and workflows
+
+Global Branching is available for transforms and TypeScript v1 functions repositories, Pipeline Builder, the Ontology, Workshop, AIP Logic, and Object Views.
+
+![A proposal overview showing resources approval status and the Do not merge proposal setting.](/docs/resources/foundry/announcements/release-notes/2026-05-05-084533-global-branching-updated-branching-image-pn.png)
+
+*A proposal overview showing resources, approval status, and the "Do not merge proposal" setting.*
+
+For these applications, the following workflows are supported:
+
+* **Branch and modify resources:** Create or access a branch, and make changes to resources without affecting the `Main` branch.
+* **Remove resources:** Remove a resource from a branch to reset it to its state on the `Main` branch.
+* **Include new updates from** `Main` **and resolve conflicts**: Rebase your branched resource to update it with the latest changes from the `Main` branch. If conflicts exist, you will be redirected to the appropriate application to resolve them.
+* **Protect resources:** Resource owners can protect resources so that changes must go through a branch and receive approval before merging.
+* **Define approval policies:** Project owners define approval policies specifying eligible reviewers, required approvals, and whether contributors can self-approve. For Code Repositories and Pipeline Builder, you define policies within the resource itself.
+* **View branched resources:** Use Data Lineage to inspect the branched state of your resources and trace how changes propagate.
+* **Clear all checks and merge changes:** When a proposal is created, the system runs checks on each resource to surface issues such as conflicts or missing approvals. Once all checks pass, you can merge your proposal.
+
+### Updated security model and branch lifecycle
+
+When Global Branching is GA, the security model and branch lifecycle will feature:
+
+* **Simplified merge permissions:** Previously, merging required a dedicated branch role. Going forward, any user who can view a proposal can merge it once all approvals and checks are satisfied. A new **Do not merge** setting allows branch owners to block merges until they are ready.
+* **Revamped branch lifecycle:** Inactive branches will have ontology resources de-indexed and data eventually deleted, but all logic is preserved. Branches will no longer be auto-closed. Instead, branches can be manually archived and restored at any time.
+
+### Restricted Views, Automate, and what's ahead
+
+Restricted Views and Automate are now available in beta. The core branching workflow is functional, but some GA-level features — such as approval integration and removing a resource from a branch — are not yet available. Contact Palantir Support to enable, and consult the application-specific documentation to learn more about each application's current scope.
+
+Beyond these two applications, we are actively working to expand branching support across the Palantir platform, starting with OSDK, TypeScript v2 and Python functions, and Developer Console.
+
+### Your feedback matters
+
+Have thoughts on Global Branching? Let us know through Palantir Support channels and our [Developer Community](https://community.palantir.com/) using the `global-branching` tag ↗.

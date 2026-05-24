@@ -1,0 +1,49 @@
+---
+templateId: dtc-turn-card
+stage: dtc-fill-turn
+schemaVersion: palantir-mini/dtc-turn-card/v1
+appliesTo: DTC_FILL_SEQUENCE turn cards (T0-T6)
+provenance: Sprint-WIP-DTC (2026-05-15)
+---
+
+# DTC Fill Turn {{turnNumber}} of 7 — {{targetField}}
+
+## stage
+dtc-fill-turn
+
+## leadInference
+{{leadInferenceProse}}
+
+## evidenceRefs
+{{evidenceRefsBulleted}}
+
+## userChoices
+- approve-recommendation: {{recommendedAnswer}}
+- revise: User provides revised answer; agent re-drafts contract field
+- auto-fill: Agent runs {{autoFillStrategy}} via MCP impact_query
+- hold: Pause DTC fill; return to SIC review
+
+## stateEffect
+On approve: DTC.{{targetField}} = "{{recommendedAnswer}}"; advance to T{{turnNumber + 1}}
+On revise: DTC stays in T{{turnNumber}}; user-provided answer captured
+On auto-fill: Agent invokes {{autoFillStrategy}}; result requires user re-confirmation
+On hold: DTC fill sequence paused; envelope stays at digital_twin_drafted
+
+## nextAllowedActions
+{{nextAllowedActionsList}}
+
+## runtimeGaps
+{{runtimeGapsList}}
+
+## copyPrompt
+```
+pm_semantic_intent_gate({
+  project: "{{projectPath}}",
+  rawIntent: "{{rawIntent}}",
+  fillPolicy: "dtc-turn-fill",
+  turn: {{turnNumber}},
+  turnUserInput: "<user answer here>",
+  promptId: "{{promptId}}",
+  ...
+})
+```

@@ -1,0 +1,161 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/ontologies/test-changes-in-ontology/"
+canonicalUrl: "https://palantir.com/docs/foundry/ontologies/test-changes-in-ontology/"
+sourceLastmod: "2026-05-12T17:06:26.152Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "77d7a30d427d5309374e4b6b9c6bed1a45bc818c415259bb253c4a8d7ffe799f"
+product: "foundry"
+docsArea: "ontologies"
+locale: "en"
+upstreamTitle: "Documentation | Ontologies > Test changes in the ontology"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Test changes in the ontology
+
+[Global Branching](/docs/foundry/global-branching/overview/) allows you to test changes to the ontology without disrupting your live production environment. On your Global Branch, you can modify ontology resources based on branched datasource changes, and test these modifications downstream in [supported applications](/docs/foundry/global-branching/supported-functionality/).
+
+The following sections describe the Global Branching workflow for testing changes in the ontology.
+
+### Definitions
+
+* **Branch:** A branch is an environment derived from the main version, designed to enable experimentation and changes without impacting the `Main` branch. This allows users to test and refine adjustments in an isolated environment before merging them back into `Main`.
+* **Proposal:** When you create a [Global Branching proposal](/docs/foundry/global-branching/core-concepts/#proposal), an ontology proposal is automatically created as a subset to track ontology-specific changes. The ontology proposal contains metadata such as reviews, name, and descriptions of the ontology changes being merged into `Main`. Proposals serve as a mechanism for reviewing and approving changes made in a separate branch before they are integrated into `Main`.
+* **Rebasing:** Incorporate the latest changes from `Main` into your current branch to keep your current branch up-to-date.
+
+### Branching lifecycle
+
+The general branching workflow has four steps:
+
+1. [Modify resources on a branch](#1-modify-resources-on-a-branch)
+2. [Rebase your branch and resolve merge conflicts](#2-rebase-your-branch-and-resolve-merge-conflicts)
+3. [Prepare your branch for review](#3-prepare-your-branch-for-review)
+4. [Merge your branch](#4-merge-your-branch)
+
+## 1. Modify resources on a branch
+
+To modify the ontology on a branch, you can either create a new branch in Ontology Manager, or access an existing branch using the branch selector.
+
+To create a branch, open the branch selector and choose **Create new branch** to open a dialog where you can add a title and description for your branch.
+
+<img src="./media/branch-selector.png" alt="Branch selector." width=250>
+
+If you already have changes to the ontology that you would like to include in a branch, you can select **Save to new branch** from the save dialog to create a separate branch with those changes. Note that if you make changes to any [protected ontology resources](/docs/foundry/global-branching/protecting-resources/), you will be required to save to a new branch.
+
+<img src="./media/save-to-ontology.png" alt="Save to ontology option." width=250>
+
+:::callout{theme="neutral"}
+You can only branch from the main ontology, also known as `Main` branch.
+:::
+
+While on a branch, a [branch task bar](/docs/foundry/global-branching/branch-taskbar/) at the bottom of the interface will display your current branch name and additional metadata.
+
+## 2. Rebase your branch and resolve merge conflicts
+
+:::callout{theme="neutral" title="Known limitations"}
+Consider these [known limitations](#known-limitations) related to rebasing and merging your branch.
+:::
+
+While you are introducing changes on your branch, `Main` can also update with new changes made by others. Rebasing incorporates the latest changes from `Main` into your current branch to keep your current branch up to date.
+
+:::callout{theme="neutral" title="Automatic rebasing"}
+If your Global Branch does not contain changes to the ontology, rebasing occurs automatically. Once you introduce ontology changes to your branch, including indexing an object type, you will need to manually rebase to keep your branch up to date with `main`.
+:::
+
+### Rebase a branch
+
+When there are new changes from `Main`, a blue indicator appears on the **Main branch updates** tab in the sidebar to prompt you to review these changes.
+
+<img src="./media/main-branch-updates.png" width=300 alt="Main branch updates." />
+
+Navigate to `Main` branch updates page to view incoming changes since your last rebase — or since branch creation, if this is your first manual rebase. Select **Rebase branch** to update your branch with the latest version of `Main`.
+
+![Rebase branch view.](/docs/resources/foundry/ontologies/rebase-branch-view.png)
+
+If there are no conflicts or errors, the rebase will complete automatically, and your branch will be up-to-date.
+
+### Resolve merge conflicts
+
+If there are conflicts, your rebase will remain in progress, and you will be redirected to the **Conflicts tab** to resolve any conflicting changes between your branch and `Main`. If there are only errors, you will be redirected to the **Errors tab** instead.
+
+During rebasing, changes from `Main` are loaded onto your branch, while any previously saved changes from your current branch are reloaded back into the working state, which you can see in the **All changes** tab.
+
+This state allows you to view and access changes from both `Main` and your branch. When an ontology resource has changes from both branches, it will display your branch version by default.
+
+![Review rebase changes.](/docs/resources/foundry/ontologies/review-rebase-changes.png)
+
+To resolve conflicts, you can choose to **Use Main branch changes** or **Keep current branch changes** for each resource. Alternatively, you can navigate directly to that resource and apply **custom changes** to resolve its conflicts.
+
+In this example, the `Palantir employee` object type has a conflict in which the display name has been changed on both `Main` branch and your branch. To resolve this conflict, choose which version of this object type to keep.
+
+![Review object type rebase changes.](/docs/resources/foundry/ontologies/review-object-type-rebase-changes.png)
+
+You can also resolve this conflict by making a custom change. In the example, you can navigate to the object type and change its display name from “Palantir employee” to "Current employee". The conflict will now be resolved due to this custom change.
+
+![Current employee example.](/docs/resources/foundry/ontologies/current-employee-example.png)
+
+![Current employee example conflicts.](/docs/resources/foundry/ontologies/current-employee-example-conflicts.png)
+
+After resolving all conflicts, ensure any errors are addressed before finishing your rebase.
+
+### Finish rebase
+
+Once all errors and conflicts have been resolved, you can select **Finish rebase and save**, and your branch will be up to date.
+
+![Finish rebase and save option.](/docs/resources/foundry/ontologies/finish-rebase-and-save.png)
+
+You can continue working on your branch and rebasing regularly to keep your branch current with the latest version of `Main` branch.
+
+![Branch is up-to-date.](/docs/resources/foundry/ontologies/branch-is-up-to-date.png)
+
+### Known limitations
+
+These are the known limitations that we are tracking and in the process of resolving:
+
+* **Datasource deletion:** When a conflict occurs on an object type where a backing datasource has been replaced or removed on `Main` branch, choosing to keep your branch changes will lead to a merge failure. In this case, we suggest choosing `Main` branch changes.
+* **Conditional formatting deletion:** When a conflict occurs on a property type where a conditional formatting rule set has been replaced or removed on `Main` branch, choosing to keep your branch changes will lead to a merge failure. In this case, we suggest choosing `Main` branch changes.
+
+## 3. Prepare your branch for review
+
+When you are ready to merge your branch into `Main` branch after making your changes, you can create a proposal by selecting the **Create proposal** icon in the branch task bar. Add a name and description to set up your proposal.
+
+![Create proposal from taskbar.](/docs/resources/foundry/ontologies/create-proposal-taskbar.png)
+
+![Create proposal from dialog.](/docs/resources/foundry/ontologies/create-proposal-dialog.png)
+
+When a proposal is created, **merged checks** will run to verify whether the resources on a Global Branch are able to merge into `Main` branch. Failed checks can include conflicts between your branch and `Main` branch, which would require you to rebase your branch.
+
+<img src="./media/proposed-resources.png" width=350 alt="Proposed resources." />
+
+### Request a review
+
+You can add reviewers to your proposal through the branch task bar, the Global Branching proposal page, or the ontology proposal page.
+
+On the ontology proposal page, go to **Review changes** and select **Invite reviewers** to add reviewers to your proposal.
+
+For ontology resources that have migrated to projects, select **View policies** to see which reviewers are required to review a resource based on the associated project policies.
+
+Each ontology resource is considered an individual task. The status tag next to the resource name indicates the overall approval status, while the **Your review** section on the right allows you to submit a review.
+
+![Ontology proposal review changes.](/docs/resources/foundry/ontologies/ontology-proposal-review-tab.png)
+
+:::callout{theme="info" title="Leaving comments"}
+You may also leave comments on the various tasks in your proposal to give context about the changes proposed. Access the Comments section of your tasks by selecting the Comments sidebar on the far right.
+:::
+
+### Review the proposal
+
+In the **Review changes** tab, reviewers may approve or reject individual tasks. Users without permissions may still review the task, for example, to convey their opinions on the change, but this will not affect the approved status of the task.
+
+:::callout{theme="warning" title="Approval rights"}
+Users with approval rights can approve proposals even if not added as reviewers. Use the reviewers list to track who should review changes, not to restrict approvals.
+:::
+
+## 4. Merge your branch
+
+When you are ready to merge your changes to `Main`, you must merge your Global Branching proposal. This will automatically kick off the merge process for the ontology.
+
+![Merge branch option in Global Branching page.](/docs/resources/foundry/ontologies/test-changes-foundry-branching-merge-branch.png)
+
+To do so, select the merge icon in the branch task bar, or navigate to your proposal page in Global Branching and select **Merge proposal**.

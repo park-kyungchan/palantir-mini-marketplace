@@ -1,0 +1,70 @@
+{
+  "manifestId": "manifest:research/palantir-vision/aipcon-devcon",
+  "version": "1.0.0",
+  "owner": "ontology-steward",
+  "sources": [
+    {
+      "sourceUrl": "https://blog.palantir.com/connecting-agents-to-decisions/",
+      "mirrorPath": "blog-connecting-agents-2026-04-29.md",
+      "expectedRefreshDays": 90,
+      "refreshClass": "cold",
+      "lastFetchedAt": "2026-05-03T20:03:07Z"
+    },
+    {
+      "sourceUrl": "https://blog.palantir.com/connecting-ai-to-decisions/",
+      "mirrorPath": "connecting-ai-to-decisions-2024-01.md",
+      "expectedRefreshDays": 90,
+      "refreshClass": "cold",
+      "lastFetchedAt": "2026-05-06T11:58:19Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/aipcon/",
+      "mirrorPath": "aipcon.md",
+      "expectedRefreshDays": 90,
+      "refreshClass": "cold",
+      "lastFetchedAt": "2026-05-01T22:01:39Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/devcon/",
+      "mirrorPath": "devcon.md",
+      "expectedRefreshDays": 90,
+      "refreshClass": "cold",
+      "lastFetchedAt": "2026-05-01T22:01:39Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/docs/foundry/ai-fde-talks/",
+      "mirrorPath": "ai-fde.md",
+      "expectedRefreshDays": 90,
+      "refreshClass": "cold",
+      "lastFetchedAt": "2026-05-01T22:01:39Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/docs/foundry/aip-evals-talks/",
+      "mirrorPath": "aip-evals.md",
+      "expectedRefreshDays": 90,
+      "refreshClass": "cold",
+      "lastFetchedAt": "2026-05-01T22:01:39Z"
+    },
+    {
+      "sourceUrl": "https://blog.palantir.com/announcements/",
+      "mirrorPath": "announcements.md",
+      "expectedRefreshDays": 90,
+      "refreshClass": "cold",
+      "lastFetchedAt": "2026-05-03T20:03:07Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/aip/model-catalog/",
+      "mirrorPath": "model-catalog.md",
+      "expectedRefreshDays": 90,
+      "refreshClass": "cold",
+      "lastFetchedAt": "2026-05-01T22:01:39Z"
+    },
+    {
+      "sourceUrl": "https://blog.palantir.com/workflow-lineage/",
+      "mirrorPath": "workflow-lineage.md",
+      "expectedRefreshDays": 90,
+      "refreshClass": "cold",
+      "lastFetchedAt": "2026-05-01T22:01:39Z"
+    }
+  ]
+}

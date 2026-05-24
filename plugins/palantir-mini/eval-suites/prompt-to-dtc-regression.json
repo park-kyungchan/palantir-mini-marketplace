@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "aip-evaluation.v1.37.0",
+  "suite": {
+    "suiteId": "suite:prompt-to-dtc-regression",
+    "name": "Prompt-to-DTC Regression Suite",
+    "target": {
+      "kind": "mcp-tool",
+      "rid": "mcp-tool:palantir-mini.prompt-to-dtc",
+      "versionRef": "post-350-wave-10"
+    },
+    "testCaseIds": [
+      "testcase:prompt-identity-valid-continuity",
+      "testcase:prompt-identity-stale-hash",
+      "testcase:semantic-contract-missing-nouns",
+      "testcase:digital-twin-missing-evaluation-plan",
+      "testcase:routing-raw-cross-cutting-blocked",
+      "testcase:routing-project-scope-validation-ladder",
+      "testcase:gate-selective-blocking-default",
+      "testcase:gate-scoped-blocking-surface",
+      "testcase:gate-full-blocking",
+      "testcase:gate-approved-contracts-pass"
+    ],
+    "criteria": [
+      "criterion:prompt-contract-lineage",
+      "criterion:contract-required-before-routing",
+      "criterion:scoped-blocking-governance",
+      "criterion:metrics-report-generated"
+    ],
+    "evaluatorPolicy": {
+      "allowedDomains": ["rule"],
+      "requireHumanReviewForMutation": true,
+      "minimumPassingScore": 1
+    }
+  },
+  "testCases": [
+    {
+      "testCaseId": "testcase:prompt-identity-valid-continuity",
+      "title": "Valid prompt identity persists contracts and routes from prompt-local refs",
+      "input": {
+        "category": "prompt_identity",
+        "runtime": "codex"
+      },
+      "expectedBehavior": "A valid promptId, promptHash, sessionId, and runtime pass continuity and allow router dereference from stored approved contracts.",
+      "tags": ["prompt_identity", "lineage", "routing"]
+    },
+    {
+      "testCaseId": "testcase:prompt-identity-stale-hash",
+      "title": "Stale prompt hash fails continuity",
+      "input": {
+        "category": "prompt_identity",
+        "promptHash": "stale-hash"
+      },
+      "expectedBehavior": "A stale promptHash blocks semantic gate persistence and reports prompt continuity failure.",
+      "tags": ["prompt_identity", "lineage", "negative"]
+    },
+    {
+      "testCaseId": "testcase:semantic-contract-missing-nouns",
+      "title": "SemanticIntentContract without approved nouns is invalid",
+      "input": {
+        "category": "semantic_contract",
+        "approvedNouns": []
+      },
+      "expectedBehavior": "The semantic contract validator reports approvedNouns as a blocking issue.",
+      "tags": ["semantic_contract", "contract_validation", "negative"]
+    },
+    {
+      "testCaseId": "testcase:digital-twin-missing-evaluation-plan",
+      "title": "DigitalTwinChangeContract without evaluationPlan is invalid",
+      "input": {
+        "category": "digital_twin_contract",
+        "evaluationPlan": ""
+      },
+      "expectedBehavior": "The Digital Twin contract validator reports evaluationPlan as a blocking issue.",
+      "tags": ["digital_twin_contract", "evaluation", "negative"]
+    },
+    {
+      "testCaseId": "testcase:routing-raw-cross-cutting-blocked",
+      "title": "Raw cross-cutting ontology mutation cannot route",
+      "input": {
+        "category": "routing",
+        "complexityHint": "cross-cutting"
+      },
+      "expectedBehavior": "pm_intent_router returns contract_required before dispatching cross-cutting ontology-affecting work.",
+      "tags": ["routing", "raw_prompt", "negative"]
+    },
+    {
+      "testCaseId": "testcase:routing-project-scope-validation-ladder",
+      "title": "ProjectScope lane refs influence routing validation ladder",
+      "input": {
+        "category": "routing",
+        "laneId": "seq.rendering-scene"
+      },
+      "expectedBehavior": "Approved lane refs project required validation packs into the routing projection.",
+      "tags": ["routing", "project_scope", "validation_ladder"]
+    },
+    {
+      "testCaseId": "testcase:gate-selective-blocking-default",
+      "title": "Selective-blocking default skips non-ontology mutating work",
+      "input": {
+        "category": "gate",
+        "mode": "selective-blocking-default"
+      },
+      "expectedBehavior": "The default Prompt-DTC gate mode remains selective-blocking and skips non-ontology mutating edits without denial.",
+      "tags": ["gate", "selective-blocking", "default"]
+    },
+    {
+      "testCaseId": "testcase:gate-scoped-blocking-surface",
+      "title": "Scoped blocking denies protected surfaces without DTC approval",
+      "input": {
+        "category": "gate",
+        "mode": "scoped-blocking"
+      },
+      "expectedBehavior": "scoped-blocking denies protected lead-intent surfaces without digital_twin_approved continuity.",
+      "tags": ["gate", "scoped-blocking", "negative"]
+    },
+    {
+      "testCaseId": "testcase:gate-full-blocking",
+      "title": "Full blocking denies all mutating surfaces without DTC approval",
+      "input": {
+        "category": "gate",
+        "mode": "blocking"
+      },
+      "expectedBehavior": "blocking denies ordinary mutating edits when no approved DTC exists.",
+      "tags": ["gate", "blocking", "negative"]
+    },
+    {
+      "testCaseId": "testcase:gate-approved-contracts-pass",
+      "title": "Approved prompt-local contracts allow mutation in blocking mode",
+      "input": {
+        "category": "gate",
+        "mode": "blocking",
+        "approval": "digital_twin_approved"
+      },
+      "expectedBehavior": "blocking mode passes once prompt-local SemanticIntentContract and DigitalTwinChangeContract records are approved and continuous.",
+      "tags": ["gate", "approval", "lineage"]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+---
+name: pm-guard
+category: core-workflow
+description: "Full safety mode — destructive command warnings + directory-scoped edits. Combines /palantir-mini:pm-careful (warns before rm -rf, DROP TABLE, force-push, etc.) with..."
+allowed-tools: Read Write Edit Grep Glob Bash
+effort: medium
+disable-model-invocation: false
+---
+
+# /palantir-mini:pm-guard — Full Safety Mode
+
+Activates both destructive command warnings and directory-scoped edit restrictions.
+This is the combination of `/palantir-mini:pm-careful` + `/palantir-mini:pm-freeze` in a single command.
+
+**Dependency note:** This skill references hook scripts from the sibling `/palantir-mini:pm-careful`
+and `/palantir-mini:pm-freeze` skill directories. Both must be installed (they are installed together
+by the palantir-mini plugin).
+
+## Setup
+
+Ask the user which directory to restrict edits to. Use:
+
+- Question: "Guard mode: which directory should edits be restricted to? Destructive command warnings are always on. Files outside the chosen path will be blocked from editing."
+- Text input (not multiple choice) — the user types a path.
+
+Once the user provides a directory path:
+
+1. Resolve it to an absolute path:
+```bash
+FREEZE_DIR=$(cd "<user-provided-path>" 2>/dev/null && pwd)
+echo "$FREEZE_DIR"
+```
+
+2. Ensure trailing slash and save to the freeze state file:
+```bash
+FREEZE_DIR="${FREEZE_DIR%/}/"
+STATE_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.palantir-mini}"
+mkdir -p "$STATE_DIR"
+echo "$FREEZE_DIR" > "$STATE_DIR/freeze-dir.txt"
+echo "Freeze boundary set: $FREEZE_DIR"
+```
+
+Tell the user:
+- "**Guard mode active.** Two protections are now running:"
+- "1. **Destructive command warnings** — rm -rf, DROP TABLE, force-push, etc. will warn before executing (you can override)"
+- "2. **Edit boundary** — file edits restricted to `<path>/`. Edits outside this directory are blocked."
+- "To remove the edit boundary, run `/palantir-mini:pm-unfreeze`. To deactivate everything, end the session."
+
+## What's protected
+
+See `/palantir-mini:pm-careful` for the full list of destructive command patterns and safe exceptions.
+See `/palantir-mini:pm-freeze` for how edit boundary enforcement works.

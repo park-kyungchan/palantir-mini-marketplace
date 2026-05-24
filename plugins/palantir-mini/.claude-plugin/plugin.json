@@ -1,0 +1,36 @@
+{
+  "name": "palantir-mini",
+  "version": "6.79.0",
+  "description": "Ontology-first control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and cross-runtime Codex/Claude bridge sync.",
+  "author": {
+    "name": "palantirKC"
+  },
+  "keywords": [
+    "ontology",
+    "event-log",
+    "palantir",
+    "osdk",
+    "codegen",
+    "native-runtime",
+    "two-tier-actions",
+    "edit-functions",
+    "submission-criteria",
+    "decision-lineage",
+    "aip-evals",
+    "gan-inspired",
+    "brain-of-swarms",
+    "ontology-first-brain",
+    "multi-harness"
+  ],
+  "compatibleSchemaVersions": ">=1.47.0 <2.0.0",
+  "requiresClaudeCodeVersion": ">=2.1.110",
+  "mcpServers": {
+    "palantir-mini": {
+      "type": "stdio",
+      "command": "bun",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/bridge/mcp-server.ts"
+      ]
+    }
+  }
+}

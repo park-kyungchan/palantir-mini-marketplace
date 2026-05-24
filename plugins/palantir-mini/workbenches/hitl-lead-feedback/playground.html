@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>palantir-mini HITL Lead Feedback Workbench</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --ink: #182230;
+      --muted: #667085;
+      --line: #d0d7df;
+      --blue: #155eef;
+      --green: #067647;
+      --amber: #b54708;
+      --red: #b42318;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    main {
+      width: min(1220px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+    }
+
+    header {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 16px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 28px; letter-spacing: 0; }
+    h2 { font-size: 18px; letter-spacing: 0; }
+    h3 { font-size: 15px; letter-spacing: 0; }
+
+    .muted { color: var(--muted); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+      gap: 14px;
+    }
+
+    .stack { display: grid; gap: 14px; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfd;
+    }
+
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .chips, .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button, .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: #ffffff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button[aria-pressed="true"] {
+      border-color: var(--blue);
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 170px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--ink);
+      background: #ffffff;
+    }
+
+    .status {
+      display: inline-flex;
+      width: fit-content;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--amber);
+      background: #fffbeb;
+    }
+
+    .status.ready {
+      color: var(--green);
+      background: #ecfdf3;
+    }
+
+    /* Tab navigation */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 18px;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      padding: 8px 18px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+      bottom: -2px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .tab-btn:hover {
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .tab-btn.active {
+      border-color: var(--line);
+      background: #ffffff;
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* DTC Fill Mode panel styles */
+    .dtc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .dtc-counter {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .lang-toggle {
+      border: 1px solid var(--blue);
+      border-radius: 999px;
+      padding: 5px 14px;
+      background: #ffffff;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .lang-toggle:hover {
+      background: #eff4ff;
+    }
+
+    .progress-bar-wrap {
+      background: var(--line);
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--blue);
+      transition: width 0.3s ease;
+    }
+
+    .dtc-question-block {
+      background: #f8faff;
+      border: 1px solid #c7d7fd;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+
+    .dtc-question-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+
+    .dtc-question-text {
+      font-size: 15px;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .dtc-choice-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .dtc-choice-btn {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #ffffff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .dtc-choice-btn:hover {
+      border-color: var(--blue);
+      background: #eff4ff;
+    }
+
+    .dtc-choice-btn.selected {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: #eff4ff;
+      font-weight: 700;
+    }
+
+    .dtc-answer-block {
+      margin-bottom: 14px;
+    }
+
+    .dtc-answer-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    textarea.dtc-answer-input {
+      min-height: 100px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .dtc-submit-btn {
+      border: 1px solid var(--blue);
+      border-radius: 8px;
+      padding: 10px 22px;
+      background: var(--blue);
+      color: #ffffff;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .dtc-submit-btn:hover {
+      background: #1048c8;
+    }
+
+    .dtc-submit-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .dtc-status-msg {
+      font-size: 13px;
+      color: var(--muted);
+      margin-left: 12px;
+    }
+
+    .dtc-status-msg.ok {
+      color: var(--green);
+    }
+
+    .dtc-nav-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+
+    .dtc-nav-btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 16px;
+      background: #ffffff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .dtc-nav-btn:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    @media (max-width: 900px) {
+      main { width: min(100vw - 18px, 720px); }
+      .layout, .grid, .dtc-choice-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <script id="hitl-workbench-state" type="application/json">
+    {
+      "stage": "Digital Twin boundary review",
+      "promptRef": "prompt-front-door://example",
+      "runtime": "codex",
+      "leadInference": "The current DTC gap is not the data shape; it is the lack of a user-confirmed conversation layer with provenance and downstream consumption.",
+      "evidenceRefs": [
+        "workbenches/hitl-lead-feedback/sources/2052809885763747935.md",
+        "workbenches/hitl-lead-feedback/sources/2017024445244924382.md",
+        "workbenches/hitl-lead-feedback/sources/2027463795355095314.md"
+      ],
+      "userChoices": [
+        "approve",
+        "revise meaning",
+        "revise boundary",
+        "hold before mutation"
+      ],
+      "stateEffect": "If approved, Lead may draft or route inside the reviewed boundary. This artifact itself is not DTC approval.",
+      "nextAllowedActions": [
+        "approve-semantic-intent",
+        "draft-dtc",
+        "request-dtc-approval",
+        "route-with-approved-dtc"
+      ],
+      "runtimeGaps": [
+        "claude-native-question-ui:",
+        "codex-request-user-input: manual or runtime-local prompt",
+        "codex-user-prompt-submit-gap"
+      ]
+    }
+  </script>
+
+  <script id="dtc-fill-state" type="application/json">
+    {
+      "projectPath": "projects/palantir-math",
+      "rawIntent": "Add a new step to the curriculum",
+      "promptId": "prompt-dtc-fill://example",
+      "currentTurn": 1,
+      "totalTurns": 7,
+      "completedTurns": [],
+      "lang": "ko",
+      "turns": [
+        {
+          "turnNumber": 1,
+          "targetField": "intentSummary",
+          "questionKo": "이 변경 사항의 핵심 의도를 한 문장으로 요약하면 무엇인가요?",
+          "questionEn": "What is the core intent of this change in one sentence?",
+          "recommendedAnswer": "Add a quadratic equations step after step 4 in the algebra curriculum.",
+          "autoFillStrategy": "impact_query({ scopePaths: [\"projects/palantir-math\"], depth: 2 })",
+          "leadInferenceProse": "Based on the raw intent and prior SIC review, the primary change is a curriculum extension — not a structural overhaul.",
+          "evidenceRefsBullets": "- workbenches/hitl-lead-feedback/sources/2052809885763747935.md\n- workbenches/hitl-lead-feedback/sources/2017024445244924382.md",
+          "nextAllowedActions": ["approve-recommendation", "revise", "auto-fill", "hold"],
+          "runtimeGaps": ["dtc-panel-ui: not yet wired to live pm_semantic_intent_gate MCP"]
+        },
+        {
+          "turnNumber": 2,
+          "targetField": "approvedBoundary",
+          "questionKo": "이 변경이 영향을 미치는 정확한 파일 경로와 범위를 확인해주세요.",
+          "questionEn": "Confirm the exact file paths and scope that this change affects.",
+          "recommendedAnswer": "projects/palantir-math/src/curriculum/algebra.ts, projects/palantir-math/ontology/steps.ts",
+          "autoFillStrategy": "impact_query({ scopePaths: [\"projects/palantir-math/src/curriculum\"], depth: 3 })",
+          "leadInferenceProse": "The change boundary is contained to the algebra curriculum source and its ontology binding.",
+          "evidenceRefsBullets": "- workbenches/hitl-lead-feedback/sources/2027463795355095314.md",
+          "nextAllowedActions": ["approve-recommendation", "revise", "auto-fill", "hold"],
+          "runtimeGaps": ["dtc-panel-ui: boundary confirmation requires worktree file read"]
+        },
+        {
+          "turnNumber": 3,
+          "targetField": "riskAssessment",
+          "questionKo": "이 변경 사항의 위험 수준을 어떻게 평가하시나요? (low / medium / high)",
+          "questionEn": "How do you assess the risk level of this change? (low / medium / high)",
+          "recommendedAnswer": "low",
+          "autoFillStrategy": "pm_workflow_lineage_query({ project: \"projects/palantir-math\", days: 7 })",
+          "leadInferenceProse": "No schema migration required; runtime surface unchanged; eval rubric adapts without rewrite.",
+          "evidenceRefsBullets": "- Prior DTC approvals for curriculum additions showed no regressions",
+          "nextAllowedActions": ["approve-recommendation", "revise", "auto-fill", "hold"],
+          "runtimeGaps": []
+        },
+        {
+          "turnNumber": 4,
+          "targetField": "breakingChangeFlag",
+          "questionKo": "이 변경 사항이 하위 호환성을 깨는 변경인가요? (yes / no)",
+          "questionEn": "Is this change a breaking change to any consumer? (yes / no)",
+          "recommendedAnswer": "no",
+          "autoFillStrategy": "propagation_audit_forward({ project: \"projects/palantir-math\" })",
+          "leadInferenceProse": "ForwardProp audit shows no downstream schema consumer depends on the step sequence index.",
+          "evidenceRefsBullets": "- ontology/shared-core/curriculum-step.ts does not encode step ordering as a fixed key",
+          "nextAllowedActions": ["approve-recommendation", "revise", "auto-fill", "hold"],
+          "runtimeGaps": []
+        },
+        {
+          "turnNumber": 5,
+          "targetField": "rollbackPlan",
+          "questionKo": "문제 발생 시 롤백 계획을 설명해주세요.",
+          "questionEn": "Describe the rollback plan if issues are detected post-merge.",
+          "recommendedAnswer": "Revert the single curriculum commit; no schema migration needed; re-run eval suite.",
+          "autoFillStrategy": "pm_workflow_lineage_query({ project: \"projects/palantir-math\", days: 1 })",
+          "leadInferenceProse": "Single-commit rollback is sufficient; no side-effects on shared-core.",
+          "evidenceRefsBullets": "- git log shows atomic curriculum commits in this project",
+          "nextAllowedActions": ["approve-recommendation", "revise", "auto-fill", "hold"],
+          "runtimeGaps": []
+        },
+        {
+          "turnNumber": 6,
+          "targetField": "verificationCommand",
+          "questionKo": "변경 사항 검증을 위한 구체적인 shell 명령어를 제공해주세요.",
+          "questionEn": "Provide the concrete shell command to verify this change.",
+          "recommendedAnswer": "cd projects/palantir-math && bunx tsc --noEmit && bun test --filter curriculum",
+          "autoFillStrategy": "pm_rule_query({ byId: 12 })",
+          "leadInferenceProse": "Standard TypeScript typecheck + targeted test filter covers the algebra curriculum scope.",
+          "evidenceRefsBullets": "- rule 12 §Task granularity: VERIFY step must be a concrete shell command",
+          "nextAllowedActions": ["approve-recommendation", "revise", "auto-fill", "hold"],
+          "runtimeGaps": []
+        },
+        {
+          "turnNumber": 7,
+          "targetField": "approvalDecision",
+          "questionKo": "이 Digital Twin 변경 계약을 승인하시겠습니까? (approve / reject / hold)",
+          "questionEn": "Do you approve this Digital Twin Change Contract? (approve / reject / hold)",
+          "recommendedAnswer": "approve",
+          "autoFillStrategy": "N/A — final approval requires explicit human confirmation",
+          "leadInferenceProse": "All prior turns completed. DTC fields filled. Ready for final approval.",
+          "evidenceRefsBullets": "- All 6 prior turn answers captured in session",
+          "nextAllowedActions": ["approve", "reject", "hold"],
+          "runtimeGaps": ["final-dtc-approval: requires signed approvalRef in events.jsonl"]
+        }
+      ]
+    }
+  </script>
+
+  <main>
+    <header>
+      <h1>HITL Lead Feedback Workbench</h1>
+      <p class="muted">Generic artifact shell for ontology engineering review points.</p>
+      <span class="status" id="status">Awaiting user review</span>
+    </header>
+
+    <!-- Tab navigation -->
+    <nav class="tab-nav" aria-label="Workbench tabs">
+      <button class="tab-btn active" data-tab="review" type="button">SIC / FDE Review</button>
+      <button class="tab-btn" data-tab="dtc-fill" type="button">DTC Fill Mode</button>
+    </nav>
+
+    <!-- Tab: SIC / FDE Review (original content preserved verbatim) -->
+    <div class="tab-panel active" id="tab-review">
+      <div class="layout">
+        <section class="stack">
+          <div class="panel">
+            <h2>Lead Inference</h2>
+            <p id="leadInference"></p>
+          </div>
+
+          <div class="panel">
+            <h2>User Choices</h2>
+            <div class="choices" id="choices"></div>
+          </div>
+
+          <div class="panel">
+            <h2>State Effect</h2>
+            <p id="stateEffect"></p>
+          </div>
+        </section>
+
+        <aside class="stack">
+          <div class="panel">
+            <h2>Stage</h2>
+            <div class="grid">
+              <div class="item">
+                <span class="label">Stage</span>
+                <p id="stage"></p>
+              </div>
+              <div class="item">
+                <span class="label">Runtime</span>
+                <p id="runtime"></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Evidence</h2>
+            <div class="chips" id="evidence"></div>
+          </div>
+
+          <div class="panel">
+            <h2>Next Actions</h2>
+            <div class="chips" id="actions"></div>
+          </div>
+
+          <div class="panel">
+            <h2>Runtime Gaps</h2>
+            <div class="chips" id="gaps"></div>
+          </div>
+
+          <div class="panel">
+            <h2>Copy Prompt</h2>
+            <textarea id="copyPrompt" readonly></textarea>
+            <div class="choices">
+              <button type="button" id="copyButton">Copy</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Tab: DTC Fill Mode (new) -->
+    <div class="tab-panel" id="tab-dtc-fill">
+      <div class="dtc-header">
+        <span class="dtc-counter" id="dtcCounter">DTC Fill Turn 1 of 7</span>
+        <button class="lang-toggle" id="langToggle" type="button">EN</button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-bar-wrap" aria-label="DTC fill progress">
+        <div class="progress-bar-fill" id="dtcProgressFill" style="width: 0%"></div>
+      </div>
+
+      <div class="layout">
+        <section class="stack">
+          <!-- Per-turn question -->
+          <div class="dtc-question-block">
+            <div class="dtc-question-label" id="dtcQuestionLabel">Turn 1 — intentSummary</div>
+            <p class="dtc-question-text" id="dtcQuestion"></p>
+          </div>
+
+          <!-- 4 choice buttons -->
+          <div class="panel">
+            <h2>Your Choice</h2>
+            <div class="dtc-choice-grid" id="dtcChoiceGrid">
+              <button class="dtc-choice-btn" data-choice="answer" type="button" id="dtcChoiceAnswer">
+                Answer this turn
+              </button>
+              <button class="dtc-choice-btn" data-choice="auto-fill" type="button" id="dtcChoiceAutoFill">
+                Agent auto-fill
+              </button>
+              <button class="dtc-choice-btn" data-choice="hold" type="button" id="dtcChoiceHold">
+                Hold DTC fill
+              </button>
+              <button class="dtc-choice-btn" data-choice="revise" type="button" id="dtcChoiceRevise">
+                Revise previous
+              </button>
+            </div>
+          </div>
+
+          <!-- User answer textarea -->
+          <div class="panel dtc-answer-block">
+            <label class="dtc-answer-label" for="dtcAnswerInput">Your answer (or accept recommendation below)</label>
+            <textarea
+              class="dtc-answer-input"
+              id="dtcAnswerInput"
+              placeholder="Type your answer here, or click 'Accept recommendation' to use the agent suggestion..."
+            ></textarea>
+          </div>
+
+          <!-- Submit row -->
+          <div class="panel">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <button class="dtc-submit-btn" id="dtcSubmitBtn" type="button" disabled>Submit &amp; copy prompt</button>
+              <span class="dtc-status-msg" id="dtcStatusMsg"></span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="stack">
+          <!-- Lead recommendation -->
+          <div class="panel">
+            <h2 id="dtcRecommendLabel">Agent Recommendation</h2>
+            <p id="dtcRecommended" style="font-family:ui-monospace,monospace;font-size:13px;word-break:break-all;"></p>
+            <div class="choices" style="margin-top:10px;">
+              <button type="button" id="dtcAcceptBtn" class="tab-btn" style="border-radius:6px;border-color:var(--blue);color:var(--blue);">Accept recommendation</button>
+            </div>
+          </div>
+
+          <!-- Lead inference (sidebar) -->
+          <div class="panel">
+            <h2>Lead Inference</h2>
+            <p id="dtcLeadInference" style="font-size:14px;"></p>
+          </div>
+
+          <!-- Evidence refs -->
+          <div class="panel">
+            <h2>Evidence Refs</h2>
+            <div class="chips" id="dtcEvidenceChips"></div>
+          </div>
+
+          <!-- Auto-fill strategy -->
+          <div class="panel">
+            <h2>Auto-Fill Strategy</h2>
+            <p id="dtcAutoFillStrategy" style="font-family:ui-monospace,monospace;font-size:12px;word-break:break-all;color:var(--muted);"></p>
+          </div>
+
+          <!-- Runtime gaps -->
+          <div class="panel">
+            <h2>Runtime Gaps</h2>
+            <div class="chips" id="dtcRuntimeGaps"></div>
+          </div>
+
+          <!-- Generated copyPrompt -->
+          <div class="panel">
+            <h2>Copy Prompt (next turn)</h2>
+            <textarea id="dtcCopyPrompt" readonly></textarea>
+            <div class="choices" style="margin-top:10px;">
+              <button type="button" id="dtcCopyBtn">Copy</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Navigation row -->
+      <div class="dtc-nav-row">
+        <button class="dtc-nav-btn" id="dtcPrevBtn" type="button">&#8592; Previous</button>
+        <button class="dtc-nav-btn" id="dtcNextBtn" type="button">Next &#8594;</button>
+        <span id="dtcNavStatus" style="font-size:13px;color:var(--muted);margin-left:8px;"></span>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ─── Tab logic ────────────────────────────────────────────────────────────
+    (function () {
+      const tabBtns = document.querySelectorAll(".tab-btn[data-tab]");
+      const tabPanels = { "review": document.getElementById("tab-review"), "dtc-fill": document.getElementById("tab-dtc-fill") };
+
+      tabBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const target = btn.getAttribute("data-tab");
+          tabBtns.forEach(function (b) { b.classList.remove("active"); });
+          btn.classList.add("active");
+          Object.keys(tabPanels).forEach(function (key) {
+            tabPanels[key].classList.remove("active");
+          });
+          tabPanels[target].classList.add("active");
+        });
+      });
+    })();
+
+    // ─── SIC / FDE Review tab (original logic preserved verbatim) ────────────
+    (function () {
+      const state = JSON.parse(document.getElementById("hitl-workbench-state").textContent);
+      let selectedChoice = "";
+
+      function list(containerId, values) {
+        const container = document.getElementById(containerId);
+        container.textContent = "";
+        values.forEach(function (value) {
+          const span = document.createElement("span");
+          span.className = "chip";
+          span.textContent = value;
+          container.appendChild(span);
+        });
+      }
+
+      function updatePrompt() {
+        const prompt = [
+          "Use this Human-in-the-Loop review result as the next palantir-mini input.",
+          "",
+          "Stage: " + state.stage,
+          "Prompt ref: " + state.promptRef,
+          "Runtime: " + state.runtime,
+          "User choice: " + (selectedChoice || "not selected"),
+          "",
+          "Lead inference:",
+          state.leadInference,
+          "",
+          "State effect:",
+          state.stateEffect,
+          "",
+          "Next allowed actions:",
+          state.nextAllowedActions.map(function (action) { return "- " + action; }).join("\n")
+        ].join("\n");
+        document.getElementById("copyPrompt").value = prompt;
+        const status = document.getElementById("status");
+        status.textContent = selectedChoice ? ("Selected: " + selectedChoice) : "Awaiting user review";
+        status.className = selectedChoice === "approve" ? "status ready" : "status";
+      }
+
+      document.getElementById("stage").textContent = state.stage;
+      document.getElementById("runtime").textContent = state.runtime;
+      document.getElementById("leadInference").textContent = state.leadInference;
+      document.getElementById("stateEffect").textContent = state.stateEffect;
+      list("evidence", state.evidenceRefs);
+      list("actions", state.nextAllowedActions);
+      list("gaps", state.runtimeGaps);
+
+      const choices = document.getElementById("choices");
+      state.userChoices.forEach(function (choice) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = choice;
+        button.setAttribute("aria-pressed", "false");
+        button.addEventListener("click", function () {
+          selectedChoice = choice;
+          [].slice.call(choices.querySelectorAll("button")).forEach(function (node) {
+            node.setAttribute("aria-pressed", node === button ? "true" : "false");
+          });
+          updatePrompt();
+        });
+        choices.appendChild(button);
+      });
+
+      document.getElementById("copyButton").addEventListener("click", function () {
+        const field = document.getElementById("copyPrompt");
+        try {
+          navigator.clipboard.writeText(field.value);
+        } catch (_error) {
+          field.focus();
+          field.select();
+        }
+      });
+
+      updatePrompt();
+    })();
+
+    // ─── DTC Fill Mode tab (new) ──────────────────────────────────────────────
+    (function () {
+      const dtcState = JSON.parse(document.getElementById("dtc-fill-state").textContent);
+      let currentTurn = dtcState.currentTurn;
+      let lang = dtcState.lang || "ko";
+      const completedTurns = {};
+      const totalTurns = dtcState.totalTurns;
+      let selectedChoice = "";
+
+      // Language strings
+      const i18n = {
+        ko: {
+          counterLabel: function (n, t) { return "DTC Fill Turn " + n + " of " + t; },
+          langToggleLabel: "EN",
+          questionLabel: function (n, field) { return "Turn " + n + " — " + field; },
+          recommendLabel: "에이전트 추천 답변",
+          acceptBtn: "추천 수락",
+          answerPlaceholder: "답변을 입력하거나, '추천 수락'을 클릭하세요...",
+          submitBtn: "제출 및 프롬프트 복사",
+          statusSubmitted: "제출 완료 — 프롬프트 복사됨",
+          statusCopied: "클립보드에 복사됨",
+          statusHold: "DTC fill 일시 중지됨",
+          statusRevise: "이전 답변 수정 모드",
+          statusAutoFill: "자동 채우기 요청됨 (MCP 호출 필요)",
+          choiceAnswer: "이번 턴에 답변하기",
+          choiceAutoFill: "에이전트 자동 채우기",
+          choiceHold: "DTC fill 보류",
+          choiceRevise: "이전 답변 수정",
+          navPrev: "← 이전",
+          navNext: "다음 →",
+          progressLabel: function (done, total) { return done + "/" + total + " 완료"; }
+        },
+        en: {
+          counterLabel: function (n, t) { return "DTC Fill Turn " + n + " of " + t; },
+          langToggleLabel: "KO",
+          questionLabel: function (n, field) { return "Turn " + n + " — " + field; },
+          recommendLabel: "Agent Recommendation",
+          acceptBtn: "Accept recommendation",
+          answerPlaceholder: "Type your answer here, or click 'Accept recommendation' to use the agent suggestion...",
+          submitBtn: "Submit & copy prompt",
+          statusSubmitted: "Submitted — prompt copied",
+          statusCopied: "Copied to clipboard",
+          statusHold: "DTC fill paused",
+          statusRevise: "Revise previous answer mode",
+          statusAutoFill: "Auto-fill requested (MCP call required)",
+          choiceAnswer: "Answer this turn",
+          choiceAutoFill: "Agent auto-fill",
+          choiceHold: "Hold DTC fill",
+          choiceRevise: "Revise previous",
+          navPrev: "← Previous",
+          navNext: "Next →",
+          progressLabel: function (done, total) { return done + "/" + total + " done"; }
+        }
+      };
+
+      function t() { return i18n[lang]; }
+
+      function getCurrentTurnData() {
+        return dtcState.turns[currentTurn - 1];
+      }
+
+      function renderTurn() {
+        const turn = getCurrentTurnData();
+        if (!turn) return;
+        const tr = t();
+
+        document.getElementById("dtcCounter").textContent = tr.counterLabel(currentTurn, totalTurns);
+        document.getElementById("langToggle").textContent = tr.langToggleLabel;
+        document.getElementById("dtcQuestionLabel").textContent = tr.questionLabel(currentTurn, turn.targetField);
+        document.getElementById("dtcQuestion").textContent = lang === "ko" ? turn.questionKo : turn.questionEn;
+        document.getElementById("dtcRecommendLabel").textContent = tr.recommendLabel;
+        document.getElementById("dtcRecommended").textContent = turn.recommendedAnswer;
+        document.getElementById("dtcAcceptBtn").textContent = tr.acceptBtn;
+        document.getElementById("dtcAnswerInput").placeholder = tr.answerPlaceholder;
+        document.getElementById("dtcSubmitBtn").textContent = tr.submitBtn;
+        document.getElementById("dtcLeadInference").textContent = turn.leadInferenceProse;
+        document.getElementById("dtcAutoFillStrategy").textContent = turn.autoFillStrategy;
+        document.getElementById("dtcPrevBtn").textContent = tr.navPrev;
+        document.getElementById("dtcNextBtn").textContent = tr.navNext;
+
+        // Evidence chips
+        var evChips = document.getElementById("dtcEvidenceChips");
+        evChips.textContent = "";
+        (turn.evidenceRefsBullets || "").split("\n").forEach(function (line) {
+          var ref = line.replace(/^-\s*/, "").trim();
+          if (ref) {
+            var span = document.createElement("span");
+            span.className = "chip";
+            span.textContent = ref;
+            evChips.appendChild(span);
+          }
+        });
+
+        // Runtime gaps chips
+        var gapChips = document.getElementById("dtcRuntimeGaps");
+        gapChips.textContent = "";
+        (turn.runtimeGaps || []).forEach(function (gap) {
+          var span = document.createElement("span");
+          span.className = "chip";
+          span.textContent = gap;
+          gapChips.appendChild(span);
+        });
+
+        // Restore prior answer if available
+        var prior = completedTurns[currentTurn];
+        if (prior) {
+          document.getElementById("dtcAnswerInput").value = prior.answer;
+          selectedChoice = prior.choice;
+          enableSubmit();
+        } else {
+          document.getElementById("dtcAnswerInput").value = "";
+          selectedChoice = "";
+        }
+
+        // Update choice button styles
+        ["answer", "auto-fill", "hold", "revise"].forEach(function (c) {
+          var ids = { "answer": "dtcChoiceAnswer", "auto-fill": "dtcChoiceAutoFill", "hold": "dtcChoiceHold", "revise": "dtcChoiceRevise" };
+          var btn = document.getElementById(ids[c]);
+          btn.classList.toggle("selected", selectedChoice === c);
+        });
+
+        // Choice button labels (bilingual)
+        document.getElementById("dtcChoiceAnswer").textContent = tr.choiceAnswer;
+        document.getElementById("dtcChoiceAutoFill").textContent = tr.choiceAutoFill;
+        document.getElementById("dtcChoiceHold").textContent = tr.choiceHold;
+        document.getElementById("dtcChoiceRevise").textContent = tr.choiceRevise;
+
+        updateProgress();
+        updateCopyPrompt();
+        updateNavState();
+        document.getElementById("dtcStatusMsg").textContent = "";
+        document.getElementById("dtcStatusMsg").className = "dtc-status-msg";
+      }
+
+      function enableSubmit() {
+        document.getElementById("dtcSubmitBtn").disabled = false;
+      }
+
+      function updateProgress() {
+        var done = Object.keys(completedTurns).length;
+        var pct = (done / totalTurns) * 100;
+        document.getElementById("dtcProgressFill").style.width = pct + "%";
+        document.getElementById("dtcNavStatus").textContent = t().progressLabel(done, totalTurns);
+      }
+
+      function updateCopyPrompt() {
+        var turn = getCurrentTurnData();
+        var answerText = document.getElementById("dtcAnswerInput").value.trim() || turn.recommendedAnswer;
+        var copyText = [
+          "pm_semantic_intent_gate({",
+          "  project: \"" + dtcState.projectPath + "\",",
+          "  rawIntent: \"" + dtcState.rawIntent + "\",",
+          "  fillPolicy: \"dtc-turn-fill\",",
+          "  turn: " + currentTurn + ",",
+          "  turnUserInput: \"" + answerText.replace(/"/g, '\\"') + "\",",
+          "  promptId: \"" + dtcState.promptId + "\",",
+          "  targetField: \"" + turn.targetField + "\",",
+          "  userChoice: \"" + (selectedChoice || "answer") + "\",",
+          "  // ...",
+          "})"
+        ].join("\n");
+        document.getElementById("dtcCopyPrompt").value = copyText;
+      }
+
+      function updateNavState() {
+        document.getElementById("dtcPrevBtn").disabled = currentTurn <= 1;
+        document.getElementById("dtcNextBtn").disabled = currentTurn >= totalTurns;
+      }
+
+      // Choice button clicks
+      ["dtcChoiceAnswer", "dtcChoiceAutoFill", "dtcChoiceHold", "dtcChoiceRevise"].forEach(function (id) {
+        document.getElementById(id).addEventListener("click", function () {
+          var choiceMap = {
+            "dtcChoiceAnswer": "answer",
+            "dtcChoiceAutoFill": "auto-fill",
+            "dtcChoiceHold": "hold",
+            "dtcChoiceRevise": "revise"
+          };
+          selectedChoice = choiceMap[id];
+          ["dtcChoiceAnswer", "dtcChoiceAutoFill", "dtcChoiceHold", "dtcChoiceRevise"].forEach(function (bid) {
+            document.getElementById(bid).classList.toggle("selected", bid === id);
+          });
+          enableSubmit();
+          updateCopyPrompt();
+
+          var msgMap = {
+            "answer": "",
+            "auto-fill": t().statusAutoFill,
+            "hold": t().statusHold,
+            "revise": t().statusRevise
+          };
+          var msg = msgMap[selectedChoice] || "";
+          document.getElementById("dtcStatusMsg").textContent = msg;
+          document.getElementById("dtcStatusMsg").className = "dtc-status-msg";
+        });
+      });
+
+      // Accept recommendation
+      document.getElementById("dtcAcceptBtn").addEventListener("click", function () {
+        var turn = getCurrentTurnData();
+        document.getElementById("dtcAnswerInput").value = turn.recommendedAnswer;
+        selectedChoice = selectedChoice || "answer";
+        document.getElementById("dtcChoiceAnswer").classList.add("selected");
+        enableSubmit();
+        updateCopyPrompt();
+      });
+
+      // Answer textarea change
+      document.getElementById("dtcAnswerInput").addEventListener("input", function () {
+        if (!selectedChoice) {
+          selectedChoice = "answer";
+          document.getElementById("dtcChoiceAnswer").classList.add("selected");
+          enableSubmit();
+        }
+        updateCopyPrompt();
+      });
+
+      // Submit
+      document.getElementById("dtcSubmitBtn").addEventListener("click", function () {
+        var answer = document.getElementById("dtcAnswerInput").value.trim();
+        var turn = getCurrentTurnData();
+        if (!answer) {
+          answer = turn.recommendedAnswer;
+          document.getElementById("dtcAnswerInput").value = answer;
+        }
+        completedTurns[currentTurn] = { answer: answer, choice: selectedChoice };
+        updateProgress();
+        updateCopyPrompt();
+
+        var copyText = document.getElementById("dtcCopyPrompt").value;
+        var statusEl = document.getElementById("dtcStatusMsg");
+        try {
+          navigator.clipboard.writeText(copyText).then(function () {
+            statusEl.textContent = t().statusSubmitted;
+            statusEl.className = "dtc-status-msg ok";
+          });
+        } catch (_e) {
+          document.getElementById("dtcCopyPrompt").focus();
+          document.getElementById("dtcCopyPrompt").select();
+          statusEl.textContent = t().statusCopied;
+          statusEl.className = "dtc-status-msg ok";
+        }
+
+        // Advance to next turn automatically if not last
+        if (currentTurn < totalTurns) {
+          currentTurn++;
+          renderTurn();
+        }
+      });
+
+      // Copy button
+      document.getElementById("dtcCopyBtn").addEventListener("click", function () {
+        var field = document.getElementById("dtcCopyPrompt");
+        try {
+          navigator.clipboard.writeText(field.value).then(function () {
+            document.getElementById("dtcStatusMsg").textContent = t().statusCopied;
+            document.getElementById("dtcStatusMsg").className = "dtc-status-msg ok";
+          });
+        } catch (_e) {
+          field.focus();
+          field.select();
+        }
+      });
+
+      // Lang toggle
+      document.getElementById("langToggle").addEventListener("click", function () {
+        lang = lang === "ko" ? "en" : "ko";
+        renderTurn();
+      });
+
+      // Navigation
+      document.getElementById("dtcPrevBtn").addEventListener("click", function () {
+        if (currentTurn > 1) {
+          currentTurn--;
+          renderTurn();
+        }
+      });
+
+      document.getElementById("dtcNextBtn").addEventListener("click", function () {
+        if (currentTurn < totalTurns) {
+          currentTurn++;
+          renderTurn();
+        }
+      });
+
+      // Init
+      renderTurn();
+    })();
+  </script>
+</body>
+</html>

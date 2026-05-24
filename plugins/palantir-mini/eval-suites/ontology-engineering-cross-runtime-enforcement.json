@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "aip-evaluation.v1.37.0",
+  "suite": {
+    "suiteId": "suite:ontology-engineering-cross-runtime-enforcement",
+    "name": "Ontology Engineering Cross-Runtime Enforcement Suite",
+    "target": {
+      "kind": "mcp-tool",
+      "rid": "mcp-tool:palantir-mini.pm-ontology-engineering-workflow",
+      "versionRef": "ontology-engineering-runtime-enforcement"
+    },
+    "testCaseIds": [
+      "testcase:ontology-workflow-no-runtime-question-ui",
+      "testcase:ontology-workflow-approved-refs-require-fde-provenance",
+      "testcase:ontology-workflow-same-turn-contract-for-claude-codex",
+      "testcase:ontology-workflow-mutation-authorized-only-after-sic-dtc",
+      "testcase:ontology-workflow-pretool-hook-blocks-violations"
+    ],
+    "criteria": [
+      "criterion:no-runtime-native-question-ui-contract",
+      "criterion:fde-session-before-sic-dtc-routing",
+      "criterion:claude-codex-shared-workflow-contract",
+      "criterion:sic-dtc-approval-gates-mutation",
+      "criterion:pretool-hook-blocks-workflow-violations"
+    ],
+    "evaluatorPolicy": {
+      "allowedDomains": ["rule", "code", "governance"],
+      "requireHumanReviewForMutation": true,
+      "minimumPassingScore": 1,
+      "requiredMetrics": [
+        "legacy_runtime_ui_field_count",
+        "fde_provenance_block_count",
+        "cross_runtime_shape_match_count",
+        "mutation_authorization_guard_count",
+        "pretool_hook_block_count"
+      ]
+    }
+  },
+  "testCases": [
+    {
+      "testCaseId": "testcase:ontology-workflow-no-runtime-question-ui",
+      "title": "Semantic gate and conversation state expose turn-card decisions, not runtime-native question UI",
+      "input": {
+        "category": "runtime_ui_boundary"
+      },
+      "expectedBehavior": "pm_semantic_intent_gate returns TurnCardDecisionSpec and WorkflowContract projections and does not return legacy runtime-native question UI fields.",
+      "tags": ["ontology-engineering", "runtime-ui", "turn-card", "workflow-contract"]
+    },
+    {
+      "testCaseId": "testcase:ontology-workflow-approved-refs-require-fde-provenance",
+      "title": "Approved SIC and DTC refs cannot route workflow-control-plane work without FDE provenance",
+      "input": {
+        "category": "fde_provenance"
+      },
+      "expectedBehavior": "pm_semantic_intent_gate and pm_intent_router return contract_required for ontology-engineering workflow-control-plane mutations until an FDEOntologyEngineeringSession ref or current session exists.",
+      "tags": ["ontology-engineering", "fde", "contract-gate", "negative"]
+    },
+    {
+      "testCaseId": "testcase:ontology-workflow-same-turn-contract-for-claude-codex",
+      "title": "Claude and Codex consume the same turn-card workflow contract",
+      "input": {
+        "category": "cross_runtime"
+      },
+      "expectedBehavior": "Claude-labeled and Codex-labeled invocations produce the same stable gate/router/workflow shapes, with only runtime identity and project-local refs differing.",
+      "tags": ["ontology-engineering", "claude", "codex", "parity"]
+    },
+    {
+      "testCaseId": "testcase:ontology-workflow-mutation-authorized-only-after-sic-dtc",
+      "title": "pm_ontology_engineering_workflow authorizes mutation only after approved SIC and DTC",
+      "input": {
+        "category": "mutation_authorization"
+      },
+      "expectedBehavior": "start, turn, and draft_sic keep mutationAuthorized=false; status reaches mutation-authorized only after both SemanticIntentContract and DigitalTwinChangeContract are approved.",
+      "tags": ["ontology-engineering", "workflow-contract", "sic", "dtc"]
+    },
+    {
+      "testCaseId": "testcase:ontology-workflow-pretool-hook-blocks-violations",
+      "title": "PreToolUse hook blocks runtime UI, missing FDE provenance, and unauthorized workflow mutation",
+      "input": {
+        "category": "hook_enforcement"
+      },
+      "expectedBehavior": "ontology-engineering-workflow-enforcement-gate denies runtime-specific question UI tools, denies SIC/DTC routing before FDE workflow provenance, and denies protected workflow-surface edits until mutationAuthorized=true.",
+      "tags": ["ontology-engineering", "hooks", "blocking", "rule-28"]
+    }
+  ]
+}

@@ -1,0 +1,423 @@
+{
+  "schemaVersion": "hitl-html-source-manifest/v1",
+  "updatedAt": "2026-05-21",
+  "readiness": "blocked_until_complete_direct_capture",
+  "requiredEvidencePerSource": [
+    "rawRef",
+    "renderedDomSnapshotRef",
+    "screenshotRef",
+    "imageInventoryRef",
+    "claimMapRef",
+    "provenance.hash"
+  ],
+  "sources": [
+    {
+      "sourceId": "trq212-2052809885763747935",
+      "label": "Using Claude Code: The Unreasonable Effectiveness of HTML X post",
+      "url": "https://x.com/trq212/status/2052809885763747935",
+      "sourceKind": "practitioner-x-post",
+      "captureStatus": "blocked",
+      "rawRef": null,
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/2052809885763747935.md",
+      "blockedReason": "2026-05-21 direct X refresh returned an X error page; historical source card remains reference-only.",
+      "missingEvidence": ["rawRef", "renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "historicalRefs": ["sources/2052809885763747935.md"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "blocked_x_error_page",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "trq212-2017024445244924382",
+      "label": "Making Playgrounds using Claude Code X post",
+      "url": "https://x.com/trq212/status/2017024445244924382",
+      "sourceKind": "practitioner-x-post",
+      "captureStatus": "blocked",
+      "rawRef": null,
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/2017024445244924382.md",
+      "blockedReason": "2026-05-21 direct X refresh returned an X error page; historical source card remains reference-only.",
+      "missingEvidence": ["rawRef", "renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "historicalRefs": ["sources/2017024445244924382.md"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "blocked_x_error_page",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "trq212-2024574133011673516",
+      "label": "Prompt Caching Is Everything X post",
+      "url": "https://x.com/trq212/status/2024574133011673516",
+      "sourceKind": "practitioner-x-post",
+      "captureStatus": "blocked",
+      "rawRef": null,
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/2024574133011673516.md",
+      "blockedReason": "2026-05-21 direct X refresh returned an X error page; historical source card remains reference-only.",
+      "missingEvidence": ["rawRef", "renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "historicalRefs": ["sources/2024574133011673516.md"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "blocked_x_error_page",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "trq212-2027463795355095314",
+      "label": "Seeing like an Agent X post",
+      "url": "https://x.com/trq212/status/2027463795355095314",
+      "sourceKind": "practitioner-x-post",
+      "captureStatus": "blocked",
+      "rawRef": null,
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/2027463795355095314.md",
+      "blockedReason": "2026-05-21 direct X refresh returned an X error page; historical source card remains reference-only.",
+      "missingEvidence": ["rawRef", "renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "historicalRefs": ["sources/2027463795355095314.md"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "blocked_x_error_page",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "trq212-2044548257058328723",
+      "label": "Session Management and 1M Context X post",
+      "url": "https://x.com/trq212/status/2044548257058328723",
+      "sourceKind": "practitioner-x-post",
+      "captureStatus": "blocked",
+      "rawRef": null,
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/2044548257058328723.md",
+      "blockedReason": "2026-05-21 direct X refresh returned an X error page; historical source card remains reference-only.",
+      "missingEvidence": ["rawRef", "renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "historicalRefs": ["sources/2044548257058328723.md"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "blocked_x_error_page",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "claude-html-blog",
+      "label": "Using Claude Code: The unreasonable effectiveness of HTML",
+      "url": "https://claude.com/blog/using-claude-code-the-unreasonable-effectiveness-of-html",
+      "sourceKind": "official-claude-blog",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#claude-html-blog",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "html-effectiveness-companion-examples",
+      "label": "The unreasonable effectiveness of HTML companion examples",
+      "url": "https://thariqs.github.io/html-effectiveness/",
+      "sourceKind": "companion-demo-index",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": "playwright-mcp:page-2026-05-21T02-41-45-561Z.yml",
+      "screenshotRef": "playwright-mcp:hitl-html-examples-index-2026-05-21.png",
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#html-effectiveness-companion-examples",
+      "blockedReason": "Index and 20 demo links were observed, but per-example raw, rendered, screenshot, and image inventory evidence is not committed.",
+      "missingEvidence": ["imageInventoryRef", "perExampleRawRefs", "perExampleRenderedRefs", "perExampleScreenshotRefs", "provenance.hash"],
+      "exampleCount": 20,
+      "exampleUrls": [
+        "https://thariqs.github.io/html-effectiveness/01-exploration-code-approaches.html",
+        "https://thariqs.github.io/html-effectiveness/02-exploration-visual-designs.html",
+        "https://thariqs.github.io/html-effectiveness/16-implementation-plan.html",
+        "https://thariqs.github.io/html-effectiveness/03-code-review-pr.html",
+        "https://thariqs.github.io/html-effectiveness/17-pr-writeup.html",
+        "https://thariqs.github.io/html-effectiveness/04-code-understanding.html",
+        "https://thariqs.github.io/html-effectiveness/05-design-system.html",
+        "https://thariqs.github.io/html-effectiveness/06-component-variants.html",
+        "https://thariqs.github.io/html-effectiveness/07-prototype-animation.html",
+        "https://thariqs.github.io/html-effectiveness/08-prototype-interaction.html",
+        "https://thariqs.github.io/html-effectiveness/10-svg-illustrations.html",
+        "https://thariqs.github.io/html-effectiveness/13-flowchart-diagram.html",
+        "https://thariqs.github.io/html-effectiveness/09-slide-deck.html",
+        "https://thariqs.github.io/html-effectiveness/14-research-feature-explainer.html",
+        "https://thariqs.github.io/html-effectiveness/15-research-concept-explainer.html",
+        "https://thariqs.github.io/html-effectiveness/11-status-report.html",
+        "https://thariqs.github.io/html-effectiveness/12-incident-report.html",
+        "https://thariqs.github.io/html-effectiveness/18-editor-triage-board.html",
+        "https://thariqs.github.io/html-effectiveness/19-editor-feature-flags.html",
+        "https://thariqs.github.io/html-effectiveness/20-editor-prompt-tuner.html"
+      ],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch", "playwright.browser_navigate", "playwright.browser_evaluate", "playwright.browser_take_screenshot"],
+        "status": "index_accessible_examples_observed",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "anthropic-claude-opus-4-7",
+      "label": "Introducing Claude Opus 4.7",
+      "url": "https://www.anthropic.com/news/claude-opus-4-7",
+      "sourceKind": "official-anthropic-announcement",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#anthropic-claude-opus-4-7",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "openai-gpt-5-5-latest-model",
+      "label": "Using GPT-5.5 | OpenAI API",
+      "url": "https://developers.openai.com/api/docs/guides/latest-model",
+      "sourceKind": "official-openai-doc",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#openai-gpt-5-5-latest-model",
+      "blockedReason": "Official OpenAI docs MCP and direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["openaiDeveloperDocs.search_openai_docs", "scrapling.stealthy_fetch"],
+        "status": "official_doc_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "microsoft-magentic-ui",
+      "label": "Magentic-UI: Towards Human-in-the-loop Agentic Systems",
+      "url": "https://www.microsoft.com/en-us/research/publication/magentic-ui-report/",
+      "sourceKind": "research-publication",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#microsoft-magentic-ui",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "apple-designer-feedback",
+      "label": "Improving User Interface Generation Models from Designer Feedback",
+      "url": "https://machinelearning.apple.com/research/designer-feedback",
+      "sourceKind": "research-publication",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#apple-designer-feedback",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "duetui",
+      "label": "DuetUI: A Bidirectional Context Loop for Human-Agent Co-Generation of Task-Oriented Interfaces",
+      "url": "https://arxiv.org/abs/2509.13444",
+      "sourceKind": "research-paper",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#duetui",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "copilotkit-generative-ui-spectrum",
+      "label": "What is the Generative UI Spectrum?",
+      "url": "https://www.copilotkit.ai/generative-ui-spectrum",
+      "sourceKind": "vendor-guidance",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#copilotkit-generative-ui-spectrum",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "vercel-generative-ui",
+      "label": "Introducing AI SDK 3.0 with Generative UI support",
+      "url": "https://vercel.com/blog/ai-sdk-3-generative-ui",
+      "sourceKind": "vendor-guidance",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#vercel-generative-ui",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "nng-usability-heuristics",
+      "label": "10 Usability Heuristics for User Interface Design",
+      "url": "https://www.nngroup.com/articles/ten-usability-heuristics/",
+      "sourceKind": "ux-guidance",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#nng-usability-heuristics",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "wcag-2-2",
+      "label": "Web Content Accessibility Guidelines 2.2",
+      "url": "https://w3c.github.io/wcag/guidelines/22/",
+      "sourceKind": "accessibility-standard",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#wcag-2-2",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "material-color-accessibility",
+      "label": "Material Design color and accessibility",
+      "url": "https://m1.material.io/style/color.html",
+      "sourceKind": "design-system-guidance",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#material-color-accessibility",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "govuk-styles",
+      "label": "GOV.UK Design System styles",
+      "url": "https://design-system.service.gov.uk/styles/",
+      "sourceKind": "design-system-guidance",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#govuk-styles",
+      "blockedReason": "Direct text probe succeeded, but rendered DOM snapshot, screenshot, image inventory, and raw hash are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch"],
+        "status": "text_probe_accessible",
+        "hash": null
+      }
+    },
+    {
+      "sourceId": "apple-hig",
+      "label": "Apple Human Interface Guidelines",
+      "url": "https://developer.apple.com/design/human-interface-guidelines",
+      "sourceKind": "design-system-guidance",
+      "captureStatus": "blocked",
+      "rawRef": "direct-probe:2026-05-21:scrapling.stealthy_fetch",
+      "renderedDomSnapshotRef": null,
+      "screenshotRef": null,
+      "imageInventoryRef": null,
+      "claimMapRef": "sources/claim-map-2026-05-21.md#apple-hig",
+      "blockedReason": "Direct raw probe returned shell HTML metadata only; rendered DOM snapshot, screenshot, image inventory, and content claim extraction are not committed.",
+      "missingEvidence": ["renderedDomSnapshotRef", "screenshotRef", "imageInventoryRef", "claimMapRef.detail", "provenance.hash"],
+      "provenance": {
+        "lastDirectAttempt": "2026-05-21",
+        "methods": ["scrapling.stealthy_fetch", "scrapling.stealthy_fetch raw"],
+        "status": "partial_shell_html_only",
+        "hash": null
+      }
+    }
+  ]
+}

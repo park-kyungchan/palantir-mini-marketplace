@@ -1,0 +1,138 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "name": "palantir-mini-session-start",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" SessionStart",
+            "timeout": 300000,
+            "description": "Load palantir-mini session context through the Gemini native adapter."
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "name": "palantir-mini-session-resume",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" SessionStart",
+            "timeout": 300000,
+            "description": "Reload palantir-mini session context after Gemini resumes."
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "name": "palantir-mini-session-clear",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" SessionStart",
+            "timeout": 300000,
+            "description": "Reload palantir-mini session context after Gemini clears."
+          }
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "palantir-mini-before-agent",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" BeforeAgent",
+            "timeout": 300000,
+            "description": "Capture prompt-front-door context and enforce palantir-mini routing obligations."
+          }
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "palantir-mini-before-tool",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" BeforeTool",
+            "timeout": 300000,
+            "description": "Apply palantir-mini pre-tool governance through the Gemini adapter."
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "palantir-mini-after-tool",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" AfterTool",
+            "timeout": 300000,
+            "description": "Apply palantir-mini post-tool lineage and audit context through the Gemini adapter."
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "palantir-mini-after-agent",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" AfterAgent",
+            "timeout": 300000,
+            "description": "Validate final-response workflow obligations through the Gemini adapter."
+          }
+        ]
+      }
+    ],
+    "PreCompress": [
+      {
+        "matcher": "auto",
+        "hooks": [
+          {
+            "name": "palantir-mini-pre-compress-auto",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" PreCompress",
+            "timeout": 300000,
+            "description": "Persist palantir-mini compaction context before automatic Gemini compression."
+          }
+        ]
+      },
+      {
+        "matcher": "manual",
+        "hooks": [
+          {
+            "name": "palantir-mini-pre-compress-manual",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" PreCompress",
+            "timeout": 300000,
+            "description": "Persist palantir-mini compaction context before manual Gemini compression."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "palantir-mini-session-end",
+            "type": "command",
+            "command": "bun run \"${extensionPath}${/}hooks${/}palantir-mini-gemini-hook-adapter.ts\" SessionEnd",
+            "timeout": 300000,
+            "description": "Run palantir-mini terminal cleanup through the Gemini adapter."
+          }
+        ]
+      }
+    ]
+  }
+}

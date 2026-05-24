@@ -1,0 +1,38 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/available-connectors/paypal/"
+canonicalUrl: "https://palantir.com/docs/foundry/available-connectors/paypal/"
+sourceLastmod: "2026-05-12T17:06:26.148Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "03a7d79f15bd546cee2dad88e964553252ac30ecb0f53c1e883049e0532b2888"
+product: "foundry"
+docsArea: "available-connectors"
+locale: "en"
+upstreamTitle: "Documentation | Available connectors > PayPal"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# PayPal
+
+<!-- BEGIN GENERATED -->
+
+The PayPal connector is a [Palantir-provided driver](/docs/foundry/data-integration/foundry-provided-drivers/) connector. The official documentation for this driver can be found [here ↗](https://cdn.cdata.com/help/BPK/jdbc/pg_connectionj.htm).
+
+## Networking
+
+The table below lists the domains that the source needs to be able to access in order to successfully run.
+
+If running the connection on a [Foundry worker](/docs/foundry/data-connection/core-concepts/#foundry-worker), be sure to add corresponding egress policies for each of those domains.
+
+If those domains are in a different network from Foundry's network, and you are using [agent proxy egress policies](/docs/foundry/administration/configure-egress/#agent-proxy-egress-policies) (preferred) or an [agent worker](/docs/foundry/data-connection/core-concepts/#agent-worker) (not recommended), the agent must be able to reach the domain addresses. Additionally, the systems on those domains must be configured to allow connections from the agent. [Learn more about agent networking.](/docs/foundry/data-connection/set-up-agent/#configure-agent-network-access)
+
+| Domain  | Required |
+|--- |--- |
+| api-3t.paypal.com | If `Schema=SOAP` (default) AND `UseSandbox=FALSE` (default) |
+| api.paypal.com | If `Schema=REST` AND `UseSandbox=FALSE` (default) |
+| paypal.com | If `Schema=REST` AND `UseSandbox=FALSE` (default) |
+| api-3t.sandbox.paypal.com | If `Schema=SOAP` (default) AND `UseSandbox=TRUE` |
+| api.sandbox.paypal.com | If `Schema=REST` AND `UseSandbox=TRUE` |
+| sandbox.paypal.com | If `Schema=REST` AND `UseSandbox=TRUE` |
+
+<!-- END GENERATED -->

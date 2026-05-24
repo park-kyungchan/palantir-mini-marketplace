@@ -1,0 +1,37 @@
+{
+  "_shape_only": true,
+  "_description": "High-risk intent: scopePaths touch contracts/ mutation surface, requestedAxes contain risky-sounding keywords. Verifies: requiredContracts includes SemanticIntentContract + DigitalTwinChangeContract because contracts/ path triggers mutation detection. riskContext is composed diagnostic data but still does NOT auto-create an approval gate at this handler layer.",
+  "applicationState": {
+    "status": "composed",
+    "scopePaths": ["contracts/semantic-intent-contract.ts"],
+    "userNonGoals": [],
+    "composedAt": "<volatile:iso8601>"
+  },
+  "retrievalContext": {
+    "status": "composed",
+    "impactGraphNeighborhood": {
+      "available": true,
+      "referenceField": "impactContext",
+      "axisRidCount": 3
+    },
+    "composedAt": "<volatile:iso8601>"
+  },
+  "impactContext": {
+    "axisRids": [
+      "axis:delete-all-events",
+      "axis:schema-breaking-rename",
+      "file:contracts/semantic-intent-contract.ts"
+    ],
+    "perRidImpact": "<volatile:array_length_3>"
+  },
+  "riskContext": {
+    "status": "composed",
+    "risks": []
+  },
+  "evalContext": { "status": "pending-later-pr", "evalRuns": [] },
+  "graphConfidence": "<volatile:number_0_to_1>",
+  "missingEdges": "<volatile:array_max_50>",
+  "recommendedAgentUse": "<volatile:enum:lead-direct|targeted-verification|bounded-explorer|none>",
+  "requiredContracts": ["SemanticIntentContract", "DigitalTwinChangeContract"],
+  "nonGoals": []
+}

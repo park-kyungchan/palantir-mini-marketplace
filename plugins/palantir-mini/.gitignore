@@ -1,0 +1,6 @@
+# Transient runtime state created during bun test (ts-morph impact-graph, events.jsonl)
+.palantir-mini/
+session/
+
+.env.local
+convex/.env.cloud

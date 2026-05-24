@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "aip-evaluation.v1.37.0",
+  "suite": {
+    "suiteId": "suite:release-gate-harness-evidence",
+    "name": "Release Gate Harness Evidence Eval Suite",
+    "target": {
+      "kind": "local-function",
+      "rid": "local-function:palantir-mini.pm-plugin-self-check-release",
+      "versionRef": "pr-h-phase-9"
+    },
+    "testCaseIds": [
+      "testcase:release-eval-artifact-mapping",
+      "testcase:release-adversarial-verifier-evidence",
+      "testcase:release-outcome-replay-evidence"
+    ],
+    "criteria": [
+      "criterion:changed-surfaces-require-eval-runs",
+      "criterion:governance-security-runtime-require-adversarial-verifier",
+      "criterion:harness-sprints-require-outcome-replay"
+    ],
+    "evaluatorPolicy": {
+      "allowedDomains": ["rule", "code", "governance"],
+      "requireHumanReviewForMutation": true,
+      "minimumPassingScore": 1,
+      "requiredMetrics": [
+        "missing_eval_artifact_count",
+        "missing_adversarial_verifier_category_count",
+        "missing_outcome_replay_count"
+      ]
+    }
+  },
+  "testCases": [
+    {
+      "testCaseId": "testcase:release-eval-artifact-mapping",
+      "title": "Changed router, contract, prompt, DTC, agent, and harness surfaces require eval run artifacts",
+      "input": {
+        "category": "eval_artifacts"
+      },
+      "expectedBehavior": "Release mode maps changed semantic surfaces to local eval suite IDs and requires passing eval run artifact JSON before release.",
+      "tags": ["release", "aip-evals", "artifact"]
+    },
+    {
+      "testCaseId": "testcase:release-adversarial-verifier-evidence",
+      "title": "Governance, security, and runtime slices require adversarial verifier evidence",
+      "input": {
+        "category": "adversarial_verifier"
+      },
+      "expectedBehavior": "Release mode fails governance, security, and runtime slices without passing verifier-adversarial evidence refs.",
+      "tags": ["release", "verifier-adversarial", "governance", "security", "runtime"]
+    },
+    {
+      "testCaseId": "testcase:release-outcome-replay-evidence",
+      "title": "Harness sprints require outcome replay evidence",
+      "input": {
+        "category": "outcome_replay"
+      },
+      "expectedBehavior": "Harness release slices require a passing pm_harness_outcome_replay artifact or equivalent event with sprintNumber, finalVerdict, totalEvents, and timeline evidence.",
+      "tags": ["release", "harness", "outcome-replay"]
+    }
+  ]
+}
+

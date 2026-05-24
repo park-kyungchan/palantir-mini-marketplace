@@ -1,0 +1,363 @@
+import { describe, expect, test } from "bun:test";
+import { handleRequest, TOOLS } from "../../bridge/mcp-server";
+import { PROMPT_RUNTIMES } from "../../lib/prompt-front-door";
+import type { IntentRouterInput } from "../../bridge/handlers/pm-intent-router";
+import type { OntologyContextQueryInput } from "../../bridge/handlers/ontology-context-query";
+import type { OntologyEngineeringWorkflowHandlerInput } from "../../bridge/handlers/pm-ontology-engineering-workflow";
+import type { SemanticIntentGateInput } from "../../bridge/handlers/pm-semantic-intent-gate";
+
+type JsonSchemaObject = {
+  additionalProperties?: boolean;
+  properties?: Record<string, { type?: string; enum?: readonly string[]; items?: { type?: string } }>;
+  required?: string[];
+};
+
+const SEMANTIC_INTENT_GATE_PUBLIC_FIELDS = [
+  "project",
+  "rawIntent",
+  "scopePaths",
+  "complexityHint",
+  "semanticIntentContractRef",
+  "digitalTwinChangeContractRef",
+  "semanticIntentContract",
+  "digitalTwinChangeContract",
+  "promptId",
+  "promptHash",
+  "sessionId",
+  "runtime",
+  "fdeOntologyEngineeringSessionRef",
+  "includeDrafts",
+  "draftMode",
+  "interactionMode",
+  "userExpertise",
+  "preferredLanguage",
+  "turn",
+  "turnUserInput",
+  "fillPolicy",
+] as const satisfies readonly (keyof SemanticIntentGateInput)[];
+
+const INTENT_ROUTER_PUBLIC_FIELDS = [
+  "project",
+  "intent",
+  "scopePaths",
+  "complexityHint",
+  "harnessSpeciesPreference",
+  "semanticIntentContractRef",
+  "digitalTwinChangeContractRef",
+  "semanticIntentContract",
+  "digitalTwinChangeContract",
+  "promptId",
+  "promptHash",
+  "sessionId",
+  "runtime",
+  "fdeOntologyEngineeringSessionRef",
+  "acceptApprovalAutoCreate",
+] as const satisfies readonly (keyof IntentRouterInput)[];
+
+const ONTOLOGY_CONTEXT_QUERY_PUBLIC_FIELDS = [
+  "project",
+  "promptId",
+  "promptHash",
+  "scopePaths",
+  "requestedAxes",
+  "includeImpact",
+  "includeLineage",
+  "includeCapabilities",
+  "includeRisks",
+  "includeEvals",
+  "includeEvalRuns",
+  "evalRunsProjectSlug",
+  "evalRunsLimit",
+  "projectsRoot",
+  "includeCurriculumContext",
+  "curriculumQueryTerms",
+  "includeDTCContext",
+  "fdeOntologyEngineeringSession",
+  "fdeOntologyEngineeringSessionRef",
+] as const satisfies readonly (keyof OntologyContextQueryInput)[];
+
+const ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS = [
+  "action",
+  "project",
+  "projectRoot",
+  "universalOntologyEntryRef",
+  "universalOntologyEntryId",
+  "sessionId",
+  "fdeSessionRef",
+  "ontologyContextQueryRef",
+  "workflowTraceRef",
+  "semanticIntentContractRef",
+  "semanticIntentContractStatus",
+  "digitalTwinChangeContractRef",
+  "digitalTwinChangeContractStatus",
+  "workContractRef",
+  "affectedSurfaces",
+  "recordedDecisionNote",
+  "rawUserMessage",
+  "sanitizedTurnSummary",
+  "userMessageHash",
+  "turnId",
+  "acceptedHypothesisIds",
+  "rejectedHypothesisIds",
+  "deferredHypothesisIds",
+  "choiceApplications",
+  "signal",
+  "createdAt",
+  "emittedAt",
+] as const satisfies readonly (keyof OntologyEngineeringWorkflowHandlerInput)[];
+
+type MissingSemanticIntentGatePublicField = Exclude<
+  keyof SemanticIntentGateInput,
+  typeof SEMANTIC_INTENT_GATE_PUBLIC_FIELDS[number]
+>;
+type MissingIntentRouterPublicField = Exclude<
+  keyof IntentRouterInput,
+  typeof INTENT_ROUTER_PUBLIC_FIELDS[number]
+>;
+type MissingOntologyContextQueryPublicField = Exclude<
+  keyof OntologyContextQueryInput,
+  typeof ONTOLOGY_CONTEXT_QUERY_PUBLIC_FIELDS[number]
+>;
+type MissingOntologyEngineeringWorkflowPublicField = Exclude<
+  keyof OntologyEngineeringWorkflowHandlerInput,
+  typeof ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS[number]
+>;
+
+const semanticIntentGateInputFieldsAreCovered: Record<MissingSemanticIntentGatePublicField, never> = {};
+const intentRouterInputFieldsAreCovered: Record<MissingIntentRouterPublicField, never> = {};
+const ontologyContextQueryInputFieldsAreCovered: Record<MissingOntologyContextQueryPublicField, never> = {};
+const ontologyEngineeringWorkflowInputFieldsAreCovered: Record<MissingOntologyEngineeringWorkflowPublicField, never> = {};
+
+function toolSchema(name: string): JsonSchemaObject {
+  const tool = TOOLS.find((entry) => entry.name === name);
+  expect(tool).toBeDefined();
+  return tool!.inputSchema as JsonSchemaObject;
+}
+
+function expectSchemaPropertiesExactly(
+  toolName: string,
+  expectedFields: readonly string[],
+): Record<string, { type?: string; enum?: readonly string[]; items?: { type?: string } }> {
+  const schema = toolSchema(toolName);
+  const props = schema.properties ?? {};
+
+  expect(schema.additionalProperties).toBe(false);
+  expect(Object.keys(props).sort()).toEqual([...expectedFields].sort());
+  return props;
+}
+
+describe("mcp-server prompt identity schemas", () => {
+  test.each(["pm_semantic_intent_gate", "pm_intent_router"])(
+    "%s exposes prompt-front-door identity fields",
+    (toolName) => {
+      const schema = toolSchema(toolName);
+      const props = schema.properties ?? {};
+
+      expect(props.promptId?.type).toBe("string");
+      expect(props.promptHash?.type).toBe("string");
+      expect(props.sessionId?.type).toBe("string");
+      expect(props.runtime?.type).toBe("string");
+      expect(props.runtime?.enum).toEqual(PROMPT_RUNTIMES);
+    },
+  );
+
+  test("pm_semantic_intent_gate exposes human-collaborative authoring fields", () => {
+    const schema = toolSchema("pm_semantic_intent_gate");
+    const props = schema.properties ?? {};
+
+    expect(props.interactionMode?.type).toBe("string");
+    expect(props.interactionMode?.enum).toEqual(["machine", "human_collaborative"]);
+    expect(props.userExpertise?.type).toBe("string");
+    expect(props.userExpertise?.enum).toEqual(["non_programmer", "technical", "developer"]);
+    expect(props.preferredLanguage?.type).toBe("string");
+    expect(props.preferredLanguage?.enum).toEqual(["ko", "en"]);
+  });
+
+  test("pm_semantic_intent_gate public schema matches handler input fields", () => {
+    expect(semanticIntentGateInputFieldsAreCovered).toEqual({});
+
+    const props = expectSchemaPropertiesExactly(
+      "pm_semantic_intent_gate",
+      SEMANTIC_INTENT_GATE_PUBLIC_FIELDS,
+    );
+
+    expect(props.project?.type).toBe("string");
+    expect(props.rawIntent?.type).toBe("string");
+    expect(props.scopePaths?.type).toBe("array");
+    expect(props.scopePaths?.items?.type).toBe("string");
+    expect(props.semanticIntentContractRef?.type).toBe("string");
+    expect(props.digitalTwinChangeContractRef?.type).toBe("string");
+    expect(props.semanticIntentContract?.type).toBe("object");
+    expect(props.digitalTwinChangeContract?.type).toBe("object");
+    expect(props.fillPolicy?.enum).toEqual([
+      "default-8-turn",
+      "fde-ontology-build",
+      "dtc-turn-fill",
+      "context-engineering-to-sic",
+      "ontology-dtc-build",
+    ]);
+  });
+
+  test("pm_intent_router public schema matches handler input fields", () => {
+    expect(intentRouterInputFieldsAreCovered).toEqual({});
+
+    const props = expectSchemaPropertiesExactly(
+      "pm_intent_router",
+      INTENT_ROUTER_PUBLIC_FIELDS,
+    );
+
+    expect(props.project?.type).toBe("string");
+    expect(props.intent?.type).toBe("string");
+    expect(props.scopePaths?.type).toBe("array");
+    expect(props.scopePaths?.items?.type).toBe("string");
+    expect(props.semanticIntentContractRef?.type).toBe("string");
+    expect(props.digitalTwinChangeContractRef?.type).toBe("string");
+    expect(props.semanticIntentContract?.type).toBe("object");
+    expect(props.digitalTwinChangeContract?.type).toBe("object");
+  });
+
+  test("ontology_context_query public schema matches handler input fields", () => {
+    expect(ontologyContextQueryInputFieldsAreCovered).toEqual({});
+
+    const props = expectSchemaPropertiesExactly(
+      "ontology_context_query",
+      ONTOLOGY_CONTEXT_QUERY_PUBLIC_FIELDS,
+    );
+
+    expect(props.project?.type).toBe("string");
+    expect(props.scopePaths?.type).toBe("array");
+    expect(props.scopePaths?.items?.type).toBe("string");
+    expect(props.requestedAxes?.type).toBe("array");
+    expect(props.requestedAxes?.items?.type).toBe("string");
+    expect(props.includeEvalRuns?.type).toBe("boolean");
+    expect(props.evalRunsProjectSlug?.type).toBe("string");
+    expect(props.evalRunsLimit?.type).toBe("number");
+    expect(props.includeDTCContext?.type).toBe("boolean");
+    expect(props.fdeOntologyEngineeringSession?.type).toBe("object");
+    expect(props.fdeOntologyEngineeringSessionRef?.type).toBe("string");
+    expect(props.includeCurriculumContext?.type).toBe("boolean");
+    expect(props.curriculumQueryTerms?.type).toBe("array");
+    expect(props.curriculumQueryTerms?.items?.type).toBe("string");
+  });
+
+  test("pm_ontology_engineering_workflow public schema matches handler input fields", () => {
+    expect(ontologyEngineeringWorkflowInputFieldsAreCovered).toEqual({});
+
+    const props = expectSchemaPropertiesExactly(
+      "pm_ontology_engineering_workflow",
+      ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS,
+    );
+
+    expect(props.action?.type).toBe("string");
+    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "status"]);
+    expect(props.project?.type).toBe("string");
+    expect(props.projectRoot?.type).toBe("string");
+    expect(props.fdeSessionRef?.type).toBe("string");
+    expect(props.semanticIntentContractStatus?.enum).toEqual(["draft", "approved", "superseded"]);
+    expect(props.digitalTwinChangeContractStatus?.enum).toEqual(["draft", "approved", "superseded"]);
+    expect(props.choiceApplications?.type).toBe("array");
+    expect(props.signal?.type).toBe("object");
+  });
+});
+
+describe("mcp-server ToolSpec metadata", () => {
+  test("all public tools carry internal metadata but tools/list exposes MCP public shape only", async () => {
+    for (const tool of TOOLS) {
+      expect(tool.audience).toBe("public");
+      expect(tool.lifecycle).toBeTruthy();
+      expect(["public", "deprecated-candidate", "deprecated", "merged"]).toContain(tool.lifecycle as string);
+      expect(tool.category).toBeTruthy();
+      expect(tool.ownerModule).toContain("bridge/handlers/");
+      expect(tool.stableSince).toMatch(/^v\d+\.\d+\.\d+$/);
+      if (tool.lifecycle !== "public") {
+        expect(tool.replacedBy).toBeTruthy();
+      }
+    }
+
+    const response = await handleRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
+    const result = response && "result" in response
+      ? response.result as { tools: Array<Record<string, unknown>> }
+      : null;
+    expect(result).not.toBe(null);
+    expect(result!.tools.length).toBe(TOOLS.length);
+    expect(Object.keys(result!.tools[0]!).sort()).toEqual([
+      "description",
+      "inputSchema",
+      "name",
+    ]);
+  });
+
+  test("pm_plugin_self_check schema exposes mode discriminator", () => {
+    const props = toolSchema("pm_plugin_self_check").properties ?? {};
+    expect(props.mode?.type).toBe("string");
+    expect(props.mode?.enum).toEqual([
+      "public-mcp",
+      "handler-inventory",
+      "hooks",
+      "skills",
+      "project-skill-ontology",
+      "agents",
+      "managed-settings",
+      "surface-contracts",
+      "release",
+    ]);
+  });
+
+  test("pm_surface_contract_audit schema exposes advisory rollout controls", () => {
+    const props = toolSchema("pm_surface_contract_audit").properties ?? {};
+
+    expect(props.projectRoot?.type).toBe("string");
+    expect(props.mode?.type).toBe("string");
+    expect(props.mode?.enum).toEqual([
+      "agents",
+      "skills",
+      "mcp-tools",
+      "hooks",
+      "evals",
+      "runtime-adapters",
+      "all",
+    ]);
+    expect(props.failClosed?.type).toBe("boolean");
+  });
+
+  test("local AIP/FDE validator tools expose object contracts", () => {
+    const sourceAuthority = toolSchema("pm_aip_source_authority_validate");
+    const sourceProps = sourceAuthority.properties ?? {};
+    expect(sourceAuthority.required).toEqual(["surfaceContract"]);
+    expect(sourceProps.surfaceContract?.type).toBe("object");
+
+    const parity = toolSchema("pm_runtime_decision_parity");
+    const parityProps = parity.properties ?? {};
+    expect(parity.required).toEqual(["neutral", "claude", "codex"]);
+    expect(parityProps.neutral?.type).toBe("object");
+    expect(parityProps.claude?.type).toBe("object");
+    expect(parityProps.codex?.type).toBe("object");
+  });
+
+  test("research_context_select schema exposes authority mode discriminator", () => {
+    const props = toolSchema("research_context_select").properties ?? {};
+
+    expect(props.authorityMode?.type).toBe("string");
+    expect(props.authorityMode?.enum).toEqual([
+      "plugin-portable",
+      "external-preferred",
+      "external-required",
+    ]);
+  });
+
+  test("pm_workflow_response_validate schema exposes required text field", () => {
+    const schema = toolSchema("pm_workflow_response_validate");
+    const props = schema.properties ?? {};
+
+    expect(schema.required).toEqual(["text"]);
+    expect(props.text?.type).toBe("string");
+    expect(props.promptText?.type).toBe("string");
+    expect(props.runtime?.type).toBe("string");
+    expect(props.enforcementSurface?.type).toBe("string");
+    expect(props.forceRequired?.type).toBe("boolean");
+  });
+});

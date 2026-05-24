@@ -1,0 +1,49 @@
+{
+  "manifestId": "manifest:research/palantir-foundry",
+  "version": "1.0.0",
+  "owner": "ontology-steward",
+  "sources": [
+    {
+      "sourceUrl": "https://www.palantir.com/docs/foundry/aip-evals/overview/",
+      "mirrorPath": "aip/aip-evals-overview.md",
+      "expectedRefreshDays": 7,
+      "refreshClass": "hot",
+      "lastFetchedAt": "2026-04-20T12:24:49Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/docs/foundry/aip-evals/create-suite/",
+      "mirrorPath": "aip/aip-evals-create-suite.md",
+      "expectedRefreshDays": 7,
+      "refreshClass": "hot",
+      "lastFetchedAt": "2026-04-20T12:24:49Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/docs/foundry/aip-evals/experiments/",
+      "mirrorPath": "aip/aip-evals-experiments.md",
+      "expectedRefreshDays": 7,
+      "refreshClass": "hot",
+      "lastFetchedAt": "2026-04-20T12:24:49Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/docs/foundry/ai-fde/overview/",
+      "mirrorPath": "aip/ai-fde-overview.md",
+      "expectedRefreshDays": 7,
+      "refreshClass": "hot",
+      "lastFetchedAt": "2026-04-20T12:24:49Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/docs/foundry/architecture/aip-architecture/",
+      "mirrorPath": "architecture/architecture-center-aip-architecture.md",
+      "expectedRefreshDays": 7,
+      "refreshClass": "hot",
+      "lastFetchedAt": "2026-04-20T12:24:49Z"
+    },
+    {
+      "sourceUrl": "https://www.palantir.com/docs/foundry/ontology/global-branching-overview/",
+      "mirrorPath": "ontology/global-branching-overview-2026-05-05.md",
+      "expectedRefreshDays": 7,
+      "refreshClass": "hot",
+      "lastFetchedAt": "2026-05-06T12:45:47Z"
+    }
+  ]
+}
