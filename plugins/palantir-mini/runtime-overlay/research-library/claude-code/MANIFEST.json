@@ -1,0 +1,63 @@
+{
+  "manifestId": "manifest:research/claude-code",
+  "version": "1.0.0",
+  "owner": "ontology-steward",
+  "sources": [
+    {
+      "sourceUrl": "https://code.claude.com/docs/en/changelog",
+      "mirrorPath": "features.md",
+      "expectedRefreshDays": 7,
+      "refreshClass": "hot",
+      "lastFetchedAt": "2026-04-19T00:00:00Z"
+    },
+    {
+      "sourceUrl": "https://platform.claude.com/docs/en/managed-agents/overview",
+      "mirrorPath": "managed-agents.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-04-11T00:00:00Z"
+    },
+    {
+      "sourceUrl": "https://code.claude.com/docs/en/sub-agents",
+      "mirrorPath": "agent-system-design.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-04-19T00:00:00Z"
+    },
+    {
+      "sourceUrl": "https://code.claude.com/docs/en/hooks",
+      "mirrorPath": "hook-events-v2.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-04-18T00:00:00Z"
+    },
+    {
+      "sourceUrl": "https://code.claude.com/docs/en/discover-plugins",
+      "mirrorPath": "plugin-system.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-04-18T00:00:00Z"
+    },
+    {
+      "sourceUrl": "https://code.claude.com/docs/en/mcp",
+      "mirrorPath": "mcp-server-registration.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-04-18T00:00:00Z"
+    },
+    {
+      "sourceUrl": "https://code.claude.com/docs/en/skills",
+      "mirrorPath": "context-engineering.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-04-18T00:00:00Z"
+    },
+    {
+      "sourceUrl": "https://code.claude.com/docs/en/monitors",
+      "mirrorPath": "monitors-manifest-schema.md",
+      "expectedRefreshDays": 30,
+      "refreshClass": "warm",
+      "lastFetchedAt": "2026-04-18T00:00:00Z"
+    }
+  ]
+}

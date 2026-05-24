@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>palantir-mini HITL Lead Feedback Workbench Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17201a;
+      --muted: #5f6b62;
+      --panel: #ffffff;
+      --line: #d9e3da;
+      --soft: #eef5ef;
+      --soft-2: #f7efe7;
+      --accent: #0f7b5f;
+      --accent-2: #9a5b16;
+      --danger: #b4372a;
+      --shadow: 0 18px 50px rgba(28, 42, 34, 0.12);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(180deg, rgba(15, 123, 95, 0.08), rgba(255, 255, 255, 0) 360px),
+        #fbfcf9;
+      color: var(--ink);
+      line-height: 1.55;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(251, 252, 249, 0.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 64px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(15, 123, 95, 0.22);
+      border-radius: var(--radius);
+      background: #e6f3ec;
+      color: var(--accent);
+      font-size: 18px;
+    }
+
+    .brand-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 8px 0;
+    }
+
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 10px;
+      border-radius: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      background: var(--soft);
+      color: var(--ink);
+      outline: none;
+    }
+
+    .hero {
+      padding: 44px 0 26px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .hero-copy h1 {
+      max-width: 860px;
+      margin: 0 0 14px;
+      font-size: clamp(34px, 6vw, 72px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .hero-copy p {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .status-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .status-panel h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge.good {
+      border-color: rgba(15, 123, 95, 0.28);
+      background: #e8f5ee;
+      color: #0f604c;
+    }
+
+    .badge.warn {
+      border-color: rgba(154, 91, 22, 0.24);
+      background: #fff4e6;
+      color: #74430d;
+    }
+
+    section {
+      padding: 24px 0;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.4fr) minmax(0, 0.6fr);
+      gap: 24px;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.08;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .metric {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-height: 120px;
+    }
+
+    .metric strong {
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .step-num {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius);
+      background: var(--soft);
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .stage-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .stage-table th,
+    .stage-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    .stage-table th {
+      background: var(--soft);
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #405347;
+      letter-spacing: 0.02em;
+    }
+
+    .stage-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .sources {
+      display: grid;
+      gap: 10px;
+    }
+
+    .source-row {
+      display: grid;
+      grid-template-columns: minmax(0, 0.25fr) minmax(0, 0.75fr);
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 12px;
+    }
+
+    .source-row code,
+    .path-list code,
+    .copy-box code {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .path-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .path-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .path-list li::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      flex: 0 0 auto;
+    }
+
+    .qa-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .qa-item {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #fff;
+    }
+
+    .qa-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      background: #e8f5ee;
+      color: #0f604c;
+      font-weight: 900;
+    }
+
+    .qa-item h3 {
+      margin: 0 0 4px;
+      font-size: 15px;
+    }
+
+    .qa-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .copy-box {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .copy-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--soft);
+    }
+
+    .copy-head strong {
+      font-size: 14px;
+    }
+
+    .copy-head button {
+      border: 1px solid rgba(15, 123, 95, 0.3);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--accent);
+      min-height: 34px;
+      padding: 0 10px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    pre {
+      margin: 0;
+      padding: 14px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #26352b;
+      font-size: 13px;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent-2);
+      background: var(--soft-2);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 14px 16px;
+    }
+
+    .callout strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .footer {
+      padding: 30px 0 42px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 860px) {
+      .topbar-inner,
+      .hero-grid,
+      .section-head,
+      .grid.three,
+      .grid.two,
+      .qa-grid,
+      .source-row {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px 0;
+      }
+
+      .brand {
+        width: 100%;
+      }
+
+      .nav {
+        width: 100%;
+        flex-wrap: wrap;
+        overflow-x: visible;
+      }
+
+      .hero {
+        padding-top: 28px;
+      }
+
+      .stage-table,
+      .stage-table thead,
+      .stage-table tbody,
+      .stage-table tr,
+      .stage-table th,
+      .stage-table td {
+        display: block;
+        width: 100%;
+      }
+
+      .stage-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      .stage-table tr {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 0;
+      }
+
+      .stage-table tr:last-child {
+        border-bottom: 0;
+      }
+
+      .stage-table td {
+        border-bottom: 0;
+        padding: 8px 12px;
+      }
+
+      .stage-table td::before {
+        display: block;
+        margin-bottom: 2px;
+        color: #405347;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .stage-table td:nth-child(1)::before {
+        content: "Stage";
+      }
+
+      .stage-table td:nth-child(2)::before {
+        content: "Review artifact";
+      }
+
+      .stage-table td:nth-child(3)::before {
+        content: "Next action";
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="brand" aria-label="report title">
+        <span class="brand-mark" aria-hidden="true">H</span>
+        <span class="brand-text">HITL Lead Feedback Workbench Report</span>
+      </div>
+      <nav class="nav" aria-label="report sections">
+        <a href="#summary">요약</a>
+        <a href="#architecture">구조</a>
+        <a href="#sources">근거</a>
+        <a href="#generic">범용화</a>
+        <a href="#qa">QA</a>
+        <a href="#handoff">사용법</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <h1>Human-in-the-Loop을 palantir-mini의 재사용 가능한 검토 계층으로 만들었습니다.</h1>
+          <p>
+            이번 작업은 5개의 trq212 X 글을 직접 수집한 근거로 삼아, Ontology Engineering 어느 단계에서든
+            Lead가 유저에게 확인 가능한 artifact를 제시하고 피드백을 받아 다음 작업으로 이어갈 수 있는
+            문서형 워크벤치와 스킬을 추가한 것입니다.
+          </p>
+        </div>
+        <aside class="status-panel" aria-labelledby="status-title">
+          <h2 id="status-title">현재 결론</h2>
+          <p>
+            schema, MCP handler, hook, generated artifact는 변경하지 않았습니다. 대신 검증 가능한
+            정적 workbench, source pack, templates, skill loader, playground, pilot example, 이 보고서를 추가했습니다.
+          </p>
+          <div class="badge-row" aria-label="status badges">
+            <span class="badge good">Scrapling direct X 성공</span>
+            <span class="badge good">Docs-only boundary</span>
+            <span class="badge good">Generic ontology stages</span>
+            <span class="badge warn">새 스킬은 reload 필요</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="summary">
+      <div class="shell">
+        <div class="section-head">
+          <h2>무엇을 만들었나</h2>
+          <p>
+            요청의 핵심은 특정 DTC 대화 갭 하나를 넘어서, palantir-mini Ontology Engineering 과정 전체에서
+            HITL feedback을 반복 사용 가능한 형태로 만드는 것이었습니다.
+          </p>
+        </div>
+        <div class="grid three">
+          <article class="card metric">
+            <strong>5</strong>
+            <h3>직접 X 소스 카드</h3>
+            <p>Scrapling MCP로 X 원문을 직접 가져와 요약했습니다. 미러/프록시/검색 스니펫은 쓰지 않았습니다.</p>
+          </article>
+          <article class="card metric">
+            <strong>8</strong>
+            <h3>Ontology stage map</h3>
+            <p>prompt front door부터 lineage closeout까지, user feedback이 필요한 단계를 범용화했습니다.</p>
+          </article>
+          <article class="card metric">
+            <strong>0</strong>
+            <h3>runtime API 변경</h3>
+            <p>승인되지 않은 schema promotion, DTC fill sequence, grader, MCP handler 추가는 하지 않았습니다.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <div class="shell">
+        <div class="section-head">
+          <h2>작업 구조</h2>
+          <p>
+            이번 산출물은 Claude가 다음 작업에서 바로 읽을 수 있는 계획서와, plugin 내부에서 반복 사용할 수 있는
+            workbench surface로 나누었습니다.
+          </p>
+        </div>
+        <div class="timeline">
+          <article class="step card">
+            <div class="step-num">1</div>
+            <div>
+              <h3>계획서</h3>
+              <p><code>~/.claude/plans/2026-05-14-trq212-hitl-workbench-integration-plan.md</code></p>
+            </div>
+          </article>
+          <article class="step card">
+            <div class="step-num">2</div>
+            <div>
+              <h3>Workbench</h3>
+              <p><code>workbenches/hitl-lead-feedback/</code>에 source policy, source cards, pattern synthesis, templates, playground를 추가했습니다.</p>
+            </div>
+          </article>
+          <article class="step card">
+            <div class="step-num">3</div>
+            <div>
+              <h3>Skill loader</h3>
+              <p><code>skills/pm-hitl-feedback-workbench/SKILL.md</code>는 어떤 ontology 단계에서 어떤 review artifact를 만들지 안내합니다.</p>
+            </div>
+          </article>
+          <article class="step card">
+            <div class="step-num">4</div>
+            <div>
+              <h3>HTML artifacts</h3>
+              <p><code>playground.html</code>, <code>examples/dtc-conversation-gap-pilot.html</code>, 그리고 이 보고서가 실제 review surface의 예시입니다.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="sources">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Scrapling으로 확인한 근거</h2>
+          <p>
+            “scrapling MCP로도 못 가져오냐”는 질문에 대해, 직접 X URL 렌더링으로 5개 글을 가져왔습니다.
+            저장한 것은 원문 전체가 아니라 source card와 패턴 요약입니다.
+          </p>
+        </div>
+        <div class="sources">
+          <article class="source-row">
+            <strong>2052809885763747935</strong>
+            <p>
+              <a href="https://x.com/trq212/status/2052809885763747935">Using Claude Code: The Unreasonable Effectiveness of HTML</a>.
+              핵심 패턴은 HTML을 agent-user feedback artifact로 쓰는 것입니다.
+            </p>
+          </article>
+          <article class="source-row">
+            <strong>2017024445244924382</strong>
+            <p>
+              <a href="https://x.com/trq212/status/2017024445244924382">Making Playgrounds using Claude Code</a>.
+              Playgrounds는 추상 설명 대신 직접 조작 가능한 artifact로 feedback 품질을 높입니다.
+            </p>
+          </article>
+          <article class="source-row">
+            <strong>2024574133011673516</strong>
+            <p>
+              <a href="https://x.com/trq212/status/2024574133011673516">Prompt Caching Is Everything</a>.
+              반복 가능한 context와 작은 변경 단위가 agent workflow의 비용과 안정성에 중요합니다.
+            </p>
+          </article>
+          <article class="source-row">
+            <strong>2027463795355095314</strong>
+            <p>
+              <a href="https://x.com/trq212/status/2027463795355095314">Seeing like an Agent</a>.
+              agent가 볼 수 있는 상태와 사용자가 검토할 수 있는 상태를 맞추는 것이 중요합니다.
+            </p>
+          </article>
+          <article class="source-row">
+            <strong>2044548257058328723</strong>
+            <p>
+              <a href="https://x.com/trq212/status/2044548257058328723">Session Management &amp; 1M Context</a>.
+              긴 session에서는 handoff 가능한 artifacts와 명확한 state boundary가 필요합니다.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="generic">
+      <div class="shell">
+        <div class="section-head">
+          <h2>범용 HITL 적용 지점</h2>
+          <p>
+            이 워크벤치는 DTC 하나만을 위한 것이 아니라, palantir-mini의 ontology engineering 전 단계에서
+            “사용자가 승인해야 하는 의미”를 artifact로 드러내는 데 쓰입니다.
+          </p>
+        </div>
+        <table class="stage-table">
+          <thead>
+            <tr>
+              <th>Stage</th>
+              <th>사용자에게 보여줄 것</th>
+              <th>승인 후 다음 행동</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Prompt front door</td>
+              <td>Lead가 이해한 meaning summary와 non-goals</td>
+              <td>SemanticIntentContract fill 또는 approve</td>
+            </tr>
+            <tr>
+              <td>Research framing</td>
+              <td>source map, claim grouping, 제외한 source policy</td>
+              <td>합성 계속, scope 축소, 추가 source 요청</td>
+            </tr>
+            <tr>
+              <td>Ontology modeling</td>
+              <td>candidate noun/action/property/route/view/agent table</td>
+              <td>typed model draft 또는 proposal 작성</td>
+            </tr>
+            <tr>
+              <td>DTC boundary</td>
+              <td>runtime, schema, permission, branch, replay, eval risk card</td>
+              <td>승인된 DTC 기준으로 router dispatch</td>
+            </tr>
+            <tr>
+              <td>Evaluation / lineage</td>
+              <td>pass/fail rubric, outcome, BackPropagation summary</td>
+              <td>검증 실행 또는 durable learning 기록</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="files">
+      <div class="shell">
+        <div class="section-head">
+          <h2>주요 파일</h2>
+          <p>Claude와 palantir-mini가 다음 세션에서 읽어야 할 파일입니다.</p>
+        </div>
+        <ul class="path-list">
+          <li><code>~/.claude/plans/2026-05-14-trq212-hitl-workbench-integration-plan.md</code></li>
+          <li><code>~/.claude/plugins/palantir-mini/workbenches/hitl-lead-feedback/README.md</code></li>
+          <li><code>~/.claude/plugins/palantir-mini/workbenches/hitl-lead-feedback/sources/index.md</code></li>
+          <li><code>~/.claude/plugins/palantir-mini/workbenches/hitl-lead-feedback/patterns/ontology-engineering-stage-map.md</code></li>
+          <li><code>~/.claude/plugins/palantir-mini/workbenches/hitl-lead-feedback/templates/best-practice-prompts.md</code></li>
+          <li><code>~/.claude/plugins/palantir-mini/workbenches/hitl-lead-feedback/playground.html</code></li>
+          <li><code>~/.claude/plugins/palantir-mini/workbenches/hitl-lead-feedback/examples/dtc-conversation-gap-pilot.html</code></li>
+          <li><code>~/.claude/plugins/palantir-mini/skills/pm-hitl-feedback-workbench/SKILL.md</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="qa">
+      <div class="shell">
+        <div class="section-head">
+          <h2>QA 계획과 결과</h2>
+          <p>
+            이 보고서는 Playwright로 desktop layout, navigation, copy interaction, static dependency,
+            그리고 주요 artifact 존재 여부를 확인하도록 설계했습니다. 모바일 QA는 이번 사인오프 범위에서 제외했습니다.
+          </p>
+        </div>
+        <div class="qa-grid">
+          <article class="qa-item">
+            <div class="qa-icon">✓</div>
+            <div>
+              <h3>Static dependency</h3>
+              <p>외부 script, stylesheet, image dependency 없이 열리도록 구성했습니다.</p>
+            </div>
+          </article>
+          <article class="qa-item">
+            <div class="qa-icon">✓</div>
+            <div>
+              <h3>Desktop layout</h3>
+              <p>desktop viewport에서 주요 섹션, 표, 파일 목록, CTA가 가로 overflow 없이 보이는지 확인합니다.</p>
+            </div>
+          </article>
+          <article class="qa-item">
+            <div class="qa-icon">✓</div>
+            <div>
+              <h3>Workbench links</h3>
+              <p>보고서, playground, pilot example은 같은 workbench 폴더 아래에서 함께 관리됩니다.</p>
+            </div>
+          </article>
+          <article class="qa-item">
+            <div class="qa-icon">✓</div>
+            <div>
+              <h3>Runtime boundary</h3>
+              <p>이 artifact는 approval을 돕는 표면이며, 자체가 schema/runtime mutation approval은 아닙니다.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="handoff">
+      <div class="shell">
+        <div class="section-head">
+          <h2>다음에 어떻게 쓰나</h2>
+          <p>
+            Claude가 ontology engineering 중 HITL이 필요한 순간 이 skill과 workbench를 읽고, stage에 맞는
+            review artifact를 만든 뒤 사용자 선택을 다음 prompt로 연결하면 됩니다.
+          </p>
+        </div>
+        <div class="grid two">
+          <article class="card">
+            <h3>운영 원칙</h3>
+            <p>
+              사용자가 보는 것은 raw contract JSON이 아니라 plain-language review card여야 합니다.
+              raw refs, contract fields, runtime gaps는 보조 정보로 둡니다.
+            </p>
+          </article>
+          <article class="card">
+            <h3>재로드 필요</h3>
+            <p>
+              새 skill surface는 현재 세션의 캐시에 바로 노출되지 않을 수 있습니다.
+              Claude/Codex에서 skill manifest를 새로 읽으려면 plugin reload 또는 fresh session이 필요합니다.
+            </p>
+          </article>
+        </div>
+        <div class="copy-box" style="margin-top: 14px;">
+          <div class="copy-head">
+            <strong>다음 agent에게 넘길 copy prompt</strong>
+            <button type="button" data-copy="#handoff-prompt">복사</button>
+          </div>
+          <pre id="handoff-prompt">Use ~/.claude/plugins/palantir-mini/skills/pm-hitl-feedback-workbench/SKILL.md before any ontology engineering step that needs Human-in-the-Loop feedback. Read the hitl-lead-feedback workbench, choose the relevant ontology stage, create a plain-language review artifact, show evidence and next allowed actions, and do not treat the artifact itself as DTC approval.</pre>
+        </div>
+        <div class="callout" style="margin-top: 14px;">
+          <strong>주의</strong>
+          palantir-mini가 실제 ontology/schema/router/runtime mutation으로 해석하는 작업은 별도의 승인된 SemanticIntentContract와
+          DigitalTwinChangeContract가 필요합니다. 이번 작업은 docs-only reusable HITL workbench입니다.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell">
+      Generated on 2026-05-14 for palantir-mini HITL Lead Feedback Workbench integration. Local static artifact; no external scripts.
+    </div>
+  </footer>
+
+  <script>
+    for (const button of document.querySelectorAll("[data-copy]")) {
+      button.addEventListener("click", async () => {
+        const selector = button.getAttribute("data-copy");
+        const target = selector ? document.querySelector(selector) : null;
+        if (!target) return;
+        const text = target.textContent || "";
+        try {
+          await navigator.clipboard.writeText(text);
+          button.textContent = "복사됨";
+        } catch {
+          const range = document.createRange();
+          range.selectNodeContents(target);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          button.textContent = "선택됨";
+        }
+        window.setTimeout(() => {
+          button.textContent = "복사";
+        }, 1400);
+      });
+    }
+  </script>
+</body>
+</html>

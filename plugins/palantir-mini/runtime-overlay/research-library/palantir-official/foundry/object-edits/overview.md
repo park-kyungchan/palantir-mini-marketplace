@@ -1,0 +1,25 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/object-edits/overview/"
+canonicalUrl: "https://palantir.com/docs/foundry/object-edits/overview/"
+sourceLastmod: "2026-05-12T17:06:26.153Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "273c841a8b97cb8949c4e5062db4f6d0b25889174f47d079567228db8923c7ac"
+product: "foundry"
+docsArea: "object-edits"
+locale: "en"
+upstreamTitle: "Documentation | Object edits and materializations > Overview"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Object edits and materializations
+
+The Foundry Ontology powers operational workflows, helps generate insights, and maintains an up-to-date representation of what matters to you by combining data from a variety of datasources with data coming from user-driven edits to objects. In the Foundry Ontology, users can edit property values, add and remove links, and create and delete objects by applying [Actions](/docs/foundry/action-types/overview/).
+
+An Action in Foundry is a single transaction that changes the properties of one or more objects, based on user-defined logic. Actions enable you to use and manage data while thinking about your overall objectives, rather than chasing specific property edits. Actions can be triggered from Foundry applications (like [Workshop](/docs/foundry/workshop/actions-use/) and [Object Views](/docs/foundry/object-views/overview/)) or from external applications with [Foundry APIs](/docs/foundry/action-types/use-actions/). For more information about how to configure and apply actions, see the [Actions documentation](/docs/foundry/action-types/overview/).
+
+The other pages in this section discuss the necessary configuration for object types and link types to enable Actions, as well as the underlying mechanisms that enable user-driven edits in the Ontology.
+
+:::callout{theme="warning"}
+Actions are not yet supported on [object types with Foundry stream datasources](/docs/foundry/object-permissioning/managing-object-security/#object-input-data-sources)
+:::

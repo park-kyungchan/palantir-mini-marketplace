@@ -1,0 +1,11 @@
+{
+  "project": "<sandbox>",
+  "scopePaths": [
+    "schemas/ontology/primitives/sprint-contract.ts",
+    "schemas/ontology/primitives/rule.ts",
+    "ontology/shared-core/index.ts",
+    "bridge/handlers/ontology-context-query.ts",
+    "lib/capability-registry/index.ts"
+  ],
+  "requestedAxes": ["impact-radius", "schema-surface"]
+}

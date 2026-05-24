@@ -1,0 +1,48 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/sql-warehousing/sql-permissions/"
+canonicalUrl: "https://palantir.com/docs/foundry/sql-warehousing/sql-permissions/"
+sourceLastmod: "2026-05-12T17:06:26.149Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "806fc9f2994aadbd256b4e7a99f22c6e1780f90660971cc71d7a55fa9c7ecfea"
+product: "foundry"
+docsArea: "sql-warehousing"
+locale: "en"
+upstreamTitle: "Documentation | SQL in Foundry > SQL permissions"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# SQL permissions
+
+This page describes the [roles](/docs/foundry/platform-security-management/manage-roles/) that govern access to SQL functionality in Foundry, including [SQL Studio](/docs/foundry/sql-warehousing/sql-studio/), the embedded [SQL console](/docs/foundry/sql-warehousing/sql-console/), and external SQL clients connected via [Arrow Flight SQL](/docs/foundry/sql-warehousing/arrow-flight-sql/) or the SQL [REST API](/docs/foundry/api/v2/sql-queries-v2-resources/sql-queries/execute-sql-query/).
+
+Roles described here are part of the **Foundry SQL Server** and **Download** role set categories.
+
+## Relevant operations
+
+The following operations control SQL access. A user must hold at least one of `foundry-sql-server:preview` or `foundry-sql-server:read` on a resource to run any SQL against it.
+
+| Operation | Foundry behavior | External API behavior |
+|---|---|---|
+| Preview: `foundry-sql-server:preview` | Results preview returns the first 1,000 rows of the query result. | - |
+| Query: `foundry-sql-server:read` | Results preview defaults to 1,000 rows. In SQL Studio, users can extend the preview limit to 10,000 rows from the settings menu. | Returns the complete query result with no row limit. |
+| Download: `foundry-sql-server:frontend-download` | Required for the **Download** action in the results panel. Downloads the rows displayed in the results preview (up to 1,000 rows). | — |
+| Worksheet read: `foundry-sql-server:read-worksheet` | Open and view saved SQL worksheets. | — |
+| Worksheet write: `foundry-sql-server:write-worksheet` | Create, edit, and save SQL worksheets. | — |
+
+These operations can be granted as part of the default role sets or via a custom role within a [custom role set](/docs/foundry/platform-security-management/manage-roles/#role-sets).
+
+Querying the ontology via [ontology SQL](/docs/foundry/sql-warehousing/ontology-sql/) does not require an additional role. Access follows the standard ontology roles on the object types being queried.
+
+## Custom role configurations
+
+Default roles can be customized through [custom role sets](/docs/foundry/platform-security-management/manage-roles/#role-sets). Common configurations include:
+
+* **Restricting Query:** Some organizations restrict `Query datasets using SQL` to prevent users from running unbounded queries via the SQL API. In this case, `Preview datasets using SQL` can still be granted to allow users to run capped queries inside Foundry.
+* **Separating Download from Query:** Some organizations restrict `Download SQL results in Foundry` to prevent users from downloading results via the UI download button, even if they are granted preview permissions.
+
+## AI-assisted query generation
+
+The [AI-assisted query generation](/docs/foundry/sql-warehousing/sql-studio/#ai-assisted-query-generation) feature is gated on AIP enablement rather than a roleset permission.
+
+AIP must be enabled for the user's organization and for the project containing the queried resource. For details, see [AIP permissions](/docs/foundry/aip/enable-aip-features/#aip-permissions).

@@ -1,0 +1,126 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/cross-app-interactivity/app-pairing/"
+canonicalUrl: "https://palantir.com/docs/foundry/cross-app-interactivity/app-pairing/"
+sourceLastmod: "2026-05-12T17:06:26.154Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "b054f8cb10f356db9a1366ddc54b95406fc556dd0b57c224da964bd6174eb4f7"
+product: "foundry"
+docsArea: "cross-app-interactivity"
+locale: "en"
+upstreamTitle: "Documentation | App Pairing > App Pairing widget"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# App Pairing
+
+App Pairing powers cross-application workflows by enabling you to connect supported Palantir platform applications and synchronize multiple views, ensuring that data or object changes in one application automatically update in the other, and vice versa. You can leverage App Pairing's capabilities within [AIP Chatbots](/docs/foundry/chatbot-studio/overview/) you create to [execute commands](/docs/foundry/chatbot-studio/commands-as-tools/), [Workshop modules](/docs/foundry/workshop/overview/) through the App Pairing widget, or [Notepad documents](/docs/foundry/notepad/overview/) to configure [inline commands](/docs/foundry/notepad/widgets-command/).
+
+![App pairing gif between graph and workshop.](/docs/resources/foundry/cross-app-interactivity/app-pairing-gif-lofi.gif)
+
+For example, you or another user can make changes to data in the Graph application that will update the corresponding data in a paired Workshop module. To establish this connection, [add the App Pairing widget](#add-the-app-pairing-widget-to-a-workshop-module) to a Workshop module that pairs to a Graph application. This connection enables you to select an object in Graph which will highlight in the paired Workshop module's object list.
+
+## Set up the App Pairing widget
+
+### Add the App Pairing widget to a Workshop module
+
+To add the App Pairing widget to a Workshop module, navigate to Workshop and select **+ New Module**. Similar to other [Workshop widgets](/docs/foundry/workshop/concepts-widgets/), you will have the option to add a widget in a Workshop section or in the module header. This functionality works when the widget is visible, so you should add it to your Workshop application header to ensure it remains visible.
+
+![App pairing widget card](/docs/resources/foundry/cross-app-interactivity/app-pairing-widget-card.png)
+
+Give your widget a name after you add it to the Workshop application's header. Every widget *must* have a user-facing name to enable its identification and discovery by other applications. Additional configuration is optional, and you can refer to the [advanced configuration](#apply-advanced-configurations) section below for more details.
+
+![App pairing widget set up](/docs/resources/foundry/cross-app-interactivity/app-pairing-widget-widget-set-up.png)
+
+### Create variables with shared state from other applications
+
+After you add the App Pairing widget to your Workshop module, navigate to the right panel to update its configurations so it uses one of two built-in shared state types: **Selection** or **Open data**. Shared state types define which variables App Pairing will share across applications.
+
+* **Selection:** Allows sharing a selection of data between Workshop and the connected application. When you select objects in an application, then the same objects and their metadata will be selected in Workshop.
+* **Open data:** Allows sharing of visible data in a supported application with Workshop. For example, if a user opens a graph with 10 objects and pairs the Graph application with their Workshop module, then all 10 objects on the graph will be populated in the workshop module at the time of pairing.
+
+:::callout{theme="neutral"}
+App Pairing via the **Open data** state type is only supported in Graph.
+:::
+
+![App pairing widget configuration page](/docs/resources/foundry/cross-app-interactivity/app-pairing-configuration-page.png)
+
+By default, there will be a pre-configured selected objects variable, since this is the most commonly used variable type. The default value will record the currently selected objects in Gaia or Graph when the widget is paired with a Gaia map or Graph analysis.
+
+You can select **Add Variable** to add multiple **Selection** or **Open data** variables for your module's required data types, which you can learn more about in the [advanced configurations section below](#apply-advanced-configurations).
+
+Once configured, any updates from the paired application will update Workshop variables. When using the **Selection** variable, any updates to variables from within a user’s Workshop module will send an update to the paired application.
+
+## Pair the widget
+
+You must pair the widget with an application for the shared state variables to update. To pair the widget, open the application you would like to pair with your Workshop module. Once open, the application displays as **Discovered** in the **App Pairing** menu added to the Workshop alongside the App Pairing widget.
+
+![App pairing widget pairing card](/docs/resources/foundry/cross-app-interactivity/app-pairing-widget-pairing-card.png)
+
+Select **Pair** next to the application you would like to pair with your Workshop module. The chosen application will display in the **Paired** section of the pairing menu.
+
+![App pairing widget gaia is paired in card](/docs/resources/foundry/cross-app-interactivity/app-pairing-widget-paired-gaia.png)
+
+If no supported applications are discovered, the App Pairing widget will display the following message:
+
+![App pairing widget no apps discovered](/docs/resources/foundry/cross-app-interactivity/app-pairing-no-app-discovered.png)
+
+If you are using the [Iframe](/docs/foundry/workshop/widgets-iframe/) widget to embed an external or another Palantir application (such as a Gaia map) within Workshop, then your application will automatically discover and pair with the embedded application. To unpair an embedded application from Workshop, navigate to the App Pairing widget icon and choose **Paired** application to render and select **Unpair**.
+
+![The App Pairing widget's pairing and unpairing panel is displayed.](/docs/resources/foundry/cross-app-interactivity/unpair-paired-application.png)
+
+Learn more about complex pairing logic in the [advanced configurations section below](#apply-advanced-configurations).
+
+## Configure the App Pairing widget's appearance
+
+The **Appearance** section of the **Widget setup** panel in the App Pairing widget's configuration menu enables you to customize the widget's rendering behavior in your Workshop application.
+
+![The Appearance section of the App Pairing widget's configuration panel is displayed.](/docs/resources/foundry/cross-app-interactivity/app-pairing-widget-appearance.png)
+
+**Display name:** Set the name of the widget for its discovery in other applications when pairing. The Workshop application's name is shown by default.
+**Auto open mode:** `Disabled` by default so the App Pairing menu opens only on selection, you can enable **Auto open mode** if you would like the App Pairing menu to open automatically and prompt users to choose the application to pair. Other configuration options include the following:
+
+* `Enabled`: The menu opens both initially and on application pairing change.
+* `Only initially`: The menu opens only when the application loads.
+* `Only on pairing change`: The menu opens every time the currently paired application changes.
+
+**Enable toasts:** Disabled by default, you can enable toasts to notify your application's users when another application pairs with the current application.
+
+:::callout{theme="neutral"}
+Toasts which provide error identification and troubleshooting instructions will always render even if you toggle off **Enable toasts**.
+:::
+
+**Enable toggle to pause updates:** Disabled by default, you can enable to pause and resume sending and receiving state updates in your widget. When updates resume after a pause, the widget synchronizes to the latest state.
+
+## Trigger commands when variables update
+
+Use the **Trigger commands on variable update** section of the **Widget setup** panel in the [App Pairing widget's configuration menu](/docs/foundry/cross-app-interactivity/commands-overview/#use-the-app-pairing-widget-to-configure-a-command) to trigger commands issued to other applications when variables in your application update.
+
+## Apply advanced configurations
+
+You can customize the App Pairing experience through the following advanced configurations accessible through the widget configuration panel, offering you control over its otherwise automated features. You can also create custom variables if the existing built-in variables do not suit your use case, manually manage which applications pair with one another using the scope variable, or disable data enrichment between Workshop and your paired Gaia map or Graph analysis.
+
+Within the **Shared state variables** section of the **Widget setup** panel, you can create **Custom** variables for data passed in your application that does not comply with the widget's default variable types.
+
+![The Shared state variables section displays a custom variable selection.](/docs/resources/foundry/cross-app-interactivity/create-custom-variable.png)
+
+Describe the custom data type in the **Media type string** text box by entering a media type string or another variable data type.
+
+Workshop supports the following variable data types:
+
+* Boolean
+* Date
+* Numeric
+* Numeric array
+* String
+* String array
+
+![App pairing widget variable configuration](/docs/resources/foundry/cross-app-interactivity/app-pairing-variable-config.png)
+
+Additionally, custom state variable configuration enables the App Pairing widget to support future application integrations without Palantir-made updates to its existing presets.
+
+Within the **Advanced** section of the **Widget setup** panel, you can **Disable data enrichment** if you are certain that the paired application and Workshop pass compatible state payloads between one another. Both Gaia and Graph *require* enrichment to synchronize `Object Synonym RIDs set` variable types with Workshop.
+
+![App pairing widget disable data enrichment](/docs/resources/foundry/cross-app-interactivity/app-pairing-disable-enrichment.png)
+
+Additionally, you can configure a **Scope Id** if you would like to manually coordinate which applications pair with one another. Use the **Scope Id** variable automatically generated by Workshop to ensure all applications are part of the same scope to enable pairing. You can add Workshop widgets to a scope using the **Scope Id** variable and link non-Workshop applications to a scope by adding `&appPairingScopeId=[scope-id]` to their URL. Manually pairing or unpairing an application alters the scope.

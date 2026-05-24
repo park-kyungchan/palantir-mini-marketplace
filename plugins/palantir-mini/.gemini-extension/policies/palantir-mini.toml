@@ -1,0 +1,30 @@
+[[rule]]
+mcpName = "palantir-mini"
+toolName = ["apply_edit_function", "commit_edits"]
+decision = "ask_user"
+priority = 700
+
+[[rule]]
+mcpName = "palantir-mini"
+toolName = "ontology_context_query"
+argsPattern = "\"action\":\"(write|update|create|delete|mutate|edit|apply)"
+decision = "ask_user"
+priority = 650
+
+[[rule]]
+toolName = ["write_file", "replace"]
+decision = "ask_user"
+priority = 500
+
+[[rule]]
+toolName = "run_shell_command"
+commandRegex = "(rm -rf|git push origin main|git reset --hard|git clean -fd)"
+decision = "deny"
+priority = 900
+denyMessage = "palantir-mini policy blocks destructive shell commands without an explicit scoped workflow contract."
+
+[[rule]]
+toolName = "run_shell_command"
+commandRegex = "(git commit|git push|gh pr (create|merge|close|reopen|edit|ready|review))"
+decision = "ask_user"
+priority = 600

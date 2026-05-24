@@ -1,0 +1,55 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/code-workspaces/security/"
+canonicalUrl: "https://palantir.com/docs/foundry/code-workspaces/security/"
+sourceLastmod: "2026-05-12T17:06:26.154Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "b759e6323d69e4b7c6a671433ce55ec7ff19eb7ce3515efb6d83b8700c94d08e"
+product: "foundry"
+docsArea: "code-workspaces"
+locale: "en"
+upstreamTitle: "Documentation | Code Workspaces > Security"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Security
+
+Code Workspaces ensures that Foundry’s security and permissions model is applied to the third-party IDEs connected to Foundry. This layer of security on top of the third-party applications served by Code Workspaces provides a number of benefits:
+
+* Data loaded in Code Workspaces is tracked by Foundry. Data downloads and uploads are restricted in Code Workspaces other than [methods governed by Foundry’s data governance and access controls](/docs/foundry/code-workspaces/troubleshooting/#file-download-or-upload-errors).
+* Every request to Code Workspaces is validated against Foundry’s governance framework. This means that if a user’s access to a Code Workspace is revoked, or access to the security markings of any data imported in the workspace, that user will immediately lose access to the application.
+* Data produced from Code Workspaces is tracked by Foundry, so access to output data will be restricted if a user loses access to data which may have been used to produce the output data.
+* Users are fully isolated. Each user opening a given Jupyter® or RStudio® Code Workspace will get their own isolated environment.
+* R and Python packages can only be loaded from Foundry Artifacts channels backing the repository, which enables control over the Conda, PyPI, or CRAN packages that can be used in a specific Code Workspace.
+* External API calls can only be made to URLs configured as Network Policies which have been added to the Code Workspace.
+
+## Restricted outputs mode
+
+Restricted outputs mode provides enhanced safeguards when working with sensitive data. Restricted outputs mode is a "read-only" mode that restricts write operations and external source connections to ensure that data cannot be exported from the code workspace. In particular, it allows you to load [restricted views](/docs/foundry/code-workspaces/data/#restricted-views) into a workspace.
+
+When enabled, restricted outputs mode:
+
+* **Prevents write operations** to all Foundry outputs, including datasets, models, and tables.
+* **Disables telemetry collection and logs**, as well as data checkpoint uploads, while still preserving [code checkpoints](/docs/foundry/code-workspaces/getting-started/#code-checkpoints).
+* **Disables network policies and sources** that have been added to the workspace. These resources remain in the workspace but are inactivated while in restricted outputs mode.
+
+As described in the documentation on [code checkpoints](/docs/foundry/code-workspaces/getting-started/#code-checkpoints), it is your responsibility to ensure that code files you write while in restricted outputs mode do not contain data.
+
+To enable or disable restricted outputs mode:
+
+1. Open the **Settings** side panel in your code workspace.
+2. Locate the **Restricted outputs mode** toggle.
+3. Toggle the setting on or off as needed.
+4. Save your changes and restart your workspace when prompted.
+
+:::callout{theme="neutral"}
+After enabling restricted outputs mode, your workspace will prompt you to restart. Your setting will persist across future workspace restarts until you explicitly disable it.
+:::
+
+***
+
+*RStudio® and Shiny® are trademarks of Posit™.*
+
+*Jupyter®, JupyterLab®, and the Jupyter® logos are trademarks or registered trademarks of NumFOCUS.*
+
+All third-party trademarks (including logos and icons) referenced remain the property of their respective owners. No affiliation or endorsement is implied.

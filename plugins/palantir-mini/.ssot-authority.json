@@ -1,0 +1,38 @@
+{
+  "kind": "palantir-mini-workflow-authority",
+  "version": "1.4.1",
+  "asOf": "2026-05-24",
+  "authority": "/home/palantirkc/palantir-mini",
+  "runtimeBoundaryAuthority": "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
+  "runtimeBoundaryAuthorityScope": "Runtime-neutral boundary contract only; canonical plugin workflow source remains /home/palantirkc/palantir-mini.",
+  "claudeCompatibilityInstallPath": "~/.claude/plugins/palantir-mini/",
+  "consumerRuntimes": [
+    {
+      "runtime": "claude-code-cli",
+      "consumesVia": "native-plugin-loader plus Claude-native runtime overlay under ~/.claude/**"
+    },
+    {
+      "runtime": "codex-cli",
+      "consumesVia": "config.toml marketplace local-source points at /home/palantirkc/palantir-mini; Codex protocol ownership stays under ~/.codex/**"
+    },
+    {
+      "runtime": "gemini-cli",
+      "consumesVia": "not-yet-bridged"
+    },
+    {
+      "runtime": "cursor",
+      "consumesVia": "not-yet-bridged"
+    }
+  ],
+  "forbiddenForks": [
+    "Do NOT create workflow semantic forks in ~/.codex/plugins/palantir-mini/ or other runtime dirs.",
+    "Runtime-native protocol adapters, settings, memory stores, and reload docs belong in the owning runtime home.",
+    "Per-runtime adapters are protocol authorities for their native runtime, not palantir-mini workflow authorities."
+  ],
+  "lastVerifiedSha": "c21905b1ea8c88d7edd0556e53db6faeaaf87b6d",
+  "dataLayer": {
+    "primary": "convex-cloud-dev-effervescent-meerkat-169",
+    "fallback": "anonymous:anonymous-palantir-mini@127.0.0.1:3210",
+    "asOf": "2026-05-13"
+  }
+}

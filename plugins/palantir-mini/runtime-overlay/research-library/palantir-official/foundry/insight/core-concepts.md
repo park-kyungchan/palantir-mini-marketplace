@@ -1,0 +1,41 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/insight/core-concepts/"
+canonicalUrl: "https://palantir.com/docs/foundry/insight/core-concepts/"
+sourceLastmod: "2026-05-12T17:06:26.155Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "9ae875a8aa54a6e6eaa5f6ddbb73f04fd07069a8e9ed72bcd096a5b65ff6a8d5"
+product: "foundry"
+docsArea: "insight"
+locale: "en"
+upstreamTitle: "Documentation | Insight > Core concepts"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Core concepts
+
+Insight uses the following terms and tools throughout its interface. Familiarize yourself with these concepts before creating analyses with Ontology resources.
+
+## Workbook
+
+When data analysis is saved, a workbook is the resulting Insight resource that contains the data, states, and results of your analysis. Workbooks are the primary file type for Insight that you will find in [Compass](/docs/foundry/compass/overview/).
+
+## Path
+
+A path is an analysis tab within a workbook. Paths can be duplicated and referenced within a workbook and shared with other workbooks.
+
+## Object set
+
+An object set is a published version of the filters defined in a workbook path. While a path is local to the workbook, the object set is a platform resource that can be viewed and used in other applications. If object sets are modified or deleted, users with access to those object sets may be affected.
+
+## Static list
+
+You can create a static list by selecting individual objects and adding them to a new or existing list. You can also save object sets and paths as a static list to preserve a point-in-time snapshot of the data.
+
+## Object set reference
+
+An object set reference is a path that starts with an object set. The referenced object set is read-only and defines the path's starting data. You can view its filters and other configuration within the path, but you cannot modify them.
+
+## Object set copy
+
+An object set copy duplicates an object set's definition, including its filters and any other configuration. Changes to the original object set do not affect paths that use the copy.

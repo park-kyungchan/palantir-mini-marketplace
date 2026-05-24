@@ -1,0 +1,1916 @@
+{
+  "generated": "2026-04-20T04:19:17.539Z",
+  "generator": "_seed-manifest.ts",
+  "root": "/home/palantirkc/.claude/research/palantir-foundry",
+  "total": 212,
+  "entries": [
+    {
+      "path": "aip/agent-studio-agents-as-functions.md",
+      "filename": "agent-studio-agents-as-functions.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/agents-as-functions/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Agents as Functions"
+    },
+    {
+      "path": "aip/agent-studio-application-state.md",
+      "filename": "agent-studio-application-state.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/application-state/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Application state"
+    },
+    {
+      "path": "aip/agent-studio-citations.md",
+      "filename": "agent-studio-citations.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/citations/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Citations"
+    },
+    {
+      "path": "aip/agent-studio-commands-as-tools.md",
+      "filename": "agent-studio-commands-as-tools.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/commands-as-tools/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Use commands as tools in AIP Agent Studio"
+    },
+    {
+      "path": "aip/agent-studio-core-concepts.md",
+      "filename": "agent-studio-core-concepts.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/core-concepts/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Core concepts"
+    },
+    {
+      "path": "aip/agent-studio-foundry-apis.md",
+      "filename": "agent-studio-foundry-apis.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/foundry-apis/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Use AIP Agents through Foundry APIs"
+    },
+    {
+      "path": "aip/agent-studio-getting-started.md",
+      "filename": "agent-studio-getting-started.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/getting-started/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Getting started"
+    },
+    {
+      "path": "aip/agent-studio-marketplace.md",
+      "filename": "agent-studio-marketplace.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/marketplace/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Distribute AIP Agents using Marketplace"
+    },
+    {
+      "path": "aip/agent-studio-overview.md",
+      "filename": "agent-studio-overview.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "AIP Agent Studio"
+    },
+    {
+      "path": "aip/agent-studio-retrieval-context.md",
+      "filename": "agent-studio-retrieval-context.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/retrieval-context/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Retrieval context"
+    },
+    {
+      "path": "aip/agent-studio-tools.md",
+      "filename": "agent-studio-tools.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio/tools/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Tools"
+    },
+    {
+      "path": "aip/agent-studio.md",
+      "filename": "agent-studio.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/agent-studio",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/ai-fde-best-practices.md",
+      "filename": "ai-fde-best-practices.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/ai-fde/best-practices/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Best practices for using AI FDE"
+    },
+    {
+      "path": "aip/ai-fde-modes-and-skills.md",
+      "filename": "ai-fde-modes-and-skills.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/ai-fde/modes-and-skills/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Modes and skills"
+    },
+    {
+      "path": "aip/ai-fde-navigation.md",
+      "filename": "ai-fde-navigation.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/ai-fde/navigation/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Navigation"
+    },
+    {
+      "path": "aip/ai-fde-overview.md",
+      "filename": "ai-fde-overview.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/ai-fde/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "AI FDE"
+    },
+    {
+      "path": "aip/ai-fde-security-and-governance.md",
+      "filename": "ai-fde-security-and-governance.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/ai-fde/security-and-governance/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Security and governance"
+    },
+    {
+      "path": "aip/ai-fde.md",
+      "filename": "ai-fde.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/ai-fde",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip-aip-features.md",
+      "filename": "aip-aip-features.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/aip-features/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "AIP features"
+    },
+    {
+      "path": "aip/aip-aip-observability.md",
+      "filename": "aip-aip-observability.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/aip-observability/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "AIP observability"
+    },
+    {
+      "path": "aip/aip-aip-security.md",
+      "filename": "aip-aip-security.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/aip-security/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "AIP security and privacy"
+    },
+    {
+      "path": "aip/aip-analyst-analysis-configuration.md",
+      "filename": "aip-analyst-analysis-configuration.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-analyst/analysis-configuration/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Analysis configuration"
+    },
+    {
+      "path": "aip/aip-analyst-core-concepts.md",
+      "filename": "aip-analyst-core-concepts.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-analyst/core-concepts/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Core concepts"
+    },
+    {
+      "path": "aip/aip-analyst-overview.md",
+      "filename": "aip-analyst-overview.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-analyst/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "AIP Analyst"
+    },
+    {
+      "path": "aip/aip-analyst-workshop-widget.md",
+      "filename": "aip-analyst-workshop-widget.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-analyst/workshop-widget/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "AIP Analyst Workshop widget"
+    },
+    {
+      "path": "aip/aip-analyst.md",
+      "filename": "aip-analyst.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-analyst",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip-best-practices-prompt-engineering.md",
+      "filename": "aip-best-practices-prompt-engineering.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/best-practices-prompt-engineering/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Best practices for LLM prompt engineering"
+    },
+    {
+      "path": "aip/aip-bring-your-own-model.md",
+      "filename": "aip-bring-your-own-model.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/bring-your-own-model",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip-chat-completion-function-interface-quickstart.md",
+      "filename": "aip-chat-completion-function-interface-quickstart.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/chat-completion-function-interface-quickstart",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip-ethics-governance.md",
+      "filename": "aip-ethics-governance.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/ethics-governance",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip-evals-analyze-run-results.md",
+      "filename": "aip-evals-analyze-run-results.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/analyze-run-results/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Analyze run results"
+    },
+    {
+      "path": "aip/aip-evals-create-suite.md",
+      "filename": "aip-evals-create-suite.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/create-suite/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Create an evaluation suite"
+    },
+    {
+      "path": "aip/aip-evals-experiments.md",
+      "filename": "aip-evals-experiments.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/experiments/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Experiments"
+    },
+    {
+      "path": "aip/aip-evals-getting-started.md",
+      "filename": "aip-evals-getting-started.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/getting-started/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Getting started with AIP Evals for Logic functions"
+    },
+    {
+      "path": "aip/aip-evals-intermediate-parameters.md",
+      "filename": "aip-evals-intermediate-parameters.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/intermediate-parameters/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Use intermediate parameters to evaluate block output"
+    },
+    {
+      "path": "aip/aip-evals-metrics-dashboard.md",
+      "filename": "aip-evals-metrics-dashboard.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/metrics-dashboard/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "View results in metrics dashboard"
+    },
+    {
+      "path": "aip/aip-evals-ontology-edits.md",
+      "filename": "aip-evals-ontology-edits.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/ontology-edits/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Evaluate Ontology edits"
+    },
+    {
+      "path": "aip/aip-evals-overview.md",
+      "filename": "aip-evals-overview.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "AIP Evals"
+    },
+    {
+      "path": "aip/aip-evals-results-dataset.md",
+      "filename": "aip-evals-results-dataset.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/results-dataset/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Write run results to a dataset"
+    },
+    {
+      "path": "aip/aip-evals-run-suite.md",
+      "filename": "aip-evals-run-suite.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals/run-suite/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Run an evaluation suite"
+    },
+    {
+      "path": "aip/aip-evals.md",
+      "filename": "aip-evals.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip-evals",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip-getting-started-with-aip.md",
+      "filename": "aip-getting-started-with-aip.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/getting-started-with-aip",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip-llm-provider-compatible-apis.md",
+      "filename": "aip-llm-provider-compatible-apis.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/llm-provider-compatible-apis",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip-overview.md",
+      "filename": "aip-overview.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/overview/",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "AIP overview"
+    },
+    {
+      "path": "aip/aip-supported-llms.md",
+      "filename": "aip-supported-llms.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/supported-llms",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip-use-registered-llm.md",
+      "filename": "aip-use-registered-llm.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip/use-registered-llm",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/aip.md",
+      "filename": "aip.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/aip",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/assist-adding-documentation-to-aip-assist.md",
+      "filename": "assist-adding-documentation-to-aip-assist.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/assist/adding-documentation-to-aip-assist",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/assist-agents-in-aip-assist.md",
+      "filename": "assist-agents-in-aip-assist.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/assist/agents-in-aip-assist",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/assist-aip-assist-custom-docs-overview.md",
+      "filename": "assist-aip-assist-custom-docs-overview.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/assist/aip-assist-custom-docs-overview",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/assist-aip-assist-registering-content.md",
+      "filename": "assist-aip-assist-registering-content.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/assist/aip-assist-registering-content",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/assist-aip-assist-suggested-actions.md",
+      "filename": "assist-aip-assist-suggested-actions.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/assist/aip-assist-suggested-actions",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/assist-aip-best-practices.md",
+      "filename": "assist-aip-best-practices.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/assist/aip-best-practices",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/assist-application-integrations.md",
+      "filename": "assist-application-integrations.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/assist/application-integrations",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "aip/assist.md",
+      "filename": "assist.md",
+      "subdir": "aip",
+      "source": "https://www.palantir.com/docs/foundry/assist",
+      "fetched": "2026-04-20",
+      "section": "aip-stack",
+      "doc_title": "Untitled"
+    },
+    {
+      "path": "architecture/administration-overview.md",
+      "filename": "administration-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/administration/overview/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Management and enablement"
+    },
+    {
+      "path": "architecture/analytics-overview.md",
+      "filename": "analytics-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/analytics/overview/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Analytics"
+    },
+    {
+      "path": "architecture/app-building-overview.md",
+      "filename": "app-building-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/app-building/overview/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Use case development"
+    },
+    {
+      "path": "architecture/architecture-center-aip-architecture.md",
+      "filename": "architecture-center-aip-architecture.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/architecture-center/aip-architecture/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "AIP architecture"
+    },
+    {
+      "path": "architecture/architecture-center-interoperability.md",
+      "filename": "architecture-center-interoperability.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/architecture-center/interoperability/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Interoperability"
+    },
+    {
+      "path": "architecture/architecture-center-multimodal-data-plane.md",
+      "filename": "architecture-center-multimodal-data-plane.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/architecture-center/multimodal-data-plane/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Multimodal Data Plane (MMDP)"
+    },
+    {
+      "path": "architecture/architecture-center-ontology-system.md",
+      "filename": "architecture-center-ontology-system.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/architecture-center/ontology-system/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "The Ontology system"
+    },
+    {
+      "path": "architecture/architecture-center-overview.md",
+      "filename": "architecture-center-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/architecture-center/overview/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Architecture center — Overview"
+    },
+    {
+      "path": "architecture/architecture-center-platforms.md",
+      "filename": "architecture-center-platforms.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/architecture-center/platforms/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Integrated platforms: AIP, Foundry, and Apollo"
+    },
+    {
+      "path": "architecture/architecture-center-rubix.md",
+      "filename": "architecture-center-rubix.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/architecture-center/rubix/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "The Rubix substrate"
+    },
+    {
+      "path": "architecture/architecture-center.md",
+      "filename": "architecture-center.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/architecture-center/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Architecture center — Overview"
+    },
+    {
+      "path": "architecture/data-integration-overview.md",
+      "filename": "data-integration-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/data-integration/overview/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Data connectivity and integration"
+    },
+    {
+      "path": "architecture/dev-toolchain-overview.md",
+      "filename": "dev-toolchain-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/dev-toolchain/overview/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Developer toolchain"
+    },
+    {
+      "path": "architecture/devops-overview.md",
+      "filename": "devops-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/devops/overview/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Product delivery"
+    },
+    {
+      "path": "architecture/getting-started-introductory-concepts.md",
+      "filename": "getting-started-introductory-concepts.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/getting-started/introductory-concepts/",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Introductory concepts"
+    },
+    {
+      "path": "architecture/getting-started-orientation-and-nav.md",
+      "filename": "getting-started-orientation-and-nav.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/getting-started/orientation-and-nav",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Orientation and navigation"
+    },
+    {
+      "path": "architecture/getting-started-overview.md",
+      "filename": "getting-started-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/getting-started/overview",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Getting started with Palantir"
+    },
+    {
+      "path": "architecture/model-integration-overview.md",
+      "filename": "model-integration-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/model-integration/overview",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Model connectivity and development"
+    },
+    {
+      "path": "architecture/observability-overview.md",
+      "filename": "observability-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/observability/overview",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Observability"
+    },
+    {
+      "path": "architecture/ontology-overview-semantic-search.md",
+      "filename": "ontology-overview-semantic-search.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/ontology/overview-semantic-search",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Semantic search"
+    },
+    {
+      "path": "architecture/ontology-overview.md",
+      "filename": "ontology-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/ontology/overview",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Ontology building"
+    },
+    {
+      "path": "architecture/security-overview.md",
+      "filename": "security-overview.md",
+      "subdir": "architecture",
+      "source": "https://www.palantir.com/docs/foundry/security/overview",
+      "fetched": "2026-04-20",
+      "section": "architecture-overviews",
+      "doc_title": "Security and governance"
+    },
+    {
+      "path": "dev-toolchain/code-examples-common-operations-code-repositories.md",
+      "filename": "code-examples-common-operations-code-repositories.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/common-operations-code-repositories",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Common Operations (Code Repositories)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-common-operations-functions-on-objects.md",
+      "filename": "code-examples-common-operations-functions-on-objects.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/common-operations-functions-on-objects",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Common Operations (Functions on Objects)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-common-operations-transforms.md",
+      "filename": "code-examples-common-operations-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/common-operations-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Common Operations (Transforms)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-dataset-metadata-operations-code-repositories.md",
+      "filename": "code-examples-dataset-metadata-operations-code-repositories.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/dataset-metadata-operations-code-repositories",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Dataset Metadata Operations (Code Repositories)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-dataset-metadata-operations-local-environment.md",
+      "filename": "code-examples-dataset-metadata-operations-local-environment.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/dataset-metadata-operations-local-environment",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Dataset Metadata Operations (Local Environment)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-external-transforms-transforms.md",
+      "filename": "code-examples-external-transforms-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/external-transforms-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "External Transforms (Transforms)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-foundry-apis-local-environment.md",
+      "filename": "code-examples-foundry-apis-local-environment.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/foundry-apis-local-environment",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Foundry APIs (Local Environment)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-functions-on-objects-functions-on-objects.md",
+      "filename": "code-examples-functions-on-objects-functions-on-objects.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/functions-on-objects-functions-on-objects",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Functions on Objects (Functions on Objects)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-fuzzy-matching-transforms.md",
+      "filename": "code-examples-fuzzy-matching-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/fuzzy-matching-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Fuzzy Matching (Transforms)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-geospatial-computation-transforms.md",
+      "filename": "code-examples-geospatial-computation-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/geospatial-computation-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Geospatial Computation (Transforms)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-graph-and-tree-structured-datasets-functions-on-objects.md",
+      "filename": "code-examples-graph-and-tree-structured-datasets-functions-on-objects.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/graph-and-tree-structured-datasets-functions-on-objects",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Graph and Tree Structured Datasets (Functions on Objects)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-graph-and-tree-structured-datasets-transforms.md",
+      "filename": "code-examples-graph-and-tree-structured-datasets-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/graph-and-tree-structured-datasets-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Graph and Tree Structured Datasets (Transforms)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-incremental-transforms-transforms.md",
+      "filename": "code-examples-incremental-transforms-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/incremental-transforms-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Incremental Transforms (Transforms)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-notional-data-generation-transforms.md",
+      "filename": "code-examples-notional-data-generation-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/notional-data-generation-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Notional Data Generation (Transforms)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-raw-file-parsing-functions-on-objects.md",
+      "filename": "code-examples-raw-file-parsing-functions-on-objects.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/raw-file-parsing-functions-on-objects",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Raw File Parsing (Functions on Objects)"
+    },
+    {
+      "path": "dev-toolchain/code-examples-raw-file-parsing-transforms.md",
+      "filename": "code-examples-raw-file-parsing-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples/raw-file-parsing-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Raw File Parsing (Transforms)"
+    },
+    {
+      "path": "dev-toolchain/code-examples.md",
+      "filename": "code-examples.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-examples",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Examples"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-admin-overview.md",
+      "filename": "code-repositories-admin-overview.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/admin-overview",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Admin Overview"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-advanced-settings.md",
+      "filename": "code-repositories-advanced-settings.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/advanced-settings",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Advanced Settings"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-aip-features.md",
+      "filename": "code-repositories-aip-features.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/aip-features",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - AIP Features"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-analyze-impact.md",
+      "filename": "code-repositories-analyze-impact.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/analyze-impact",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Analyze Impact"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-artifact-repositories-nav.md",
+      "filename": "code-repositories-artifact-repositories-nav.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/artifact-repositories-nav",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Artifact Repositories Nav"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-artifact-repositories-overview.md",
+      "filename": "code-repositories-artifact-repositories-overview.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/artifact-repositories-overview",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Artifact Repositories Overview"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-artifact-settings.md",
+      "filename": "code-repositories-artifact-settings.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/artifact-settings",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Artifact Settings"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-branch-settings.md",
+      "filename": "code-repositories-branch-settings.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/branch-settings",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Branch Settings"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-compute-usage.md",
+      "filename": "code-repositories-compute-usage.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/compute-usage",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Compute Usage"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-configure-repositories-in-control-panel.md",
+      "filename": "code-repositories-configure-repositories-in-control-panel.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/configure-repositories-in-control-panel",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Configure in Control Panel"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-create-artifact-repository.md",
+      "filename": "code-repositories-create-artifact-repository.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/create-artifact-repository",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Create Artifact Repository"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-create-custom-checks.md",
+      "filename": "code-repositories-create-custom-checks.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/create-custom-checks",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Create Custom Checks"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-create-transforms.md",
+      "filename": "code-repositories-create-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/create-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Create Transforms"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-debug-transforms.md",
+      "filename": "code-repositories-debug-transforms.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/debug-transforms",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Debug Transforms"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-delete-artifact-repository.md",
+      "filename": "code-repositories-delete-artifact-repository.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/delete-artifact-repository",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Delete Artifact Repository"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-faq.md",
+      "filename": "code-repositories-faq.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/faq",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - FAQ"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-libraries.md",
+      "filename": "code-repositories-libraries.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/libraries",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Libraries"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-manage-permissions.md",
+      "filename": "code-repositories-manage-permissions.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/manage-permissions",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Manage Permissions"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-marketplace-dataset-transformation.md",
+      "filename": "code-repositories-marketplace-dataset-transformation.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/marketplace-dataset-transformation",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Marketplace Dataset Transformation"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-module-pinning.md",
+      "filename": "code-repositories-module-pinning.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/module-pinning",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Module Pinning"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-navigation.md",
+      "filename": "code-repositories-navigation.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/navigation",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Navigation"
+    },
+    {
+      "path": "dev-toolchain/code-repositories-ontology-imports.md",
+      "filename": "code-repositories-ontology-imports.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories/ontology-imports",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories - Ontology Imports"
+    },
+    {
+      "path": "dev-toolchain/code-repositories.md",
+      "filename": "code-repositories.md",
+      "subdir": "dev-toolchain",
+      "source": "https://www.palantir.com/docs/foundry/code-repositories",
+      "fetched": "2026-04-20",
+      "section": "dev-toolchain",
+      "doc_title": "Code Repositories"
+    },
+    {
+      "path": "ontology/action-types-action-log.md",
+      "filename": "action-types-action-log.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/action-log/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Action log"
+    },
+    {
+      "path": "ontology/action-types-action-metrics.md",
+      "filename": "action-types-action-metrics.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/action-metrics/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Action metrics"
+    },
+    {
+      "path": "ontology/action-types-action-reverts.md",
+      "filename": "action-types-action-reverts.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/action-reverts/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Revert or undo actions"
+    },
+    {
+      "path": "ontology/action-types-actions-on-interfaces.md",
+      "filename": "action-types-actions-on-interfaces.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/actions-on-interfaces/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Actions on interfaces"
+    },
+    {
+      "path": "ontology/action-types-actions-on-structs.md",
+      "filename": "action-types-actions-on-structs.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/actions-on-structs/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Actions on structs"
+    },
+    {
+      "path": "ontology/action-types-configure-sections.md",
+      "filename": "action-types-configure-sections.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/configure-sections/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Configure sections"
+    },
+    {
+      "path": "ontology/action-types-dropdown-security.md",
+      "filename": "action-types-dropdown-security.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/dropdown-security/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Object dropdown security considerations"
+    },
+    {
+      "path": "ontology/action-types-function-actions-batched-execution.md",
+      "filename": "action-types-function-actions-batched-execution.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/function-actions-batched-execution/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Batched execution"
+    },
+    {
+      "path": "ontology/action-types-function-actions-getting-started.md",
+      "filename": "action-types-function-actions-getting-started.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/function-actions-getting-started/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Getting started (function-backed actions)"
+    },
+    {
+      "path": "ontology/action-types-function-actions-overview.md",
+      "filename": "action-types-function-actions-overview.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/function-actions-overview/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Function-backed actions overview"
+    },
+    {
+      "path": "ontology/action-types-getting-started.md",
+      "filename": "action-types-getting-started.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/getting-started/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Getting started (action types)"
+    },
+    {
+      "path": "ontology/action-types-inline-edits.md",
+      "filename": "action-types-inline-edits.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/inline-edits/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Inline edits"
+    },
+    {
+      "path": "ontology/action-types-marketplace-action-types.md",
+      "filename": "action-types-marketplace-action-types.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/marketplace-action-types/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Marketplace action types"
+    },
+    {
+      "path": "ontology/action-types-monitoring.md",
+      "filename": "action-types-monitoring.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/monitoring/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Action monitoring"
+    },
+    {
+      "path": "ontology/action-types-notifications.md",
+      "filename": "action-types-notifications.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/notifications/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Notifications"
+    },
+    {
+      "path": "ontology/action-types-overview.md",
+      "filename": "action-types-overview.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/overview/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Action types overview"
+    },
+    {
+      "path": "ontology/action-types-parameter-overview.md",
+      "filename": "action-types-parameter-overview.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/parameter-overview/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Parameters overview"
+    },
+    {
+      "path": "ontology/action-types-parameter-performance-considerations.md",
+      "filename": "action-types-parameter-performance-considerations.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/parameter-performance-considerations/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Performance considerations for parameter configuration"
+    },
+    {
+      "path": "ontology/action-types-parameters-default-value.md",
+      "filename": "action-types-parameters-default-value.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/parameters-default-value/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Set parameter default value"
+    },
+    {
+      "path": "ontology/action-types-parameters-filter.md",
+      "filename": "action-types-parameters-filter.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/parameters-filter/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Filter results of a parameter dropdown"
+    },
+    {
+      "path": "ontology/action-types-parameters-override.md",
+      "filename": "action-types-parameters-override.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/parameters-override/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Override parameter configurations"
+    },
+    {
+      "path": "ontology/action-types-permissions.md",
+      "filename": "action-types-permissions.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/permissions/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Action type permissions"
+    },
+    {
+      "path": "ontology/action-types-rules.md",
+      "filename": "action-types-rules.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/rules/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Action type rules"
+    },
+    {
+      "path": "ontology/action-types-scale-property-limits.md",
+      "filename": "action-types-scale-property-limits.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/scale-property-limits/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Scale and property limits for action types"
+    },
+    {
+      "path": "ontology/action-types-set-up-notification.md",
+      "filename": "action-types-set-up-notification.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/set-up-notification/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Set up a notification rule"
+    },
+    {
+      "path": "ontology/action-types-set-up-webhook.md",
+      "filename": "action-types-set-up-webhook.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/set-up-webhook/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Set up a webhook"
+    },
+    {
+      "path": "ontology/action-types-side-effects-overview.md",
+      "filename": "action-types-side-effects-overview.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/side-effects-overview/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Side effects overview"
+    },
+    {
+      "path": "ontology/action-types-submission-criteria.md",
+      "filename": "action-types-submission-criteria.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/submission-criteria/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Submission criteria"
+    },
+    {
+      "path": "ontology/action-types-upload-attachments.md",
+      "filename": "action-types-upload-attachments.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/upload-attachments/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Upload attachments"
+    },
+    {
+      "path": "ontology/action-types-upload-media.md",
+      "filename": "action-types-upload-media.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/upload-media/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Upload media"
+    },
+    {
+      "path": "ontology/action-types-use-actions.md",
+      "filename": "action-types-use-actions.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/use-actions/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Use actions in the platform"
+    },
+    {
+      "path": "ontology/action-types-webhooks.md",
+      "filename": "action-types-webhooks.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/webhooks/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Webhooks"
+    },
+    {
+      "path": "ontology/action-types.md",
+      "filename": "action-types.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/action-types/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "Action types"
+    },
+    {
+      "path": "ontology/foundryts-foundryts.md",
+      "filename": "foundryts-foundryts.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/foundryts/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.FoundryTS"
+    },
+    {
+      "path": "ontology/foundryts-functions-cumulative-aggregate.md",
+      "filename": "foundryts-functions-cumulative-aggregate.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-cumulative-aggregate/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.cumulative_aggregate"
+    },
+    {
+      "path": "ontology/foundryts-functions-derivative.md",
+      "filename": "foundryts-functions-derivative.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-derivative/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.derivative"
+    },
+    {
+      "path": "ontology/foundryts-functions-distribution.md",
+      "filename": "foundryts-functions-distribution.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-distribution/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.distribution"
+    },
+    {
+      "path": "ontology/foundryts-functions-dsl.md",
+      "filename": "foundryts-functions-dsl.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-dsl/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.dsl"
+    },
+    {
+      "path": "ontology/foundryts-functions-exponential-regression.md",
+      "filename": "foundryts-functions-exponential-regression.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-exponential-regression/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.exponential_regression"
+    },
+    {
+      "path": "ontology/foundryts-functions-first-point.md",
+      "filename": "foundryts-functions-first-point.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-first-point/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.first_point"
+    },
+    {
+      "path": "ontology/foundryts-functions-integral.md",
+      "filename": "foundryts-functions-integral.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-integral/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.integral"
+    },
+    {
+      "path": "ontology/foundryts-functions-interpolate.md",
+      "filename": "foundryts-functions-interpolate.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-interpolate/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.interpolate"
+    },
+    {
+      "path": "ontology/foundryts-functions-last-point.md",
+      "filename": "foundryts-functions-last-point.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-last-point/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.last_point"
+    },
+    {
+      "path": "ontology/foundryts-functions-linear-regression.md",
+      "filename": "foundryts-functions-linear-regression.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/functions-linear-regression/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "foundryts.functions.linear_regression"
+    },
+    {
+      "path": "ontology/foundryts.md",
+      "filename": "foundryts.md",
+      "subdir": "ontology",
+      "source": "https://www.palantir.com/docs/foundry/foundryts/",
+      "fetched": "2026-04-20",
+      "section": "ontology-deep",
+      "doc_title": "FoundryTS overview"
+    },
+    {
+      "path": "security-deployments/apollo-core-agents.md",
+      "filename": "apollo-core-agents.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/agents",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "agents"
+    },
+    {
+      "path": "security-deployments/apollo-core-authentication.md",
+      "filename": "apollo-core-authentication.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/authentication",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "authentication"
+    },
+    {
+      "path": "security-deployments/apollo-core-authorization.md",
+      "filename": "apollo-core-authorization.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/authorization",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "authorization"
+    },
+    {
+      "path": "security-deployments/apollo-core-ci-publish-setup.md",
+      "filename": "apollo-core-ci-publish-setup.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/ci-publish-setup",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": ".gitlab-ci.yml"
+    },
+    {
+      "path": "security-deployments/apollo-core-connect-spoke.md",
+      "filename": "apollo-core-connect-spoke.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/connect-spoke",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "connect-spoke"
+    },
+    {
+      "path": "security-deployments/apollo-core-entities.md",
+      "filename": "apollo-core-entities.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/entities",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "entities"
+    },
+    {
+      "path": "security-deployments/apollo-core-environments.md",
+      "filename": "apollo-core-environments.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/environments",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "environments"
+    },
+    {
+      "path": "security-deployments/apollo-core-helm-rollouts.md",
+      "filename": "apollo-core-helm-rollouts.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/helm-rollouts",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "helm-rollouts"
+    },
+    {
+      "path": "security-deployments/apollo-core-how-apollo-works.md",
+      "filename": "apollo-core-how-apollo-works.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/how-apollo-works",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "how-apollo-works"
+    },
+    {
+      "path": "security-deployments/apollo-core-introduction.md",
+      "filename": "apollo-core-introduction.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/introduction",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "introduction"
+    },
+    {
+      "path": "security-deployments/apollo-core-liveness-and-readiness.md",
+      "filename": "apollo-core-liveness-and-readiness.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/liveness-and-readiness",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "liveness-and-readiness"
+    },
+    {
+      "path": "security-deployments/apollo-core-modules.md",
+      "filename": "apollo-core-modules.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/modules",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "modules"
+    },
+    {
+      "path": "security-deployments/apollo-core-overview.md",
+      "filename": "apollo-core-overview.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/overview",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "overview"
+    },
+    {
+      "path": "security-deployments/apollo-core-plans-and-constraints.md",
+      "filename": "apollo-core-plans-and-constraints.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/plans-and-constraints",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "plans-and-constraints"
+    },
+    {
+      "path": "security-deployments/apollo-core-products-releases-versions.md",
+      "filename": "apollo-core-products-releases-versions.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/products-releases-versions",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "products-releases-versions"
+    },
+    {
+      "path": "security-deployments/apollo-core-publishing-versioned-helm-charts.md",
+      "filename": "apollo-core-publishing-versioned-helm-charts.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/publishing-versioned-helm-charts",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "publishing-versioned-helm-charts"
+    },
+    {
+      "path": "security-deployments/apollo-core-release-channels.md",
+      "filename": "apollo-core-release-channels.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/release-channels",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "release-channels"
+    },
+    {
+      "path": "security-deployments/apollo-core-set-up-local-kubernetes-cluster.md",
+      "filename": "apollo-core-set-up-local-kubernetes-cluster.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/set-up-local-kubernetes-cluster",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "set-up-local-kubernetes-cluster"
+    },
+    {
+      "path": "security-deployments/apollo-core-spoke-control-plane.md",
+      "filename": "apollo-core-spoke-control-plane.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/spoke-control-plane",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "spoke-control-plane"
+    },
+    {
+      "path": "security-deployments/apollo-core-supported-browsers.md",
+      "filename": "apollo-core-supported-browsers.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/supported-browsers",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "supported-browsers"
+    },
+    {
+      "path": "security-deployments/apollo-core-teams.md",
+      "filename": "apollo-core-teams.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/teams",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "teams"
+    },
+    {
+      "path": "security-deployments/apollo-core-troubleshooting-in-cluster.md",
+      "filename": "apollo-core-troubleshooting-in-cluster.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/troubleshooting-in-cluster",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "troubleshooting-in-cluster"
+    },
+    {
+      "path": "security-deployments/apollo-core-whats-new.md",
+      "filename": "apollo-core-whats-new.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core/whats-new",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "whats-new"
+    },
+    {
+      "path": "security-deployments/apollo-core.md",
+      "filename": "apollo-core.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/apollo/core",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "core"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-application-access.md",
+      "filename": "foundry-administration-configure-application-access.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-application-access",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-application-access"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-cloud-identities.md",
+      "filename": "foundry-administration-configure-cloud-identities.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-cloud-identities",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-cloud-identities"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-code-workbook-profiles.md",
+      "filename": "foundry-administration-configure-code-workbook-profiles.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-code-workbook-profiles",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-code-workbook-profiles"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-cors.md",
+      "filename": "foundry-administration-configure-cors.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-cors",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-cors"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-documentation-provider.md",
+      "filename": "foundry-administration-configure-documentation-provider.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-documentation-provider",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-documentation-provider"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-domains-and-certificates.md",
+      "filename": "foundry-administration-configure-domains-and-certificates.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-domains-and-certificates",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-domains-and-certificates"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-egress-certificates.md",
+      "filename": "foundry-administration-configure-egress-certificates.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-egress-certificates",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-egress-certificates"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-egress.md",
+      "filename": "foundry-administration-configure-egress.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-egress",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-egress"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-file-access-presets.md",
+      "filename": "foundry-administration-configure-file-access-presets.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-file-access-presets",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-file-access-presets"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-ingress.md",
+      "filename": "foundry-administration-configure-ingress.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-ingress",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-ingress"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-logging.md",
+      "filename": "foundry-administration-configure-logging.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-logging",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-logging"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-outbound-applications.md",
+      "filename": "foundry-administration-configure-outbound-applications.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-outbound-applications",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-outbound-applications"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-platform-experience.md",
+      "filename": "foundry-administration-configure-platform-experience.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-platform-experience",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-platform-experience"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-private-link-egress-aws.md",
+      "filename": "foundry-administration-configure-private-link-egress-aws.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-private-link-egress-aws",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-private-link-egress-aws"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-private-link-egress-azure.md",
+      "filename": "foundry-administration-configure-private-link-egress-azure.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-private-link-egress-azure",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-private-link-egress-azure"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-private-link-egress.md",
+      "filename": "foundry-administration-configure-private-link-egress.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-private-link-egress",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-private-link-egress"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-remote-marketplace-stores.md",
+      "filename": "foundry-administration-configure-remote-marketplace-stores.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-remote-marketplace-stores",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-remote-marketplace-stores"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-rstudio-license.md",
+      "filename": "foundry-administration-configure-rstudio-license.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-rstudio-license",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-rstudio-license"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-scoped-sessions.md",
+      "filename": "foundry-administration-configure-scoped-sessions.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-scoped-sessions",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-scoped-sessions"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-support-teams.md",
+      "filename": "foundry-administration-configure-support-teams.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-support-teams",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-support-teams"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-support-types.md",
+      "filename": "foundry-administration-configure-support-types.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-support-types",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-support-types"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-user-and-group-visibility.md",
+      "filename": "foundry-administration-configure-user-and-group-visibility.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-user-and-group-visibility",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-user-and-group-visibility"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-vpn-ingress.md",
+      "filename": "foundry-administration-configure-vpn-ingress.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-vpn-ingress",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-vpn-ingress"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-workshop.md",
+      "filename": "foundry-administration-configure-workshop.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-workshop",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-workshop"
+    },
+    {
+      "path": "security-deployments/foundry-administration-configure-workspaces.md",
+      "filename": "foundry-administration-configure-workspaces.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration/configure-workspaces",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "configure-workspaces"
+    },
+    {
+      "path": "security-deployments/foundry-administration.md",
+      "filename": "foundry-administration.md",
+      "subdir": "security-deployments",
+      "source": "https://www.palantir.com/docs/foundry/administration",
+      "fetched": "2026-04-20",
+      "section": "security-deployments",
+      "doc_title": "administration"
+    }
+  ]
+}

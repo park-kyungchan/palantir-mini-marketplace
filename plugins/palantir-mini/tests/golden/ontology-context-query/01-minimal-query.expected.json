@@ -1,0 +1,60 @@
+{
+  "_shape_only": true,
+  "_description": "Minimal query: single scopePath, no requestedAxes. Verifies that all 7 sub-context projections exist with correct discriminant fields and the 5 derived scalars are present with correct types.",
+  "applicationState": {
+    "status": "composed",
+    "project": "<volatile:string>",
+    "repoState": { "available": "<volatile:boolean>" },
+    "branch": { "available": "<volatile:boolean>" },
+    "activeWorktree": { "available": "<volatile:boolean>" },
+    "promptIdentity": { "promptId": null, "promptHash": null },
+    "scopePaths": ["a.ts"],
+    "userNonGoals": [],
+    "runtimeCapabilitySurface": { "available": "<volatile:boolean>" },
+    "visibleMcpTools": { "available": "<volatile:boolean>" },
+    "activeRules": { "available": "<volatile:boolean>" },
+    "activeHooks": { "available": "<volatile:boolean>" },
+    "currentDirtyState": { "available": "<volatile:boolean>" },
+    "otherSessionWorkSignals": { "available": "<volatile:boolean>" },
+    "composedAt": "<volatile:iso8601>"
+  },
+  "retrievalContext": {
+    "status": "composed",
+    "project": "<volatile:string>",
+    "officialResearchDocs": { "available": "<volatile:boolean>" },
+    "projectDocs": { "available": true, "browsePath": null, "indexPath": null, "claudeMdPath": null },
+    "schemaPrimitives": { "available": "<volatile:boolean>" },
+    "pluginSourceFiles": { "available": "<volatile:boolean>" },
+    "rules": { "available": "<volatile:boolean>" },
+    "hooks": { "available": "<volatile:boolean>" },
+    "skills": { "available": "<volatile:boolean>" },
+    "recentLineage": { "available": "<volatile:boolean>" },
+    "valueGradeMetrics": { "available": "<volatile:boolean>" },
+    "impactGraphNeighborhood": { "available": true, "referenceField": "impactContext", "axisRidCount": 1 },
+    "evalCoverage": { "available": true, "suiteCount": 0, "suitePaths": [] },
+    "composedAt": "<volatile:iso8601>"
+  },
+  "impactContext": {
+    "axisRids": ["file:a.ts"],
+    "perRidImpact": "<volatile:array>"
+  },
+  "capabilityContext": {
+    "totalCapabilities": "<volatile:number>",
+    "scopedCapabilityIds": "<volatile:array>",
+    "skillCount": "<volatile:number>",
+    "mcpToolCount": "<volatile:number>",
+    "agentCount": "<volatile:number>"
+  },
+  "riskContext": { "status": "composed", "risks": [] },
+  "lineageContext": {
+    "recentT3PlusEventCount": "<volatile:number>",
+    "lastEventWhen": "<volatile:string|null>",
+    "perProjectCounts": "<volatile:object>"
+  },
+  "evalContext": { "status": "pending-later-pr", "evalRuns": [] },
+  "graphConfidence": "<volatile:number_0_to_1>",
+  "missingEdges": "<volatile:array>",
+  "recommendedAgentUse": "<volatile:enum:lead-direct|targeted-verification|bounded-explorer|none>",
+  "requiredContracts": [],
+  "nonGoals": []
+}

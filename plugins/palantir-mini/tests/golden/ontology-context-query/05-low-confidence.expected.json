@@ -1,0 +1,28 @@
+{
+  "_shape_only": true,
+  "_description": "Low-confidence scenario: nonexistent scopePath causes impact_query to return partial graph data (graphConfidence < 1.0, recommendedAgentUse degrades below 'lead-direct'). lineage/caps/risks/evals all excluded so only applicationState + retrievalContext + impactContext + derived fields are present. Note: impact_query degrades gracefully — it does NOT throw on missing nodes. The key invariant is graphConfidence < 1.0 and recommendedAgentUse != 'lead-direct' (it may be 'targeted-verification' or 'bounded-explorer' depending on graph state).",
+  "applicationState": {
+    "status": "composed",
+    "scopePaths": ["nonexistent-path-to-force-impact-failure.ts"],
+    "userNonGoals": [],
+    "composedAt": "<volatile:iso8601>"
+  },
+  "retrievalContext": {
+    "status": "composed",
+    "impactGraphNeighborhood": {
+      "available": true,
+      "referenceField": "impactContext",
+      "axisRidCount": 1
+    },
+    "composedAt": "<volatile:iso8601>"
+  },
+  "impactContext": {
+    "axisRids": ["file:nonexistent-path-to-force-impact-failure.ts"],
+    "perRidImpact": "<volatile:array_length_1>"
+  },
+  "graphConfidence": "<volatile:number_0_to_1>",
+  "missingEdges": "<volatile:array>",
+  "recommendedAgentUse": "<volatile:enum:lead-direct|targeted-verification|bounded-explorer|none>",
+  "requiredContracts": [],
+  "nonGoals": []
+}

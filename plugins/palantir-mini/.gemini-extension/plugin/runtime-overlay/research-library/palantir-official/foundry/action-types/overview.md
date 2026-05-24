@@ -1,0 +1,36 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/action-types/overview/"
+canonicalUrl: "https://palantir.com/docs/foundry/action-types/overview/"
+sourceLastmod: "2026-05-12T17:06:26.152Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "0bda7d3a80894d4206f77864c334948fe275c2856bbe96c5e45fc6b9b2d88241"
+product: "foundry"
+docsArea: "action-types"
+locale: "en"
+upstreamTitle: "Documentation | Action types > Overview"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Action types
+
+In the Ontology, users can make changes to objects, properties, and links by applying actions. An action is a single transaction that changes the properties of one or more objects, based on a user-defined logic. Actions enable users to handle and manage data while thinking about overall objectives instead of specific property edits.
+
+An **action type** is the definition of a set of changes or edits to objects, property values, and links that a user can take at once. It also includes the side effect behaviors that occur with action submission.
+
+**Example:**
+
+You may create an `Assign Employee` action type that defines how users can change the `role` property value for a given `Employee` object. This action type could require a parameter definition enabling users to input the new role in a standardized form and can include rules for how to automatically create a link between the `Employee` object and that of a new `Manager`.
+
+The action could also:
+
+* Include a notification side effect that will notify the old and new manager of the change.
+* Validate that authorized employees such as those working in human resources can perform the action.
+
+With these parameters set, an HR employee can then take an action to switch "Melissa Chang" to a "Product Manager" `role`, for example.
+
+Rather than being an abstract data model, the Foundry Ontology maps each ontological concept to an organization's actual data, enabling this data asset to power real-world applications. The data asset grows in richness and value as user decisions and insights are captured in the form of edits to the Ontology.
+
+Any changes made to objects, property values, and links will be committed to the Ontology when the user takes the action and will be reflected in all user applications. Likewise, the same action logic and validations can be made available across all user-facing applications, ensuring consistent edits to the Ontology. The most up-to-date version of object data with user edits incorporated will be captured in an object type's writeback dataset.
+
+Get started by learning how to [create an action type](/docs/foundry/action-types/getting-started/), or learn about [rules](/docs/foundry/action-types/rules/), [parameters](/docs/foundry/action-types/parameter-overview/), and [submission criteria](/docs/foundry/action-types/submission-criteria/).

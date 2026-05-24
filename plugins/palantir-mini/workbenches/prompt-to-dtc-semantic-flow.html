@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>palantir-mini Semantic Workbench</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --ink: #18212f;
+      --muted: #667085;
+      --line: #d7dde5;
+      --panel: #ffffff;
+      --accent: #1769aa;
+      --warn: #8a4b0f;
+      --blocked: #b42318;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+      gap: 16px;
+    }
+
+    .panel,
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      padding: 14px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .choices,
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .choice,
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f9fafb;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .choice strong {
+      display: block;
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .ontology {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+
+    .blocked {
+      color: var(--blocked);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #ffffff;
+      font-size: 13px;
+    }
+
+    .status[data-ready="false"] {
+      color: var(--warn);
+    }
+
+    .empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    @media (max-width: 860px) {
+      main {
+        width: min(100vw - 20px, 680px);
+        padding-top: 18px;
+      }
+
+      .layout,
+      .ontology {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <script id="semantic-workbench-state" type="application/json">
+    {
+      "schemaVersion": "palantir-mini/semantic-workbench-state/v1",
+      "conversation": {
+        "stateId": "semantic-conversation:empty",
+        "schemaVersion": "palantir-mini/semantic-conversation-state/v1",
+        "prompt": {},
+        "userFacing": {
+          "preferredLanguage": "en",
+          "userExpertise": "non_programmer",
+          "plainRequestSummary": "No semantic conversation state has been attached.",
+          "confirmedNonGoals": [],
+          "unresolvedQuestions": []
+        },
+        "ontologyFacing": {
+          "activatedObjectRefs": [],
+          "activatedActionRefs": [],
+          "activatedSurfaceRefs": [],
+          "activatedLaneRefs": [],
+          "forbiddenSurfaceRefs": []
+        },
+        "skillFacing": {
+          "candidateSkillRefs": [],
+          "selectedSkillRefs": [],
+          "skillRoutingReason": "No skill routing state has been attached."
+        },
+        "contractFacing": {
+          "dtcReady": false
+        },
+        "projectFacing": {
+          "projectRoot": "",
+          "projectScopeLaneIds": [],
+          "requiredValidationPacks": []
+        },
+        "lifecycle": "captured"
+      },
+      "reviewCards": [],
+      "ontologyPreview": {
+        "objects": [],
+        "actions": [],
+        "surfaces": [],
+        "forbidden": []
+      },
+      "candidateSkills": [],
+      "nextAllowedActions": ["attach-semantic-workbench-state"]
+    }
+  </script>
+  <main>
+    <header>
+      <h1>Semantic Workbench</h1>
+      <p class="muted" id="summary"></p>
+    </header>
+
+    <div class="layout">
+      <section class="stack" aria-label="semantic review">
+        <div class="panel">
+          <h2>Conversation</h2>
+          <p id="goal"></p>
+          <div class="choices" id="non-goals"></div>
+        </div>
+        <div class="panel">
+          <h2>Review Cards</h2>
+          <div class="stack" id="review-cards"></div>
+        </div>
+      </section>
+
+      <aside class="stack" aria-label="ontology routing">
+        <div class="panel">
+          <h2>Approval</h2>
+          <div class="status" id="dtc-status"></div>
+        </div>
+        <div class="panel">
+          <h2>Ontology Preview</h2>
+          <div class="ontology" id="ontology-preview"></div>
+        </div>
+        <div class="panel">
+          <h2>Skills</h2>
+          <div class="chips" id="skills"></div>
+        </div>
+        <div class="panel">
+          <h2>Next Actions</h2>
+          <div class="chips" id="actions"></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    function readState() {
+      if (window.semanticWorkbenchState) return window.semanticWorkbenchState;
+      if (window.__PALANTIR_MINI_SEMANTIC_WORKBENCH_STATE__) {
+        return window.__PALANTIR_MINI_SEMANTIC_WORKBENCH_STATE__;
+      }
+
+      const el = document.getElementById("semantic-workbench-state");
+      return JSON.parse(el.textContent);
+    }
+
+    function setText(id, value) {
+      document.getElementById(id).textContent = value || "";
+    }
+
+    function chip(text, className) {
+      const node = document.createElement("span");
+      node.className = className || "chip";
+      node.textContent = text;
+      return node;
+    }
+
+    function renderChips(id, values, emptyText, className) {
+      const parent = document.getElementById(id);
+      parent.replaceChildren();
+      if (!values || values.length === 0) {
+        parent.appendChild(chip(emptyText, "empty"));
+        return;
+      }
+      values.forEach((value) => parent.appendChild(chip(value, className)));
+    }
+
+    function renderReviewCards(cards) {
+      const parent = document.getElementById("review-cards");
+      parent.replaceChildren();
+      if (!cards || cards.length === 0) {
+        parent.appendChild(chip("No review card attached.", "empty"));
+        return;
+      }
+
+      cards.forEach((card) => {
+        const node = document.createElement("article");
+        node.className = "card";
+        const title = document.createElement("h3");
+        title.textContent = card.title;
+        const summary = document.createElement("p");
+        summary.textContent = card.plainSummary;
+        const choices = document.createElement("div");
+        choices.className = "choices";
+
+        (card.choices || []).forEach((choice) => {
+          const item = document.createElement("span");
+          item.className = "choice";
+          const label = document.createElement("strong");
+          label.textContent = choice.label;
+          const consequence = document.createElement("span");
+          consequence.textContent = choice.consequence;
+          item.append(label, consequence);
+          choices.appendChild(item);
+        });
+
+        node.append(title, summary, choices);
+        parent.appendChild(node);
+      });
+    }
+
+    function renderOntology(preview) {
+      const parent = document.getElementById("ontology-preview");
+      parent.replaceChildren();
+
+      [
+        ["Objects", preview.objects || [], "No objects"],
+        ["Actions", preview.actions || [], "No actions"],
+        ["Surfaces", preview.surfaces || [], "No surfaces"],
+        ["Forbidden", preview.forbidden || [], "No forbidden surfaces", "blocked"],
+      ].forEach(([label, values, emptyText, className]) => {
+        const group = document.createElement("div");
+        group.className = "grid";
+        const heading = document.createElement("div");
+        heading.className = "label";
+        heading.textContent = label;
+        const chips = document.createElement("div");
+        chips.className = "chips";
+        if (values.length === 0) {
+          chips.appendChild(chip(emptyText, "empty"));
+        } else {
+          values.forEach((value) => chips.appendChild(chip(value, className ? `chip ${className}` : "chip")));
+        }
+        group.append(heading, chips);
+        parent.appendChild(group);
+      });
+    }
+
+    const state = readState();
+    const conversation = state.conversation;
+    setText("summary", `${state.schemaVersion} - ${conversation.lifecycle}`);
+    setText("goal", conversation.userFacing.confirmedGoal || conversation.userFacing.plainRequestSummary);
+    renderChips("non-goals", conversation.userFacing.confirmedNonGoals, "No confirmed non-goals.");
+    renderReviewCards(state.reviewCards);
+    renderOntology(state.ontologyPreview);
+    renderChips(
+      "skills",
+      (state.candidateSkills || []).map((skill) => skill.displayName || skill.skillId),
+      "No candidate skills."
+    );
+    renderChips("actions", state.nextAllowedActions, "No next actions.");
+
+    const dtc = document.getElementById("dtc-status");
+    dtc.dataset.ready = String(conversation.contractFacing.dtcReady);
+    dtc.textContent = conversation.contractFacing.dtcReady
+      ? "DTC approved"
+      : "DTC not approved";
+  </script>
+</body>
+</html>

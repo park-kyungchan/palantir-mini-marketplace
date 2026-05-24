@@ -1,0 +1,28 @@
+{
+  "_shape_only": true,
+  "_description": "Empty/fresh project with no scopePaths + includeImpact=false. Verifies: impactContext is absent, graphConfidence == 1.0, missingEdges == [], recommendedAgentUse == 'lead-direct', requiredContracts == [], nonGoals == []. Project has no BROWSE.md/INDEX.md/CLAUDE.md so projectDocs fields are all null. evalCoverage.suiteCount == 0.",
+  "applicationState": {
+    "status": "composed",
+    "scopePaths": [],
+    "userNonGoals": [],
+    "composedAt": "<volatile:iso8601>"
+  },
+  "retrievalContext": {
+    "status": "composed",
+    "projectDocs": { "available": true, "browsePath": null, "indexPath": null, "claudeMdPath": null },
+    "impactGraphNeighborhood": {
+      "available": true,
+      "referenceField": "impactContext",
+      "axisRidCount": 0
+    },
+    "evalCoverage": { "available": true, "suiteCount": 0, "suitePaths": [] },
+    "composedAt": "<volatile:iso8601>"
+  },
+  "graphConfidence": 1.0,
+  "missingEdges": [],
+  "recommendedAgentUse": "lead-direct",
+  "requiredContracts": [],
+  "nonGoals": [],
+  "riskContext": { "status": "composed", "risks": [] },
+  "evalContext": { "status": "pending-later-pr", "evalRuns": [] }
+}

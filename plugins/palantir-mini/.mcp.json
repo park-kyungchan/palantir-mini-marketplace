@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "palantir-mini": {
+      "command": "bun",
+      "args": [
+        "run",
+        "./bridge/mcp-server.ts"
+      ],
+      "cwd": ".",
+      "env": {
+        "PALANTIR_MINI_HOST_RUNTIME": "codex"
+      }
+    }
+  }
+}

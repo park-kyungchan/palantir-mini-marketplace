@@ -1,0 +1,20 @@
+{
+  "_description": "Minimal valid 5-dim EventEnvelope for emit_event parity smoke tests.",
+  "_shape_only": true,
+  "eventId": "test-cross-runtime-parity-001",
+  "type": "session_started",
+  "when": "2026-05-13T12:00:00.000Z",
+  "atopWhich": "057a3e54d",
+  "throughWhich": {
+    "sessionId": "test-session-cross-runtime-001",
+    "toolName": "emit_event",
+    "cwd": "/tmp/cross-runtime-parity-smoke"
+  },
+  "byWhom": {
+    "agent": "lead",
+    "identity": "claude-code"
+  },
+  "withWhat": {
+    "reasoning": "Cross-runtime parity smoke test: verifying shared-lib emit_event produces identical envelope structure from both Claude and Codex invocation paths via shared bridge/mcp-server.ts."
+  }
+}

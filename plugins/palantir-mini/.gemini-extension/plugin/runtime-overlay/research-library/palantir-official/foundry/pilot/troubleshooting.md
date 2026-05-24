@@ -1,0 +1,98 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/pilot/troubleshooting/"
+canonicalUrl: "https://palantir.com/docs/foundry/pilot/troubleshooting/"
+sourceLastmod: "2026-05-12T17:06:26.155Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "e6b27da9bbfa02f653302620b8e47de91f4b1ad914a0dcdcca8ae71a1f8d279f"
+product: "foundry"
+docsArea: "pilot"
+locale: "en"
+upstreamTitle: "Documentation | Pilot > Troubleshooting"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Troubleshooting
+
+This page addresses common issues and questions that arise when using Pilot.
+
+## Seed data and live data
+
+Pilot uses two data sources depending on the view:
+
+* **Editor view** always uses seed data generated inside the Pilot container. AI agents never access real enterprise data. This prevents Pilot from hard-coding production values into your application code.
+* **Deploy view** connects your application to real ontology data. On a deployment branch, ontology schema changes (object types, action types, link types) are scoped to the branch and do not affect `Main` until you merge. On `Main`, any actions you perform in the application are live ontology edits that take immediate effect.
+
+## Permission errors during deployment
+
+Deployment requires permissions at the project, organization, and enrollment levels. If you encounter permission errors, verify the following:
+
+* You have at least the `Editor` role on the Foundry project where Pilot is deploying.
+* You have the `Third-party application administrator` role in Control Panel, which is required to create the Developer Console application and its linked OAuth client.
+* An enrollment administrator has approved the subdomain request in **Control Panel** > **Approvals**.
+* The project does not have marking restrictions that block dataset creation.
+
+For a full breakdown of Developer Console permissions, see [Developer Console permissions](/docs/foundry/developer-console/permissions/). If permissions appear correct but errors persist, check the browser console for detailed error messages and share them with your administrator.
+
+## Access Pilot logs
+
+To access Pilot system logs:
+
+1. Select the three-dot menu (**...**) next to the tab bar in the content header.
+2. Select **Pilot logs**.
+
+The Pilot Logs tab displays real-time container logs. Use these logs to diagnose build errors, dependency installation issues, and runtime problems.
+
+## Build errors in the Preview tab
+
+If the **Preview** tab shows a build error instead of your application:
+
+1. Read the error message in the **Preview** tab. Common errors include missing imports, type mismatches, and syntax errors.
+2. Select **Fix with Pilot** to prompt Pilot to diagnose and resolve the issue automatically.
+3. If the automatic fix does not resolve the issue, describe the error in the chat panel and ask Pilot to investigate.
+
+You can also check the **Pilot logs** tab for detailed build output from the development server.
+
+## Container startup issues
+
+After you create a new application, Pilot provisions a container. This process typically takes 30 to 60 seconds. Check the following if the container does not start:
+
+1. Check the status monitoring popover by selecting the status indicator in the top-right corner. The **Pilot status** field indicates whether the connection is healthy.
+2. If the status shows **Disconnected**, try refreshing the page.
+3. If the container still does not start after refreshing, create a new Pilot application in a fresh session.
+
+## Unintended edits in deploy view
+
+When previewing your application in deploy view on `Main`, any actions you perform, such as creating, editing, or deleting objects, are live ontology edits that take immediate effect on production data. This is expected behavior, not a bug.
+
+If you want to test actions without affecting production, preview your application in deploy view on a deployment branch instead. Ontology edits made on a branch are scoped to that branch and do not propagate to `Main` until you merge.
+
+## Action references break across environments
+
+When you deploy ontology entities from a Pilot branch to `Main`, action type identifiers (RIDs) may differ between the branch and `Main`. This can cause reference errors if your application code references branch-specific RIDs.
+
+To resolve this issue:
+
+1. After merging your branch, switch back to `Main` in Pilot when prompted.
+2. If errors persist, ask Pilot to update action references to use the `Main` branch identifiers.
+
+## Divider element console errors
+
+You may see error messages in the browser console referencing "divider" elements with no height. These errors are cosmetic and do not affect application functionality. You can safely ignore them.
+
+## Dependency installation failures
+
+Try the following steps if the status monitoring popover shows that npm dependencies failed to install:
+
+1. Select **Fix with Pilot** in the status popover to attempt automatic resolution.
+2. If the issue persists, check the **Pilot logs** tab for specific error messages.
+3. Ask Pilot to reinstall dependencies by typing `Reinstall npm dependencies` in the chat panel.
+
+## Application does not deploy
+
+Follow the steps below if the deployment panel shows that your application is not deployable:
+
+1. Open the status monitoring popover and check the **Deployability** status for details.
+2. Common causes include invalid ontology entities, missing required properties, or unresolved build errors.
+3. Select **Fix with Pilot** to resolve blocking issues automatically.
+4. After fixing issues, retry the deployment from the deployment panel.

@@ -1,0 +1,54 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/peer-manager/core-concepts/"
+canonicalUrl: "https://palantir.com/docs/foundry/peer-manager/core-concepts/"
+sourceLastmod: "2026-05-12T17:06:26.151Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "581f23bf38736fa8c05e2fc0dd7a67b3a547bfcf4dc2fcbd5ecd4fa0521b4700"
+product: "foundry"
+docsArea: "peer-manager"
+locale: "en"
+upstreamTitle: "Documentation | Peer Manager > Core concepts"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Core concepts
+
+This page provides an introduction to the core concepts for peering that are relevant to Peer Manager.
+
+## Peer connections
+
+Once established, you can use peer connections to share data between distinct [spaces](/docs/foundry/security/orgs-and-spaces/#spaces) across two Foundry [enrollments](/docs/foundry/administration/enrollments-and-organizations/). A peer connection's configuration controls the types of data that may peer, the direction the data will peer, and the set of [classification](/docs/foundry/security/classification-based-access-controls/) and other [markings](/docs/foundry/security/markings/) that can peer over the connection.
+
+### Data types
+
+Through a peer connection, you can peer [Foundry objects](/docs/foundry/object-link-types/object-types-overview/), [object sets configured in Object Explorer](/docs/foundry/ontology/core-concepts/#object-type), and [Gotham files](/docs/foundry/peer-manager/configure-file-peering/).
+
+:::callout{theme="neutral"}
+It is not yet possible to peer other Foundry resources over an established peer connection, such as [Workshop](/docs/foundry/workshop/overview/) applications. However, you can use [Marketplace](/docs/foundry/marketplace/overview/) to distribute Workshop applications as well as other Foundry data products. When used together, Marketplace and peering enable you to create real-time collaborative workflows across enrollments.
+:::
+
+### Connection security
+
+A peer connection's security defines the set of security markings that are allowed to peer over the connection.
+
+The *classification* marking on the peer connection defines the highest classification that is allowed to peer. Resources with [Classification-based Access Control (CBAC)](/docs/foundry/security/classification-based-access-controls/) markings up to and including the peer connection's CBAC will be allowed to peer.
+
+The [*markings*](/docs/foundry/security/markings/) on a peer connection provide an additional level of access control, as any markings on the resource to peer *must* be included in the peer connection's security.
+
+Only data which satisfies the peer connection's security requirements may peer using that connection. Review the table below to help you determine how peering security functions in practice.
+
+| Peer connection security | Resource to peer's classification | Resource to peer's additional markings | Will resource peer? |
+| --- | --- | --- | --- |
+| MOCK SECRET with no additional markings | MOCK UNCLASSIFIED | `Operational` | ❌ No. The  `Operational` marking on the resource to peer is not included on the peer connection. |
+| MOCK SECRET with no additional markings | MOCK SECRET | None | ✅  Yes |
+| MOCK SECRET with additional markings \[`Operational`, `Exercise`] | MOCK UNCLASSIFIED | `Operational` | ✅  Yes |
+| MOCK SECRET with additional markings \[`Operational`, `Exercise`] | MOCK SECRET | None | ✅  Yes |
+
+### Peer connection management permissions
+
+Users can only manage a peer connection if they can manage the associated local space.
+
+## Peering jobs
+
+Peer Manager sends data between spaces via peering jobs. Each job corresponds to a specific data type sent in a particular direction. Peer Manager enumerates all jobs for a given connection in the connection's **Overview** page.

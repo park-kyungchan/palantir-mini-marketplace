@@ -1,0 +1,68 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/map/shapes/"
+canonicalUrl: "https://palantir.com/docs/foundry/map/shapes/"
+sourceLastmod: "2026-05-12T17:06:26.153Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "068be9024656a5f0f729f9f4e3ff693416fd9d608c2433fa89ca3a7a06a5ccce"
+product: "foundry"
+docsArea: "map"
+locale: "en"
+upstreamTitle: "Documentation | Interact with maps > Shapes"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Shapes
+
+Use shapes to select a geospatial area on your map in which to search for objects, select objects already on your map, take actions, or create annotations.
+
+## Create a shape
+
+All operations available on shapes first require an active shape. Create a shape in one of the ways below:
+
+* Construct a shape yourself using the [drawing tools](#draw-a-shape).
+* Use the currently selected objects and annotations to create shapes that cover the [same geospatial area as your selection](#from-selection).
+
+### Draw a shape
+
+Choose one of the **Drawing method** options in the toolbar or press `D` on your keyboard to manually draw a shape on the map.
+
+![Open drawing tools](/docs/resources/foundry/map/shapes-draw-button.png)
+
+Select from the various modes available using the dropdown accessible by clicking on the current drawing mode:
+
+![Select drawing mode](/docs/resources/foundry/map/shapes-draw-modes.png)
+
+### From selection
+
+You can also create shapes from the active selection on the map. Right-click on any selected object and use the **Create shape from selection** menu entry.
+
+![Create shape from selection](/docs/resources/foundry/map/shapes-from-selection.png)
+
+## Modify a shape
+
+You can edit active shapes on your map by using the **Modify** button in the shapes toolbar.
+
+![Modify button](/docs/resources/foundry/map/shapes-modify-button.png)
+
+There are a number of modification tools available:
+
+![Modify toolbar](/docs/resources/foundry/map/shapes-modify-modes.png)
+
+* **Edit points:** Lets you drag individual vertices to modify polygons, lines, or points.
+* **Buffer:** Allows entering a specific distance by which to grow or shrink the perimeter of shapes.
+* **Translate:** Enables moving an entire shape by dragging it.
+* **Replace:** Discards the currently drawn shape and opens the drawing tools to draw a new shape.
+
+Once finished applying modifications, use the **Done** button to return the shapes toolbar.
+
+## Perform operations with an active shape
+
+With an active shape, use the **Shapes** toolbar to perform various operations:
+
+![Shapes toolbar](/docs/resources/foundry/map/shapes-toolbar.png)
+
+* **Select intersecting:** Selects every object on your map that is in a visible layer and that intersects the current shape.
+* **Search within:** Opens the **Add objects** panel and filters the results to only include objects that have geospatial data that intersects the current shape. Note that only objects with [`geohash` or `geoshape` properties](/docs/foundry/map/integrate-objects/) can be searched.
+* **Actions:** Shows every available ontology action that consumes shapes. Read more about configuring geospatial actions at [Actions](/docs/foundry/map/actions/). Note that the actions button will only appear if geospatial actions have been configured in the ontology.
+* **Delete:** Removes the selected shapes from the map interface.

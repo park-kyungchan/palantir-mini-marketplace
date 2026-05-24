@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "aip-evaluation.v1.37.0",
+  "suite": {
+    "suiteId": "suite:fde-turn-quality-hooks",
+    "name": "FDE Turn Quality + Hook Enforcement Eval Suite",
+    "target": {
+      "kind": "local-function",
+      "rid": "local-function:palantir-mini.fde-ontology-turn",
+      "versionRef": "fde-turn-quality-hooks-worker-d"
+    },
+    "testCaseIds": [
+      "testcase:fde-turn-no-raw-prompt-persistence",
+      "testcase:fde-turn-sidecar-lead-card-invariants",
+      "testcase:fde-turn-readiness-eval-observability",
+      "testcase:fde-turn-handler-non-public-boundary"
+    ],
+    "criteria": [
+      "criterion:fde-turn-no-raw-prompt-persistence",
+      "criterion:fde-sidecar-lead-card-invariants",
+      "criterion:fde-readiness-eval-observability",
+      "criterion:fde-handler-non-public-boundary"
+    ],
+    "evaluatorPolicy": {
+      "allowedDomains": ["rule", "code"],
+      "requireHumanReviewForMutation": true,
+      "minimumPassingScore": 1
+    }
+  },
+  "testCases": [
+    {
+      "testCaseId": "testcase:fde-turn-no-raw-prompt-persistence",
+      "title": "FDE turn stores hashes and sanitized summaries instead of raw prompt text",
+      "input": {
+        "category": "prompt_persistence"
+      },
+      "expectedBehavior": "PromptFrontDoor envelopes and FDE turn records do not persist raw user prompt text by default; turn records carry userMessageHash plus sanitized leadSummary.",
+      "tags": ["fde", "prompt-front-door", "privacy", "raw-prompt"]
+    },
+    {
+      "testCaseId": "testcase:fde-turn-sidecar-lead-card-invariants",
+      "title": "FDE sidecar and lead cards preserve non-mutating invariants",
+      "input": {
+        "category": "sidecar_lead_card"
+      },
+      "expectedBehavior": "The sidecar references the processed session, lead cards reference the sidecar, and every card keeps mutationAuthorizedFromCard=false.",
+      "tags": ["fde", "sidecar", "lead-card", "governance"]
+    },
+    {
+      "testCaseId": "testcase:fde-turn-readiness-eval-observability",
+      "title": "FDE turn exposes readiness and eval observability",
+      "input": {
+        "category": "readiness_eval_observability"
+      },
+      "expectedBehavior": "The readiness profile exposes evaluation requirement evidence, score, missingRequired, and a grade verdict without requiring public handler registration.",
+      "tags": ["fde", "readiness", "eval", "observability"]
+    },
+    {
+      "testCaseId": "testcase:fde-turn-handler-non-public-boundary",
+      "title": "Internal FDE turn/readiness handlers stay out of public MCP tools",
+      "input": {
+        "category": "non_public_boundary"
+      },
+      "expectedBehavior": "fde-ontology-turn and grade-fde-readiness remain internal/non-public handler files and are not listed in public TOOLS or public HANDLER_MODULES.",
+      "tags": ["fde", "mcp", "handler-boundary", "non-public"]
+    }
+  ]
+}

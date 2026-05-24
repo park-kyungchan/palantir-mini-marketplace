@@ -1,0 +1,32 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/quiver/card-multi-chart-time-series/"
+canonicalUrl: "https://palantir.com/docs/foundry/quiver/card-multi-chart-time-series/"
+sourceLastmod: "2026-05-12T17:06:26.156Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "9513903fc82f64df4ef341a7ad36ebf9d20839eb83c5ed6d7ddf0603dafe4264"
+product: "foundry"
+docsArea: "quiver"
+locale: "en"
+upstreamTitle: "Documentation | Detailed card index > Multi chart time series"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Multi chart time series
+
+Display an object set of time series with the options to color and separate based on any object properties and slice the time series by linked events, filtering only to relevant time slices.
+
+## Input type
+
+Object set
+
+## Output type
+
+Flow end
+
+## Usage information
+
+| Functionality | Availability |
+| --- | --- |
+| [Standard Quiver card](/docs/foundry/quiver/core-concepts/#cards) | Supported |
+| [Transform table transform](/docs/foundry/quiver/cards-transform-table/) | Unsupported |

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "aip-evaluation.v1.37.0",
+  "suite": {
+    "suiteId": "suite:fde-turn-quality-semantic",
+    "name": "FDE Turn Quality Semantic Eval Suite",
+    "target": {
+      "kind": "local-function",
+      "rid": "local-function:palantir-mini.fde-semantic-turn-quality",
+      "versionRef": "fde-turn-quality-semantic-v1"
+    },
+    "testCaseIds": [
+      "testcase:fde-semantic-thinking-step-evidence",
+      "testcase:fde-semantic-explanation-label-before-generation",
+      "testcase:fde-semantic-myp-reference-boundary",
+      "testcase:fde-semantic-3d-runtime-boundary",
+      "testcase:fde-semantic-student-facing-approval",
+      "testcase:fde-semantic-chatbot-studio-application-state"
+    ],
+    "criteria": [
+      "criterion:has-relevant-latent-hypothesis",
+      "criterion:has-what-user-may-not-have-noticed",
+      "criterion:has-specific-recommended-default",
+      "criterion:has-specific-what-will-not-happen",
+      "criterion:maps-to-context-domains",
+      "criterion:no-mutation-authority"
+    ],
+    "evaluatorPolicy": {
+      "allowedDomains": ["DATA", "LOGIC", "ACTION", "TECHNOLOGY", "GOVERNANCE"],
+      "requireHumanReviewForMutation": true,
+      "minimumPassingScore": 1,
+      "requiredMetrics": [
+        "has_relevant_latent_hypothesis",
+        "has_what_user_may_not_have_noticed",
+        "has_specific_recommended_default",
+        "has_specific_what_will_not_happen",
+        "maps_to_context_domains",
+        "no_mutation_authority"
+      ]
+    }
+  },
+  "testCases": [
+    {
+      "testCaseId": "testcase:fde-semantic-thinking-step-evidence",
+      "title": "Student stuck-point prompts surface thinking-step evidence before mastery",
+      "input": {
+        "prompt": "학생이 어디서 막히는지 보고 싶다"
+      },
+      "expectedBehavior": "The turn derives thinking-step evidence, suggests ProblemSolvingMove and ReasoningEvidence, keeps StudentMastery deferred, and grants no mutation authority."
+    },
+    {
+      "testCaseId": "testcase:fde-semantic-explanation-label-before-generation",
+      "title": "AI explanation prompts require labels before generation",
+      "input": {
+        "prompt": "AI가 좋은 설명을 만들게 하고 싶다"
+      },
+      "expectedBehavior": "The turn derives ExplanationMove, BoardworkMove, LabelSpec, and ValidationPack before video or lesson generation."
+    },
+    {
+      "testCaseId": "testcase:fde-semantic-myp-reference-boundary",
+      "title": "MYP prompts remain reference-only until promoted",
+      "input": {
+        "prompt": "MYP 기준을 참고하고 싶다"
+      },
+      "expectedBehavior": "The turn treats MYP criteria as reference_only/not_promoted evidence and requires promotion before authority use."
+    },
+    {
+      "testCaseId": "testcase:fde-semantic-3d-runtime-boundary",
+      "title": "3D activity prompts separate runtime surface from semantic owner",
+      "input": {
+        "prompt": "3D 활동으로 만들고 싶다"
+      },
+      "expectedBehavior": "The turn requires real-life context and evidence capture before 3D runtime implementation."
+    },
+    {
+      "testCaseId": "testcase:fde-semantic-student-facing-approval",
+      "title": "Student-facing output prompts require approval and eval",
+      "input": {
+        "prompt": "학생에게 제공할 자료로 만들고 싶다"
+      },
+      "expectedBehavior": "The turn requires human approval, validation, and DTC before student-facing publication."
+    },
+    {
+      "testCaseId": "testcase:fde-semantic-chatbot-studio-application-state",
+      "title": "Chatbot Studio prompts surface application-state boundaries",
+      "input": {
+        "prompt": "Chatbot Studio에서 학생 상태에 맞게 안내하게 하고 싶다"
+      },
+      "expectedBehavior": "The turn names Chatbot Studio application-state context as review surface and avoids mutation authority."
+    }
+  ]
+}

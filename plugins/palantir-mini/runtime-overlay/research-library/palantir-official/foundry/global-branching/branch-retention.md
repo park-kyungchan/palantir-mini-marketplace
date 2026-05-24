@@ -1,0 +1,42 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/global-branching/branch-retention/"
+canonicalUrl: "https://palantir.com/docs/foundry/global-branching/branch-retention/"
+sourceLastmod: "2026-05-12T17:06:26.154Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "7fbad4a98302df9ad2a76a3a359f72f30d6c0cb8de227a1be4d0f4161ab53080"
+product: "foundry"
+docsArea: "global-branching"
+locale: "en"
+upstreamTitle: "Documentation | Usage > Branch retention"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Branch retention
+
+Branches that have no activity after a certain number of days are automatically marked as `Inactive` and later automatically `Closed`. When branches that are not deployed to the `Main` branch are closed, their resources are deleted in a process known as "de-indexing" to reduce the cost of branches.
+
+If one of your branches has been marked as `Inactive`, you will receive both an email notification and an in-platform notification. You can view branches marked as `Inactive` in the **Branches** tab of the Global Branching application and in your individual branch view.
+
+To move the branch back into the `Active` status, you can choose from either of the following options:
+
+* Manually remove the `Inactive` label on the branch. You can only do this if you are the owner of that branch.
+* Continue work on your branched resources and deploy changes or additions to your branch. The branch status will update automatically. This can be as simple as changing the name of the branch itself.
+
+In Control Panel, you can set the duration after which branches are considered inactive, and at what point the branch should be automatically closed for each Space. Navigate to **Control Panel > Spaces > Actions > Global Branch retention policy** to view and edit the configurations under the **Spaces** section.
+
+![Branch retention options related to Global Branch retention policies.](/docs/resources/foundry/global-branching/branch-retention-options.png)
+
+By default, these values are set at `7` days of inactivity to update a branch from `Active` to `Inactive` and `28` days of inactivity to update a branch from `Inactive` to `Closed`. Global Branching runs a retention task every hour to determine what actions to take on branches that qualify for retention actions.
+
+The possible set of actions that can be automatically applied to branches are as follows. Branches can automatically be:
+
+* Marked as `Inactive` after a period of no changes to an `Active` branch.
+* Marked as `Active` again if changes are observed on an `Inactive` branch.
+* Marked as `Closed` after a period of no changes to an `Inactive` branch.
+
+:::callout{theme="warning" title="Closed branches cannot be reopened"}
+Once a branch is `Closed`, it is not possible to reopen it, so this is the terminal state for the user. Seven days after a branch has been in the `Closed` or `Merged` state, its leftover data will be deleted by jobs running in `foundry-retention`. The ability to reopen a closed branch is currently in development.
+:::
+
+The ability to view Global Branching costs in the [Resource Management application](/docs/foundry/resource-management/overview/) is in development.

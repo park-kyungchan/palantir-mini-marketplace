@@ -1,0 +1,97 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/pb-functions-expression/arrayElementV1/"
+canonicalUrl: "https://palantir.com/docs/foundry/pb-functions-expression/arrayElementV1/"
+sourceLastmod: "2026-05-12T17:06:26.149Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "78e18215d8d9171d6c6d12110e93f8e6118eacff128cc68587cc10a78e8af3cc"
+product: "foundry"
+docsArea: "pb-functions-expression"
+locale: "en"
+upstreamTitle: "Documentation | Pipeline Builder Expressions > Array element"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Array element
+
+> Supported in: Batch, Faster, Streaming
+
+Returns the element at a given position from the input array. Positions outside of the array will return `null`.
+
+**Expression categories:** Array
+
+## Declared arguments
+
+* **Array:** Array from which to extract element.<br>*Expression\<Array\<T>>*
+* **Position:** Position of element to extract from array. First element is at position 1. If position is negative, accesses elements from last to first (example: -1 will return last element).<br>*Expression\<Integer>*
+
+**Type variable bounds:** *T accepts AnyType*
+
+**Output type:** *T*
+
+## Examples
+
+### Example 1: Base case
+
+**Argument values:**
+
+* **Array:** \[ 10, 11, 12 ]
+* **Position:** 1
+
+**Output:** 10
+
+***
+
+### Example 2: Null case
+
+**Description:** Output null if position greater than array length.
+
+**Argument values:**
+
+* **Array:** \[ 1, 2, 4 ]
+* **Position:** 10
+
+**Output:** *null*
+
+***
+
+### Example 3: Null case
+
+**Description:** Index array from the end using negative index.
+
+**Argument values:**
+
+* **Array:** \[ 1, 2, 4 ]
+* **Position:** -1
+
+**Output:** 4
+
+***
+
+### Example 4: Null case
+
+**Argument values:**
+
+* **Array:** `array`
+* **Position:** `position`
+
+| array | position | **Output** |
+| ----- | ----- | ----- |
+| \[ 1, 2, 3 ] | *null* | *null* |
+| *null* | 1 | *null* |
+| *null* | *null* | *null* |
+
+***
+
+### Example 5: Edge case
+
+**Argument values:**
+
+* **Array:** `array`
+* **Position:** `position`
+
+| array | position | **Output** |
+| ----- | ----- | ----- |
+| \[ 1, 2, 3 ] | 0 | *null* |
+
+***

@@ -1,0 +1,75 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/foundryts/functions-time-shift/"
+canonicalUrl: "https://palantir.com/docs/foundry/foundryts/functions-time-shift/"
+sourceLastmod: "2026-05-12T17:06:26.153Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "cc5bfec3e25ad01bac90c1784f706156e94a76da5dfebefdcbf46ce9b5a13725"
+product: "foundry"
+docsArea: "foundryts"
+locale: "en"
+upstreamTitle: "Documentation | API Reference > functions.time_shift"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# foundryts.functions.time\_shift
+
+## foundryts.functions.time\_shift(duration)
+
+Returns a function that shifts all timestamps of a single time series forward or backward in time by the
+specified duration.
+
+For a source time series with points `(timestamp, value)`, upon shifting by `duration`,
+the resulting time-shifted time series will have points `(timestamp + duration, value)`.
+Positive `duration` shift values will move the timestamps forward into the future and negative `duration`
+values will move the timestamps backwards into the past.
+
+* **Parameters:**
+  **duration** ([*int*](https://docs.python.org/3/library/functions.html#int) *,* [*datetime.timedelta*](https://docs.python.org/3/library/datetime.html#datetime.timedelta) *,* [*str*](https://docs.python.org/3/library/stdtypes.html#str)) – The amount of time to shift the timestamps forward or backward, specified as an integer, a
+  datetime.timedelta object, or a string. Integers are interpreted as the number of nanoseconds. For more
+  human-readable durations, you can provide a datetime.timedelta object or a string that will be parsed as a
+  pandas.Timedelta. String inputs should follow the format recognized by pandas.to\_timedelta, such as ‘1 day’,
+  ‘1 hour’, ‘10 minutes’, or ’42s’.
+* **Returns:**
+  A function that accepts a single time series as input and returns the time-shifted time series.
+* **Return type:**
+  (`FunctionNode`) -> `FunctionNode`
+
+## Dataframe schema
+
+| Column name   | Type             | Description                    |
+|---------------|------------------|--------------------------------|
+| timestamp     | pandas.Timestamp | Shifted Timestamp of the point |
+| value         | float | str      | Value of the point             |
+
+:::callout{theme="success" title="See Also"}
+[`timestamp_scale()`](/docs/foundry/foundryts/functions-timestamp-scale/#foundryts.functions.timestamp_scale), [`value_shift()`](/docs/foundry/foundryts/functions-value-shift/#foundryts.functions.value_shift)
+:::
+
+## Examples
+
+```pycon
+>>> series = F.points(
+...     (100, 0.0),
+...     (200, float("inf")),
+...     (300, 3.14159),
+...     (2147483647, 1.0),
+...     name="series"
+... )
+>>> series.to_pandas()
+                      timestamp    value
+0 1970-01-01 00:00:00.000000100  0.00000
+1 1970-01-01 00:00:00.000000200      inf
+2 1970-01-01 00:00:00.000000300  3.14159
+3 1970-01-01 00:00:02.147483647  1.00000
+```
+
+```pycon
+>>> time_shifted = F.time_shift(1000)(series)
+>>> time_shifted.to_pandas()
+                      timestamp    value
+0 1970-01-01 00:00:00.000001100  0.00000
+1 1970-01-01 00:00:00.000001200      inf
+2 1970-01-01 00:00:00.000001300  3.14159
+3 1970-01-01 00:00:02.147484647  1.00000
+```

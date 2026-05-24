@@ -1,0 +1,416 @@
+/**
+ * prompt-dtc-enforcement-gate-dtc-turn.test.ts
+ *
+ * Sprint-097 W5-B (dtc-T5-hooks-gate-default-on): Tests for the default-on
+ * selective-blocking gate behavior introduced in v6.78.0.
+ *
+ * Plan §13.1 W5 acceptance criteria:
+ * - Default-on behavior: no env → ontology tool + no SIC → BLOCKS
+ * - Default-on with SIC cache hit alone: no env + SIC within 60min → still BLOCKS protected mutation without approved DTC
+ * - Bypass envvar: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 → PASSES + emits audit event
+ * - Mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=advisory → advisory only
+ * - Mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off → fully off + audit event
+ * - Mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=blocking → blocks ALL mutating tools
+ * - Non-ontology tool (Read, Grep, Glob, pm_rule_query) → not gated in selective-blocking
+ * - DTC turn path (ontology_context_query write-mode via DTC fill) → evaluates correctly
+ */
+
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import promptDtcEnforcementGate from "../../hooks/prompt-dtc-enforcement-gate";
+import {
+  recordSicApproval,
+  invalidateSicApprovalMemoryCache,
+  SIC_CACHE_TTL_MS,
+} from "../../lib/prompt-front-door/sic-approval-cache";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const tmpDirs: string[] = [];
+const savedEnv: Record<string, string | undefined> = {};
+
+const SAVED_ENV_KEYS = [
+  "PALANTIR_MINI_PROMPT_DTC_GATE_MODE",
+  "PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS",
+  "PALANTIR_MINI_EVENTS_FILE",
+  "PALANTIR_MINI_PROJECT",
+] as const;
+
+function makeTmpProject(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dtc-gate-dtc-turn-"));
+  tmpDirs.push(dir);
+  fs.mkdirSync(path.join(dir, ".palantir-mini", "session"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "package.json"), "{\"name\":\"dtc-gate-dtc-turn-test\"}\n");
+  return dir;
+}
+
+function makePayload(project: string, overrides: Record<string, unknown> = {}) {
+  return {
+    cwd: project,
+    session_id: "session-dtc-turn-test",
+    tool_name: "Edit",
+    tool_input: { file_path: "src/example.ts" },
+    ...overrides,
+  };
+}
+
+function readEvents(project: string): Array<{
+  type: string;
+  payload?: Record<string, unknown>;
+}> {
+  const eventsPath = path.join(project, ".palantir-mini", "session", "events.jsonl");
+  if (!fs.existsSync(eventsPath)) return [];
+  return fs
+    .readFileSync(eventsPath, "utf8")
+    .trim()
+    .split("\n")
+    .filter((line) => line.trim().length > 0)
+    .map((line) => JSON.parse(line));
+}
+
+beforeEach(() => {
+  for (const key of SAVED_ENV_KEYS) {
+    savedEnv[key] = process.env[key];
+    delete process.env[key];
+  }
+});
+
+afterEach(() => {
+  for (const key of SAVED_ENV_KEYS) {
+    if (savedEnv[key] === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = savedEnv[key];
+    }
+  }
+  for (const dir of tmpDirs.splice(0)) {
+    invalidateSicApprovalMemoryCache(dir);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
+describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)", () => {
+  // ── §9.2 Default-on behavior ──────────────────────────────────────────────
+
+  test("default-on: no env var set + ontology-affecting tool (commit_edits) + no SIC approval → BLOCKS", async () => {
+    const project = makeTmpProject();
+    // No env var set: v6.78.0+ default = "selective-blocking"
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+      }),
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.reason).toContain("SELECTIVE-BLOCKING");
+    expect(result.reason).toContain("no SIC approval found within last 60 min");
+  });
+
+  test("default-on: no env var set + ontology-affecting tool (apply_edit_function) + no SIC approval → BLOCKS", async () => {
+    const project = makeTmpProject();
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function",
+      }),
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+  });
+
+  test("default-on: no env var set + SIC approval within 60min → still blocks protected mutation without DTC", async () => {
+    const project = makeTmpProject();
+    const promptId = "test-dtc-turn-default-on-cache-hit";
+
+    // Record a fresh SIC approval in the cache
+    recordSicApproval(project, promptId, "user:approved:dtc-turn-test");
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+        tool_input: { promptId },
+      }),
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.reason).toContain("SELECTIVE-BLOCKING");
+    expect(result.reason).toContain("No current prompt-front-door envelope");
+  });
+
+  test("default-on: non-ontology tool (Edit) → passes through without gate evaluation", async () => {
+    const project = makeTmpProject();
+    // No env var; default = selective-blocking. Edit is NOT ontology-affecting.
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "Edit",
+        tool_input: { file_path: "src/foo.ts" },
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("not ontology-affecting");
+  });
+
+  // ── §9.4 Bypass envvar ────────────────────────────────────────────────────
+
+  test("bypass envvar: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 → PASSES + emits prompt_dtc_gate_off_bypass event", async () => {
+    const project = makeTmpProject();
+    process.env.PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS = "1";
+    // Default mode = selective-blocking (no env var set)
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("bypassed");
+
+    // Allow fire-and-forget audit event to flush
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    const events = readEvents(project);
+    const bypassEvent = events.find(
+      (e) =>
+        e.type === "validation_phase_completed" &&
+        e.payload?.errorClass === "prompt_dtc_gate_off_bypass",
+    );
+    expect(bypassEvent).toBeDefined();
+  });
+
+  // ── Mode overrides ────────────────────────────────────────────────────────
+
+  test("mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=advisory → advisory only (no block)", async () => {
+    const project = makeTmpProject();
+    process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "advisory";
+    // No prompt set up; advisory mode reports pending DTC
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "Edit",
+        tool_input: { file_path: "src/example.ts" },
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toBe("palantir-mini: prompt-DTC gate advisory");
+  });
+
+  test("mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off → fully off + emits off_bypass audit event", async () => {
+    const project = makeTmpProject();
+    process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "off";
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toBe("palantir-mini: prompt-DTC gate off");
+  });
+
+  test("mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=blocking → blocks ALL mutating Edit (not just ontology-affecting subset)", async () => {
+    const project = makeTmpProject();
+    process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "blocking";
+    // Edit is not in the 4-tool ONTOLOGY_AFFECTING_TOOLS set, but blocking mode gates all mutating
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "Edit",
+        tool_input: { file_path: "src/foo.ts" },
+      }),
+    );
+
+    // In blocking mode, Edit is a mutating candidate → should block (no DTC approval)
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+  });
+
+  // ── Non-ontology tools pass through ──────────────────────────────────────
+
+  test("non-ontology tools: Read → not gated in selective-blocking default mode", async () => {
+    const project = makeTmpProject();
+    // Default = selective-blocking; Read is read-only
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "Read",
+        tool_input: { file_path: "src/foo.ts" },
+      }),
+    );
+
+    // Read is not a mutating candidate → skipped
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("skipped");
+  });
+
+  test("non-ontology tools: Glob → not gated in selective-blocking default mode", async () => {
+    const project = makeTmpProject();
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "Glob",
+        tool_input: { pattern: "**/*.ts" },
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("skipped");
+  });
+
+  test("non-ontology MCP tool: impact_query → not gated in selective-blocking default mode", async () => {
+    const project = makeTmpProject();
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__impact_query",
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("not ontology-affecting");
+  });
+
+  test("non-ontology MCP tool: pm_rule_query → not gated in selective-blocking default mode", async () => {
+    const project = makeTmpProject();
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__pm_rule_query",
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("not ontology-affecting");
+  });
+
+  // ── DTC turn path ─────────────────────────────────────────────────────────
+
+  test("DTC turn path: ontology_context_query write-mode action → gated in default selective-blocking", async () => {
+    const project = makeTmpProject();
+    // Default = selective-blocking; ontology_context_query with write action is a mutation
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__ontology_context_query",
+        tool_input: { action: "write", scope: "test-ontology" },
+      }),
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.reason).toContain("SELECTIVE-BLOCKING");
+  });
+
+  test("DTC turn path: ontology_context_query read-only (no action) → passes through in default selective-blocking", async () => {
+    const project = makeTmpProject();
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__ontology_context_query",
+        tool_input: { scope: "test-ontology" },
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("not ontology-affecting");
+  });
+
+  test("DTC turn path: negotiate_sprint_contract approve → gated in default selective-blocking", async () => {
+    const project = makeTmpProject();
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract",
+        tool_input: { action: "approve" },
+      }),
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+  });
+
+  test("DTC turn path: negotiate_sprint_contract propose → passes through in default selective-blocking", async () => {
+    const project = makeTmpProject();
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract",
+        tool_input: { action: "propose", theme: "test-sprint" },
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("not ontology-affecting");
+  });
+
+  // ── Scope cross-check: read-only tools that should NOT be gated ───────────
+
+  test("scope cross-check: compute_edits_dry_run → not in ONTOLOGY_AFFECTING_TOOLS (read-only dry-run)", async () => {
+    const project = makeTmpProject();
+    // compute_edits_dry_run is explicitly NOT in ONTOLOGY_AFFECTING_TOOLS — it does not commit
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__compute_edits_dry_run",
+      }),
+    );
+
+    // Should pass through as non-ontology-affecting
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("not ontology-affecting");
+  });
+
+  test("scope cross-check: grade_outcome_with_rubric → not in ONTOLOGY_AFFECTING_TOOLS (read-only grading)", async () => {
+    const project = makeTmpProject();
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric",
+      }),
+    );
+
+    expect(result.decision).toBeUndefined();
+    expect(result.message).toContain("not ontology-affecting");
+  });
+
+  // ── SIC approval expiry edge case ─────────────────────────────────────────
+
+  test("default-on: SIC approval 61+ min ago → expired → blocks (cache miss)", async () => {
+    const project = makeTmpProject();
+    const promptId = "test-dtc-turn-expired-cache";
+
+    // Write an expired entry directly to disk cache
+    const cacheDir = path.join(project, ".palantir-mini", "session");
+    fs.mkdirSync(cacheDir, { recursive: true });
+    const expiredAt = new Date(Date.now() - SIC_CACHE_TTL_MS - 5000).toISOString();
+    fs.writeFileSync(
+      path.join(cacheDir, "sic-approval-cache.json"),
+      JSON.stringify({
+        entries: [{ promptId, approvedAt: expiredAt, projectRoot: project }],
+        updatedAt: expiredAt,
+      }),
+    );
+
+    const result = await promptDtcEnforcementGate(
+      makePayload(project, {
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+        tool_input: { promptId },
+      }),
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("SELECTIVE-BLOCKING");
+  });
+});

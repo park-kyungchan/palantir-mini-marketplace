@@ -1,0 +1,94 @@
+---
+sourceUrl: "https://www.palantir.com/docs/apollo/managing-modules/git-module/"
+canonicalUrl: "https://palantir.com/docs/apollo/managing-modules/git-module/"
+sourceLastmod: "2026-05-12T17:06:26.159Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "f311822699f07984891e0d669bd35b2643e72aeaea41575c579d79f0939a087b"
+product: "apollo"
+docsArea: "managing-modules"
+locale: "en"
+upstreamTitle: "Documentation | Managing Modules > Store Module definitions in Git repositories"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Store Module definitions in Git repositories
+
+Once you have multiple Module definitions, you might want to store them in a Git repository. Storing Module definitions in a Git repository allows for better collaboration and control over changes. It allows users to collaborate on Module definitions in a Git repository and require pull requests for any changes. This method ensures that all changes are reviewed and approved before being applied. Storing Module definition in a Git repository is not necessary if you would like individual users to be able to unilaterally create Modules.
+
+The benefits of storing Module definitions in Git repositories include:
+
+* **Collaboration:** Multiple users can work on Module definitions simultaneously.
+* **Review Process:** Use pull requests to review and approve changes before they are merged.
+* **Automation:** Integrate with CI/CD pipelines to automate validation and updates.
+
+By leveraging the Apollo CLI, you can manage these definitions effectively. The Apollo CLI provides several commands that you can use to validate, update, and lock your Module definitions, ensuring consistency and enabling efficient collaboration across teams. These commands can be integrated into CI steps or used as Git pre-hooks to automate the management of Module definitions.
+
+:::callout{theme="warning"}
+This approach is only effective if you are careful not to grant everyone the permission to create Modules directly in Apollo. By restricting Module creation permissions, you ensure that all changes go through the Git repository and the review process, maintaining control and consistency.
+:::
+
+### `apollo-cli module create`
+
+The [`apollo-cli module create`](/docs/apollo/apollo-cli/apollo-cli_module_create/) command is used to create or update a Module in Apollo. This command processes the Module definition file and creates the Module in Apollo.
+
+For more details on creating Modules, refer to the [Create a Module](/docs/apollo/managing-modules/create-module/) section.
+
+#### Usage
+
+```bash
+apollo-cli module create --module-definition-file /path/to/module-definition.yml
+```
+
+#### Dry-run
+
+You can use the `--dry-run` flag to simulate the creation of the Module without actually publishing it. This is useful for validating the Module definition after making any changes.
+
+```bash
+apollo-cli module create --module-definition-file /path/to/module-definition.yml --dry-run
+```
+
+### `apollo-cli module lock`
+
+The [`apollo-cli module lock`](/docs/apollo/apollo-cli/apollo-cli_module_lock/) command returns a flattened view of the Module definition that includes all the submodules, making it easier to view all the entities that will be included in your Module, even if they are nested. It also includes the list of all the variables that the Module will require during installation, including variables from any of the submodules. This flattened view is saved as a file with the same name as the Module definition and a `.lock` suffix.
+
+When storing Module definitions in a Git repository, you should run this command as part of the pre-merge CI job to ensure that the lock files are required to exist and be up to date. This allows code reviewers to views changes to the Module definition, including changes to entities or variables from the [submodules](/docs/apollo/managing-modules/composite-modules/).
+
+#### Usage
+
+```bash
+apollo-cli module lock --module-definition-file /path/to/module-definition.yml
+```
+
+#### Verification
+
+You can use the `--verify` flag to perform a verification check on the Module definition. This flag ensures that the existing `.lock` file is up-to-date by comparing it to the one that would be generated. If the two do not match, the command fails.
+
+```bash
+apollo-cli module lock --verify --module-definition-file /path/to/module-definition.yml
+```
+
+### `apollo-cli module update`
+
+The [`apollo-cli module update`](/docs/apollo/apollo-cli/apollo-cli_module_update/) command is used to update the submodule versions within a [composite Module](/docs/apollo/managing-modules/composite-modules/). Because submodule definitions include the exact version, this command can be used to periodically update all the versions to latest. Once you do this, you must also run the `module lock` command to update the lock file with any potential changes due to the update to the submodules.
+
+#### Usage
+
+```bash
+apollo-cli module update --module-definition-file /path/to/composite-module-definition.yml
+```
+
+```diff
+name: example-composite-module
+displayName: Example Composite Module
+description: Example Composite Module
+submodules:
+   - name: "example-module-1"
+-    version: 0.0.0
++    version: 0.2.0
+   - name: "example-module-2"
+-    version: 0.1.0
++    version: 0.3.0
+```
+
+In this example, `example-module-1` has been updated from version `0.0.0` to `0.2.0`, and `example-module-2` has been updated from version `0.1.0` to `0.3.0`. After updating the submodule versions, you should run the `module lock` command to update the lock file with any potential changes due to the update to the submodules.

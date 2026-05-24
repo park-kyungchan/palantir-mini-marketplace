@@ -1,0 +1,109 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/global-branching/branching-app/"
+canonicalUrl: "https://palantir.com/docs/foundry/global-branching/branching-app/"
+sourceLastmod: "2026-05-12T17:06:26.154Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "f7fc4e0845b63f018240e76992d317b1458b5d5cad586e603e788c0a50760883"
+product: "foundry"
+docsArea: "global-branching"
+locale: "en"
+upstreamTitle: "Documentation | Navigation > Global Branching application"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Global Branching application
+
+The Global Branching application enables you to maintain your organization’s branches. You can use the Global Branching application as a centralized hub for your branches, allowing you to create new branches, view branches and proposals, and approve and deploy proposals.
+
+![Branching application overview page.](/docs/resources/foundry/global-branching/branching-app.png)
+
+## My items
+
+The **My items** tab provides you an overview of your proposals and branches.
+
+Under the **My open proposals** section, you can view and access your active proposals. Proposals serve as a mechanism for reviewing and approving changes made in a branch.
+
+Under the **My open branches** section, you can view and access your open branches. Branches are a separate environment on which you can experiment and test ideas without affecting the `Main` branch. You can also create a proposal for your branch, close your branch, or create a new Global branch directly from this section. Note that you can only close branches that do not have an open proposal.
+
+At the bottom, you have access to shortcuts that navigate to your merged proposals, closed proposals, or closed branches, each of which will bring you to the **Proposals** tab.
+
+![Global Branching app landing page.](/docs/resources/foundry/global-branching/landing-page.png)
+
+## Branches
+
+The **Branches** tab landing page lets you view all branches that you have access to, and lists their name, status, creator, and creation date. You may also navigate to a proposal associated with a branch, or create a proposal for a branch directly from this list.
+
+The following options are applicable:
+
+* **New:** Create a new branch.
+* **Close:** To close an open branch that does not have an open proposal.
+
+You can filter branches by **Status** and **Creator**, and use the search bar to find branches by their names.
+
+Selecting a branch will provide detailed information about that branch.
+
+![Global Branching app Branches tab.](/docs/resources/foundry/global-branching/branches-tab.png)
+
+* The branch **Overview** tab offers consolidated information about a branch and allows you to create a proposal or navigate to the associated existing proposal. Details include:
+
+  * The branch's name and current status.
+  * The resources that have undergone modifications such as transforms code repositories, Pipeline Builder pipelines, Ontology changes, and Workshop modules.
+  * High-level information about the branch such as number of resources changed, the last time the branch was updated, branch creation date, branch creator, selected Space, and selected Ontology.
+  * A comments section.
+
+![Global Branching app branch overview.](/docs/resources/foundry/global-branching/branch-overview.png)
+
+* The **Preview status** tab presents information about the preview status of the branch and its resources. Selecting a resource redirects you to the branched version of that resource. Once all resources are prepared for preview, the branch's preview status will be updated to **Ready for preview**. The possible branch resource statuses are:
+
+  * **Pending:** Resources are not ready for preview across supported applications, and necessary builds or [indexing](/docs/foundry/object-indexing/overview/) have not commenced.
+  * **In progress:** Resources are not ready for preview, but builds and indexing are underway.
+  * **Ready for preview:** Resources have been successfully built and indexed, and are now ready for preview.
+
+:::callout{theme="warning" title="Known issue with Ontology resource status"}
+Some Ontology resources may appear as pending even though they are ready for preview. We are working to resolve this issue.
+:::
+
+![Global Branching app branch preview status.](/docs/resources/foundry/global-branching/branch-preview-status.png)
+
+## Proposals
+
+The **Proposals** tab landing page enables you to view proposals you have permissions to access. You can filter these proposals by **Status** and **Creator**. The search bar lets you find proposals by their names. To close an open proposal, select the checkbox located to the left of the proposal and then select **Close**.
+
+![Global Branching app branch proposals tab.](/docs/resources/foundry/global-branching/proposals-tab.png)
+
+Selecting a proposal will provide detailed information about that proposal.
+
+* The proposal **Overview** tab consolidates information about your proposal, including its current status, high-level details and associated branch. The overview lists all modified resources, with their corresponding status and reviewers, if applicable. Branch contributors have the ability to select reviewers for each resource, and reviewers can use the **Review** link to navigate to the corresponding resource. Refer to [adding reviewers to proposals](/docs/foundry/global-branching/branching-lifecycle-usage/#add-reviewers-to-proposals) for more information. Any errors preventing a proposal merge will also be displayed here. Review [merge checks](/docs/foundry/global-branching/branching-lifecycle-usage/#merge-checks-and-resolving-errors) for a better understanding of this feature. Finally, users can view or add comments pertaining to the proposal.
+* The **Resources changed** tab focuses on the resources section from the **Overview** tab.
+* The **Branch preview status** tab centralizes information about the preview status of the branch and its resources. Selecting a resource redirects you to the branched version of that resource. Once all resources are prepared for preview, the branch's preview status will be updated to **Ready for preview**.
+
+![Global Branching app branch proposal overview.](/docs/resources/foundry/global-branching/proposal-overview.png)
+
+* The **Merge history** tab centralizes information about the proposal merge attempts and displays any errors encountered while merging a specific resource.
+
+![Global Branching app branch merge history.](/docs/resources/foundry/global-branching/merge-history.png)
+
+## Approvals
+
+:::callout{theme="neutral"}
+Changes to Workshop resources will be automatically approved if you have edit permissions on the resource. See [Add reviewers to proposals](/docs/foundry/global-branching/branching-lifecycle-usage/#add-reviewers-to-proposals) for additional information.
+:::
+
+**Branch protection** allows you to prevent unintentional changes directly to the `Main` branch by requiring proposals and optional approvals before changes can be merged.
+
+Branch protection is enabled by default for Ontology Manager resources. To merge changes to the `Main` branch, you must create a proposal and set an approver. You can approve your own proposal if you have edit access on the object.
+
+You can enable branch protection for Pipeline Builder resources in the [branch settings menu](/docs/foundry/pipeline-builder/branches-protected-branches/).
+
+Proposals for protected branches will require at least one approval to merge. Reviewers can select **Review** to view the changes in the proposal and approve or reject the proposal.
+
+![Review required on a proposal.](/docs/resources/foundry/global-branching/protected-branch-proposal.png)
+
+You can view the approval rules for a protected branch
+
+![Approval rules for a protected branch.](/docs/resources/foundry/global-branching/protected-branch-approval-rule.png)
+
+Select **Review** to approve or reject the proposal. Reviewers can add a comment for the review, for example, their reasoning for approving or rejecting the changes.
+
+![Approve and reject changes options.](/docs/resources/foundry/global-branching/protected-branch-review.png)

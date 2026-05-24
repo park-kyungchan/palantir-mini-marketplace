@@ -1,0 +1,28 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/foundry-rules/core-concepts/"
+canonicalUrl: "https://palantir.com/docs/foundry/foundry-rules/core-concepts/"
+sourceLastmod: "2026-05-12T17:06:26.153Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "916475fca4cb16f05395f5f1f396bd4ab0f9201cd3df68e195dbd1b1fa61ea17"
+product: "foundry"
+docsArea: "foundry-rules"
+locale: "en"
+upstreamTitle: "Documentation | Core concepts > Overview"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Core concepts
+
+There are several concepts that are fundamental to Foundry Rules:
+
+* **[Object model](/docs/foundry/foundry-rules/object-model/):** Foundry rules are **objects** with **properties** that can be managed by **rule proposals**.
+* **[Workshop application](/docs/foundry/foundry-rules/workshop-application/):** Foundry rules are managed by a **Workshop application** which usually includes **Rule Editor** and **Proposal Reviewer** functionality.
+* **[Rule logic](/docs/foundry/foundry-rules/rule-logic/):** Foundry rules encode business logic designed to perform a
+  [particular workflow](/docs/foundry/foundry-rules/overview/#example-use-cases). This logic follows a specific structure and defines a set of transformations upon data.
+* **[Foundry Rules workflow configuration](/docs/foundry/foundry-rules/foundry-rules-workflow-configuration/):** Foundry rules are configured using the workflow configuration editor. The editor is an interface used by workflow owners to customize Foundry Rules to their use case. <br><br>
+  ![Foundry Rules workflow overview list](/docs/resources/foundry/foundry-rules/overview@2x.png) <br><br>
+
+:::callout{theme="warning"}
+Prior to July 2022, Foundry Rules included additional concepts and required more configuration. If you deployed Foundry Rules before this date, then learn more about these [additional concepts and configurations](/docs/foundry/foundry-rules/legacy-foundry-rules-setup-taurus/).
+:::

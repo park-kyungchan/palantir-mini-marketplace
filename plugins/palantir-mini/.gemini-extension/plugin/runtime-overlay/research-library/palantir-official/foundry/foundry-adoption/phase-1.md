@@ -1,0 +1,40 @@
+---
+sourceUrl: "https://www.palantir.com/docs/foundry/foundry-adoption/phase-1/"
+canonicalUrl: "https://palantir.com/docs/foundry/foundry-adoption/phase-1/"
+sourceLastmod: "2026-05-12T17:06:26.158Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "639d7e25ead8989e554228788e6ad4cafd3a6c7dc69314b2d02fa5b3b4fb0cdd"
+product: "foundry"
+docsArea: "foundry-adoption"
+locale: "en"
+upstreamTitle: "Documentation | Phase 1: Focus on use cases > Phase 1 overview"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Phase 1: Focus on use cases
+
+## How is Foundry currently used in the organization?
+
+* One or two use cases are in production and used in the organization.
+* A relatively small number of users and developers are using Foundry.
+* The organizations intends to extend Foundry’s reach (for example, by extending existing use cases or creating new ones).
+
+## What does the Foundry Program team look like?
+
+During Phase 1, team members may take on multiple roles within the team or split their time between other roles, projects, and applications.
+
+## How do we focus our resourcing efforts?
+
+* Focus on identifying and selecting a [Head of Program](/docs/foundry/foundry-adoption/phase-1-roles/#head-of-program) who can help set the vision of the Foundry Program as a whole, lead the Program Team, and scale the Foundry Program to support your organization’s long-term goals.
+* Ensure that use case teams are appropriately staffed to manage not only use case scoping, development, and implementation, but also to own platform management and data governance responsibilities as identified below.
+* Be sure to balance the needs of the business in terms of number and type of use cases owned by a single use case team. Use case teams can often drive multiple use cases simultaneously, dependent on the right resourcing, expertise and prioritization.
+* Typically in Phase 1, you should be focused on finding individuals who can help the program scale (and who can scale with it). You should select experienced individuals in Phase 1 who will be expected to set a strong vision and form the leadership layer of the Foundry Program team in the long term. This selection process can be a delicate balance of finding a combination of strong individual contributors and leaders.
+
+## Roles diagram
+
+The following diagram shows the various roles and teams within the Foundry Program team that are responsible for Foundry implementation in Phase 1:
+
+![Phase 1 roles diagram](/docs/resources/foundry/foundry-adoption/pteam-1.png)
+
+[Learn more about Program team roles and responsibilities in Phase 1.](/docs/foundry/foundry-adoption/phase-1-roles/)

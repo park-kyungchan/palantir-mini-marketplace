@@ -1,0 +1,319 @@
+import type {
+  FDEOntologyEngineeringPhase,
+  FDEOntologyEngineeringSession,
+} from "../fde-ontology-engineering/types";
+import type { LeadOntologyTurnCardV2Choice } from "../chatbot-studio/lead-ontology-turn-card";
+
+export const ONTOLOGY_ENGINEERING_WORKFLOW_SCHEMA_VERSION =
+  "palantir-mini/ontology-engineering-workflow/v1" as const;
+
+export type OntologyEngineeringWorkflowAction =
+  | "start"
+  | "turn"
+  | "draft_sic"
+  | "status";
+
+export type OntologyEngineeringWorkflowPhase =
+  | "not-started"
+  | "fde-active"
+  | "semantic-contract-ready"
+  | "semantic-contract-drafted"
+  | "semantic-contract-approved"
+  | "digital-twin-approved"
+  | "mutation-authorized";
+
+export type UserDecisionKind = "accept" | "reject" | "defer" | "answer";
+
+export interface TurnCardDecisionSpec {
+  readonly choiceId: string;
+  readonly kind: UserDecisionKind;
+  readonly label: string;
+  readonly consequence: string;
+  readonly targetHypothesisId?: string;
+  readonly appliesToRequirementIds: readonly string[];
+  readonly affectsSemanticIntent: boolean;
+  readonly affectsDtc: boolean;
+  readonly sourceCardRef: string;
+}
+
+export interface UserDecisionRecord {
+  readonly decisionId: string;
+  readonly choiceId: string;
+  readonly kind: UserDecisionKind;
+  readonly recordedAt: string;
+  readonly source: "turn-card" | "handler-input";
+  readonly targetHypothesisId?: string;
+  readonly appliesToRequirementIds: readonly string[];
+  readonly note?: string;
+  readonly fdeSessionRef?: string;
+  readonly approvedMutationBoundary?: string;
+}
+
+export interface DecisionLedgerAuditFinding {
+  readonly findingId: "decision-ledger.forward-only-existing-gap";
+  readonly severity: "warn";
+  readonly policy: "forward-only-plus-audit";
+  readonly message: string;
+  readonly fdeSessionRef?: string;
+  readonly turnCount: number;
+  readonly userDecisionRecordCount: number;
+  readonly expectedMinimumRecordCount: number;
+  readonly backfillApplied: false;
+}
+
+export interface OntologyEngineeringWorkflowContract {
+  readonly schemaVersion: typeof ONTOLOGY_ENGINEERING_WORKFLOW_SCHEMA_VERSION;
+  readonly contractId: string;
+  readonly projectRoot: string;
+  readonly universalOntologyEntryRef?: string;
+  readonly fdeSessionId?: string;
+  readonly fdeSessionRef?: string;
+  readonly fdePhase?: FDEOntologyEngineeringPhase;
+  readonly semanticIntentContractRef?: string;
+  readonly semanticIntentContractStatus?: "draft" | "approved" | "superseded";
+  readonly digitalTwinChangeContractRef?: string;
+  readonly digitalTwinChangeContractStatus?: "draft" | "approved" | "superseded";
+  readonly workContractRef?: string;
+  readonly phase: OntologyEngineeringWorkflowPhase;
+  readonly allowedNextActions: readonly OntologyEngineeringWorkflowAction[];
+  readonly mutationAuthorized: boolean;
+  readonly sourceRefs: readonly string[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface OntologyEngineeringWorkflowState
+  extends OntologyEngineeringWorkflowContract {
+  readonly turnDecisionSpecs: readonly TurnCardDecisionSpec[];
+  readonly userDecisionRecords: readonly UserDecisionRecord[];
+  readonly decisionLedgerAuditFindings: readonly DecisionLedgerAuditFinding[];
+}
+
+export interface DeriveWorkflowStateInput {
+  readonly projectRoot: string;
+  readonly fdeSession?: FDEOntologyEngineeringSession;
+  readonly semanticIntentContractRef?: string;
+  readonly semanticIntentContractStatus?: "draft" | "approved" | "superseded";
+  readonly digitalTwinChangeContractRef?: string;
+  readonly digitalTwinChangeContractStatus?: "draft" | "approved" | "superseded";
+  readonly workContractRef?: string;
+  readonly turnDecisionSpecs?: readonly TurnCardDecisionSpec[];
+  readonly userDecisionRecords?: readonly UserDecisionRecord[];
+  readonly createdAt?: string;
+  readonly updatedAt?: string;
+}
+
+function uniqueActions(
+  actions: readonly OntologyEngineeringWorkflowAction[],
+): readonly OntologyEngineeringWorkflowAction[] {
+  return Array.from(new Set(actions));
+}
+
+function uniqueStrings(values: readonly string[]): readonly string[] {
+  return Array.from(new Set(values.filter((value) => value.length > 0)));
+}
+
+function contractApproved(input: {
+  readonly ref?: string;
+  readonly status?: "draft" | "approved" | "superseded";
+}): boolean {
+  return input.status === "approved" && input.ref !== undefined && input.ref.trim().length > 0;
+}
+
+function hasApprovedMutationDecisionRecord(
+  records: readonly UserDecisionRecord[] | undefined,
+): boolean {
+  return (records ?? []).some((record) =>
+    record.kind === "accept" &&
+    record.source === "handler-input" &&
+    typeof record.approvedMutationBoundary === "string" &&
+    record.approvedMutationBoundary.trim().length > 0
+  );
+}
+
+function deriveDecisionLedgerAuditFindings(input: {
+  readonly fdeSession?: FDEOntologyEngineeringSession;
+  readonly fdeSessionRef?: string;
+  readonly userDecisionRecords?: readonly UserDecisionRecord[];
+}): readonly DecisionLedgerAuditFinding[] {
+  const turnCount = input.fdeSession?.turnCount ?? 0;
+  const userDecisionRecordCount = input.userDecisionRecords?.length ?? 0;
+
+  if (turnCount === 0 || userDecisionRecordCount >= turnCount) return [];
+
+  return [{
+    findingId: "decision-ledger.forward-only-existing-gap",
+    severity: "warn",
+    policy: "forward-only-plus-audit",
+    message:
+      "Existing FDE turns outnumber UserDecisionRecord entries; the ledger is forward-only, so historical records are not backfilled.",
+    fdeSessionRef: input.fdeSessionRef,
+    turnCount,
+    userDecisionRecordCount,
+    expectedMinimumRecordCount: turnCount,
+    backfillApplied: false,
+  }];
+}
+
+export function deriveMutationAuthorized(input: {
+  readonly semanticIntentContractRef?: string;
+  readonly semanticIntentContractStatus?: "draft" | "approved" | "superseded";
+  readonly digitalTwinChangeContractRef?: string;
+  readonly digitalTwinChangeContractStatus?: "draft" | "approved" | "superseded";
+  readonly workContractRef?: string;
+  readonly userDecisionRecords?: readonly UserDecisionRecord[];
+}): boolean {
+  return contractApproved({
+    ref: input.semanticIntentContractRef,
+    status: input.semanticIntentContractStatus,
+  }) && contractApproved({
+    ref: input.digitalTwinChangeContractRef,
+    status: input.digitalTwinChangeContractStatus,
+  }) &&
+    input.workContractRef !== undefined &&
+    input.workContractRef.trim().length > 0 &&
+    hasApprovedMutationDecisionRecord(input.userDecisionRecords);
+}
+
+export function deriveWorkflowPhase(input: {
+  readonly fdeSession?: FDEOntologyEngineeringSession;
+  readonly semanticIntentContractRef?: string;
+  readonly semanticIntentContractStatus?: "draft" | "approved" | "superseded";
+  readonly digitalTwinChangeContractRef?: string;
+  readonly digitalTwinChangeContractStatus?: "draft" | "approved" | "superseded";
+  readonly workContractRef?: string;
+  readonly userDecisionRecords?: readonly UserDecisionRecord[];
+}): OntologyEngineeringWorkflowPhase {
+  if (deriveMutationAuthorized(input)) return "mutation-authorized";
+  if (contractApproved({
+    ref: input.digitalTwinChangeContractRef,
+    status: input.digitalTwinChangeContractStatus,
+  })) return "digital-twin-approved";
+  if (contractApproved({
+    ref: input.semanticIntentContractRef,
+    status: input.semanticIntentContractStatus,
+  })) return "semantic-contract-approved";
+  if (input.semanticIntentContractRef !== undefined) return "semantic-contract-drafted";
+  if (input.fdeSession?.phase === "semantic-contract-ready" || input.fdeSession?.phase === "dtc-ready") {
+    return "semantic-contract-ready";
+  }
+  if (input.fdeSession !== undefined) return "fde-active";
+  return "not-started";
+}
+
+export function deriveAllowedNextActions(input: {
+  readonly fdeSession?: FDEOntologyEngineeringSession;
+  readonly semanticIntentContractRef?: string;
+  readonly semanticIntentContractStatus?: "draft" | "approved" | "superseded";
+  readonly digitalTwinChangeContractRef?: string;
+  readonly digitalTwinChangeContractStatus?: "draft" | "approved" | "superseded";
+  readonly workContractRef?: string;
+  readonly userDecisionRecords?: readonly UserDecisionRecord[];
+}): readonly OntologyEngineeringWorkflowAction[] {
+  const mutationAuthorized = deriveMutationAuthorized(input);
+  if (input.fdeSession === undefined) return ["start", "status"];
+
+  const actions: OntologyEngineeringWorkflowAction[] = ["turn", "status"];
+  const sicApproved = contractApproved({
+    ref: input.semanticIntentContractRef,
+    status: input.semanticIntentContractStatus,
+  });
+  const sicDrafted = input.semanticIntentContractRef !== undefined && !sicApproved;
+  const readyForSic =
+    input.fdeSession.phase === "semantic-contract-ready" ||
+    input.fdeSession.phase === "dtc-ready" ||
+    input.fdeSession.readinessProfile?.readyForSemanticIntent === true;
+
+  if (!sicApproved && !sicDrafted && readyForSic) actions.unshift("draft_sic");
+  if (mutationAuthorized) return ["status"];
+  return uniqueActions(actions);
+}
+
+export function turnCardDecisionSpecsFromChoices(input: {
+  readonly cardId: string;
+  readonly choices: readonly LeadOntologyTurnCardV2Choice[];
+}): readonly TurnCardDecisionSpec[] {
+  return input.choices.map((choice) => ({
+    choiceId: choice.choiceId,
+    kind: choice.kind,
+    label: choice.label,
+    consequence: choice.consequence,
+    targetHypothesisId: choice.targetHypothesisId,
+    appliesToRequirementIds: choice.appliesToRequirementIds,
+    affectsSemanticIntent: choice.affectsSemanticIntent,
+    affectsDtc: choice.affectsDtc,
+    sourceCardRef: input.cardId,
+  }));
+}
+
+export function userDecisionRecordsFromSpecs(input: {
+  readonly specs: readonly TurnCardDecisionSpec[];
+  readonly choiceIds: readonly string[];
+  readonly recordedAt: string;
+  readonly note?: string;
+}): readonly UserDecisionRecord[] {
+  const selected = new Set(input.choiceIds);
+  return input.specs
+    .filter((spec) => selected.has(spec.choiceId))
+    .map((spec) => ({
+      decisionId: `user-decision:${spec.choiceId}`,
+      choiceId: spec.choiceId,
+      kind: spec.kind,
+      recordedAt: input.recordedAt,
+      source: "turn-card",
+      targetHypothesisId: spec.targetHypothesisId,
+      appliesToRequirementIds: spec.appliesToRequirementIds,
+      note: input.note,
+    }));
+}
+
+export function deriveOntologyEngineeringWorkflowState(
+  input: DeriveWorkflowStateInput,
+): OntologyEngineeringWorkflowState {
+  const updatedAt = input.updatedAt ?? new Date().toISOString();
+  const createdAt = input.createdAt ?? input.fdeSession?.createdAt ?? updatedAt;
+  const phase = deriveWorkflowPhase(input);
+  const mutationAuthorized = deriveMutationAuthorized(input);
+  const fdeSessionRef = input.fdeSession
+    ? `fde-ontology-engineering://session/${input.fdeSession.sessionId}`
+    : undefined;
+  const userDecisionRecords = input.userDecisionRecords ?? [];
+  const sourceRefs = uniqueStrings([
+    ...(input.fdeSession?.sourceRefs ?? []),
+    input.fdeSession?.universalOntologyEntryRef ?? "",
+    fdeSessionRef ?? "",
+    input.semanticIntentContractRef ?? "",
+    input.digitalTwinChangeContractRef ?? "",
+    input.workContractRef ?? "",
+  ]);
+
+  return {
+    schemaVersion: ONTOLOGY_ENGINEERING_WORKFLOW_SCHEMA_VERSION,
+    contractId: input.fdeSession
+      ? `ontology-engineering-workflow:${input.fdeSession.sessionId}`
+      : `ontology-engineering-workflow:${input.projectRoot}`,
+    projectRoot: input.projectRoot,
+    universalOntologyEntryRef: input.fdeSession?.universalOntologyEntryRef,
+    fdeSessionId: input.fdeSession?.sessionId,
+    fdeSessionRef,
+    fdePhase: input.fdeSession?.phase,
+    semanticIntentContractRef: input.semanticIntentContractRef,
+    semanticIntentContractStatus: input.semanticIntentContractStatus,
+    digitalTwinChangeContractRef: input.digitalTwinChangeContractRef,
+    digitalTwinChangeContractStatus: input.digitalTwinChangeContractStatus,
+    workContractRef: input.workContractRef,
+    phase,
+    allowedNextActions: deriveAllowedNextActions(input),
+    mutationAuthorized,
+    sourceRefs,
+    turnDecisionSpecs: input.turnDecisionSpecs ?? [],
+    userDecisionRecords,
+    decisionLedgerAuditFindings: deriveDecisionLedgerAuditFindings({
+      fdeSession: input.fdeSession,
+      fdeSessionRef,
+      userDecisionRecords,
+    }),
+    createdAt,
+    updatedAt,
+  };
+}

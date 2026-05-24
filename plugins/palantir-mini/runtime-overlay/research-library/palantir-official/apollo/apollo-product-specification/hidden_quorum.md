@@ -1,0 +1,63 @@
+---
+sourceUrl: "https://www.palantir.com/docs/apollo/apollo-product-specification/hidden_quorum/"
+canonicalUrl: "https://palantir.com/docs/apollo/apollo-product-specification/hidden_quorum/"
+sourceLastmod: "2026-05-12T17:06:26.159Z"
+fetchedAt: "2026-05-12T23:57:50.244Z"
+fetcher: "palantir-mini import-palantir-official-docs"
+extractor: "next-data-markdown"
+contentHash: "5f524e917f3cf948e9b2d2ccff1a72bf3192900a34ceb5ba6829de570d1d1243"
+product: "apollo"
+docsArea: "apollo-product-specification"
+locale: "en"
+upstreamTitle: "Documentation | Apollo Product Specification > Quorum"
+licenseNote: "Local evidence mirror of public Palantir documentation. Use for routing and citation; do not republish as a standalone corpus."
+---
+# Quorum and Upgrade Extension \[Beta]
+
+:::callout{theme="neutral"}
+Quorum and Upgrade Extensions are in a beta state and may not be available on your Apollo Hub. Contact your Palantir representative to learn more.
+:::
+
+This extension of the specification defines how a service should define the quorum requirements and upgrade strategy needed to continue to operate correctly.
+
+For the purposes of this spec, we will define a "highly available service" as a service which may have more than one replicas running at any given time.
+
+## Quorum requirements
+
+If a highly available service has requirements for the number of replicas running at the same time to ensure it can fully respond to requests, the quorum requirement should be included in the Manifest (see [Apollo Product Manifest Specification](/docs/apollo/apollo-product-specification/manifest/)):
+
+### Types of quorum requirements
+
+The following types of quorum requirements are supported by this specification:
+
+* `all`: All replicas of a service are required to be running and available.
+* `all-but-one`: n-1 replicas of a service are required to be running and available. If n=1, one replica is required.
+* `any`: Only a single replica of a service is required to be running.
+* `simple-majority`: (floor(n/2)+1) replicas of a service are required to be running and available.
+
+If no quorum requirement setting is specified, the default is `all-but-one`.
+
+### Quorum Manifest extension
+
+To define the quorum requirement for a service, the following extension should be included in the Manifest (see [Manifest Specification](/docs/apollo/apollo-product-specification/manifest/)):
+
+```yaml
+extensions:
+  quorum-requirement: simple-majority      # Valid values: 'all', 'all-but-one', 'any', 'simple-majority'
+```
+
+## Upgrade strategy
+
+A service is allowed to define the upgrade strategy that should be taken when upgrading its service, to allow the service to maintain availability, correctness and consistency when possible. The following upgrade types are supported by this specification:
+
+* `rolling`: Replicas of this service may be restarted or upgraded one-by-one as long as the quorum requirements remain satisfied.
+* `shutdown`: All replicas of this service must be upgraded at the same time. In particular, all replicas need to be stopped before an upgrade may be applied to any of the replicas, and there must never exist two running replicas with different versions.
+
+### Upgrade Strategy Manifest extension
+
+To define the upgrade strategy for a service, the following extension should be included in the Manifest (see [Manifest Specification](/docs/apollo/apollo-product-specification/manifest/)):
+
+```yaml
+extensions:
+  upgrade-strategy: rolling      # Valid values: 'rolling', 'shutdown'
+```

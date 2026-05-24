@@ -1,0 +1,42 @@
+{
+  "name": "palantir-mini",
+  "version": "6.79.0",
+  "description": "Ontology-first control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and cross-runtime Codex/Claude bridge sync.",
+  "author": {
+    "name": "palantirKC"
+  },
+  "keywords": [
+    "ontology",
+    "event-log",
+    "palantir",
+    "osdk",
+    "codegen",
+    "native-runtime",
+    "two-tier-actions",
+    "edit-functions",
+    "submission-criteria",
+    "decision-lineage",
+    "aip-evals",
+    "gan-inspired",
+    "brain-of-swarms",
+    "ontology-first-brain",
+    "multi-harness"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Palantir Mini",
+    "shortDescription": "Ontology-first control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and cross-r...",
+    "longDescription": "Ontology-first control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and cross-runtime Codex/Claude bridge sync.",
+    "developerName": "palantirKC",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use Palantir Mini for ontology-first project initialization, code generation, validation, and lineage workflows."
+    ],
+    "brandColor": "#0F6FFF"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "project": "<sandbox>",
+  "scopePaths": ["contracts/semantic-intent-contract.ts"],
+  "requestedAxes": ["delete-all-events", "schema-breaking-rename"]
+}
