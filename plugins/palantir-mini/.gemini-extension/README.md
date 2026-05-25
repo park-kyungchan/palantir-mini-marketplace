@@ -2,11 +2,22 @@
 
 This directory is the Gemini-native install surface for palantir-mini.
 
-Use this path for local development:
+Install the private extension directly on a machine with GitHub access:
 
 ```bash
-gemini extensions validate ./palantir-mini/.gemini-extension
-gemini extensions link ./palantir-mini/.gemini-extension
+gemini extensions install https://github.com/park-kyungchan/palantir-mini-gemini-extension --ref main --auto-update --consent
+```
+
+Validate a direct extension checkout from its repo root:
+
+```bash
+gemini extensions validate .
+```
+
+Validate this mirror while working inside the private marketplace checkout:
+
+```bash
+gemini extensions validate plugins/palantir-mini/.gemini-extension
 ```
 
 The extension mounts Gemini-native MCP, context, hooks, policies, skills, and
@@ -20,5 +31,5 @@ is the bundled runtime payload used by MCP and hook adapters. Refresh all
 mirrors before publishing:
 
 ```bash
-bun run ./palantir-mini/scripts/sync-gemini-extension.ts
+bun run plugins/palantir-mini/scripts/sync-gemini-extension.ts
 ```
