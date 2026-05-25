@@ -1,19 +1,23 @@
 ---
 name: pm-restore
 category: maintenance
-description: "Re-hydrate canonical plugins/palantir-mini from a tarball created by /palantir-mini:pm-portable-bundle. Verifies SHA-256 integrity before extraction."
+description: "Restore a palantir-mini portable bundle into an explicit checkout directory. Verifies SHA-256 integrity before extraction."
 disable-model-invocation: true
-allowed-tools: Read Bash(tar*) Bash(sha256sum*) Bash(mkdir*) Bash(test*) Bash(ls*) Bash(ln*) Bash(rsync*) mcp__plugin_palantir-mini_palantir-mini__emit_event
+allowed-tools: Read Bash(tar*) Bash(sha256sum*) Bash(mkdir*) Bash(test*) Bash(ls*) Bash(rsync*) mcp__plugin_palantir-mini_palantir-mini__emit_event
 effort: medium
 ---
 
 # /palantir-mini:pm-restore — Plugin Rehydration from Tarball
 
-Extracts a portable bundle tarball to `$HOME/palantir-mini/` and verifies integrity. Claude compatibility may be restored with a symlink from `~/.claude/plugins/palantir-mini` to `../../palantir-mini`; that symlink is never semantic authority.
+Restores a portable bundle tarball into an explicit checkout directory and
+verifies integrity. It does not create a user-home `palantir-mini` source tree
+or a Claude compatibility symlink. For normal runtime use, install through the
+private marketplace or Gemini extension instead of restoring a bundle.
 
 ## Argument
 
 `$ARGUMENTS[0]` — path to the `.tar.gz` tarball created by `pm-portable-bundle`.
+`$ARGUMENTS[1]` — optional restore directory. Defaults to `./palantir-mini-restored`.
 
 If no argument provided, list available bundles:
 
@@ -45,24 +49,21 @@ fi
 ### 3. Detect bundle layout + extract
 
 Auto-detect bundle layout by inspecting top-level entries. v6.79.0+ bundles
-extract canonical `palantir-mini/` directly under `$HOME`; the plugin contains
-its own runtime-overlay snapshots for research, schemas, and shared-core.
+extract canonical `palantir-mini/` under the requested restore directory; the
+plugin contains its own runtime-overlay snapshots for research, schemas, and
+shared-core.
 
 ```bash
+RESTORE_DIR="${ARGUMENTS[1]:-$PWD/palantir-mini-restored}"
+mkdir -p "$RESTORE_DIR"
 TOPLEVEL=$(tar -tzf "$ARGUMENTS[0]" | head -3 | awk -F/ '{print $1}' | sort -u)
 if echo "$TOPLEVEL" | grep -q "^palantir-mini$"; then
-  # Canonical source bundle — extract to $HOME.
-  tar -xzf "$ARGUMENTS[0]" -C "$HOME/"
-  mkdir -p ~/.claude/plugins/
-  ln -sfn ../../palantir-mini ~/.claude/plugins/palantir-mini # compatibility install target only
-  echo "Extracted: plugins/palantir-mini/ with runtime-overlay snapshots"
-  echo "Claude compatibility symlink: ~/.claude/plugins/palantir-mini -> ../../palantir-mini"
+  tar -xzf "$ARGUMENTS[0]" -C "$RESTORE_DIR/"
+  echo "Extracted: $RESTORE_DIR/palantir-mini/ with runtime-overlay snapshots"
 elif echo "$TOPLEVEL" | grep -q "^plugins$"; then
-  # Legacy plugin-contained bundle — extract to ~/.claude/ and instruct migration.
-  mkdir -p ~/.claude/
-  tar -xzf "$ARGUMENTS[0]" -C ~/.claude/
-  echo "Extracted legacy compatibility layout: ~/.claude/plugins/palantir-mini/"
-  echo "WARNING: legacy layout. Migrate source authority to plugins/palantir-mini/ before self-test."
+  tar -xzf "$ARGUMENTS[0]" -C "$RESTORE_DIR/"
+  echo "Extracted legacy plugin-contained layout under $RESTORE_DIR/plugins/palantir-mini/"
+  echo "WARNING: legacy layout. Use private marketplace installs for runtime consumption."
 else
   echo "Error: unrecognized bundle layout. Top-level entries: $TOPLEVEL"; exit 1
 fi
@@ -113,4 +114,4 @@ mcp__plugin_palantir-mini_palantir-mini__emit_event({
 ## Rule citations
 
 - `~/.claude/rules/10-events-jsonl.md` — `plugin_restored` emitted after successful extraction.
-- `~/.claude/rules/07-plugins-and-mcp.md` — canonical source lives at `plugins/palantir-mini`; `~/.claude/plugins/palantir-mini` is a compatibility/install target.
+- `~/.claude/rules/07-plugins-and-mcp.md` — runtime installs consume the private marketplace payload rather than a user-home source tree.
