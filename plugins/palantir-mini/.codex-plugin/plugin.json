@@ -23,6 +23,7 @@
     "multi-harness"
   ],
   "skills": "./skills/",
+  "hooks": "./hooks/codex-hooks.json",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Palantir Mini",

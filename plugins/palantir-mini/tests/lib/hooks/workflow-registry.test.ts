@@ -26,7 +26,9 @@ describe("runtime-neutral hook workflow registry", () => {
       expect(projection.schemaOnlyEvents).toContain(event);
     }
     expect(codexUnsupportedHookSummary()).toContain("TaskCreated");
-    expect(codexUnsupportedHookSummary()).toContain("PreCompact");
+    expect(codexUnsupportedHookSummary()).toContain("schemaOnly=none");
+    expect(projection.supportedEvents).toContain("PreCompact");
+    expect(projection.supportedEvents).toContain("SubagentStop");
   });
 
   test("Gemini projection maps shared workflow intent through native adapter events", () => {
