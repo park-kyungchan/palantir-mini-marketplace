@@ -52,12 +52,12 @@ describe("RELOAD_PER_RUNTIME.md", () => {
     expect(content).toContain("does **not** hot-reload MCP servers or plugins");
   });
 
-  it("should preserve documented Codex native gaps and compact schema-only caveats", () => {
+  it("should preserve documented Codex native gaps and payload-sensitive adapter caveats", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
     for (const eventName of ["TaskCreated", "TaskCompleted", "TeammateIdle", "SubagentStart", "SubagentStop"]) {
       expect(content).toContain(eventName);
     }
-    expect(content).toContain("`PreCompact` and `PostCompact` are schema-only bridge surfaces unless proven by a smoke test");
+    expect(content).toContain("subagent and compact lifecycle parity remains payload-sensitive");
   });
 
   it("should document Gemini CLI and leave Cursor as a future runtime", () => {

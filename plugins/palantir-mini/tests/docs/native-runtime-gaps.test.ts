@@ -57,7 +57,6 @@ describe("NATIVE_RUNTIME_GAPS.md", () => {
   it("should include all bridge status values", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
     expect(content).toContain("partial");
-    expect(content).toContain("schema-only");
     expect(content).toContain("native gap");
   });
 
@@ -83,14 +82,13 @@ describe("NATIVE_RUNTIME_GAPS.md", () => {
 
   it("should document the generated Codex adapter surface", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).toContain("~/.codex/hooks.json");
-    expect(content).toContain("palantir-mini-claude-hook-adapter.ts");
+    expect(content).toContain("hooks/codex-hooks.json");
     expect(content).toContain("lib/codex/claude-hook-adapter.ts");
   });
 
   it("should document current native gap surfaces", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    for (const surface of ["TaskCreated", "TaskCompleted", "TeammateIdle", "SubagentStart", "SubagentStop"]) {
+    for (const surface of ["TaskCreated", "TaskCompleted", "TeammateIdle"]) {
       expect(content).toContain(surface);
     }
   });
@@ -109,20 +107,18 @@ describe("NATIVE_RUNTIME_GAPS.md", () => {
     }
   });
 
-  it("should keep compact lifecycle hooks schema-only until smoke-proven", () => {
+  it("should keep compact lifecycle hooks adapter-wired and payload-sensitive", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).toMatch(/\| Pre-compact \| `PreCompact` \| schema-only \|/);
-    expect(content).toMatch(/\| Post-compact \| `PostCompact` \| schema-only \|/);
+    expect(content).toMatch(/\| Pre-compact \| `PreCompact` \| partial \|/);
+    expect(content).toMatch(/\| Post-compact \| `PostCompact` \| partial \|/);
   });
 
-  it("should keep task, teammate, and subagent lifecycle events as Codex native gaps", () => {
+  it("should keep task and teammate lifecycle events as Codex native gaps", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
     const nativeGapRows = [
       ["Task created", "TaskCreated"],
       ["Task completed", "TaskCompleted"],
       ["Teammate idle", "TeammateIdle"],
-      ["Subagent start", "SubagentStart"],
-      ["Subagent stop", "SubagentStop"],
     ] as const;
 
     for (const [surface, eventName] of nativeGapRows) {

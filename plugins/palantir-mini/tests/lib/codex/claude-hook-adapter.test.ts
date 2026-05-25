@@ -397,15 +397,15 @@ describe("Codex Claude hook adapter", () => {
       codexSchemaEvent: true,
       documentedWire: true,
     });
-    for (const event of ["PreCompact", "PostCompact"]) {
+    for (const event of ["PreCompact", "PostCompact", "SubagentStart", "SubagentStop"]) {
       expect(byEvent.get(event)).toMatchObject({
-        codexNativeEvent: false,
-        codexSchemaOnlyEvent: true,
+        codexNativeEvent: true,
+        codexSchemaOnlyEvent: false,
         codexSchemaEvent: true,
-        documentedWire: false,
+        documentedWire: true,
       });
     }
-    for (const event of ["TaskCreated", "TaskCompleted", "TeammateIdle", "SubagentStart", "SubagentStop"]) {
+    for (const event of ["TaskCreated", "TaskCompleted", "TeammateIdle"]) {
       expect(byEvent.get(event)).toMatchObject({
         codexNativeEvent: false,
         codexSchemaOnlyEvent: false,
@@ -508,7 +508,7 @@ describe("Codex Claude hook adapter", () => {
     });
   });
 
-  test("schema-only event attempts are skipped with explicit mismatch diagnostics", async () => {
+  test("compact lifecycle hooks run through the native Codex adapter surface", async () => {
     const { root, options } = makePlugin({
       hooks: {
         PreCompact: [
@@ -521,21 +521,10 @@ describe("Codex Claude hook adapter", () => {
 
     const result = await runCodexHookAdapter("PreCompact", { cwd: root, session_id: "session-1" }, options);
 
-    expect(result.matchedHooks).toEqual([]);
-    expect(result.runs).toEqual([]);
-    expect(result.response.systemMessage).toContain("schema-only event PreCompact");
-    const event = readProjectEvents(root).find(
-      (entry) =>
-        entry.type === "validation_phase_completed" &&
-        (entry.payload as { errorClass?: string })?.errorClass === "codex_adapter_capability_mismatch",
-    );
-    expect(event?.payload).toMatchObject({
-      runtime: "codex",
-      attemptedEvent: "PreCompact",
-      fallbackFact: {
-        event: "PreCompact",
-      },
-    });
+    expect(result.matchedHooks).toHaveLength(1);
+    expect(result.runs).toHaveLength(1);
+    expect(result.runs[0]?.hook.command).toBe(command("capture"));
+    expect(readProjectEvents(root)).toEqual([]);
   });
 
   test("extractPromptFrontDoorIdentityContext parses prompt-front-door additionalContext", () => {

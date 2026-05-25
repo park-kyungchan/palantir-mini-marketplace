@@ -87,11 +87,13 @@ launches `bridge/mcp-server.ts` from the active plugin root using plugin-root-
 relative paths. Any change in the "Yes" rows above requires a Codex CLI restart
 to refresh the in-memory MCP, skill, hook, or plugin surface.
 
-The Codex hook adapter registered from `~/.codex/hooks.json` is runtime-owned.
-The current generated shim remains a **generated artifact** synced from
-`hooks/hooks.json` (SSoT). The fleet sync wrapper invokes
-`scripts/sync-codex-adapter.ts` automatically. Direct invocation is also supported
-from the canonical source root:
+The Codex plugin manifest points at `hooks/codex-hooks.json`, a regex-safe
+entrypoint registry that delegates into `lib/codex/claude-hook-adapter.ts`.
+The adapter live-reads `hooks/hooks.json` (SSoT) when invoked, so Codex does not
+parse Claude-oriented file glob matchers or `async: true` fields directly. The
+legacy `~/.codex/hooks.json` shim remains a runtime-owned fallback surface where
+present. The fleet sync wrapper invokes `scripts/sync-codex-adapter.ts`
+automatically. Direct invocation is also supported from the plugin root:
 
 ```bash
 cd plugins/palantir-mini
@@ -99,10 +101,10 @@ bun scripts/sync-codex-adapter.ts
 ```
 
 See `docs/CODEX_HOOK_ADAPTER.md` for the full sync workflow and forbidden-fork policy.
-The adapter live-reads `hooks/hooks.json` when invoked, but that only proves the
-registered event's command list is fresh. It does not prove native Codex lifecycle
-parity for Claude-only events, and it does not avoid the required sync/restart
-when the generated shim or Codex hook registration surface changes.
+The adapter live-read proves the registered event's command list is fresh. It
+does not prove payload parity for Claude-specific semantics, and it does not
+avoid the required Codex restart when `.codex-plugin/plugin.json`,
+`hooks/codex-hooks.json`, or the generated fallback shim changes.
 
 ### When it is safe to skip
 
@@ -114,7 +116,7 @@ plugin, MCP, skill, or hook stanzas.
 
 - The Codex CLI does **not** hot-reload MCP servers or plugins. The entire CLI process must be restarted to pick up plugin changes.
 - The standard Codex bridge is plugin-provided via local marketplace and `.codex-plugin/.mcp.json`; avoid adding a parallel direct `[mcp_servers]` entry unless the plugin bridge is unavailable and the runtime gap is recorded.
-- `~/.codex/hooks.json` registers supported Codex hook events through the generated adapter. The adapter live-reads canonical hook intent, but Codex still lacks native surfaces for `TaskCreated`, `TaskCompleted`, `TeammateIdle`, `SubagentStart`, and `SubagentStop`. `PreCompact` and `PostCompact` are schema-only bridge surfaces unless proven by a smoke test. See `docs/NATIVE_RUNTIME_GAPS.md`.
+- `hooks/codex-hooks.json` registers supported Codex hook events through the adapter. The adapter live-reads canonical hook intent, but Codex still lacks native surfaces for `TaskCreated`, `TaskCompleted`, and `TeammateIdle`; `SubagentStart`/`SubagentStop` are adapter-wired, and subagent and compact lifecycle parity remains payload-sensitive. See `docs/NATIVE_RUNTIME_GAPS.md`.
 - If the generated adapter changes, Codex may require `/hooks` trust approval or a fresh process depending on the active CLI version.
 - Unlike Claude Code CLI, Codex CLI does not support inline `/reload` commands during a session. Plan accordingly when testing hook changes across both runtimes.
 

@@ -15,16 +15,17 @@ describe("runtime capability matrix", () => {
     expect(runtimeCanObserveEvent("codex", "TaskCreated")).toBe(false);
     expect(runtimeCanObserveEvent("claude", "TaskCreated")).toBe(true);
     expect(codexFallbackFactForEvent("TaskCreated")?.fallback).toContain("do not claim parity");
-    expect(codexFallbackFactForEvent("SubagentStop")?.fact).toContain("does not natively observe");
+    expect(CODEX_NATIVE_GAPS).not.toContain("SubagentStop");
+    expect(runtimeCanObserveEvent("codex", "SubagentStop")).toBe(true);
+    expect(codexFallbackFactForEvent("SubagentStop")).toBeNull();
   });
 
-  test("Codex compact lifecycle events remain schema-only until smoke-proven", () => {
-    expect(CODEX_SCHEMA_ONLY_EVENTS).toContain("PreCompact");
-    expect(CODEX_SCHEMA_ONLY_EVENTS).toContain("PostCompact");
-    expect(runtimeCanObserveEvent("codex", "PreCompact")).toBe(false);
-    expect(runtimeCanObserveEvent("codex", "PostCompact")).toBe(false);
-    expect(runtimeHasSchemaOnlyEvent("codex", "PreCompact")).toBe(true);
-    expect(codexFallbackFactForEvent("PreCompact")?.fallback).toContain("schema-only evidence");
+  test("Codex compact lifecycle events are adapter-native", () => {
+    expect(CODEX_SCHEMA_ONLY_EVENTS).toEqual([]);
+    expect(runtimeCanObserveEvent("codex", "PreCompact")).toBe(true);
+    expect(runtimeCanObserveEvent("codex", "PostCompact")).toBe(true);
+    expect(runtimeHasSchemaOnlyEvent("codex", "PreCompact")).toBe(false);
+    expect(codexFallbackFactForEvent("PreCompact")).toBeNull();
   });
 
   test("Gemini exposes native Gemini lifecycle names through an adapter map", () => {
