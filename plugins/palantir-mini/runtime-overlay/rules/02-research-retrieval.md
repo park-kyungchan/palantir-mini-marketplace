@@ -44,7 +44,7 @@ Consolidation per harness-base-mode blueprint §12 license (2026-04-29) — abso
 ## §Plans index drift detection (v3.2.0)
 
 - `~/.claude/plans/` accumulates development records over multiple sprints (retrospectives, blueprints, gap analyses, decision records). Retrieval discipline depends on `plans/BROWSE.md` staying in sync with the filesystem.
-- `plans-index-drift-detect` SessionStart advisory: compares `ls ~/.claude/plans/*.md` filesystem listing against entries in `~/.claude/plans/BROWSE.md`. Surfaces unindexed files as advisory (not blocking). Hook stub: `/home/palantirkc/palantir-mini/hooks/plans-index-drift-detect.ts`.
+- `plans-index-drift-detect` SessionStart advisory: compares `ls ~/.claude/plans/*.md` filesystem listing against entries in `~/.claude/plans/BROWSE.md`. Surfaces unindexed files as advisory (not blocking). Hook stub: `plugins/palantir-mini/hooks/plans-index-drift-detect.ts`.
 - Advisory output: lists files present on disk but absent from BROWSE.md, and BROWSE.md entries pointing to non-existent files (stale refs). Does NOT auto-update BROWSE.md — that requires Lead judgment.
 - Rationale (R6-F18): plans/ is growth-only; index drift is silent and degrades cold-start retrieval quality over time.
 

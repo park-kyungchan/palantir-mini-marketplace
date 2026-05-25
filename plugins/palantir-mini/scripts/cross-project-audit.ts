@@ -19,7 +19,7 @@
 //   --json                  Output raw JSON result
 //
 // Default behavior:
-//   - Scans registered projects in ~/palantir-mini/session/registered-projects.json
+//   - Scans registered projects in plugins/palantir-mini/session/registered-projects.json
 //   - Also scans the monorepo root (~/) and sub-projects under ~/projects/
 //   - Counts events matching the errorClass in payload
 //   - Emits validation_phase_completed{errorClass:"cross_project_audit_completed"} with counts

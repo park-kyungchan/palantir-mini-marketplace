@@ -8,8 +8,9 @@ const ROOT_ENV_PRECEDENCE = [
   "CLAUDE_PLUGIN_ROOT",
 ] as const;
 
-const CANONICAL_PALANTIR_MINI_ROOT = "/home/palantirkc/palantir-mini";
-const DEV_FALLBACK_ROOT = CANONICAL_PALANTIR_MINI_ROOT;
+const PACKAGE_RELATIVE_ROOT = path.resolve(import.meta.dir, "..", "..");
+const CANONICAL_PALANTIR_MINI_ROOT = PACKAGE_RELATIVE_ROOT;
+const DEV_FALLBACK_ROOT = PACKAGE_RELATIVE_ROOT;
 
 export type PalantirMiniRootEnv = Partial<
   Record<(typeof ROOT_ENV_PRECEDENCE)[number], string | undefined>
@@ -23,12 +24,7 @@ export function resolvePalantirMiniRoot(
     if (value) return path.resolve(value);
   }
 
-  const canonicalRoot = path.resolve(CANONICAL_PALANTIR_MINI_ROOT);
-  if (isPalantirMiniSourceRoot(canonicalRoot)) {
-    return canonicalRoot;
-  }
-
-  const packageRelativeRoot = path.resolve(import.meta.dir, "..", "..");
+  const packageRelativeRoot = path.resolve(PACKAGE_RELATIVE_ROOT);
   if (isPalantirMiniSourceRoot(packageRelativeRoot)) {
     return packageRelativeRoot;
   }
@@ -43,4 +39,4 @@ function isPalantirMiniSourceRoot(candidate: string): boolean {
   );
 }
 
-export { CANONICAL_PALANTIR_MINI_ROOT, ROOT_ENV_PRECEDENCE };
+export { CANONICAL_PALANTIR_MINI_ROOT, PACKAGE_RELATIVE_ROOT, ROOT_ENV_PRECEDENCE };

@@ -1,5 +1,5 @@
 // palantir-mini PR-G / Phase 8 — canonical plugin agent inventory parser.
-// Source authority: /home/palantirkc/palantir-mini/agents/*.md
+// Source authority: plugins/palantir-mini/agents/*.md
 
 import * as fs from "fs";
 import * as path from "path";

@@ -23,7 +23,7 @@ import * as path from "path";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const PLUGIN_ROOT = "/home/palantirkc/palantir-mini";
+const PLUGIN_ROOT = path.resolve(import.meta.dir, "../..");
 
 function makePayload(overrides: {
   filePath?: string;

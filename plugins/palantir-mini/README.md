@@ -18,7 +18,7 @@ palantir-mini is **not itself a harness species** — it dispatches to and audit
 
 ## Plugin Source Authority (SSoT)
 
-`/home/palantirkc/palantir-mini/` is the canonical source root for palantir-mini workflow semantics, MCP handler source, hook intent, skills, agents, tests, and installable plugin manifests. `~/.claude/plugins/palantir-mini/` is a Claude-native install/compatibility target, not semantic SSoT. Runtime-neutral ownership boundaries remain described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`; runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong in the owning runtime homes. Machine-readable authority marker: `.ssot-authority.json`. Human-readable companion: `SSOT-AUTHORITY.md`.
+The canonical source root is the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. Runtime plugin caches are install payloads, not semantic SSoT. Runtime-neutral ownership boundaries remain described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`; runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong in the owning runtime homes. Machine-readable authority marker: `.ssot-authority.json`. Human-readable companion: `SSOT-AUTHORITY.md`.
 
 ## Convex Cloud Deployment
 
@@ -209,10 +209,10 @@ The plugin root should hold code, manifests, templates, and tests only.
 
 Open these in order when you need the current palantir-mini picture:
 
-1. `/home/palantirkc/palantir-mini/README.md`
-2. `/home/palantirkc/palantir-mini/SSOT-AUTHORITY.md`
-3. `/home/palantirkc/palantir-mini/CHANGELOG.md`
-4. `/home/palantirkc/palantir-mini/docs/NATIVE_RUNTIME_GAPS.md`
+1. `plugins/palantir-mini/README.md`
+2. `plugins/palantir-mini/SSOT-AUTHORITY.md`
+3. `plugins/palantir-mini/CHANGELOG.md`
+4. `plugins/palantir-mini/docs/NATIVE_RUNTIME_GAPS.md`
 5. `~/.claude/schemas/ontology/2026-04-23-palantir-mini-next-direction.md`
 6. `~/docs/palantir-mini-v3-control-plane-blueprint.md`
 
@@ -226,7 +226,7 @@ If you are changing runtime behavior, then read:
 ## Verify
 
 ```bash
-cd /home/palantirkc/palantir-mini
+cd plugins/palantir-mini
 bunx tsc --noEmit
 bun test
 
@@ -246,7 +246,7 @@ jq '.permissions.allow[]' ~/.claude/managed-settings.d/50-palantir-mini.json | r
   - immediate post-research direction for fixing semantic planner honesty first
 - `~/docs/palantir-mini-v3-control-plane-blueprint.md`
   - longer v3 engine split and PR slicing contract
-- `/home/palantirkc/palantir-mini/CHANGELOG.md`
+- `plugins/palantir-mini/CHANGELOG.md`
   - release chronology through the current plugin surface
 - `~/.claude/research/claude-code/palantir-mini-blueprint.md`
   - original v0 architecture evidence

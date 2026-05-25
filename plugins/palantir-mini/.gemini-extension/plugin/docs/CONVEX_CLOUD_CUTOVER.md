@@ -53,7 +53,7 @@ will make the client Cloud-aware. R3 scope boundary is clean.
 
 2. Deploy the schema to Cloud:
    ```bash
-   cd /home/palantirkc/palantir-mini/convex
+   cd plugins/palantir-mini/convex
    bunx convex deploy --env-file .env.cloud
    ```
 

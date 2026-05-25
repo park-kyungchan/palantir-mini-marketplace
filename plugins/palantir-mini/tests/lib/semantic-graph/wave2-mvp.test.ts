@@ -133,7 +133,7 @@ describe("producer-runtime", () => {
 describe("producer-ast-evidence", () => {
   test("all emitted edges carry evidenceKind='ast'", async () => {
     const result = await runProducerAstEvidence({
-      projectRoot: "/home/palantirkc/palantir-mini",
+      projectRoot: path.resolve(import.meta.dir, "../../.."),
     });
 
     expect(result.producer).toBe("ast-evidence");

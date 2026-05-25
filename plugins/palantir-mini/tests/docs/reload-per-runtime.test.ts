@@ -62,7 +62,7 @@ describe("RELOAD_PER_RUNTIME.md", () => {
 
   it("should document Gemini CLI and leave Cursor as a future runtime", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).toContain("gemini extensions validate /home/palantirkc/palantir-mini/.gemini-extension");
+    expect(content).toContain("gemini extensions validate plugins/palantir-mini/.gemini-extension");
     expect(content).toContain("Gemini hook timeouts are milliseconds");
     expect(content).toContain("Cursor");
     expect(content.match(/TBD/g)?.length ?? 0).toBeGreaterThanOrEqual(1);

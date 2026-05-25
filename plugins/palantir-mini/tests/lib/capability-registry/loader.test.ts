@@ -24,7 +24,7 @@ const REAL_PLUGIN_ROOT =
   process.env["PALANTIR_MINI_PLUGIN_ROOT"] ??
   process.env["PLUGIN_ROOT"] ??
   process.env["CLAUDE_PLUGIN_ROOT"] ??
-  "/home/palantirkc/palantir-mini";
+  path.resolve(import.meta.dir, "../../..");
 
 // ─── Setup / teardown ─────────────────────────────────────────────────────────
 

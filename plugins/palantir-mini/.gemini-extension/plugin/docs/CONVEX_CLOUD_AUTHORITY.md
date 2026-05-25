@@ -4,7 +4,7 @@ As of 2026-05-13, palantir-mini's data substrate is split:
 
 | Layer | Authority | Used for |
 |-------|-----------|----------|
-| Source code | `/home/palantirkc/palantir-mini/` (canonical SSoT) | Plugin behavior, hooks, handlers, MCP server |
+| Source code | `plugins/palantir-mini/` (canonical SSoT) | Plugin behavior, hooks, handlers, MCP server |
 | Data substrate (T3+ / T4 mirror) | **Convex Cloud Dev deployment `effervescent-meerkat-169`** | T3+ valuable events (rule 26), T4 promotion candidates, eval suites + runs (PR 5.4a/b) |
 | Data substrate (fallback) | local self-hosted `anonymous:anonymous-palantir-mini@127.0.0.1:3210` | Offline development, R2 STUB MODE, pre-cutover testing |
 

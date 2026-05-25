@@ -19,7 +19,7 @@ hookCitations: [agent-ownership-validate]
 
 ## Agent file-ownership (palantir-mini plugin)
 
-Ownership is authoritative within `/home/palantirkc/palantir-mini/`. `~/.claude/plugins/palantir-mini/` is a temporary Claude compatibility/install target only. Agents MUST NOT edit outside their writable set; cross-boundary tasks are split by Lead.
+Ownership is authoritative within `plugins/palantir-mini/`. `~/.claude/plugins/palantir-mini/` is a temporary Claude compatibility/install target only. Agents MUST NOT edit outside their writable set; cross-boundary tasks are split by Lead.
 
 | Owner | Writable paths |
 |-------|----------------|

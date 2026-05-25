@@ -2,12 +2,12 @@
 
 > Per canonical plan v2 §4 row 6.3 (sprint-130 PR 6.3; PHASE 6 PR 3/7).
 > Last audited: 2026-05-25.
-> Runtime-boundary migration note: runtime gap evidence should move to runtime-owned docs under `~/.codex/**` and `~/.claude/**`. This file remains compatibility documentation in the canonical source root at `/home/palantirkc/palantir-mini` until that migration debt is closed.
+> Runtime-boundary migration note: runtime gap evidence should move to runtime-owned docs under `~/.codex/**` and `~/.claude/**`. This file remains compatibility documentation in the canonical source root at `plugins/palantir-mini` until that migration debt is closed.
 
 This document catalogs palantir-mini hook/event parity between Claude Code CLI,
 Codex CLI, and Gemini CLI. It is a runtime map, not a plugin source authority.
 The source of truth for Claude/Codex hook intent is
-`/home/palantirkc/palantir-mini/hooks/hooks.json`; Gemini mounts that intent
+`plugins/palantir-mini/hooks/hooks.json`; Gemini mounts that intent
 through `.gemini-extension/hooks/hooks.json` and
 `lib/gemini/native-hook-adapter.ts`.
 
@@ -21,7 +21,7 @@ integrates through:
 ~/.codex/hooks.json
   -> ~/.codex/hooks/palantir-mini-claude-hook-adapter.ts  (generated shim)
     -> ~/.codex/lib/palantir-mini/native-hook-adapter.ts  (Codex-native protocol owner)
-      -> /home/palantirkc/palantir-mini/hooks/hooks.json
+      -> plugins/palantir-mini/hooks/hooks.json
 ```
 
 The generated shim is not a source fork. It delegates to the Codex-native
@@ -112,7 +112,7 @@ For ontology-affecting work in Codex:
 
 For ontology-affecting work in Gemini:
 
-1. Install or link `/home/palantirkc/palantir-mini/.gemini-extension` rather
+1. Install or link `plugins/palantir-mini/.gemini-extension` rather
    than using the plugin root directly; the root hook registry is Claude/Codex
    shaped and has incompatible timeout units for Gemini.
 2. Treat `BeforeAgent` prompt capture as the Gemini prompt-front-door surface.
@@ -127,10 +127,10 @@ For ontology-affecting work in Gemini:
 
 ## References
 
-- `/home/palantirkc/palantir-mini/hooks/hooks.json` — hook intent registry SSoT.
+- `plugins/palantir-mini/hooks/hooks.json` — hook intent registry SSoT.
 - `~/.codex/lib/palantir-mini/native-hook-adapter.ts` — Codex-native protocol adapter owner.
-- `/home/palantirkc/palantir-mini/.gemini-extension/` — Gemini-native extension package.
-- `/home/palantirkc/palantir-mini/lib/gemini/native-hook-adapter.ts` — Gemini event adapter owner.
+- `plugins/palantir-mini/.gemini-extension/` — Gemini-native extension package.
+- `plugins/palantir-mini/lib/gemini/native-hook-adapter.ts` — Gemini event adapter owner.
 - `docs/CODEX_HOOK_ADAPTER.md` — compatibility shim and sync workflow.
 - `docs/RELOAD_PER_RUNTIME.md` — reload requirements and Codex sync wrapper.
 - `SSOT-AUTHORITY.md` — plugin source authority.

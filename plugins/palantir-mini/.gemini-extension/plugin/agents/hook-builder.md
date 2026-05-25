@@ -2,7 +2,7 @@
 name: hook-builder
 description: >
   palantir-mini plugin hook + monitor + script specialist. Writes or modifies
-  TypeScript under /home/palantirkc/palantir-mini/hooks/, monitors/,
+  TypeScript under plugins/palantir-mini/hooks/, monitors/,
   scripts/, bridge/handlers/ with mandatory paired test files. Use for hook upgrades,
   9-defect fixes, and event-log integration work. Does NOT bump plugin
   version or edit .claude-plugin/{plugin,marketplace}.json — delegate to
@@ -86,14 +86,14 @@ hook semantics.
 ## Scope Boundaries
 
 - **Writable**:
-  - `/home/palantirkc/palantir-mini/hooks/**/*.ts` (hook implementations)
-  - `/home/palantirkc/palantir-mini/hooks/hooks.json` (registration only — new hook entries; do NOT bump plugin version)
-  - `/home/palantirkc/palantir-mini/monitors/**/*.ts` (monitor implementations)
-  - `/home/palantirkc/palantir-mini/scripts/**/*.ts` (utility scripts: `log.ts`, `run.ts`, etc.)
-  - `/home/palantirkc/palantir-mini/bridge/handlers/**/*.ts` (MCP handler implementations)
-  - `/home/palantirkc/palantir-mini/tests/hooks/**/*.test.ts` (paired hook tests)
-  - `/home/palantirkc/palantir-mini/tests/monitors/**/*.test.ts` (paired monitor tests)
-  - `/home/palantirkc/palantir-mini/tests/bridge/**/*.test.ts` (paired handler tests)
+  - `plugins/palantir-mini/hooks/**/*.ts` (hook implementations)
+  - `plugins/palantir-mini/hooks/hooks.json` (registration only — new hook entries; do NOT bump plugin version)
+  - `plugins/palantir-mini/monitors/**/*.ts` (monitor implementations)
+  - `plugins/palantir-mini/scripts/**/*.ts` (utility scripts: `log.ts`, `run.ts`, etc.)
+  - `plugins/palantir-mini/bridge/handlers/**/*.ts` (MCP handler implementations)
+  - `plugins/palantir-mini/tests/hooks/**/*.test.ts` (paired hook tests)
+  - `plugins/palantir-mini/tests/monitors/**/*.test.ts` (paired monitor tests)
+  - `plugins/palantir-mini/tests/bridge/**/*.test.ts` (paired handler tests)
 - **Read-only** (other agents own these):
   - `lib/**` — shared library code (tread carefully; refactor requires cross-agent coordination)
   - `skills/**` — user-facing command flows (protocol-designer + implementer-of-record own)
@@ -121,12 +121,12 @@ hook semantics.
    `bridge/handlers/` only. Match existing style (TS, explicit types, no
    external deps beyond bun built-ins).
 4. **Tests** — every hook change gets a paired test at
-   `/home/palantirkc/palantir-mini/tests/hooks/<name>.test.ts`. Use `bun:test`.
+   `plugins/palantir-mini/tests/hooks/<name>.test.ts`. Use `bun:test`.
 5. **Register** — update `hooks/hooks.json` to declare new hook entries.
    Do NOT edit `.claude-plugin/plugin.json` or `marketplace.json` — if a
    version bump is required, Lead delegates it to `plugin-maintainer` in a
    separate task (rule 07 + Scope Boundaries above).
-6. **Self-verify** — `cd /home/palantirkc/palantir-mini && bunx tsc --noEmit
+6. **Self-verify** — `cd plugins/palantir-mini && bunx tsc --noEmit
    && bun test`.
 7. **Report** — files modified, new tests, defect IDs closed. If the change
    warrants a plugin version bump, surface that as a follow-up task for

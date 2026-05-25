@@ -39,5 +39,5 @@ gemini extensions install https://github.com/park-kyungchan/palantir-mini-gemini
 - Install `bun` on `PATH`.
 - Authenticate the target runtime CLI before installing private sources.
 
-Do not delete an existing local `~/palantir-mini` until a fresh install from the
+Do not delete an existing local `plugins/palantir-mini` until a fresh install from the
 private URL validates and starts the MCP server on the target machine.

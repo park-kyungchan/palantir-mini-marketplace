@@ -4,7 +4,7 @@
 >
 > Per canonical plan v2 §4 row 6.4 (sprint-131 PR 6.4; Phase 6 PR 4/7).
 > Last audited: 2026-05-25.
-> Runtime-boundary migration note: reload procedures are native runtime facts. Target ownership is `~/.codex/docs/**` for Codex and `~/.claude/runtime-boundaries/**` for Claude; this file remains compatibility documentation in `/home/palantirkc/palantir-mini` until migration debt is closed.
+> Runtime-boundary migration note: reload procedures are native runtime facts. Target ownership is `~/.codex/docs/**` for Codex and `~/.claude/runtime-boundaries/**` for Claude; this file remains compatibility documentation in `plugins/palantir-mini` until migration debt is closed.
 
 ---
 
@@ -80,7 +80,7 @@ an already-running session.
 
 The palantir-mini plugin is registered in `~/.codex/config.toml` under
 `[plugins."palantir-mini@palantir-mini-marketplace"]`. The target local marketplace
-source is `/home/palantirkc/palantir-mini`. Any remaining source path under
+source is `plugins/palantir-mini`. Any remaining source path under
 `/home/palantirkc/.claude/plugins/palantir-mini` is migration debt, not semantic
 authority. The plugin `.codex-plugin/plugin.json` references `.mcp.json`, which
 launches `bridge/mcp-server.ts` from the active plugin root using plugin-root-
@@ -94,7 +94,7 @@ The current generated shim remains a **generated artifact** synced from
 from the canonical source root:
 
 ```bash
-cd /home/palantirkc/palantir-mini
+cd plugins/palantir-mini
 bun scripts/sync-codex-adapter.ts
 ```
 
@@ -127,8 +127,8 @@ plugin, MCP, skill, or hook stanzas.
 Use the Gemini-native extension package in the plugin source root:
 
 ```bash
-gemini extensions validate /home/palantirkc/palantir-mini/.gemini-extension
-gemini extensions link /home/palantirkc/palantir-mini/.gemini-extension
+gemini extensions validate plugins/palantir-mini/.gemini-extension
+gemini extensions link plugins/palantir-mini/.gemini-extension
 
 # Exit the current Gemini CLI session, then relaunch.
 gemini
@@ -173,7 +173,7 @@ interactive session.
 
 1. **Editing `.palantir-mini/session/*` or `events.jsonl` and thinking a reload is needed** — these files are read on each tool invocation, not cached. No reload required.
 
-2. **Editing `hooks.json` without running fleet sync** — `hooks/hooks.json` is the SSoT for hook intent. After editing it, run `bun run ~/.codex/scripts/sync-claude-palantir-mini.ts` or `bun scripts/sync-codex-adapter.ts` from `/home/palantirkc/palantir-mini` before restarting Codex.
+2. **Editing `hooks.json` without running fleet sync** — `hooks/hooks.json` is the SSoT for hook intent. After editing it, run `bun run ~/.codex/scripts/sync-claude-palantir-mini.ts` or `bun scripts/sync-codex-adapter.ts` from `plugins/palantir-mini` before restarting Codex.
 
    v6.79.0 note: the `image-teacher-qa` UserPromptSubmit workflow was removed
    from `hooks/hooks.json`; existing sessions need a reload/restart before the

@@ -1,7 +1,7 @@
 ---
 name: pm-portable-bundle
 category: maintenance
-description: "Export the canonical palantir-mini source payload to a tarball at ~/palantir-mini/portable/."
+description: "Export the canonical palantir-mini source payload to a tarball at plugins/palantir-mini/portable/."
 disable-model-invocation: true
 allowed-tools: Read Bash(tar*) Bash(gzip*) Bash(sha256sum*) Bash(jq*) Bash(mkdir*) Bash(du*) mcp__plugin_palantir-mini_palantir-mini__emit_event
 effort: medium
@@ -9,16 +9,16 @@ effort: medium
 
 # /palantir-mini:pm-portable-bundle — Plugin Tarball Export
 
-Creates a portable tarball of canonical `/home/palantirkc/palantir-mini/` for fresh-machine rehydration.
+Creates a portable tarball of canonical `plugins/palantir-mini/` for fresh-machine rehydration.
 
 ## Steps
 
 ### 1. Read plugin version
 
 ```bash
-jq -r .version /home/palantirkc/palantir-mini/.claude-plugin/plugin.json
+jq -r .version plugins/palantir-mini/.claude-plugin/plugin.json
 # → e.g. "2.23.0"
-jq -r '.compatibleSchemaVersions' /home/palantirkc/palantir-mini/.claude-plugin/plugin.json
+jq -r '.compatibleSchemaVersions' plugins/palantir-mini/.claude-plugin/plugin.json
 # → e.g. ">=1.15.0 <2.0.0"
 ```
 
@@ -28,7 +28,7 @@ Set `BUNDLE_DATE=$(date +%Y-%m-%d)` and derive tarball name:
 ### 2. Create output directory
 
 ```bash
-mkdir -p ~/palantir-mini/portable/
+mkdir -p plugins/palantir-mini/portable/
 ```
 
 ### 3. Tar + gzip plugin tree
@@ -46,7 +46,7 @@ authoring/update mirrors; runtime defaults resolve through plugin-owned
 snapshots.
 
 ```bash
-tar -czf ~/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz \
+tar -czf plugins/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz \
   -C /home/palantirkc palantir-mini/
 ```
 
@@ -56,18 +56,18 @@ For each file in the tarball, compute SHA-256 and write:
 
 ```bash
 # Generate SHA-256 for the tarball itself
-sha256sum ~/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz > \
-  ~/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.sha256
+sha256sum plugins/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz > \
+  plugins/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.sha256
 
 # Write bundle.json
 jq -n \
   --arg version "<X.Y.Z>" \
   --arg date "<YYYY-MM-DD>" \
   --arg tarball "palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz" \
-  --arg sha256 "$(sha256sum ~/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz | awk '{print $1}')" \
-  --arg size "$(du -sh ~/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz | awk '{print $1}')" \
+  --arg sha256 "$(sha256sum plugins/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz | awk '{print $1}')" \
+  --arg size "$(du -sh plugins/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz | awk '{print $1}')" \
   '{version: $version, date: $date, tarball: $tarball, sha256: $sha256, size: $size}' \
-  > ~/palantir-mini/portable/bundle.json
+  > plugins/palantir-mini/portable/bundle.json
 ```
 
 ### 5. Emit event (5-dim envelope)
@@ -91,16 +91,16 @@ mcp__plugin_palantir-mini_palantir-mini__emit_event({
 ### 6. Print restore command
 
 ```
-Bundle created: ~/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz
+Bundle created: plugins/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz
 Size: <SIZE>
 SHA-256: <HASH>
 
 To restore on a fresh machine:
-  /palantir-mini:pm-restore ~/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz
+  /palantir-mini:pm-restore plugins/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz
 
 Or manually:
   mkdir -p ~/.claude/
-  tar -xzf ~/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz -C /home/palantirkc/
+  tar -xzf plugins/palantir-mini/portable/palantir-mini-v<X.Y.Z>-<YYYY-MM-DD>.tar.gz -C /home/palantirkc/
   # Then reload plugins and run /palantir-mini:pm-self-test
 ```
 

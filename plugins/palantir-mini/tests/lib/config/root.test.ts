@@ -54,7 +54,9 @@ describe("resolvePalantirMiniRoot", () => {
     try {
       process.chdir("/home/palantirkc");
 
-      expect(resolvePalantirMiniRoot({})).toBe(CANONICAL_PALANTIR_MINI_ROOT);
+      expect(resolvePalantirMiniRoot({})).toBe(
+        path.resolve(import.meta.dir, "../../.."),
+      );
     } finally {
       process.chdir(savedCwd);
     }
@@ -66,22 +68,21 @@ describe("Codex MCP startup config", () => {
   const mcpPath = path.join(pluginRoot, ".mcp.json");
   const codexPluginPath = path.join(pluginRoot, ".codex-plugin", "plugin.json");
 
-  test("launches the MCP server from the canonical source root", () => {
+  test("launches the MCP server from the installed plugin payload", () => {
     const mcp = JSON.parse(fs.readFileSync(mcpPath, "utf8")) as {
-      "palantir-mini": {
-        args: string[];
-        cwd: string;
-        env: Record<string, string>;
+      mcpServers: {
+        "palantir-mini": {
+          args: string[];
+          cwd: string;
+          env: Record<string, string>;
+        };
       };
     };
 
-    const server = mcp["palantir-mini"];
-    expect(server.cwd).toBe(CANONICAL_PALANTIR_MINI_ROOT);
-    expect(server.args).toContain(
-      path.join(CANONICAL_PALANTIR_MINI_ROOT, "bridge", "mcp-server.ts"),
-    );
-    expect(server.env["PALANTIR_MINI_ROOT"]).toBe(CANONICAL_PALANTIR_MINI_ROOT);
-    expect(server.env["PALANTIR_MINI_PLUGIN_ROOT"]).toBe(CANONICAL_PALANTIR_MINI_ROOT);
+    const server = mcp.mcpServers["palantir-mini"];
+    expect(server.cwd).toBe(".");
+    expect(server.args).toEqual(["run", "./bridge/mcp-server.ts"]);
+    expect(server.env["PALANTIR_MINI_HOST_RUNTIME"]).toBe("codex");
   });
 
   test("does not resolve MCP servers through the Codex cache cwd", () => {
@@ -89,8 +90,8 @@ describe("Codex MCP startup config", () => {
       mcpServers: string;
     };
 
-    expect(plugin.mcpServers).toBe(path.join(CANONICAL_PALANTIR_MINI_ROOT, ".mcp.json"));
-    expect(path.isAbsolute(plugin.mcpServers)).toBe(true);
+    expect(plugin.mcpServers).toBe("./.mcp.json");
+    expect(path.isAbsolute(plugin.mcpServers)).toBe(false);
   });
 });
 
