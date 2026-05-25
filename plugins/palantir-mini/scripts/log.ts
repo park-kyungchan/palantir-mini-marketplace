@@ -207,7 +207,7 @@ export async function emit(env: LogEnvelope): Promise<number> {
       const inferred = inferCanonicalSlug(skillName);
       const advisoryMsg = inferred !== null
         ? `[palantir-mini/skill-started] non-canonical skillName="${skillName}" — inferred canonical="${inferred}"; please normalize at emit site.`
-        : `[palantir-mini/skill-started] non-canonical skillName="${skillName}" — no canonical prefix match; verify against /home/palantirkc/palantir-mini/skills/.`;
+        : `[palantir-mini/skill-started] non-canonical skillName="${skillName}" — no canonical prefix match; verify against plugins/palantir-mini/skills/.`;
       try {
         process.stderr.write(`${advisoryMsg}\n`);
       } catch { /* best-effort */ }

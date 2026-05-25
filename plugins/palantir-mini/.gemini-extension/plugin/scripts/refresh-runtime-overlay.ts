@@ -3,8 +3,8 @@
  * refresh-runtime-overlay.ts
  *
  * Deterministic regen script for:
- *   /home/palantirkc/palantir-mini/runtime-overlay/schemas-snapshot/
- *   /home/palantirkc/palantir-mini/runtime-overlay/ontology-shared-core/
+ *   plugins/palantir-mini/runtime-overlay/schemas-snapshot/
+ *   plugins/palantir-mini/runtime-overlay/ontology-shared-core/
  *
  * Usage:
  *   bun run scripts/refresh-runtime-overlay.ts --target schemas

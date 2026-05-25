@@ -11,7 +11,7 @@
 //
 // Scope (regex-matched against file_path):
 //   - ~/.claude/schemas/.*\.ts$
-//   - ~/palantir-mini/(bridge/handlers|hooks|lib)/.*\.ts$
+//   - plugins/palantir-mini/(bridge/handlers|hooks|lib)/.*\.ts$
 //   - ~/.claude/plugins/palantir-mini/(bridge/handlers|hooks|lib)/.*\.ts$ (compatibility install)
 //   - ~/ontology/shared-core/.*\.ts$
 //   - ~/projects/.*/ontology/.*\.ts$
@@ -60,7 +60,7 @@ function buildScopeRegexes(home: string): RegExp[] {
   return [
     // ~/.claude/schemas/**/*.ts
     new RegExp(`${escapeRegex(path.join(home, ".claude", "schemas"))}.*\\.ts$`),
-    // /home/palantirkc/palantir-mini/(bridge/handlers|hooks|lib)/**/*.ts
+    // plugins/palantir-mini/(bridge/handlers|hooks|lib)/**/*.ts
     new RegExp(
       `${escapeRegex(resolvePalantirMiniRoot())}/(bridge/handlers|hooks|lib)/.*\\.ts$`
     ),

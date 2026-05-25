@@ -1,8 +1,8 @@
 # Plugin Workflow Authority — SSoT Marker
 
-`/home/palantirkc/palantir-mini/` is the canonical palantir-mini source root for workflow semantics, MCP handler source, hook intent, skills, agents, tests, and installable plugin manifests.
+The canonical palantir-mini source root is the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. It owns workflow semantics, MCP handler source, hook intent, skills, agents, tests, and installable plugin manifests.
 
-`~/.claude/plugins/palantir-mini/` is a Claude-native install/compatibility target. It must not become a semantic fork. Runtime-neutral ownership is described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`. Runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong in the owning runtime homes such as `~/.codex/**` and `~/.claude/**`.
+Runtime plugin caches are install targets. They must not become semantic forks. Runtime-neutral ownership is described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`. Runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong in the owning runtime homes such as `~/.codex/**`, `~/.claude/**`, and `~/.gemini/**`.
 
 ## Machine-Readable Marker
 
@@ -17,23 +17,23 @@
 
 | Runtime | Consumption method |
 |---------|-------------------|
-| `claude-code-cli` | Native plugin loader reads a Claude install target generated from or pointed at `/home/palantirkc/palantir-mini`. |
-| `codex-cli` | Codex-native hook/config/reload ownership lives under `~/.codex/**`. Marketplace source should point at `/home/palantirkc/palantir-mini`; any remaining `~/.claude/plugins/palantir-mini` source path is migration debt, not target authority. |
-| `gemini-cli` | Not yet bridged. Future adapter should point to `bridge/mcp-server.ts`. |
+| `claude-code-cli` | Native plugin loader reads `palantir-mini@palantir-mini-marketplace` from the private GitHub marketplace. |
+| `codex-cli` | Codex plugin marketplace reads `palantir-mini@palantir-mini-marketplace` from the private GitHub marketplace; Codex protocol ownership stays under `~/.codex/**`. |
+| `gemini-cli` | Private Gemini extension `park-kyungchan/palantir-mini-gemini-extension` installs an extension-local plugin payload. |
 | `cursor` | Not yet bridged. Future adapter should point to `bridge/mcp-server.ts`. |
 
 ## Invariant
 
-> All runtimes consume palantir-mini workflow semantics from `/home/palantirkc/palantir-mini`; no per-runtime semantic source forks should be created. Runtime-native wrappers are authority for provider protocol details, but not for durable palantir-mini workflow semantics.
+> All runtimes consume palantir-mini workflow semantics from the private marketplace payload; no per-runtime semantic source forks should be created. Runtime-native wrappers are authority for provider protocol details, but not for durable palantir-mini workflow semantics.
 
 ## What Is and Is Not an Authority
 
 | Artifact | Authority? | Notes |
 |----------|-----------|-------|
-| `/home/palantirkc/palantir-mini/` | YES — canonical source root | Owns workflow semantics, MCP handler source, hook intent, source skills/agents, tests, and runtime manifests. |
+| `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/` | YES — canonical source root | Owns workflow semantics, MCP handler source, hook intent, source skills/agents, tests, and runtime manifests. |
 | `/home/palantirkc/.palantir-mini/core/` | YES — runtime-neutral boundary | Owns runtime-neutral workflow/control-plane boundary contracts and sentinel policy; it is not the full plugin root. |
-| `~/.claude/plugins/palantir-mini/` | NO — Claude install/compatibility target | May load the plugin for Claude, but must not carry independent workflow semantics. |
-| `/home/palantirkc/palantir-mini/bridge/mcp-server.ts` | YES — bridge surface | The MCP server implementation that runtime wrappers should launch. |
+| `~/.claude/plugins/cache/**`, `~/.codex/plugins/cache/**`, `~/.gemini/extensions/palantir-mini/**` | NO — runtime install payloads | May load the plugin for a runtime, but must not carry independent workflow semantics. |
+| `plugins/palantir-mini/bridge/mcp-server.ts` | YES — bridge surface | The MCP server implementation that runtime wrappers should launch. |
 | `~/.codex/` | YES — Codex-native runtime overlay | Owns Codex hooks, memory, config, reload docs, and protocol adapter entrypoints. Must NOT contain a fork of workflow semantics. |
 | `managed-settings.d/*.json` (per project) | NO — RBAC fragment | Grants/denies MCP tool access per project; not source authority. |
 | Runtime overlay (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) | NO — behavioral overlay | Describes how runtimes operate; not the plugin implementation. |
@@ -79,7 +79,8 @@ Authority split:
 
 ## Version History
 
-- v1.4.0 (2026-05-24): Relocated canonical source authority to `/home/palantirkc/palantir-mini`; demoted `~/.claude/plugins/palantir-mini` to Claude-native install/compatibility target.
+- v1.5.0 (2026-05-25): Relocated canonical source authority to the private GitHub marketplace and demoted runtime caches to install payloads.
+- v1.4.0 (2026-05-24): Relocated canonical source authority to `plugins/palantir-mini`; demoted `~/.claude/plugins/palantir-mini` to Claude-native install/compatibility target.
 - v1.1.0 (2026-05-21): Clarified Codex local-marketplace MCP consumption and generated hook adapter path after v6.78.0 bridge/runtime verification.
 - v1.2.0 (2026-05-22): Added runtime-neutral core boundary and marked runtime-native protocol ownership as `~/.codex/**` / `~/.claude/**` overlay responsibility.
 - v1.3.0 (2026-05-23): Added portable research snapshot authority for `research-root/` and `palantir-official/`.

@@ -3,14 +3,16 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const PLUGIN_ROOT = resolve(import.meta.dir, "..", "..");
-const PROJECT_ROOT = resolve(PLUGIN_ROOT, "..");
+const PRIVATE_MARKETPLACE_SOURCE = "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini";
 
 interface RuntimeBoundaryContract {
   schemaVersion: string;
   sourceAuthority: {
     canonicalPluginSource: string;
     runtimeBoundaryContract: string;
-    claudeCompatibilityInstallPath: string;
+    claudeInstallPath: string;
+    codexInstallPath: string;
+    geminiInstallPath: string;
     note: string;
   };
   neutralCore: {
@@ -27,10 +29,8 @@ interface RuntimeBoundaryContract {
 }
 
 function loadContract(): RuntimeBoundaryContract {
-  const contractPath = resolve(
-    PROJECT_ROOT,
-    ".palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
-  );
+  const marker = loadSsotAuthority();
+  const contractPath = String(marker.runtimeBoundaryAuthority);
   return JSON.parse(readFileSync(contractPath, "utf8")) as RuntimeBoundaryContract;
 }
 
@@ -45,14 +45,22 @@ describe("runtime-neutral boundary contract", () => {
 
     expect(contract.schemaVersion).toBe("palantir-mini/runtime-boundary-contract/v1");
     expect(contract.neutralCore.root).toBe(".palantir-mini/core");
-    expect(contract.sourceAuthority.canonicalPluginSource).toBe("/home/palantirkc/palantir-mini");
+    expect(contract.sourceAuthority.canonicalPluginSource).toBe(PRIVATE_MARKETPLACE_SOURCE);
     expect(contract.sourceAuthority.runtimeBoundaryContract).toBe(
       "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
     );
+    expect(contract.sourceAuthority.claudeInstallPath).toContain(
+      "~/.claude/plugins/cache/palantir-mini-marketplace",
+    );
+    expect(contract.sourceAuthority.codexInstallPath).toContain(
+      "~/.codex/plugins/cache/palantir-mini-marketplace",
+    );
+    expect(contract.sourceAuthority.geminiInstallPath).toBe("~/.gemini/extensions/palantir-mini");
 
     const overlays = new Map(contract.runtimeNativeOverlays.map((overlay) => [overlay.runtime, overlay]));
     expect(overlays.get("codex")?.ownedRoots).toContain("~/.codex/**");
     expect(overlays.get("claude")?.ownedRoots).toContain("~/.claude/**");
+    expect(overlays.get("gemini")?.ownedRoots).toContain("~/.gemini/**");
 
     for (const ownedConcept of contract.neutralCore.owns) {
       expect(ownedConcept).not.toMatch(/codex|claude/i);
@@ -70,13 +78,14 @@ describe("runtime-neutral boundary contract", () => {
     const contract = loadContract();
     const debtPaths = contract.legacyMigrationDebt.map((entry) => entry.path);
 
-    expect(debtPaths).toContain("palantir-mini/lib/codex/**");
-    expect(debtPaths).toContain("palantir-mini/lib/runtime/capability-matrix.ts");
-    expect(debtPaths).toContain("palantir-mini/docs/CODEX_HOOK_ADAPTER.md");
+    expect(debtPaths).toContain("plugins/palantir-mini/lib/codex/**");
+    expect(debtPaths).toContain("plugins/palantir-mini/lib/runtime/capability-matrix.ts");
+    expect(debtPaths).toContain("plugins/palantir-mini/docs/CODEX_HOOK_ADAPTER.md");
+    expect(debtPaths.some((debtPath) => debtPath.startsWith("palantir-mini/"))).toBe(false);
     expect(debtPaths.some((debtPath) => debtPath.startsWith(".claude/plugins/palantir-mini"))).toBe(false);
 
     for (const debt of contract.legacyMigrationDebt) {
-      expect(debt.ownerAfterMigration).toMatch(/^~\/\.codex|^~\/\.claude/);
+      expect(debt.ownerAfterMigration).toMatch(/~\/\.(codex|claude|gemini)/);
       expect(debt.removalCondition.length).toBeGreaterThan(10);
     }
   });
@@ -84,7 +93,7 @@ describe("runtime-neutral boundary contract", () => {
   test("SSoT marker points runtimeBoundaryAuthority at the neutral root contract", () => {
     const marker = loadSsotAuthority();
 
-    expect(marker.authority).toBe("/home/palantirkc/palantir-mini");
+    expect(marker.authority).toBe(PRIVATE_MARKETPLACE_SOURCE);
     expect(marker.runtimeBoundaryAuthority).toBe(
       "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
     );

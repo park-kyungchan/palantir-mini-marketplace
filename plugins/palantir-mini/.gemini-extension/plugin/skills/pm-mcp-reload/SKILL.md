@@ -11,7 +11,7 @@ disable-model-invocation: false
 
 ## When to use
 
-- After editing any file under `/home/palantirkc/palantir-mini/bridge/handlers/` and the change isn't reflected in MCP tool calls.
+- After editing any file under `plugins/palantir-mini/bridge/handlers/` and the change isn't reflected in MCP tool calls.
 - After installing a fresh plugin version that adds new bridge handlers.
 - When `/palantir-mini:pm-mcp-reload` is invoked or these phrases appear: "MCP reload", "handler module reload", "why isn't my handler change picked up".
 
@@ -23,7 +23,7 @@ disable-model-invocation: false
 
 ## What's actually happening
 
-The palantir-mini MCP server (`/home/palantirkc/palantir-mini/bridge/mcp-server.ts`) lazy-imports handler modules and caches them in `moduleMap`. Once a handler is loaded, subsequent `tools/call` invocations reuse the cached module. **Edited handler source on disk does NOT propagate** until either:
+The palantir-mini MCP server (`plugins/palantir-mini/bridge/mcp-server.ts`) lazy-imports handler modules and caches them in `moduleMap`. Once a handler is loaded, subsequent `tools/call` invocations reuse the cached module. **Edited handler source on disk does NOT propagate** until either:
 
 1. The MCP server subprocess is restarted (Claude Code session restart), OR
 2. A future plugin version (post v4.5.0) adopts dynamic re-import + cache invalidation.
@@ -61,7 +61,7 @@ If the new handler still isn't visible after Option B, fall back to Option A.
 For new handlers, you can directly invoke the source file via Bash to confirm the code is correct (this bypasses MCP server entirely):
 
 ```bash
-PALANTIR_MINI_PROJECT=/home/palantirkc bun run /home/palantirkc/palantir-mini/scripts/run.ts <handler-name> <args>
+PALANTIR_MINI_PROJECT=/home/palantirkc bun run plugins/palantir-mini/scripts/run.ts <handler-name> <args>
 ```
 
 This works for handlers that follow the run.ts dispatch pattern (most do). Useful for smoke-testing without session restart.
@@ -87,6 +87,6 @@ A proper dynamic-reload mechanism (without session restart) is the original plan
 
 ## Authority + cross-refs
 
-- Plugin: `/home/palantirkc/palantir-mini/bridge/mcp-server.ts` (TOOLS registry + moduleMap). `~/.claude/plugins/palantir-mini` is only the Claude compatibility/install target.
+- Plugin: `plugins/palantir-mini/bridge/mcp-server.ts` (TOOLS registry + moduleMap). `~/.claude/plugins/palantir-mini` is only the Claude compatibility/install target.
 - Hook v2 conventions: rule 12 §Hook v2 conventions (InstructionsLoaded matchers).
 - Plan §3.W4.B — `~/.claude/plans/mossy-mapping-eich.md` (skill-only deviation; full handler reload deferred).

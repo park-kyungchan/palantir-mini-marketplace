@@ -1,7 +1,7 @@
 ---
 name: pm-restore
 category: maintenance
-description: "Re-hydrate canonical ~/palantir-mini from a tarball created by /palantir-mini:pm-portable-bundle. Verifies SHA-256 integrity before extraction."
+description: "Re-hydrate canonical plugins/palantir-mini from a tarball created by /palantir-mini:pm-portable-bundle. Verifies SHA-256 integrity before extraction."
 disable-model-invocation: true
 allowed-tools: Read Bash(tar*) Bash(sha256sum*) Bash(mkdir*) Bash(test*) Bash(ls*) Bash(ln*) Bash(rsync*) mcp__plugin_palantir-mini_palantir-mini__emit_event
 effort: medium
@@ -18,7 +18,7 @@ Extracts a portable bundle tarball to `$HOME/palantir-mini/` and verifies integr
 If no argument provided, list available bundles:
 
 ```bash
-ls -lh ~/palantir-mini/portable/*.tar.gz 2>/dev/null || echo "No bundles found in ~/palantir-mini/portable/"
+ls -lh plugins/palantir-mini/portable/*.tar.gz 2>/dev/null || echo "No bundles found in plugins/palantir-mini/portable/"
 ```
 
 ## Steps
@@ -55,14 +55,14 @@ if echo "$TOPLEVEL" | grep -q "^palantir-mini$"; then
   tar -xzf "$ARGUMENTS[0]" -C "$HOME/"
   mkdir -p ~/.claude/plugins/
   ln -sfn ../../palantir-mini ~/.claude/plugins/palantir-mini # compatibility install target only
-  echo "Extracted: ~/palantir-mini/ with runtime-overlay snapshots"
+  echo "Extracted: plugins/palantir-mini/ with runtime-overlay snapshots"
   echo "Claude compatibility symlink: ~/.claude/plugins/palantir-mini -> ../../palantir-mini"
 elif echo "$TOPLEVEL" | grep -q "^plugins$"; then
   # Legacy plugin-contained bundle — extract to ~/.claude/ and instruct migration.
   mkdir -p ~/.claude/
   tar -xzf "$ARGUMENTS[0]" -C ~/.claude/
   echo "Extracted legacy compatibility layout: ~/.claude/plugins/palantir-mini/"
-  echo "WARNING: legacy layout. Migrate source authority to ~/palantir-mini/ before self-test."
+  echo "WARNING: legacy layout. Migrate source authority to plugins/palantir-mini/ before self-test."
 else
   echo "Error: unrecognized bundle layout. Top-level entries: $TOPLEVEL"; exit 1
 fi
@@ -72,10 +72,10 @@ Optional local hydration after extraction:
 
 ```bash
 if test "$ARGUMENTS[1]" = "--hydrate-local"; then
-  rsync -a ~/palantir-mini/runtime-overlay/schemas-snapshot/ ~/.claude/schemas/
-  rsync -a ~/palantir-mini/runtime-overlay/research-library/ ~/.claude/research/
+  rsync -a plugins/palantir-mini/runtime-overlay/schemas-snapshot/ ~/.claude/schemas/
+  rsync -a plugins/palantir-mini/runtime-overlay/research-library/ ~/.claude/research/
   mkdir -p ~/ontology/shared-core/
-  rsync -a ~/palantir-mini/runtime-overlay/ontology-shared-core/ ~/ontology/shared-core/
+  rsync -a plugins/palantir-mini/runtime-overlay/ontology-shared-core/ ~/ontology/shared-core/
 fi
 ```
 
@@ -113,4 +113,4 @@ mcp__plugin_palantir-mini_palantir-mini__emit_event({
 ## Rule citations
 
 - `~/.claude/rules/10-events-jsonl.md` — `plugin_restored` emitted after successful extraction.
-- `~/.claude/rules/07-plugins-and-mcp.md` — canonical source lives at `~/palantir-mini`; `~/.claude/plugins/palantir-mini` is a compatibility/install target.
+- `~/.claude/rules/07-plugins-and-mcp.md` — canonical source lives at `plugins/palantir-mini`; `~/.claude/plugins/palantir-mini` is a compatibility/install target.

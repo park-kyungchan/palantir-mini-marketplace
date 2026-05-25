@@ -301,7 +301,7 @@ export default async function planTaskDagValidate(
       `and must re-compute dependencies at execution time, risking the corruption pattern`,
       `observed sprint-135 2026-05-13 (4 concurrent subagents without worktree isolation).`,
       ``,
-      `Template: /home/palantirkc/palantir-mini/docs/PARALLEL_SPAWN_DISPATCH.md §Plan-mode authoring template`,
+      `Template: plugins/palantir-mini/docs/PARALLEL_SPAWN_DISPATCH.md §Plan-mode authoring template`,
       ``,
       `ADVISORY ONLY — file write proceeds. Add annotation fields to suppress.`,
       `Bypass: PALANTIR_MINI_DAG_VALIDATE_BYPASS=1`,

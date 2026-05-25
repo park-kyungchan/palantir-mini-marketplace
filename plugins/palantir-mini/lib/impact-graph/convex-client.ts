@@ -226,7 +226,7 @@ class StubConvexClient {
     try {
       process.stderr.write(
         `[palantir-mini/convex-client] STUB mode — ${method} is a no-op. ` +
-        `Run \`bunx convex dev\` in /home/palantirkc/palantir-mini to bind a real deployment.\n`,
+        `Run \`bunx convex dev\` in plugins/palantir-mini to bind a real deployment.\n`,
       );
     } catch { /* ignore */ }
   }

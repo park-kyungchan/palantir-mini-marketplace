@@ -112,7 +112,7 @@ describe("agentMdCandidates", () => {
     delete process.env.CLAUDE_PLUGIN_ROOT;
     const candidates = agentMdCandidates("my-agent", "/cwd");
     expect(candidates).toHaveLength(3);
-    expect(candidates[2]).toBe("/home/palantirkc/palantir-mini/agents/my-agent.md");
+    expect(candidates[2]).toBe(path.resolve(import.meta.dir, "../..", "agents", "my-agent.md"));
   });
 
   test("all candidates include the agent name as filename stem", () => {

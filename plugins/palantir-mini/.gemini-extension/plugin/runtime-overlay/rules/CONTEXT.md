@@ -219,13 +219,13 @@ This file is **Claude-native only**. Other native runtimes on this machine (Code
 
 | Runtime | Global overlay | Hooks | Memory | Skills |
 |---------|----------------|-------|--------|--------|
-| **Claude** | `~/.claude/CLAUDE.md` + `~/.claude/rules/**` | palantir-mini hook intent from `/home/palantirkc/palantir-mini/hooks/**` via the Claude compatibility install | `~/.claude/projects/**/memory/**` | plugin source from `/home/palantirkc/palantir-mini` + `~/.claude/skills/**` |
+| **Claude** | `~/.claude/CLAUDE.md` + `~/.claude/rules/**` | palantir-mini hook intent from `plugins/palantir-mini/hooks/**` via the Claude compatibility install | `~/.claude/projects/**/memory/**` | plugin source from `plugins/palantir-mini` + `~/.claude/skills/**` |
 | **Codex** | `~/.codex/AGENTS.md` | `~/.codex/hooks/**` (3) | `~/.codex/{memories,sessions,history.jsonl,state_5.sqlite}` | `~/.codex/skills/**` + shared `~/.agents/skills/**` |
 | **Universal** | `~/AGENTS.md` (thin delegation only) | — | — | `~/.agents/skills/**` (shared) |
 
 **Shared spine (single source of truth; both runtimes consume)**:
 
-- **palantir-mini plugin** — canonical source at `/home/palantirkc/palantir-mini/`. Codex `config.toml` points its MCP server to this source and launches the same `bridge/mcp-server.ts`. `~/.claude/plugins/palantir-mini/` is a temporary Claude compatibility/install target only. DO NOT fork the plugin install.
+- **palantir-mini plugin** — canonical source at `plugins/palantir-mini/`. Codex `config.toml` points its MCP server to this source and launches the same `bridge/mcp-server.ts`. `~/.claude/plugins/palantir-mini/` is a temporary Claude compatibility/install target only. DO NOT fork the plugin install.
 - **`~/ontology/shared-core/`** — import surface for both runtimes.
 - **`~/.claude/schemas/**`** — ontology primitives; `pm-codegen` is the sole codegen authority.
 - **`~/.claude/research/**`** — evidence library; read-shared.
@@ -235,7 +235,7 @@ This file is **Claude-native only**. Other native runtimes on this machine (Code
 
 **Cross-runtime edit rule of thumb**:
 - `~/.claude/**` (excluding plugin) → Claude-only.
-- `/home/palantirkc/palantir-mini/**` → BOTH affected (coordinate runtime wrappers if MCP surface changes).
+- `plugins/palantir-mini/**` → BOTH affected (coordinate runtime wrappers if MCP surface changes).
 - `~/.claude/plugins/palantir-mini/**` → Claude compatibility/install target only; do not edit as semantic source.
 - `~/.codex/**` → Codex-only; Claude hooks must not depend.
 - `~/ontology/`, `~/.claude/schemas/`, `~/.claude/research/`, `~/AGENTS.md` → both runtimes; rule 08 schema versioning governs breaking changes.
@@ -292,8 +292,8 @@ If this is your first rule document this session: (1) Rules are enforced by hook
 
 - Blueprints: `~/.claude/plans/2026-04-22-rules-redesign-blueprint.md` (PR #123 — initial 3-tier design); `~/.claude/plans/2026-04-28-harness-base-mode-blueprint.md` §12 (2026-04-29 destructive cleanup license + 6 rule retirements); `~/.claude/plans/glistening-hugging-reddy.md` §2 (Wave R execution proposal).
 - Rule primitive source: `~/.claude/schemas/ontology/primitives/rule.ts`.
-- MCP handlers: `/home/palantirkc/palantir-mini/bridge/handlers/pm-rule-*.ts`.
-- Enforcement hooks: `/home/palantirkc/palantir-mini/hooks/rule-audit.ts` (consolidated mode-dispatch).
+- MCP handlers: `plugins/palantir-mini/bridge/handlers/pm-rule-*.ts`.
+- Enforcement hooks: `plugins/palantir-mini/hooks/rule-audit.ts` (consolidated mode-dispatch).
 - Authority reference: `~/.claude/CLAUDE.md` §Authority Chain.
 
 ## §17 — Brain-of-Swarms layer model
