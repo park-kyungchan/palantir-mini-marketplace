@@ -17,7 +17,7 @@ private marketplace or Gemini extension instead of restoring a bundle.
 ## Argument
 
 `$ARGUMENTS[0]` — path to the `.tar.gz` tarball created by `pm-portable-bundle`.
-`$ARGUMENTS[1]` — optional restore directory. Defaults to `./palantir-mini-restored`.
+`$ARGUMENTS[1]` — optional restore directory. Defaults to `./pm-restored`.
 
 If no argument provided, list available bundles:
 
@@ -54,7 +54,7 @@ plugin contains its own runtime-overlay snapshots for research, schemas, and
 shared-core.
 
 ```bash
-RESTORE_DIR="${ARGUMENTS[1]:-$PWD/palantir-mini-restored}"
+RESTORE_DIR="${ARGUMENTS[1]:-$PWD/pm-restored}"
 mkdir -p "$RESTORE_DIR"
 TOPLEVEL=$(tar -tzf "$ARGUMENTS[0]" | head -3 | awk -F/ '{print $1}' | sort -u)
 if echo "$TOPLEVEL" | grep -q "^palantir-mini$"; then
