@@ -60,12 +60,13 @@ describe("RELOAD_PER_RUNTIME.md", () => {
     expect(content).toContain("subagent and compact lifecycle parity remains payload-sensitive");
   });
 
-  it("should document Gemini CLI and leave Cursor as a future runtime", () => {
+  it("should document exactly the active Claude, Codex, and Gemini runtime families", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
     expect(content).toContain("gemini extensions validate plugins/palantir-mini/.gemini-extension");
     expect(content).toContain("Gemini hook timeouts are milliseconds");
-    expect(content).toContain("Cursor");
-    expect(content.match(/TBD/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
+    expect(content).not.toContain("Future runtimes");
+    expect(content).not.toContain("Cursor");
+    expect(content.match(/TBD/g)?.length ?? 0).toBe(0);
   });
 
   it("should include a 'What triggers a reload requirement' section with a table", () => {

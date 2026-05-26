@@ -30,6 +30,7 @@ import {
   writeClosedMarker,
 } from "../lib/outcome-pairing/track";
 import { isCanonicalSkillSlug, inferCanonicalSlug } from "../lib/skill-registry/canonical-slugs";
+import { normalizeRuntimeIdentity, type RuntimeIdentity } from "../lib/runtime/identity";
 
 export interface LogEnvelope {
   type:     EventEnvelope["type"];
@@ -66,28 +67,6 @@ export interface LogEnvelope {
   runtime?: string;
   /** UI/system surface tag (e.g. "workshop", "cli", "mcp"). */
   surface?: string;
-}
-
-type RuntimeIdentity = NonNullable<LogEnvelope["identity"]>;
-
-function normalizeRuntimeIdentity(value: string | undefined): RuntimeIdentity | undefined {
-  switch (value?.trim()) {
-    case "claude":
-    case "claude-code":
-      return "claude-code";
-    case "codex":
-    case "codex-cli":
-      return "codex";
-    case "gemini":
-    case "gemini-cli":
-      return "gemini";
-    case "user":
-    case "monitor":
-    case "test-agent":
-      return value.trim() as RuntimeIdentity;
-    default:
-      return undefined;
-  }
 }
 
 function resolveRuntimeIdentity(env: LogEnvelope): RuntimeIdentity {

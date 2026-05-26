@@ -241,7 +241,7 @@ When you call `mcp__plugin_palantir-mini_palantir-mini__emit_event`, populate th
 - **withWhat.hypothesis**: expected outcome (e.g. `"Evaluator scores this iteration above hardThreshold"`)
 - **withWhat.refinementTarget**: `{ kind: "spec", ridOrSlug: "<sprintId>-iter-<N>", layer: "procedural" }`
 - **withWhat.memoryLayers**: `["procedural", "episodic", "semantic"]`
-- **byWhom**: `{ agent: "harness-generator", identity: "claude-code" }`
+- **byWhom**: `{ agent: "harness-generator", identity: "<active-runtime-identity>" }`
 - **propagationDepth**: optional integer (rule 10 v2.1.0 §propagationDepth)
 
 ## Memory layer declaration

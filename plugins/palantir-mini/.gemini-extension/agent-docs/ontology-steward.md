@@ -163,7 +163,7 @@ When you call `mcp__plugin_palantir-mini_palantir-mini__emit_event`, populate th
 - **withWhat.hypothesis**: expected outcome (e.g. `"consumer projects pin compatible range; ForwardProp chain intact"`)
 - **withWhat.refinementTarget**: `{ kind: "primitive", ridOrSlug: "<primitiveName>", layer: "semantic" }`
 - **withWhat.memoryLayers**: `["semantic", "procedural"]`
-- **byWhom**: `{ agent: "ontology-steward", identity: "claude-code" }`
+- **byWhom**: `{ agent: "ontology-steward", identity: "<active-runtime-identity>" }`
 - **propagationDepth**: optional integer (rule 10 v2.1.0 §propagationDepth)
 
 ## Memory layer declaration

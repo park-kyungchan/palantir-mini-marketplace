@@ -21,11 +21,13 @@ const MODEL_CRITERION: GradingCriterionLite = {
 
 let TMP: string;
 let savedEventsFile: string | undefined;
+let savedHostRuntime: string | undefined;
 
 beforeEach(() => {
   TMP = fs.mkdtempSync(path.join(os.tmpdir(), "pm-grader-w3-1e-"));
   fs.mkdirSync(path.join(TMP, ".palantir-mini", "session"), { recursive: true });
   savedEventsFile = process.env.PALANTIR_MINI_EVENTS_FILE;
+  savedHostRuntime = process.env.PALANTIR_MINI_HOST_RUNTIME;
   process.env.PALANTIR_MINI_EVENTS_FILE = path.join(TMP, ".palantir-mini", "session", "events.jsonl");
 });
 
@@ -34,6 +36,11 @@ afterEach(() => {
     process.env.PALANTIR_MINI_EVENTS_FILE = savedEventsFile;
   } else {
     delete process.env.PALANTIR_MINI_EVENTS_FILE;
+  }
+  if (savedHostRuntime !== undefined) {
+    process.env.PALANTIR_MINI_HOST_RUNTIME = savedHostRuntime;
+  } else {
+    delete process.env.PALANTIR_MINI_HOST_RUNTIME;
   }
   if (TMP && fs.existsSync(TMP)) {
     fs.rmSync(TMP, { recursive: true, force: true });
@@ -204,6 +211,28 @@ describe("pm_grader_dispatch — W3.1e validation-errors guard", () => {
     expect(gradedEvents[0].payload.passed).toBe(false); // needs_human_review !== "pass"
     expect(gradedEvents[0].withWhat?.reasoning).toContain("dryRunRef=graded-pair-ref");
     expect(gradedEvents[0].withWhat?.reasoning).toContain("verdict=needs_human_review");
+  });
+
+  test("Codex host records runtime-gap grading without Claude identity", async () => {
+    process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
+    const eventsPath = process.env.PALANTIR_MINI_EVENTS_FILE!;
+    const result = await pmGraderDispatch({
+      project: TMP,
+      criterion: MODEL_CRITERION,
+      artifactPath: path.join(TMP, "artifact.txt"),
+      dryRunRef: "codex-runtime-gap",
+      validationResult: "ok",
+    });
+
+    expect(result.passFail).toBe("needs_human_review");
+    expect(result.reasoning).toContain("host runtime codex");
+
+    expect(fs.existsSync(eventsPath)).toBe(true);
+    const lines = fs.readFileSync(eventsPath, "utf8").trim().split("\n").filter(Boolean);
+    const event = JSON.parse(lines[lines.length - 1]!);
+    expect(event.byWhom.identity).toBe("codex");
+    expect(event.byWhom.runtime).toBe("codex");
+    expect(event.payload.errorClass).toBe("dry_run_graded");
   });
 
   test("does NOT emit dry_run_graded when dryRunRef absent", async () => {

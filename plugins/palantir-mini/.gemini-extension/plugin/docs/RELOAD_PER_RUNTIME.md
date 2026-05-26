@@ -163,14 +163,6 @@ interactive session.
 - Root palantir-mini source remains the workflow authority. `~/.gemini/**` is a
   runtime-local install/cache surface only.
 
-## Future runtimes
-
-### Cursor
-
-**TBD.** Cursor integration is not yet bridged. When bridged, this section will document the MCP server restart workflow in Cursor's settings panel. See `docs/NATIVE_RUNTIME_GAPS.md` for current bridge status.
-
----
-
 ## Common pitfalls
 
 1. **Editing `.palantir-mini/session/*` or `events.jsonl` and thinking a reload is needed** — these files are read on each tool invocation, not cached. No reload required.

@@ -81,7 +81,7 @@ mcp__plugin_palantir-mini_palantir-mini__emit_event({
     when: "<ISO8601>",
     atopWhich: "<git HEAD>",
     throughWhich: { sessionId: "portable-bundle", toolName: "pm-portable-bundle", cwd: "<cwd>" },
-    byWhom: { identity: "claude-code", agentName: "Lead" },
+    byWhom: { identity: "<active-runtime-identity>", agentName: "Lead" },
     withWhat: { reasoning: "Created portable bundle for plugin-only portable rehydration." },
     payload: { version: "<X.Y.Z>", tarball: "<path>", sha256: "<hash>", includesRuntimeOverlaySnapshots: true }
   }

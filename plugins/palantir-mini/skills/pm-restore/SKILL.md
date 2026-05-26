@@ -104,7 +104,7 @@ mcp__plugin_palantir-mini_palantir-mini__emit_event({
     when: "<ISO8601>",
     atopWhich: "<git HEAD or 'unknown'>",
     throughWhich: { sessionId: "pm-restore", toolName: "pm-restore", cwd: "<cwd>" },
-    byWhom: { identity: "claude-code", agentName: "Lead" },
+    byWhom: { identity: "<active-runtime-identity>", agentName: "Lead" },
     withWhat: { reasoning: "Restored plugin from portable tarball." },
     payload: { tarball: "<path>", integrityCheck: "pass|skipped" }
   }

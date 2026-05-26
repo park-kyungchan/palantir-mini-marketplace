@@ -127,8 +127,8 @@ emit_event({
     eventId: "<uuid>",
     when: "<ISO8601>",
     atopWhich: "<commitSha>",
-    throughWhich: { surface: "claude-code-cli", tool: "<tool-name>" },
-    byWhom: { agent: "<agent-name>", identity: "claude-code" },
+    throughWhich: { surface: "<active-runtime-surface>", tool: "<tool-name>" },
+    byWhom: { agent: "<agent-name>", identity: "<active-runtime-identity>" },
     payload: { ... },
     withWhat: {
       reasoning: "<rationale>",

@@ -311,7 +311,7 @@ export async function pmLeadBrief(rawArgs: unknown): Promise<PmLeadBriefResult> 
     payload: { skillName } as EventEnvelope["payload"],
     toolName: "pm_lead_brief",
     cwd: projectRoot,
-    identity: "claude-code",
+    runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
     hypothesis: "pm-lead-brief-unified-session-opener",
     reasoning: `skill=${skillName} branch=${branch} sessionMinutes=${sessionMinutes} T2plusRatio=${valueGradeMetrics.T2plusRatio} recentSprints=${recentSprints.length}`,
     memoryLayers: ["procedural", "semantic"],

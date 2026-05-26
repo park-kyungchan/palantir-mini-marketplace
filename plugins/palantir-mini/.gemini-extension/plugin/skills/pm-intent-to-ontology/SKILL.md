@@ -75,7 +75,7 @@ mcp__palantir-mini__pm_workflow_lineage_query({
   "projects": ["<project>"],
   "filter": {
     "whenRange": { "from": "<7 days ago ISO>", "to": "<now ISO>" },
-    "byWhom": { "identity": "claude-code" },
+    "byWhom": { "identity": "<active-runtime-identity>" },
     "eventTypes": ["edit_committed"],
     "limit": 30
   }

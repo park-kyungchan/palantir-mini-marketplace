@@ -204,7 +204,7 @@ export default async function validateSubstrateFiring(
       },
       toolName: "validate_substrate_firing",
       cwd,
-      identity: "claude-code",
+      runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
       memoryLayers: ["procedural", "semantic"],
       reasoning,
       refinementTarget: ok ? undefined : {

@@ -7,7 +7,9 @@
 //
 //   - rubricDomain=code   → execute validationExpression inline (shell/regex)
 //   - rubricDomain=rule   → evaluate validationExpression (regex / JSONSchema)
-//   - rubricDomain=model  → Lead-direct dispatch via `claude -p`
+//   - rubricDomain=model  → runtime-gated model grader; Claude hosts use the
+//                            Claude CLI adapter, non-Claude hosts return
+//                            needs_human_review until a native grader exists
 //   - rubricDomain=human  → emit a "needs_human_review" marker; returns partial
 //   - rubricDomain=hybrid → recurse into subCriteriaRids per combinator
 //
@@ -36,7 +38,7 @@ import type {
 import { GRADING_RUBRIC_REGISTRY, type GradingRubricRid } from "#schemas/ontology/primitives/grading-rubric";
 
 // Backward-compat re-exports — consumers import buildGraderModelEnv + types from this file.
-export { buildGraderModelEnv } from "./grade-outcome/model";
+export { buildGraderModelEnv, gradeModel, resolveModelGraderHostRuntime } from "./grade-outcome/model";
 export type {
   GradeOutcomeArgs,
   CriterionScore,

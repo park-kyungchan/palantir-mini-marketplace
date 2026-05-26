@@ -8,6 +8,7 @@
 import * as path from "path";
 import { applyEditFunction } from "../../lib/actions/tier2-function";
 import { appendEventAtomic } from "../../lib/event-log/append";
+import { resolveHostRuntimeIdentity } from "../../lib/runtime/identity";
 import * as fs from "fs";
 import type { EventEnvelope, EventId, SessionId, CommitSha, OntologyEdit } from "../../lib/event-log/types";
 
@@ -58,7 +59,7 @@ export default async function applyEditFunctionHandler(rawArgs: unknown): Promis
       toolName:  "apply_edit_function",
       cwd:       args.project,
     },
-    byWhom: { identity: "claude-code" },
+    byWhom: { identity: resolveHostRuntimeIdentity() },
     payload: {
       functionName,
       params: args.params,

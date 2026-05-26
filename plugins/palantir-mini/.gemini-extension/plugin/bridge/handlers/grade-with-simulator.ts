@@ -133,7 +133,7 @@ export function gradeWithSimulator(
         payload: { phase: "design", passed: true, errorClass: "simulator_evaluation_completed" },
         toolName: "grade_with_simulator",
         cwd: projectRoot,
-        identity: "claude-code",
+        runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
         reasoning: `simulator-evaluated criterion=${criterion.criterionId} edits=0 totalAffected=0 verdict=pass dryRunRef=${dryRunRef ?? "none"}`,
       }).catch(() => {});
     }
@@ -188,7 +188,7 @@ export function gradeWithSimulator(
     payload: { phase: "design", passed: passFail === "pass", errorClass: "simulator_evaluation_completed" },
     toolName: "grade_with_simulator",
     cwd: projectRoot,
-    identity: "claude-code",
+    runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
     reasoning: `simulator-evaluated criterion=${criterion.criterionId} edits=${edits.length} totalAffected=${radius.totalAffected} threshold=${threshold} verdict=${passFail} dryRunRef=${dryRunRef ?? "none"}`,
   }).catch(() => {});
 

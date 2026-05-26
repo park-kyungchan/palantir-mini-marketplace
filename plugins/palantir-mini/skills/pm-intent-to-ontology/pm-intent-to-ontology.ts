@@ -32,6 +32,7 @@
 //            rule 01 §ForwardProp Audit; rule 26 §Axis E.
 
 import type { AgenticMemoryLayer } from "#schemas/ontology/primitives/agentic-memory-layer";
+import { resolveHostRuntimeIdentity } from "../../lib/runtime/identity";
 
 // ─── Args ────────────────────────────────────────────────────────────────────
 
@@ -148,7 +149,7 @@ function sevenDaysAgo(): string {
  *   6. negotiate_sprint_contract — Lead action; not called here
  *
  * @param args - Intent, scope paths, and optional project root.
- * @param mcpClient - Injectable MCP callable map (for testing + future runtime use).
+ * @param mcpClient - Injectable MCP callable map (for tests and Claude/Codex/Gemini runtime adapters).
  */
 export async function runIntentToOntology(
   args: IntentToOntologyArgs,
@@ -209,7 +210,7 @@ export async function runIntentToOntology(
           projects: [project],
           filter: {
             whenRange: { from: sevenDaysAgo(), to: new Date().toISOString() },
-            byWhom: { identity: "claude-code" },
+            byWhom: { identity: resolveHostRuntimeIdentity() },
             eventTypes: ["edit_committed"],
             limit: 30,
           },

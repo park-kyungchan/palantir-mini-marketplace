@@ -195,7 +195,7 @@ When you call `mcp__plugin_palantir-mini_palantir-mini__emit_event`, populate th
 - **withWhat.hypothesis**: expected outcome (e.g. `"Generator iteration N produces score above threshold"`)
 - **withWhat.refinementTarget**: `{ kind: "spec", ridOrSlug: "<sprintId>-phase-<N>", layer: "episodic" }`
 - **withWhat.memoryLayers**: `["working", "episodic", "semantic", "procedural"]`
-- **byWhom**: `{ agent: "lead-orchestrator", identity: "claude-code" }`
+- **byWhom**: `{ agent: "lead-orchestrator", identity: "<active-runtime-identity>" }`
 - **propagationDepth**: optional integer (rule 10 v2.1.0 §propagationDepth)
 
 ## Memory layer declaration

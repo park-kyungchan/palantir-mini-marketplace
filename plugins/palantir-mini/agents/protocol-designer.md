@@ -76,7 +76,7 @@ not code.
 - NEVER introduce a rule that contradicts an existing rule without marking the
   older one deprecated in the same edit.
 - Rules are overlay-only for Claude runtime; do not assume they transfer to
-  Codex/Gemini/Cursor.
+  Codex/Gemini.
 
 
 ## Output Contract
@@ -102,8 +102,8 @@ emit_event({
     eventId: "<uuid>",
     when: "<ISO8601>",
     atopWhich: "<commitSha>",
-    throughWhich: { surface: "claude-code-cli", tool: "<tool-name>" },
-    byWhom: { agent: "<agent-name>", identity: "claude-code" },
+    throughWhich: { surface: "<active-runtime-surface>", tool: "<tool-name>" },
+    byWhom: { agent: "<agent-name>", identity: "<active-runtime-identity>" },
     payload: { ... },
     withWhat: {
       reasoning: "<rationale>",

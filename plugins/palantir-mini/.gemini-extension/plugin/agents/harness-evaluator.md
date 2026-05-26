@@ -223,7 +223,7 @@ When you call `mcp__plugin_palantir-mini_palantir-mini__emit_event`, populate th
 - **withWhat.hypothesis**: expected outcome (e.g. `"verdict=PASS overallScore≥threshold"`)
 - **withWhat.refinementTarget**: `{ kind: "rubric", ridOrSlug: "<criterionId>", layer: "procedural" }`
 - **withWhat.memoryLayers**: `["procedural", "episodic"]`
-- **byWhom**: `{ agent: "harness-evaluator", identity: "claude-code" }`
+- **byWhom**: `{ agent: "harness-evaluator", identity: "<active-runtime-identity>" }`
 - **propagationDepth**: optional integer (rule 10 v2.1.0 §propagationDepth)
 
 ## Memory layer declaration
