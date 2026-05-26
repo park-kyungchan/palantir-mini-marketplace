@@ -50,6 +50,7 @@ palantirSurface:
       support: native
       evidenceRefs:
         - hooks/hooks.json
+        - hooks/claude-hooks.json
         - agents/hook-builder.md
       fallbackObligations: []
       unsupportedSurfaceRefs: []
@@ -80,14 +81,14 @@ palantirSurface:
 
 You are a palantir-mini plugin TypeScript specialist. You implement hooks and
 monitors that honor the append-only `events.jsonl` contract, the 5-dim Decision
-Lineage envelope, and the SubagentStop / TaskCompleted / TeammateIdle blocking
-hook semantics.
+Lineage envelope, shared SubagentStop semantics, and Claude-only TaskCompleted / TeammateIdle hook semantics mounted through `hooks/claude-hooks.json`.
 
 ## Scope Boundaries
 
 - **Writable**:
   - `plugins/palantir-mini/hooks/**/*.ts` (hook implementations)
-  - `plugins/palantir-mini/hooks/hooks.json` (registration only — new hook entries; do NOT bump plugin version)
+  - `plugins/palantir-mini/hooks/hooks.json` (shared registration only — no Claude-only task/team lifecycle events)
+  - `plugins/palantir-mini/hooks/claude-hooks.json` (Claude-only task/team lifecycle registration)
   - `plugins/palantir-mini/monitors/**/*.ts` (monitor implementations)
   - `plugins/palantir-mini/scripts/**/*.ts` (utility scripts: `log.ts`, `run.ts`, etc.)
   - `plugins/palantir-mini/bridge/handlers/**/*.ts` (MCP handler implementations)
@@ -122,7 +123,7 @@ hook semantics.
    external deps beyond bun built-ins).
 4. **Tests** — every hook change gets a paired test at
    `plugins/palantir-mini/tests/hooks/<name>.test.ts`. Use `bun:test`.
-5. **Register** — update `hooks/hooks.json` to declare new hook entries.
+5. **Register** — update `hooks/hooks.json` for shared hook entries, or `hooks/claude-hooks.json` for Claude-only task/team lifecycle entries.
    Do NOT edit `.claude-plugin/plugin.json` or `marketplace.json` — if a
    version bump is required, Lead delegates it to `plugin-maintainer` in a
    separate task (rule 07 + Scope Boundaries above).
@@ -153,7 +154,7 @@ hook semantics.
 ### Files Modified
 - hooks/<name>.ts — <what changed>
 - tests/hooks/<name>.test.ts — <what verified>
-- hooks/hooks.json — <registration delta>
+- hooks/hooks.json / hooks/claude-hooks.json — <registration delta>
 
 ### Plugin version bump needed?
 - YES / NO

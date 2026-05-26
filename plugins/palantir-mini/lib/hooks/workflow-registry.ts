@@ -31,18 +31,17 @@ export interface RuntimeHookMountProjection {
   readonly mountAuthority: "runtime-local";
 }
 
-export const CODEX_UNSUPPORTED_HOOK_EVENTS: readonly HookWorkflowEvent[] = [
+export const CODEX_UNSUPPORTED_HOOK_EVENTS: readonly HookWorkflowEvent[] = [];
+
+export const CODEX_SCHEMA_ONLY_HOOK_EVENTS: readonly HookWorkflowEvent[] = [];
+
+export const CLAUDE_ONLY_HOOK_EVENTS: readonly HookWorkflowEvent[] = [
   "TaskCreated",
   "TaskCompleted",
   "TeammateIdle",
 ];
 
-export const CODEX_SCHEMA_ONLY_HOOK_EVENTS: readonly HookWorkflowEvent[] = [];
-
 export const GEMINI_UNSUPPORTED_HOOK_EVENTS: readonly HookWorkflowEvent[] = [
-  "TaskCreated",
-  "TaskCompleted",
-  "TeammateIdle",
   "SubagentStart",
   "SubagentStop",
 ];
@@ -98,17 +97,10 @@ export const HOOK_WORKFLOW_REGISTRY: readonly HookWorkflowDeclaration[] = [
     mountAuthority: "runtime-local",
   },
   {
-    workflowId: "claude-agent-lifecycle",
-    event: "TaskCreated",
-    ownerRuntime: "claude",
-    purpose: "Claude-native task lifecycle tracking.",
-    mountAuthority: "runtime-local",
-  },
-  {
-    workflowId: "claude-subagent-lifecycle",
+    workflowId: "subagent-start-lifecycle",
     event: "SubagentStart",
-    ownerRuntime: "claude",
-    purpose: "Claude-native subagent lifecycle tracking.",
+    ownerRuntime: "shared",
+    purpose: "Capture subagent start briefing where the runtime exposes a compatible event.",
     mountAuthority: "runtime-local",
   },
   {
@@ -120,6 +112,30 @@ export const HOOK_WORKFLOW_REGISTRY: readonly HookWorkflowDeclaration[] = [
   },
 ];
 
+export const CLAUDE_ONLY_HOOK_WORKFLOW_REGISTRY: readonly HookWorkflowDeclaration[] = [
+  {
+    workflowId: "claude-task-created-lifecycle",
+    event: "TaskCreated",
+    ownerRuntime: "claude",
+    purpose: "Claude-native task creation granularity and ownership gate.",
+    mountAuthority: "runtime-local",
+  },
+  {
+    workflowId: "claude-task-completed-lifecycle",
+    event: "TaskCompleted",
+    ownerRuntime: "claude",
+    purpose: "Claude-native task completion output-contract and inbox cleanup gate.",
+    mountAuthority: "runtime-local",
+  },
+  {
+    workflowId: "claude-teammate-idle-lifecycle",
+    event: "TeammateIdle",
+    ownerRuntime: "claude",
+    purpose: "Claude Agent Teams idle digest and auto-shutdown policy.",
+    mountAuthority: "runtime-local",
+  },
+];
+
 function unique<T>(values: readonly T[]): readonly T[] {
   return Array.from(new Set(values));
 }
@@ -127,28 +143,32 @@ function unique<T>(values: readonly T[]): readonly T[] {
 export function projectRuntimeHookMount(
   runtime: PalantirMiniRuntime,
 ): RuntimeHookMountProjection {
-  const allEvents = unique(HOOK_WORKFLOW_REGISTRY.map((workflow) => workflow.event));
+  const workflows: readonly HookWorkflowDeclaration[] = runtime === "claude"
+    ? [...HOOK_WORKFLOW_REGISTRY, ...CLAUDE_ONLY_HOOK_WORKFLOW_REGISTRY]
+    : HOOK_WORKFLOW_REGISTRY;
+  const allEvents = unique(workflows.map((workflow) => workflow.event));
   if (runtime === "claude") {
     return {
       runtime,
       supportedEvents: allEvents,
       unsupportedEvents: [],
       schemaOnlyEvents: [],
-      workflows: HOOK_WORKFLOW_REGISTRY,
+      workflows,
       mountAuthority: "runtime-local",
     };
   }
 
-  const unsupported = new Set(
-    runtime === "gemini" ? GEMINI_UNSUPPORTED_HOOK_EVENTS : CODEX_UNSUPPORTED_HOOK_EVENTS,
-  );
+  const runtimeUnsupported = runtime === "gemini"
+    ? GEMINI_UNSUPPORTED_HOOK_EVENTS
+    : CODEX_UNSUPPORTED_HOOK_EVENTS;
+  const unsupported = new Set(runtimeUnsupported);
   const schemaOnly = new Set(runtime === "gemini" ? [] : CODEX_SCHEMA_ONLY_HOOK_EVENTS);
   return {
     runtime,
     supportedEvents: allEvents.filter((event) => !unsupported.has(event) && !schemaOnly.has(event)),
-    unsupportedEvents: runtime === "gemini" ? GEMINI_UNSUPPORTED_HOOK_EVENTS : CODEX_UNSUPPORTED_HOOK_EVENTS,
-    schemaOnlyEvents: runtime === "gemini" ? [] : CODEX_SCHEMA_ONLY_HOOK_EVENTS,
-    workflows: HOOK_WORKFLOW_REGISTRY,
+    unsupportedEvents: allEvents.filter((event) => unsupported.has(event)),
+    schemaOnlyEvents: allEvents.filter((event) => schemaOnly.has(event)),
+    workflows,
     mountAuthority: "runtime-local",
   };
 }

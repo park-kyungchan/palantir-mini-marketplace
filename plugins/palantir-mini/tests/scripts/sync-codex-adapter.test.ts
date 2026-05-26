@@ -116,6 +116,6 @@ describe("sync-codex-adapter.ts input validation", () => {
   it("script source does not name the retired Claude plugin install path as SSoT", async () => {
     const source = await Bun.file(SCRIPT).text();
     expect(source).not.toContain("~/.claude/plugins/palantir-mini/hooks/hooks.json");
-    expect(source).toContain("canonical private marketplace plugin hook registry");
+    expect(source).toContain("shared private marketplace plugin hook registry");
   });
 });

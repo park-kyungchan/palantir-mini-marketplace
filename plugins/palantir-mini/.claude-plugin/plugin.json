@@ -32,5 +32,6 @@
         "${CLAUDE_PLUGIN_ROOT}/bridge/mcp-server.ts"
       ]
     }
-  }
+  },
+  "hooks": "${CLAUDE_PLUGIN_ROOT}/hooks/claude-hooks.json"
 }

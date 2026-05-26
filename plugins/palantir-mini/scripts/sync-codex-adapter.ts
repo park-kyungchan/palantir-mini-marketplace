@@ -3,7 +3,7 @@
  * sync-codex-adapter.ts
  *
  * Regenerates ~/.codex/hooks/palantir-mini-claude-hook-adapter.ts from
- * the canonical private marketplace plugin hook registry.
+ * the shared private marketplace plugin hook registry.
  *
  * The Codex-side adapter MUST be a thin shim delegating to the plugin
  * lib/codex/claude-hook-adapter.ts source. This script enforces that
@@ -117,7 +117,7 @@ function generateAdapterContent(
  * This file MUST remain a thin shim. Per .ssot-authority.json forbidden-fork policy,
  * runtime-local adapters are protocol consumers, not workflow authorities.
  *
- * Event allowlist live-read from SSoT hooks.json (${eventAllowlist.length} events):
+ * Event allowlist live-read from shared SSoT hooks.json (${eventAllowlist.length} events):
 ${allowlistLines}
  *
  * To regenerate this file:
