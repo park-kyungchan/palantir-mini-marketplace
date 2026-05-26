@@ -64,6 +64,13 @@ describe("sync-codex-adapter.ts --dry-run", () => {
     expect(stdout).toContain("runCodexHookAdapterCli");
   });
 
+  it("stdout imports only the plugin-local Codex adapter lib", async () => {
+    const { stdout } = await runScript(["--dry-run", "--target", "/tmp/fake-codex-adapter.ts"]);
+    expect(stdout).toContain("/lib/codex/claude-hook-adapter.ts");
+    expect(stdout).not.toContain("~/.codex/lib/palantir-mini/native-hook-adapter.ts");
+    expect(stdout).not.toContain("/.codex/lib/palantir-mini/native-hook-adapter.ts");
+  });
+
   it("stdout contains shebang line", async () => {
     const { stdout } = await runScript(["--dry-run", "--target", "/tmp/fake-codex-adapter.ts"]);
     expect(stdout.startsWith("#!/usr/bin/env bun")).toBe(true);
