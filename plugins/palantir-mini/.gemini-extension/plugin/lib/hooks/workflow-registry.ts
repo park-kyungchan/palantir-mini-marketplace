@@ -35,14 +35,9 @@ export const CODEX_UNSUPPORTED_HOOK_EVENTS: readonly HookWorkflowEvent[] = [
   "TaskCreated",
   "TaskCompleted",
   "TeammateIdle",
-  "SubagentStart",
-  "SubagentStop",
 ];
 
-export const CODEX_SCHEMA_ONLY_HOOK_EVENTS: readonly HookWorkflowEvent[] = [
-  "PreCompact",
-  "PostCompact",
-];
+export const CODEX_SCHEMA_ONLY_HOOK_EVENTS: readonly HookWorkflowEvent[] = [];
 
 export const GEMINI_UNSUPPORTED_HOOK_EVENTS: readonly HookWorkflowEvent[] = [
   "TaskCreated",
@@ -82,6 +77,27 @@ export const HOOK_WORKFLOW_REGISTRY: readonly HookWorkflowDeclaration[] = [
     mountAuthority: "runtime-local",
   },
   {
+    workflowId: "session-stop-closeout",
+    event: "Stop",
+    ownerRuntime: "shared",
+    purpose: "Run terminal session checks and closeout context.",
+    mountAuthority: "runtime-local",
+  },
+  {
+    workflowId: "precompact-integrity",
+    event: "PreCompact",
+    ownerRuntime: "shared",
+    purpose: "Validate lineage and state before compaction.",
+    mountAuthority: "runtime-local",
+  },
+  {
+    workflowId: "postcompact-state-restore",
+    event: "PostCompact",
+    ownerRuntime: "shared",
+    purpose: "Restore compacted state after compaction.",
+    mountAuthority: "runtime-local",
+  },
+  {
     workflowId: "claude-agent-lifecycle",
     event: "TaskCreated",
     ownerRuntime: "claude",
@@ -93,6 +109,13 @@ export const HOOK_WORKFLOW_REGISTRY: readonly HookWorkflowDeclaration[] = [
     event: "SubagentStart",
     ownerRuntime: "claude",
     purpose: "Claude-native subagent lifecycle tracking.",
+    mountAuthority: "runtime-local",
+  },
+  {
+    workflowId: "subagent-stop-lifecycle",
+    event: "SubagentStop",
+    ownerRuntime: "shared",
+    purpose: "Capture subagent stop handoff and output-contract evidence where the runtime exposes a compatible event.",
     mountAuthority: "runtime-local",
   },
 ];

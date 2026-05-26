@@ -93,7 +93,11 @@ export const DOCUMENTED_WIRE_EVENTS = new Set([
   "PreToolUse",
   "PermissionRequest",
   "PostToolUse",
+  "PreCompact",
+  "PostCompact",
   "UserPromptSubmit",
+  "SubagentStart",
+  "SubagentStop",
   "Stop",
 ]);
 

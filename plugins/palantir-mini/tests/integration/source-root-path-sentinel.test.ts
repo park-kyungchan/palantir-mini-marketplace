@@ -58,6 +58,15 @@ function readLines(filePath: string): string[] {
   return readFile(filePath).split("\n");
 }
 
+const GEMINI_MIRRORED_PAYLOAD_FILES = [
+  "SSOT-AUTHORITY.md",
+  "docs/CODEX_HOOK_ADAPTER.md",
+  "hooks/codex-hooks.json",
+  "scripts/log.ts",
+  "scripts/sync-codex-adapter.ts",
+  "scripts/sync-gemini-extension.ts",
+] as const;
+
 describe("source-root path sentinel", () => {
   test("active runtime loaders use the private marketplace source, not the removed local source tree", () => {
     for (const filePath of ACTIVE_RUNTIME_FILES) {
@@ -67,6 +76,7 @@ describe("source-root path sentinel", () => {
     const mcpConfig = JSON.parse(readFile(path.join(PLUGIN_ROOT, ".mcp.json")));
     expect(mcpConfig.mcpServers["palantir-mini"].cwd).toBe(".");
     expect(mcpConfig.mcpServers["palantir-mini"].args).toEqual(["run", "./bridge/mcp-server.ts"]);
+    expect(mcpConfig.mcpServers["palantir-mini"].env.PALANTIR_MINI_HOST_RUNTIME).toBe("codex");
 
     const codexPluginConfig = JSON.parse(readFile(path.join(PLUGIN_ROOT, ".codex-plugin/plugin.json")));
     expect(codexPluginConfig.mcpServers).toBe("./.mcp.json");
@@ -92,6 +102,16 @@ describe("source-root path sentinel", () => {
     expect(geminiMcpConfig.mcpServers["palantir-mini"].cwd).toBe(".");
     expect(geminiMcpConfig.mcpServers["palantir-mini"].args).toEqual(["run", "./bridge/mcp-server.ts"]);
     expect(geminiMcpConfig.mcpServers["palantir-mini"].env.PALANTIR_MINI_HOST_RUNTIME).toBe("gemini");
+  });
+
+  test("Gemini extension runtime payload keeps source-authority docs and adapter scripts in sync", () => {
+    for (const relativePath of GEMINI_MIRRORED_PAYLOAD_FILES) {
+      const sourcePath = path.join(PLUGIN_ROOT, relativePath);
+      const mirrorPath = path.join(PLUGIN_ROOT, ".gemini-extension/plugin", relativePath);
+      expect(fs.existsSync(sourcePath), `${sourcePath} should exist`).toBe(true);
+      expect(fs.existsSync(mirrorPath), `${mirrorPath} should exist`).toBe(true);
+      expect(readFile(mirrorPath)).toBe(readFile(sourcePath));
+    }
   });
 
   test("old Claude plugin path is mentioned only as compatibility, never authority", () => {
