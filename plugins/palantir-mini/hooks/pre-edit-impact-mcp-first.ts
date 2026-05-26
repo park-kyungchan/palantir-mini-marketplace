@@ -257,6 +257,8 @@ function matchesRid(
     payload?.file_path,
     payload?.target,
     payload?.skillContext,
+    ...(Array.isArray(payload?.proposedFiles) ? payload.proposedFiles : []),
+    ...(Array.isArray(payload?.files) ? payload.files : []),
   ]
     .filter((v) => typeof v === "string")
     .map((v) => v as string);
@@ -390,6 +392,8 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
 
     // NO MCP-first call found — emit non-compliance event
     const mcpCallSuggestion = [
+      `mcp__palantir_mini__impact_query({"rid": "file:${relPath}", "depth": 3, "projectRoot": "<projectRoot>"})`,
+      `mcp__palantir_mini__pre_edit_impact({"proposedFiles": ["${relPath}"], "project": "<projectRoot>"})`,
       `mcp__plugin_palantir-mini_palantir-mini__impact_query({"rid": "file:${relPath}", "depth": 3})`,
       `mcp__plugin_palantir-mini_palantir-mini__pre_edit_impact({"proposedFiles": ["${relPath}"], "project": "<projectRoot>"})`,
     ].join("\n  OR: ");
