@@ -39,6 +39,9 @@ function makePlugin(hooks: HooksDocument, env: Record<string, string | undefined
       "} else if (mode === 'sleep') {",
       "  await new Promise((resolve) => setTimeout(resolve, 1200));",
       "  console.log(JSON.stringify({ message: 'awake' }));",
+      "} else if (mode === 'fail-nonzero') {",
+      "  console.error('simulated hook failure');",
+      "  process.exit(1);",
       "} else {",
       "  console.log(JSON.stringify({ message: `fake ${mode}` }));",
       "}",
@@ -184,6 +187,43 @@ describe("Codex Claude hook adapter", () => {
       permissionDecisionReason: "blocked by fake hook",
     });
     expect(result.response.systemMessage).toBe("blocked by fake hook");
+  });
+
+  test("PreToolUse failureMode fail-closed denies on nonzero hook failure", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "Edit|Write",
+            hooks: [
+              {
+                type: "command",
+                command: command("fail-nonzero"),
+                timeout: 3,
+                permissionDecision: "defer",
+                failureMode: "fail-closed",
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await runCodexHookAdapter(
+      "PreToolUse",
+      {
+        cwd: root,
+        tool_name: "apply_patch",
+        tool_input: { command: "*** Update File: src/example.ts\n@@\n" },
+      },
+      options,
+    );
+
+    expect(result.response.hookSpecificOutput).toEqual({
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: "simulated hook failure",
+    });
   });
 
   test("PermissionRequest uses PreToolUse policy hooks while preserving wire event response", async () => {

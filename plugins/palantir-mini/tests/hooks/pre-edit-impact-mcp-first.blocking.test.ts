@@ -34,7 +34,7 @@ function writeMcpEvent(toolName: string, offsetMs = 60_000): void {
     throughWhich: { sessionId: "test", toolName, cwd: TMP },
     byWhom: { identity: "claude-code" },
     withWhat: { reasoning: "test mcp call" },
-    payload: { phase: "design", passed: true },
+    payload: { phase: "design", passed: true, rid: "foo.ts", proposedFiles: ["foo.ts"] },
   };
   fs.writeFileSync(eventsPath, JSON.stringify(evt) + "\n");
 }
@@ -133,6 +133,19 @@ describe("pre-edit-impact-mcp-first (blocking mode)", () => {
     expect(result.message).toContain("PASSED");
   });
 
+  test("T4d: edit with recent managed-settings hyphen namespace get_ontology call → continue", async () => {
+    writeMcpEvent("mcp__palantir-mini__get_ontology");
+    const result = await preEditImpactMcpFirst(makeEditPayload());
+    expect(result.hookSpecificOutput?.permissionDecision).not.toBe("deny");
+    expect(result.message).toContain("PASSED");
+  });
+
+  test("T4e: legacy removed evidence tools do not satisfy MCP-first", async () => {
+    writeMcpEvent("mcp__palantir_mini__propagation_audit_forward");
+    const result = await preEditImpactMcpFirst(makeEditPayload());
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+  });
+
   test("T5: edit with STALE MCP call (>5 min ago) → deny", async () => {
     writeStaleEvent();
     const result = await preEditImpactMcpFirst(makeEditPayload());
@@ -208,5 +221,25 @@ describe("pre-edit-impact-mcp-first (blocking mode)", () => {
     const result = await preEditImpactMcpFirst(makeEditPayload());
     expect(result.hookSpecificOutput?.permissionDecision).not.toBe("deny");
     expect(result.message).toContain("PASSED");
+  });
+
+  test("T14: generic impact_query without RID/path evidence → deny", async () => {
+    const eventsPath = path.join(TMP, ".palantir-mini", "session", "events.jsonl");
+    const evt = {
+      type: "validation_phase_completed",
+      eventId: "evt-generic-mcp-test",
+      when: new Date().toISOString(),
+      atopWhich: "abc123",
+      sequence: 2,
+      throughWhich: { sessionId: "test", toolName: "impact_query", cwd: TMP },
+      byWhom: { identity: "claude-code" },
+      withWhat: { reasoning: "generic mcp call" },
+      payload: { phase: "design", passed: true, depth: 3 },
+    };
+    fs.writeFileSync(eventsPath, JSON.stringify(evt) + "\n");
+
+    const result = await preEditImpactMcpFirst(makeEditPayload());
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("matching RID/path evidence");
   });
 });
