@@ -18,13 +18,19 @@
   },
   "dependencies": {
     "convex": "^1.27.3",
-    "ts-morph": "^24.0.0"
+    "ts-morph": "^24.0.0",
+    "typescript": "^5.6.0"
   },
   "devDependencies": {
-    "bun-types": "latest",
-    "typescript": "^5.6.0"
+    "@palantirKC/claude-schemas": "file:./runtime-overlay/schemas-snapshot",
+    "bun-types": "latest"
   },
   "peerDependencies": {
     "@palantirKC/claude-schemas": ">=1.47.0 <2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@palantirKC/claude-schemas": {
+      "optional": true
+    }
   }
 }
