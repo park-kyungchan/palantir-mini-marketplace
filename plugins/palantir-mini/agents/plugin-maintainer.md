@@ -167,7 +167,7 @@ When you call `mcp__plugin_palantir-mini_palantir-mini__emit_event`, populate th
 - **withWhat.hypothesis**: expected outcome (e.g. `"all three version pins identical; no duplicate MCP registrations"`)
 - **withWhat.refinementTarget**: `{ kind: "skill", ridOrSlug: "plugin-version-bump", layer: "procedural" }`
 - **withWhat.memoryLayers**: `["procedural", "semantic"]`
-- **byWhom**: `{ agent: "plugin-maintainer", identity: "claude-code" }`
+- **byWhom**: `{ agent: "plugin-maintainer", identity: "<active-runtime-identity>" }`
 - **propagationDepth**: optional integer (rule 10 v2.1.0 §propagationDepth)
 
 ## Memory layer declaration

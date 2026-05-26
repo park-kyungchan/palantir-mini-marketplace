@@ -1,13 +1,16 @@
 // palantir-mini v4.8.0 — grade-outcome model-domain agent dispatcher (B.1; sprint-054 W1.A1 tier effort wire-up)
-// Extracted from grade-outcome-with-rubric.ts. Phase H3 — `claude -p` spawn.
+// Extracted from grade-outcome-with-rubric.ts. The Claude CLI adapter is now
+// runtime-gated: Claude hosts may spawn `claude -p`, while Codex/Gemini hosts
+// return needs_human_review until a runtime-native model grader is available.
 // v4.8.0 W1.A1: optional `effort` param forwards to Claude Code CLI `--effort`
-// flag. Mapped from GraderEffortLevel via mapTierToClaudeCodeEffort. Backwards-
-// compat: undefined → no flag (Sonnet 4.6 default thinking).
+// flag only on the Claude adapter path. Mapped from GraderEffortLevel via
+// mapTierToClaudeCodeEffort. Backwards-compat: undefined → no flag.
 
 import * as os from "os";
 import * as path from "path";
 import { execSync } from "child_process";
 import type { GradingCriterionLite, CriterionScore } from "./types";
+import { normalizeRuntimeIdentity } from "../../../lib/runtime/identity";
 
 export interface GraderModelResponse {
   role?: "grader_model";
@@ -17,6 +20,41 @@ export interface GraderModelResponse {
   passFail?: "pass" | "fail";
   reasoning?: string;
   evidenceCited?: string[];
+}
+
+type ModelGraderHostRuntime = "claude-code" | "codex" | "gemini" | "unknown";
+
+export function resolveModelGraderHostRuntime(value = process.env.PALANTIR_MINI_HOST_RUNTIME): ModelGraderHostRuntime {
+  const raw = value?.trim();
+  if (raw === undefined || raw.length === 0) return "claude-code";
+  const normalized = normalizeRuntimeIdentity(raw);
+  switch (normalized) {
+    case "codex":
+      return "codex";
+    case "gemini":
+      return "gemini";
+    case "claude-code":
+      return "claude-code";
+    default:
+      return "unknown";
+  }
+}
+
+function runtimeGapScore(criterion: GradingCriterionLite, hostRuntime: ModelGraderHostRuntime): CriterionScore {
+  const runtimeLabel = hostRuntime === "unknown"
+    ? process.env.PALANTIR_MINI_HOST_RUNTIME?.trim() || "unknown"
+    : hostRuntime;
+  return {
+    criterionId: criterion.criterionId,
+    rubricDomain: "model",
+    score: 0,
+    weightedScore: 0,
+    passFail: "needs_human_review",
+    reasoning:
+      `model-domain grader runtime gap: host runtime ${runtimeLabel} does not own the Claude CLI grader adapter; ` +
+      "no claude subprocess was spawned. Provide a runtime-native model grader or route this criterion to human review.",
+    evidenceCited: [`runtime-gap:model-grader:${runtimeLabel}`],
+  };
 }
 
 /** B-26 (harness-h4 canary, W0 2026-04-24): nested `claude -p` subprocess
@@ -67,9 +105,14 @@ export function gradeModel(
     };
   }
 
+  const hostRuntime = resolveModelGraderHostRuntime();
+  if (hostRuntime !== "claude-code") {
+    return runtimeGapScore(criterion, hostRuntime);
+  }
+
   // v2.1.0: Lead-direct dispatch — grader-model.md agent retired; scoringPrompt
-  // passed inline to `claude -p` against the session's default Lead model
-  // (Opus 4.7 + 1M context). Output contract unchanged: last JSON line wins.
+  // passed inline to the Claude CLI adapter against the session's default Lead
+  // model. Output contract unchanged: last JSON line wins.
   const payload = JSON.stringify({
     criterionId: criterion.criterionId,
     rubricDomain: "model",
@@ -94,7 +137,7 @@ export function gradeModel(
   const enhancedEnv = buildGraderModelEnv();
 
   // v4.8.0 W1.A1 — append `--effort <value>` only when caller passed effort.
-  // Conservative: never emit an empty or literal "undefined" arg to claude -p.
+  // Conservative: never emit an empty or literal "undefined" arg to the CLI.
   const effortArg = effort ? ` --effort ${effort}` : "";
 
   try {

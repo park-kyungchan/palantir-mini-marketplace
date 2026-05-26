@@ -41,8 +41,8 @@ mcp__palantir-mini__emit_event({
     when: "<ISO8601>",
     atopWhich: "<git HEAD>",
     throughWhich: { sessionId: "init", toolName: "pm-init", cwd: "<path>" },
-    byWhom: { identity: "claude-code" },
-    payload: { model: "claude-opus-4-6", effort: "max" }
+    byWhom: { identity: "<active-runtime-identity>" },
+    payload: { model: "<runtime-default-model>", effort: "<runtime-effort>" }
   }
 })
 ```

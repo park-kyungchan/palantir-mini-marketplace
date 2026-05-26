@@ -329,8 +329,9 @@ const TOOLS: ToolSpec[] = [
   {
     name: "pm_grader_dispatch",
     description:
-      "v3.8.1 W2.1a (P1): single-criterion model-domain grader. Spawns fresh `claude -p` subprocess (no inherited Lead session), " +
-      "delegating to gradeModel(). Eliminates self-grading bias per Prithvi 2026-03-24 (rule 16 v3.1.0 §Roles). " +
+      "v3.8.1 W2.1a (P1): single-criterion model-domain grader. Delegates to gradeModel(), which gates model execution by host runtime; " +
+      "Claude hosts may use a fresh Claude CLI adapter while non-Claude hosts return needs_human_review until a native grader exists. " +
+      "Eliminates self-grading bias per Prithvi 2026-03-24 (rule 16 v3.1.0 §Roles). " +
       "Optional selfAssessmentPath augments scoringPrompt with Generator's transparency-only self-claim; grader cites " +
       "divergence as `[selfAssessmentDivergence:aligned|generator-overconfident|generator-underconfident|uncomparable]`. " +
       "Used by grade-outcome-with-rubric for domain=\"model\" criteria + standalone for Lead-direct inline grading.",

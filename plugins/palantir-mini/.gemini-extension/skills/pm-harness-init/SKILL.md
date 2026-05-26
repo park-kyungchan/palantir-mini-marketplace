@@ -44,7 +44,7 @@ mcp__plugin_palantir-mini_palantir-mini__emit_event({
     when: "<ISO8601>",
     atopWhich: "<git HEAD>",
     throughWhich: { sessionId: "harness-init", toolName: "pm-harness-init", cwd: "<path>" },
-    byWhom: { identity: "claude-code", agentName: "Lead" },
+    byWhom: { identity: "<active-runtime-identity>", agentName: "Lead" },
     withWhat: { reasoning: "Bootstrapped harness workspace; Planner ready for spawn." },
     payload: { phase: "harness-init", createdDirs: [...], briefExists: true|false }
   }

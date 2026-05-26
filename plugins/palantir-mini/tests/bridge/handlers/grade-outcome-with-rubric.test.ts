@@ -18,7 +18,13 @@ import {
 
 setIsolatedEventsFile("grade-smoke");
 
-afterEach(() => cleanupTmpDirs());
+const originalHostRuntime = process.env.PALANTIR_MINI_HOST_RUNTIME;
+
+afterEach(() => {
+  if (originalHostRuntime === undefined) delete process.env.PALANTIR_MINI_HOST_RUNTIME;
+  else process.env.PALANTIR_MINI_HOST_RUNTIME = originalHostRuntime;
+  cleanupTmpDirs();
+});
 
 describe("grade_outcome_with_rubric — public API smoke", () => {
   test("rule-domain only rubric → overallScore + perCriterion length match", async () => {
@@ -71,6 +77,31 @@ describe("grade_outcome_with_rubric — public API smoke", () => {
     });
     expect(result.humanReviewRequired).toBe(1);
     expect(result.perCriterion[0]!.passFail).toBe("needs_human_review");
+  });
+
+  test("model-domain criterion on Codex host returns runtime-gap human review", async () => {
+    process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
+    const artifactPath = writeArtifact(makeTmpDir(), "hello");
+    const result = await gradeOutcomeWithRubric({
+      artifactPath,
+      rubric: {
+        rubricId: "smoke-model-runtime-gap",
+        criteria: [
+          {
+            criterionId: "needs-runtime-grader",
+            title: "needs runtime grader",
+            rubricDomain: "model",
+            passFailLogic: { threshold: 7, scale: "0-10" },
+            weightInRubric: 1.0,
+            scoringPrompt: "Score the artifact and return JSON.",
+          },
+        ],
+      },
+    });
+
+    expect(result.humanReviewRequired).toBe(1);
+    expect(result.perCriterion[0]!.passFail).toBe("needs_human_review");
+    expect(result.perCriterion[0]!.reasoning).toContain("host runtime codex");
   });
 
   test("weightSumCheck reflects sum of all criterion weights", async () => {

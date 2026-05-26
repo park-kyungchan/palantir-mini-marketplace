@@ -16,7 +16,12 @@
 import { test, expect, describe, afterEach, beforeEach } from "bun:test";
 import * as os from "os";
 import * as path from "path";
-import { buildGraderModelEnv } from "../../../bridge/handlers/grade-outcome-with-rubric";
+import {
+  buildGraderModelEnv,
+  gradeModel,
+  resolveModelGraderHostRuntime,
+  type GradingCriterionLite,
+} from "../../../bridge/handlers/grade-outcome-with-rubric";
 
 const savedEnv: Record<string, string | undefined> = {};
 
@@ -25,7 +30,14 @@ function save(key: string) {
 }
 
 beforeEach(() => {
-  for (const k of ["CLAUDE_CONFIG_DIR", "HOME", "PALANTIR_MINI_GRADER", "PALANTIR_MINI_DEBUG", "MCP_CONNECTION_NONBLOCKING"]) save(k);
+  for (const k of [
+    "CLAUDE_CONFIG_DIR",
+    "HOME",
+    "PALANTIR_MINI_GRADER",
+    "PALANTIR_MINI_DEBUG",
+    "MCP_CONNECTION_NONBLOCKING",
+    "PALANTIR_MINI_HOST_RUNTIME",
+  ]) save(k);
 });
 
 afterEach(() => {
@@ -80,5 +92,51 @@ describe("buildGraderModelEnv (B-26 regression)", () => {
     // Using --bare would require ANTHROPIC_API_KEY; Max X20 users have none.
     const allValues = Object.values(env).join(" ");
     expect(allValues).not.toContain("--bare");
+  });
+
+  test("resolves only current supported host runtimes", () => {
+    expect(resolveModelGraderHostRuntime(undefined)).toBe("claude-code");
+    expect(resolveModelGraderHostRuntime("claude")).toBe("claude-code");
+    expect(resolveModelGraderHostRuntime("codex-cli")).toBe("codex");
+    expect(resolveModelGraderHostRuntime("gemini-cli")).toBe("gemini");
+    expect(resolveModelGraderHostRuntime("future-runtime")).toBe("unknown");
+  });
+
+  test("Codex host returns runtime-gap review instead of spawning Claude CLI", () => {
+    process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
+    const criterion: GradingCriterionLite = {
+      criterionId: "model-runtime-gap",
+      title: "Runtime gap",
+      rubricDomain: "model",
+      passFailLogic: { threshold: 7, scale: "0-10" },
+      weightInRubric: 1,
+      scoringPrompt: "Score this artifact from 0-10 and return JSON.",
+    };
+
+    const result = gradeModel(criterion, "/tmp/nonexistent-artifact.md");
+
+    expect(result.passFail).toBe("needs_human_review");
+    expect(result.reasoning).toContain("host runtime codex");
+    expect(result.reasoning).toContain("no claude subprocess was spawned");
+    expect(result.evidenceCited).toEqual(["runtime-gap:model-grader:codex"]);
+  });
+
+  test("Gemini host returns runtime-gap review instead of spawning Claude CLI", () => {
+    process.env.PALANTIR_MINI_HOST_RUNTIME = "gemini";
+    const criterion: GradingCriterionLite = {
+      criterionId: "model-runtime-gap-gemini",
+      title: "Runtime gap Gemini",
+      rubricDomain: "model",
+      passFailLogic: { threshold: 7, scale: "0-10" },
+      weightInRubric: 1,
+      scoringPrompt: "Score this artifact from 0-10 and return JSON.",
+    };
+
+    const result = gradeModel(criterion, "/tmp/nonexistent-artifact.md");
+
+    expect(result.passFail).toBe("needs_human_review");
+    expect(result.reasoning).toContain("host runtime gemini");
+    expect(result.reasoning).toContain("no claude subprocess was spawned");
+    expect(result.evidenceCited).toEqual(["runtime-gap:model-grader:gemini"]);
   });
 });

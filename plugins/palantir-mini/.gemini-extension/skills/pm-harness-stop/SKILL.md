@@ -56,7 +56,7 @@ mcp__plugin_palantir-mini_palantir-mini__emit_event({
     when: "<ISO8601>",
     atopWhich: "<git HEAD>",
     throughWhich: { sessionId: "<sprintId>", toolName: "pm-harness-stop", cwd: "<project>" },
-    byWhom: { identity: "claude-code", agentName: "Lead" },
+    byWhom: { identity: "<active-runtime-identity>", agentName: "Lead" },
     withWhat: { reasoning: "User-initiated orderly abort via pm-harness-stop." },
     payload: { sprintId: "<sprintId>", theme: "<theme>", previousStatus: "<status>" }
   }

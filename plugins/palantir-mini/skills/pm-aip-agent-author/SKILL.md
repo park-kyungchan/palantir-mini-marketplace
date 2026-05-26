@@ -32,7 +32,7 @@ Ask user for:
 - `<apiName>`: stable slug (e.g. "support-triage-bot")
 - `<displayName>`: human-readable
 - `<surface>`: one of `aip-chatbot-studio | ai-fde | aip-assist | custom-osdk-application | mcp-client`
-- `<modelRefs>`: ordered list (e.g. ["claude-opus-4-7", "claude-sonnet-4-6"] for fallback chain)
+- `<modelRefs>`: ordered list (e.g. ["<provider-model-primary>", "<provider-model-fallback>"] for fallback chain)
 - `<systemPromptRef>`: file path or RID for the system prompt
 - `<ontologyScope>`: { objectTypeRids[], objectViewRids[], allowObjectSetSearch?, allowMutatingActions? }
 - `<toolBindings>`: 1-N `AIPToolBinding` entries (kind + actionRid?/logicFunctionRid?/objectViewRid?/toolName? + mutability + requiresApproval)

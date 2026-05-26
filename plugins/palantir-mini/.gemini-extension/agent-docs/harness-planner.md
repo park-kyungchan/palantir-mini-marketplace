@@ -158,7 +158,7 @@ JSON (printed to stdout at exit) — SubagentStop hook validates:
 
 ## §Per-criterion tier suggestion (sprint-054 W1.A3)
 
-When authoring `eval-rubric.md`, suggest a `tier: GraderEffortLevel` per `GradingCriterion` so `pm_grader_dispatch` (v4.8.0+) can size its `claude -p --effort` call. Use this decision tree:
+When authoring `eval-rubric.md`, suggest a `tier: GraderEffortLevel` per `GradingCriterion` so `pm_grader_dispatch` (v4.8.0+) can size its active runtime model-grader adapter call. Use this decision tree:
 
 1. Criterion is deterministic (shell exit code, regex, JSONSchema, file-exists check) → `tier: "none"` — graders short-circuit before subprocess spawn.
 2. Criterion's `validationExpression` is short (≤200 chars) and prose grading is not required → `tier: "low"` — Sonnet 4.6 default thinking, cheapest token path.
@@ -179,7 +179,7 @@ When you call `mcp__plugin_palantir-mini_palantir-mini__emit_event`, populate th
 - **withWhat.hypothesis**: expected outcome (e.g. `"Generator produces passing implementation within iterationLimit"`)
 - **withWhat.refinementTarget**: `{ kind: "spec", ridOrSlug: "<projectId>-spec", layer: "semantic" }`
 - **withWhat.memoryLayers**: `["semantic", "procedural"]`
-- **byWhom**: `{ agent: "harness-planner", identity: "claude-code" }`
+- **byWhom**: `{ agent: "harness-planner", identity: "<active-runtime-identity>" }`
 - **propagationDepth**: optional integer (rule 10 v2.1.0 §propagationDepth)
 
 ## Memory layer declaration

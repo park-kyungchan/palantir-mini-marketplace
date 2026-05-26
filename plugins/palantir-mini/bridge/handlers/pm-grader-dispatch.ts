@@ -1,25 +1,27 @@
 // palantir-mini v4.8.0 — pm-grader-dispatch MCP handler (W2.1a P1 + W3.1e P3 + W3.B tier dispatch + sprint-054 W1.A2 auto-policy)
 //
 // Per harness-base-mode blueprint §4-P1 + 2026-04-20-managed-agents-harness-mapping.md:51
-// (highest-leverage convergence step). Exposes the existing fresh-subprocess
-// `claude -p` model-domain grader as a standalone MCP tool, eliminating the
-// self-grading bias inherent to Lead-as-Evaluator (Prithvi 2026-03-24:
-// "agents tend to confidently praise their own work").
+// (highest-leverage convergence step). Exposes the model-domain grader as a
+// standalone MCP tool. Claude hosts use the Claude CLI adapter; non-Claude
+// hosts return needs_human_review until they provide a runtime-native grader.
+// This keeps model execution outside plugin workflow semantics while avoiding
+// Lead-as-Evaluator self-grading bias (Prithvi 2026-03-24: "agents tend to
+// confidently praise their own work").
 //
 // v3.9.0 W3.1e: when caller passes optional dryRunRef + validationResult from
 // a prior compute_edits_dry_run, the handler emits validation_phase_completed
 // errorClass="dry_run_graded" with the same dryRunRef, so commit-edits-precondition
 // (W3.1c) can verify the graded dry-run was performed before allowing commit_edits.
 // Validation-errors guard: when validationResult.errors present, skip the
-// claude -p subprocess + emit dry_run_graded(passed=false, errorClass=
+// model-grader adapter + emit dry_run_graded(passed=false, errorClass=
 // "dry_run_skipped_validation_errors") + return synthetic fail score.
 //
 // v4.6.0 W3.B: 5-level tier dispatch via GraderEffortLevel (schemas v1.42.0).
 //   tier="none"     → synthetic needs_human_review without subprocess spawn
 //                     (deterministic-only criteria — rule/shell-domain).
-//   tier="low"|"normal"|undefined → call gradeModel as before (Sonnet 4.6 default).
-//   tier="high"     → call gradeModel with effort="high" (Sonnet 4.6 extended thinking).
-//   tier="critical" → call gradeModel with effort="xhigh" (Opus 4.7 deepest budget).
+//   tier="low"|"normal"|undefined → call gradeModel with the default runtime adapter.
+//   tier="high"     → call gradeModel with effort="high" when supported.
+//   tier="critical" → call gradeModel with effort="xhigh" when supported.
 //
 // v4.8.0 sprint-054 W1.A2: when criterion.tier is undefined, resolveTier()
 // applies an auto-policy:
@@ -31,10 +33,10 @@
 // dry_run_graded validation_phase_completed envelope so pm_dispatch_cost_estimate
 // can audit per-tier dispatch counts (W1.A4) without a separate event type.
 //
-// Architecture: thin wrapper around `bridge/handlers/grade-outcome/model.ts:gradeModel`
-// — that function ALREADY spawns `claude -p` in a fresh subprocess (no inherited
-// session context). This handler just exposes single-criterion grading directly,
-// adds optional selfAssessmentPath context, and enforces tier-based model selection.
+// Architecture: thin wrapper around `bridge/handlers/grade-outcome/model.ts:gradeModel`.
+// That function owns runtime gating and only spawns the Claude CLI on Claude
+// hosts. This handler exposes single-criterion grading directly, adds optional
+// selfAssessmentPath context, and enforces tier-based model selection.
 //
 // Used by:
 //  - rule 16 v3.1.0 §Roles — "model-domain criteria routed through pm_grader_dispatch"
@@ -99,7 +101,7 @@ export interface PmGraderDispatchArgs {
   dryRunRef?: string;
   /**
    * v3.9.0 W3.1e: when caller passes the prior dry-run's validationResult
-   * AND it contains errors, this handler skips the claude -p subprocess
+   * AND it contains errors, this handler skips the model-grader adapter
    * (no point grading a known-failing dry-run) and emits dry_run_graded with
    * passed=false + errorClass="dry_run_skipped_validation_errors". Returns
    * synthetic fail CriterionScore.
@@ -232,7 +234,7 @@ export default async function pmGraderDispatch(
   const effort = mapTierToClaudeCodeEffort(resolvedTier);
 
   // v3.9.0 W3.1e — validation-errors guard. When the prior dry-run failed
-  // validation, skip the claude -p subprocess (~$0.05 saved per skip) and
+  // validation, skip the model-grader adapter (~$0.05 saved per skip) and
   // emit dry_run_graded with synthetic fail. commit-edits-precondition
   // (W3.1c) will see the fail and block commit with a clear hint.
   if (
@@ -253,7 +255,7 @@ export default async function pmGraderDispatch(
         },
         toolName: "pm_grader_dispatch",
         cwd: args.project,
-        identity: "claude-code",
+        runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
         reasoning: `dry-run-graded dryRunRef=${args.dryRunRef} verdict=fail (skipped grading — validation errors: ${errorSummary})`,
       });
     } catch {
@@ -273,9 +275,9 @@ export default async function pmGraderDispatch(
   // Augment scoringPrompt with self-assessment context if provided.
   const augmentedCriterion = buildAugmentedCriterion(args.criterion, args.selfAssessmentPath);
 
-  // Delegate to existing gradeModel — fresh `claude -p` subprocess. v4.8.0
-  // W1.A1: forward `effort` (mapped from resolvedTier) so the spawned CLI
-  // runs at the requested reasoning depth.
+  // Delegate to existing gradeModel. v4.8.0 W1.A1: forward `effort` (mapped
+  // from resolvedTier) so runtime adapters that support effort can honor the
+  // requested reasoning depth.
   const result: CriterionScore = gradeModel(
     augmentedCriterion,
     args.artifactPath,
@@ -324,7 +326,7 @@ export default async function pmGraderDispatch(
         } as Record<string, unknown>,
         toolName: "pm_grader_dispatch",
         cwd: args.project,
-        identity: "claude-code",
+        runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
         reasoning: `dry-run-graded dryRunRef=${args.dryRunRef} verdict=${result.passFail} score=${result.score ?? 0} criterion=${result.criterionId} tier=${resolvedTier}${autoSelected ? "(auto)" : "(explicit)"}`,
       });
     } catch {

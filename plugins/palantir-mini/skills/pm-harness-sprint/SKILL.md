@@ -59,7 +59,7 @@ Per iteration (1..contract.iterationLimit):
    - Lead (or the persistent Generator from Phase 1) writes `iterations/iteration-<N>/generator-state.md` describing what was built, which files changed, how to run it, and any caveats.
    - Generator commits to the sprint branch if the artifact is code.
 2. **evaluating**
-   - 2-role default: Lead reads diff + `generator-state.md`, runs any grading probes (for code rubrics: shell validationExpression; for model rubrics: `claude -p` scoringPrompt), invokes `grade_outcome_with_rubric` MCP with the evidence bundle. For UX rubrics: run Playwright scenarios directly via browser MCP, attach screenshots/console/network to evidence dir.
+   - 2-role default: Lead reads diff + `generator-state.md`, runs any grading probes (for code rubrics: shell validationExpression; for model rubrics: the active runtime's model-grader adapter, or `needs_human_review` when no adapter exists), invokes `grade_outcome_with_rubric` MCP with the evidence bundle. For UX rubrics: run Playwright scenarios directly via browser MCP, attach screenshots/console/network to evidence dir.
    - 3-role variant: spawn `harness-evaluator` with the bound contract + rubric + generator-state; Evaluator writes `feedback-NNN.md`.
 3. **feedback**
    - Lead reads `feedback-NNN.md` (self-authored in 2-role, spawned-Evaluator in 3-role) and checks:

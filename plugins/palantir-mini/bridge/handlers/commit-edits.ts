@@ -164,7 +164,7 @@ async function emitContractSelfAttest(
       toolName: "commit_edits",
       cwd:      project,
       sessionId,
-      identity: "claude-code",
+      runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
       reasoning: `commit_edits self-attest: contractId=${contractId} mode=${mode} — defense-in-depth per architecture review §5.E.6 (R4-F12); ensures bypass-via-direct-import is auditable in events.jsonl`,
       memoryLayers: ["procedural"],
     });
@@ -235,7 +235,7 @@ async function autoInjectDryRun(
       toolName: "commit_edits",
       cwd: project,
       sessionId,
-      identity: "claude-code",
+      runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
       reasoning: `commit_edits auto-dry-run dryRunRef=${dryRunRef} actionTypeRid=${actionTypeRid} editCount=${edits.length} — auto-injected because caller did not provide dryRunRef (rule 16 v4.1.0 §Loop step 3-4; closes P1.SP2/M16/E.1)`,
       memoryLayers: ["procedural"],
     });
@@ -267,7 +267,7 @@ async function emitSkipAudit(
       toolName: "commit_edits",
       cwd: project,
       sessionId,
-      identity: "claude-code",
+      runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
       reasoning: `commit_edits: skipAutoDryRun=true — caller opted out of auto dry-run injection (audited per sprint-060 W1.5 §skipAutoDryRun)`,
       memoryLayers: ["procedural"],
     });

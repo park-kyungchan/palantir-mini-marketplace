@@ -1,11 +1,12 @@
 ---
 name: model-grader
 description: >
-  claude -p rubric scoring per 06-plugin-only-architecture.md §6.3; escalation
-  path to eval-judge for hard cases. Sonnet-tier model-domain GradingCriterion
-  evaluator. Receives {rubricPrompt, artifact} and returns {score: 1-10,
-  reasoning}. Emits evaluator_strictness_probe events (W2 substrate). Escalates
-  ambiguous or high-stakes criteria to eval-judge (opus).
+  Runtime-gated model-domain rubric scoring per 06-plugin-only-architecture.md
+  §6.3; escalation path to eval-judge for hard cases. Claude hosts may use the
+  Claude CLI adapter; non-Claude hosts must provide a runtime-native grader or
+  return needs_human_review. Receives {rubricPrompt, artifact} and returns
+  {score: 1-10, reasoning}. Emits evaluator_strictness_probe events (W2
+  substrate). Escalates ambiguous or high-stakes criteria to eval-judge.
 tools:
   - Read
   - Bash
@@ -105,13 +106,13 @@ When you call `mcp__plugin_palantir-mini_palantir-mini__emit_event`, populate th
 - **withWhat.hypothesis**: expected outcome (e.g. `"confidence=${confidence} escalated=${escalate}"`)
 - **withWhat.refinementTarget**: `{ kind: "rubric", ridOrSlug: "<criterionId>", layer: "procedural" }`
 - **withWhat.memoryLayers**: `["procedural", "episodic"]`
-- **byWhom**: `{ agent: "model-grader", identity: "claude-code" }`
+- **byWhom**: `{ agent: "model-grader", identity: "<active-runtime-identity>" }` where identity is resolved by the active runtime (`claude-code`, `codex`, or `gemini`).
 - **propagationDepth**: optional integer (rule 10 v2.1.0 §propagationDepth)
 
 ## Memory layer declaration
 
 Layers: `procedural`, `semantic`
 
-Spawns fresh `claude -p` subprocess (`procedural` rubric scoring) + scores against typed criteria (`semantic`).
+Runs the active runtime's model-grader adapter (`procedural` rubric scoring) + scores against typed criteria (`semantic`). Claude hosts may use a fresh Claude CLI subprocess; non-Claude hosts return runtime-gap review until they provide their own grader adapter.
 
 Authority: rule 26 v1.0.0 §Axis E (Memory-mapped); rule 12 v3.3.0 §Briefing template (5th section).

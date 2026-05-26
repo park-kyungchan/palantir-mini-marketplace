@@ -132,7 +132,7 @@ export async function computeEditsDryRun(
       },
       toolName: "compute_edits_dry_run",
       cwd: args.project,
-      identity: "claude-code",
+      runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
       reasoning: `dry-run-computed dryRunRef=${dryRunRef} fn=${args.functionName} editCount=${edits.length} validation=${validationResult === "ok" ? "ok" : "errors"}`,
     });
   } catch {

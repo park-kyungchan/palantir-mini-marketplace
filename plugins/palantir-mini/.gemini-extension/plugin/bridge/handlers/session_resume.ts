@@ -15,6 +15,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { readEvents } from "../../lib/event-log/read";
 import { appendEventAtomic } from "../../lib/event-log/append";
+import { resolveHostRuntimeIdentity } from "../../lib/runtime/identity";
 import type { EventEnvelope, EventId, SessionId, CommitSha } from "../../lib/event-log/types";
 
 export interface SessionResumeArgs {
@@ -171,7 +172,7 @@ export async function sessionResume(
         toolName: "session_resume",
         cwd: args.project,
       },
-      byWhom: { identity: "claude-code" as const },
+      byWhom: { identity: resolveHostRuntimeIdentity() },
       type: "session_resumed",
       payload: {
         last_session_rid: state.last_session_rid,

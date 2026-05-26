@@ -105,7 +105,7 @@ How the audit performs this aggregation:
 1. Read `events.jsonl` since session start (or `sprintRef`-bounded if a contract ID is provided).
 2. Filter to `type === "edit_committed"` events only.
 3. Group by `byWhom.agentName`:
-   - **Lead-direct**: `agentName === "claude-code"` OR (`agentName === "subagent-unnamed"` AND no `subagent_type` field in payload).
+   - **Lead-direct**: `agentName === "Lead"` OR `agentName` is the active runtime lead identity (`claude-code`, `codex`, or `gemini`) OR (`agentName === "subagent-unnamed"` AND no `subagent_type` field in payload).
    - **Subagent**: any other `agentName`.
 4. Compute the following fields:
 

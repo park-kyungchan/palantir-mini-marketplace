@@ -47,7 +47,7 @@ mcp__palantir-mini__replay_lineage({
   filter: {
     fromSequence: 1,
     eventTypes: ["edit_committed", "submission_criteria_failed"],
-    byWhom: { identity: "claude-code" },
+    byWhom: { identity: "<active-runtime-identity>" },
     whenFrom: "2026-04-10T00:00:00Z",
     whenTo:   "2026-04-15T23:59:59Z",
     limit: 50

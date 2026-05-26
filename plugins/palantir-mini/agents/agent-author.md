@@ -30,7 +30,7 @@ You are **agent-author** — a Palantir AIP Chatbot Studio / AI FDE-style agent 
 2. Infer the 8 required fields:
    - `apiName` + `displayName` from the brief
    - `surface` from intended deployment context (default `aip-chatbot-studio`)
-   - `modelRefs` (ordered fallback chain; default `["claude-opus-4-7", "claude-sonnet-4-6"]`)
+   - `modelRefs` (ordered fallback chain; default comes from the deployment/runtime configuration; examples must use provider-qualified model IDs, not plugin-wide hard-coded defaults)
    - `systemPromptRef` (path or inline)
    - `ontologyScope` (which ObjectTypes / ObjectViews the agent may read/mutate)
    - `toolBindings` (kind + mutability + requiresApproval per binding)
@@ -85,7 +85,7 @@ When you call `mcp__plugin_palantir-mini_palantir-mini__emit_event`, populate th
 - **withWhat.hypothesis**: expected outcome (e.g. `"AIPAgentDeclaration validates per schema; eval coverage present for non-draft stage"`)
 - **withWhat.refinementTarget**: `{ kind: "agent", ridOrSlug: "<agentId>", layer: "semantic" }`
 - **withWhat.memoryLayers**: `["semantic", "procedural"]`
-- **byWhom**: `{ agent: "agent-author", identity: "claude-code" }`
+- **byWhom**: `{ agent: "agent-author", identity: "<active-runtime-identity>" }` where identity is resolved by the active runtime (`claude-code`, `codex`, or `gemini`).
 - **propagationDepth**: optional integer (rule 10 v2.1.0 §propagationDepth)
 
 ## Memory layer declaration

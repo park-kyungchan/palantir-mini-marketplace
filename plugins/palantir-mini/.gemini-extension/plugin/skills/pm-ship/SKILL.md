@@ -521,7 +521,7 @@ Save this summary — it goes into the PR body in Step 19.
 git commit -m "$(cat <<'EOF'
 chore: bump version and changelog (vX.Y.Z.W)
 
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+Co-Authored-By: <active-runtime-model-or-agent> <noreply@example.invalid>
 EOF
 )"
 ```
@@ -676,7 +676,7 @@ commits into logical sections (e.g., "**Performance**", "**Dead Code Removal**",
 - [x] bunx tsc --noEmit passes
 - [x] bun test passes (N tests)
 
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+Co-Authored-By: <active-runtime-model-or-agent> <noreply@example.invalid>
 ```
 
 **If GitHub:**
