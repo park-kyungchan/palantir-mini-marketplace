@@ -186,6 +186,122 @@ describe("Codex Claude hook adapter", () => {
     expect(result.response.systemMessage).toBe("blocked by fake hook");
   });
 
+  test("PermissionRequest uses PreToolUse policy hooks while preserving wire event response", async () => {
+    const recordPath = path.join(os.tmpdir(), `pm-codex-permission-policy-${Date.now()}.jsonl`);
+    const { root, options } = makePlugin(
+      {
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+              hooks: [{ type: "command", command: command("capture"), timeout: 3 }],
+            },
+          ],
+        },
+      },
+      { FAKE_HOOK_RECORD_PATH: recordPath },
+    );
+    tmpDirs.push(recordPath);
+
+    const result = await runCodexHookAdapter(
+      "PermissionRequest",
+      {
+        cwd: root,
+        tool_name: "mcp__palantir_mini__commit_edits",
+        tool_input: {},
+      },
+      options,
+    );
+
+    expect(result.matchedHooks.map((hook) => hook.command)).toEqual([command("capture")]);
+    expect(result.response).toEqual({});
+    const record = JSON.parse(fs.readFileSync(recordPath, "utf8").trim()) as {
+      payload: { hook_event_name?: string; tool_name?: string };
+    };
+    expect(record.payload.hook_event_name).toBe("PreToolUse");
+    expect(record.payload.tool_name).toBe("mcp__plugin_palantir-mini_palantir-mini__commit_edits");
+  });
+
+  test("PermissionRequest deny preserves Codex PermissionRequest response shape", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+            hooks: [{ type: "command", command: command("deny-pretool"), timeout: 3 }],
+          },
+        ],
+      },
+    });
+
+    const result = await runCodexHookAdapter(
+      "PermissionRequest",
+      {
+        cwd: root,
+        tool_name: "mcp__palantir_mini__commit_edits",
+        tool_input: {},
+      },
+      options,
+    );
+
+    expect(result.response).toEqual({
+      systemMessage: "blocked by fake hook",
+      hookSpecificOutput: {
+        hookEventName: "PermissionRequest",
+        decision: {
+          behavior: "deny",
+          message: "blocked by fake hook",
+        },
+      },
+    });
+  });
+
+  test("PermissionRequest matcher covers protected palantir-mini MCP aliases", async () => {
+    const operations = [
+      "commit_edits",
+      "apply_edit_function",
+      "ontology_context_query",
+    ];
+    const aliasesFor = (operation: string) => [
+      `mcp__plugin_palantir-mini_palantir-mini__${operation}`,
+      `mcp__palantir_mini__${operation}`,
+      `mcp__palantir_mini__.${operation}`,
+      `mcp__palantir-mini__${operation}`,
+      `mcp_palantir-mini_${operation}`,
+      `mcp_palantir_mini_${operation}`,
+    ];
+
+    for (const operation of operations) {
+      const { options } = makePlugin({
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: `mcp__plugin_palantir-mini_palantir-mini__${operation}`,
+              hooks: [{ type: "command", command: command("capture"), timeout: 3 }],
+            },
+          ],
+        },
+      });
+
+      for (const toolName of aliasesFor(operation)) {
+        const output = await runCodexHookAdapterCli(
+          ["bun", "adapter", "--match", "PermissionRequest"],
+          JSON.stringify({ tool_name: toolName, tool_input: {} }),
+          options,
+        );
+        const parsed = JSON.parse(output) as {
+          event: string;
+          policyEventName: string;
+          matchedCommands: string[];
+        };
+
+        expect(parsed.event).toBe("PermissionRequest");
+        expect(parsed.policyEventName).toBe("PreToolUse");
+        expect(parsed.matchedCommands).toEqual([command("capture")]);
+      }
+    }
+  });
+
   test("PreToolUse maps dotted Codex palantir-mini MCP names to Claude plugin matchers", async () => {
     const recordPath = path.join(os.tmpdir(), `pm-codex-alias-${Date.now()}.jsonl`);
     const { root, options } = makePlugin(

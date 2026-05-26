@@ -39,6 +39,15 @@ read path. Adding or removing Codex entrypoint events still requires updating
 session hook surface. Claude-only `TaskCreated`, `TaskCompleted`, and
 `TeammateIdle` registrations belong in `hooks/claude-hooks.json`.
 
+Codex `PermissionRequest` is a runtime wire event, not a separate palantir-mini
+policy family. When the adapter receives `PermissionRequest`, it looks up and
+executes the shared `PreToolUse` hook group from `hooks/hooks.json`, and the
+hook script payload uses `hook_event_name: "PreToolUse"`. The adapter still
+returns Codex `PermissionRequest` response shape to the runtime, so a denied
+shared policy becomes a `PermissionRequest` deny decision. `--match
+PermissionRequest` reports this bridge explicitly with
+`policyEventName: "PreToolUse"`.
+
 The live-read claim is covered by `tests/lib/codex/claude-hook-adapter.test.ts`:
 the smoke test rewrites a temporary `hooks.json` between adapter calls and expects
 the second call to execute the updated hook command. This is adapter evidence only,
@@ -63,6 +72,10 @@ delegates to the adapter, while shared hook intent remains in `hooks/hooks.json`
 `scripts/sync-codex-adapter.ts` regenerates the legacy fallback shim from the
 shared SSoT `hooks.json`. The generated timestamp is derived from `hooks/hooks.json`
 mtime, so recurring sync jobs are idempotent when the registry has not changed.
+Runtime-local sync is a separate lane after the source change has merged and the
+installed Codex plugin payload has been refreshed. Do not edit the fallback shim
+or `~/.codex` as part of a source-lane PR; regenerate it from the installed
+payload with this script.
 
 Codex fleet sync also runs this generator from:
 
