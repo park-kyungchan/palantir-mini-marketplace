@@ -30,7 +30,12 @@ The Convex backend is authorized for Cloud cutover (user directive 2026-05-13). 
 
 ## Codex Runtime Adapter
 
-The Codex runtime owns palantir-mini hook protocol wiring under `~/.codex/hooks.json`, `~/.codex/hooks/**`, and `~/.codex/lib/palantir-mini/**`. `hooks/hooks.json` remains the canonical workflow-intent registry that Codex reads as data. Legacy plugin-side Codex adapter files are compatibility debt and should not be treated as target Codex runtime authority.
+Codex loads palantir-mini hook entrypoints from `.codex-plugin/plugin.json` →
+`hooks/codex-hooks.json`. That file is intentionally small: it uses only
+Codex-supported events, regex-safe matchers, and adapter commands. The adapter
+then reads `hooks/hooks.json` as the canonical workflow-intent registry. Runtime
+fallback wiring may also exist under `~/.codex/hooks.json`, but it must remain a
+thin consumer of the plugin payload.
 
 ## Native Runtime Gaps
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { cp, mkdir, readdir, rm } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
@@ -37,6 +37,15 @@ const runtimeFiles = [
   "package.json",
   "tsconfig.json",
 ];
+
+type McpJson = {
+  mcpServers?: Record<string, {
+    command?: string;
+    args?: string[];
+    cwd?: string;
+    env?: Record<string, string>;
+  }>;
+};
 
 function safeRuntimeCopyFilter(source: string): boolean {
   const relative = path.relative(pluginRoot, source);
@@ -94,7 +103,31 @@ async function mirrorRuntimePayload(): Promise<{ directoryCount: number; fileCou
   for (const file of runtimeFiles) {
     const source = path.join(pluginRoot, file);
     if (!existsSync(source) || !safeRuntimeCopyFilter(source)) continue;
-    await cp(source, path.join(extensionPluginRoot, file));
+    if (file === ".mcp.json") {
+      const mcpJson = JSON.parse(await readFile(source, "utf8")) as McpJson;
+      const server = mcpJson.mcpServers?.["palantir-mini"];
+      if (server === undefined) {
+        throw new Error(`${source} must declare mcpServers["palantir-mini"]`);
+      }
+      const geminiMcpJson: McpJson = {
+        ...mcpJson,
+        mcpServers: {
+          ...mcpJson.mcpServers,
+          "palantir-mini": {
+            ...server,
+            cwd: ".",
+            args: ["run", "./bridge/mcp-server.ts"],
+            env: {
+              ...server.env,
+              PALANTIR_MINI_HOST_RUNTIME: "gemini",
+            },
+          },
+        },
+      };
+      await writeFile(path.join(extensionPluginRoot, file), `${JSON.stringify(geminiMcpJson, null, 2)}\n`);
+    } else {
+      await cp(source, path.join(extensionPluginRoot, file));
+    }
     fileCount += 1;
   }
 

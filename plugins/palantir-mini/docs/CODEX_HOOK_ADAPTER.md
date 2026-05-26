@@ -136,9 +136,9 @@ Per `.ssot-authority.json`:
 
 ```
 "forbiddenForks": [
-  "Do NOT create plugin source forks in ~/.codex/plugins/palantir-mini/ or other runtime dirs.",
-  "All runtimes share durable workflow semantics from plugins/palantir-mini/.",
-  "Per-runtime adapters (managed-settings.d / runtime-overlay / config.toml) are mirrors not authorities."
+  "Do NOT create workflow semantic forks in ~/.codex/plugins/palantir-mini/ or other runtime dirs.",
+  "Runtime-native protocol adapters, settings, memory stores, and reload docs belong in the owning runtime home.",
+  "Per-runtime adapters are protocol authorities for their native runtime, not palantir-mini workflow authorities."
 ]
 ```
 

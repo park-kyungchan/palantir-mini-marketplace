@@ -36,21 +36,20 @@ export const CODEX_NATIVE_EVENTS = [
   "PreToolUse",
   "PermissionRequest",
   "PostToolUse",
+  "PreCompact",
+  "PostCompact",
   "UserPromptSubmit",
+  "SubagentStart",
+  "SubagentStop",
   "Stop",
 ] as const;
 
-export const CODEX_SCHEMA_ONLY_EVENTS = [
-  "PreCompact",
-  "PostCompact",
-] as const;
+export const CODEX_SCHEMA_ONLY_EVENTS = [] as const;
 
 export const CODEX_NATIVE_GAPS = [
   "TaskCreated",
   "TaskCompleted",
   "TeammateIdle",
-  "SubagentStart",
-  "SubagentStop",
 ] as const;
 
 export const GEMINI_NATIVE_EVENTS = [

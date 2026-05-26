@@ -7,9 +7,11 @@
 This document catalogs palantir-mini hook/event parity between Claude Code CLI,
 Codex CLI, and Gemini CLI. It is a runtime map, not a plugin source authority.
 The source of truth for Claude/Codex hook intent is
-`plugins/palantir-mini/hooks/hooks.json`; Gemini mounts that intent
-through `.gemini-extension/hooks/hooks.json` and
-`lib/gemini/native-hook-adapter.ts`.
+`plugins/palantir-mini/hooks/hooks.json`. Codex mounts that intent through
+`hooks/codex-hooks.json` and `lib/codex/claude-hook-adapter.ts` so the Codex
+runtime never parses Claude-oriented glob matchers or `async: true` fields
+directly. Gemini mounts the same intent through `.gemini-extension/hooks/hooks.json`
+and `lib/gemini/native-hook-adapter.ts`.
 
 ## Context
 
@@ -18,20 +20,17 @@ Per rule 27 (cross-runtime substrate), Claude and Codex may append to the same
 integrates through:
 
 ```
-~/.codex/hooks.json
-  -> ~/.codex/hooks/palantir-mini-claude-hook-adapter.ts  (generated shim)
-    -> ~/.codex/lib/palantir-mini/native-hook-adapter.ts  (Codex-native protocol owner)
-      -> plugins/palantir-mini/hooks/hooks.json
+palantir-mini/.codex-plugin/plugin.json
+  -> hooks/codex-hooks.json  (Codex regex-safe entrypoints)
+    -> lib/codex/claude-hook-adapter.ts
+      -> hooks/hooks.json  (canonical hook intent registry)
 ```
 
-The generated shim is not a source fork. It delegates to the Codex-native
-protocol adapter, which reads the canonical hook intent from `hooks/hooks.json`.
-Any remaining plugin-side Codex adapter path, including
-`palantir-mini/lib/codex/claude-hook-adapter.ts`, is compatibility debt and must
-not be used as evidence that Claude-only lifecycle events are native in Codex.
-The runtime capability matrix likewise separates `PreCompact` and `PostCompact`
-as schema-only events; live-read hook config is not enough to claim native Codex
-parity for those lifecycle events.
+The Codex hook entrypoint file is not a source fork. It contains only supported
+Codex lifecycle events, regex-safe matchers, and adapter commands. The adapter
+reads the canonical hook intent from `hooks/hooks.json`, preserves `if` path
+conditions, and runs `async: true` source hooks as background best-effort work
+instead of asking Codex to parse unsupported async hook declarations directly.
 
 As of v6.79.0, `hooks/hooks.json` reports 105 hook commands. The removed
 `image-teacher-qa` UserPromptSubmit workflow is no longer a runtime surface; the
@@ -48,8 +47,10 @@ Current Codex hook config wires these events through the adapter:
 | `PostToolUse` | adapter-wired, parity depends on the Codex hook payload |
 | `UserPromptSubmit` | adapter-wired; prompt-front-door still requires explicit MCP gate verification |
 | `Stop` | adapter-wired |
-| `PreCompact` | schema-only unless a runtime smoke test proves native firing |
-| `PostCompact` | schema-only unless a runtime smoke test proves native firing |
+| `PreCompact` | adapter-wired |
+| `PostCompact` | adapter-wired |
+| `SubagentStart` | adapter-wired, parity depends on native subagent payload fields |
+| `SubagentStop` | adapter-wired, parity depends on native subagent payload fields |
 
 Gemini CLI integration is packaged under `.gemini-extension/` because Gemini
 hook registration uses different event names and millisecond timeouts. The
@@ -80,22 +81,21 @@ Canonical source `hooks/hooks.json` currently contains 12 event groups:
 | Permission request | Codex-specific bridge event | partial | Codex exposes this separately; the adapter can use it as a Codex-side enforcement point, but it is not a Claude-native event group. |
 | Post-tool checks | `PostToolUse` | partial | Adapter-wired. Treat value grading, generated-file checks, and doc drift hooks as needing smoke evidence before claiming parity. |
 | User prompt submit | `UserPromptSubmit` | partial | Adapter-wired, but Codex cannot assume prompt-to-DTC approval. Call `pm_semantic_intent_gate` explicitly before ontology-affecting routing. |
-| Pre-compact | `PreCompact` | schema-only | Present in `~/.codex/hooks.json`; current Codex runtime parity should be treated as unproven unless smoke-tested in the native Codex lifecycle. |
-| Post-compact | `PostCompact` | schema-only | Same as `PreCompact`; keep schema-only until native firing is smoke-proven. |
+| Pre-compact | `PreCompact` | partial | Adapter-wired through `hooks/codex-hooks.json`; verify compaction payload assumptions before claiming full Claude parity. |
+| Post-compact | `PostCompact` | partial | Adapter-wired through `hooks/codex-hooks.json`; verify compaction payload assumptions before relying on side effects. |
 | Task created | `TaskCreated` | native gap | Codex has no observed native TaskCreated lifecycle equivalent. |
 | Task completed | `TaskCompleted` | native gap | Codex has no observed native TaskCompleted lifecycle equivalent. |
 | Teammate idle | `TeammateIdle` | native gap | Claude Agent Teams concept; no Codex-native teammate idle surface. |
-| Subagent start | `SubagentStart` | native gap | Codex subagents must be handled through Codex-native `spawn_agent`/`/agent` flow and explicit briefing discipline. |
-| Subagent stop | `SubagentStop` | native gap | No Codex-native SubagentStop hook parity; post-agent processing must be manual or MCP-driven. |
+| Subagent start | `SubagentStart` | partial | Adapter-wired; keep explicit briefing discipline because Codex subagent payloads are not Claude payloads. |
+| Subagent stop | `SubagentStop` | partial | Adapter-wired; inspect worker output and handoff fields because payload parity is not guaranteed. |
 | Agent/TaskUpdate matchers | `PreToolUse`/`PostToolUse` matchers | native gap unless represented in Codex payload | Do not assume Claude Agent or TaskUpdate matchers fire in Codex. |
 
 ## Summary Counts
 
 | Bridge status | Count |
 |---------------|-------|
-| partial adapter bridge | 6 (`SessionStart`, `Stop`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `UserPromptSubmit`) |
-| schema-only / unproven | 2 (`PreCompact`, `PostCompact`) |
-| native gap | 5 (`TaskCreated`, `TaskCompleted`, `TeammateIdle`, `SubagentStart`, `SubagentStop`) |
+| partial adapter bridge | 10 (`SessionStart`, `Stop`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `UserPromptSubmit`, `PreCompact`, `PostCompact`, `SubagentStart`, `SubagentStop`) |
+| native gap | 3 (`TaskCreated`, `TaskCompleted`, `TeammateIdle`) |
 
 ## Required Codex Workarounds
 
@@ -106,7 +106,7 @@ For ontology-affecting work in Codex:
 3. If Codex cannot present the required approval UI, record that runtime gap and keep the edit scope narrow.
 4. Use `ontology_context_query`, `pre_edit_impact`, `validate_managed_settings_fragments`, and `pm_plugin_self_check` for explicit verification instead of relying on Claude-only hook side effects.
 5. For subagent work, use Codex-native delegation only when authorized, and apply palantir-mini briefing/routing discipline manually.
-6. For mutation-capable palantir-mini agents, treat `SubagentStart` and `SubagentStop` hook parity as a native gap in Codex: manually require the PR-G output contract fields (`statePath`, `requiredFields`, `envelopeKind`, `mutationSummary`, `filesTouched`, `verification`, `eventRefs`, `handoffStatus`) in the worker briefing and inspect the reported state/handoff as a manual fallback when native `SubagentStop` does not fire.
+6. For mutation-capable palantir-mini agents, treat `SubagentStart` and `SubagentStop` as adapter-wired but payload-sensitive. The manual fallback is to require the PR-G output contract fields (`statePath`, `requiredFields`, `envelopeKind`, `mutationSummary`, `filesTouched`, `verification`, `eventRefs`, `handoffStatus`) in the worker briefing and inspect the reported state/handoff.
 
 ## Required Gemini Workarounds
 
@@ -128,7 +128,8 @@ For ontology-affecting work in Gemini:
 ## References
 
 - `plugins/palantir-mini/hooks/hooks.json` — hook intent registry SSoT.
-- `~/.codex/lib/palantir-mini/native-hook-adapter.ts` — Codex-native protocol adapter owner.
+- `plugins/palantir-mini/hooks/codex-hooks.json` — Codex regex-safe hook entrypoint registry.
+- `plugins/palantir-mini/lib/codex/claude-hook-adapter.ts` — Codex-native protocol adapter owner.
 - `plugins/palantir-mini/.gemini-extension/` — Gemini-native extension package.
 - `plugins/palantir-mini/lib/gemini/native-hook-adapter.ts` — Gemini event adapter owner.
 - `docs/CODEX_HOOK_ADAPTER.md` — compatibility shim and sync workflow.

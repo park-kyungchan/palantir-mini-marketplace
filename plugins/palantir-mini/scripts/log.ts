@@ -68,6 +68,35 @@ export interface LogEnvelope {
   surface?: string;
 }
 
+type RuntimeIdentity = NonNullable<LogEnvelope["identity"]>;
+
+function normalizeRuntimeIdentity(value: string | undefined): RuntimeIdentity | undefined {
+  switch (value?.trim()) {
+    case "claude":
+    case "claude-code":
+      return "claude-code";
+    case "codex":
+    case "codex-cli":
+      return "codex";
+    case "gemini":
+    case "gemini-cli":
+      return "gemini";
+    case "user":
+    case "monitor":
+    case "test-agent":
+      return value.trim() as RuntimeIdentity;
+    default:
+      return undefined;
+  }
+}
+
+function resolveRuntimeIdentity(env: LogEnvelope): RuntimeIdentity {
+  return env.identity
+    ?? normalizeRuntimeIdentity(env.runtime)
+    ?? normalizeRuntimeIdentity(process.env.PALANTIR_MINI_HOST_RUNTIME)
+    ?? "claude-code";
+}
+
 /** Resolves the project root for session dir lookup. */
 export function projectRoot(): string {
   return process.env.PALANTIR_MINI_PROJECT ?? process.cwd();
@@ -157,7 +186,7 @@ export async function emit(env: LogEnvelope): Promise<number> {
       ...(env.surface !== undefined ? { surface: env.surface } : {}),
     },
     byWhom: {
-      identity:  env.identity  ?? "claude-code",
+      identity:  resolveRuntimeIdentity(env),
       agentName: env.agentName,
       teamName:  env.teamName,
       ...(env.model !== undefined ? { model: env.model } : {}),

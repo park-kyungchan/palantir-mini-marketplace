@@ -127,8 +127,8 @@ export const HOOK_POLICY_REGISTRY: readonly HookPolicy[] = [
       { runtime: "claude", support: "native", evidence: "Claude compaction hook events." },
       {
         runtime: "codex",
-        support: "schema-only",
-        evidence: "Codex keeps compaction events in schema projection but does not claim hook parity here.",
+        support: "native",
+        evidence: "Codex codex-hooks.json registers compaction events through the adapter; payload parity remains verification-scoped.",
       },
     ],
   },

@@ -83,6 +83,16 @@ describe("sync-codex-adapter.ts --dry-run", () => {
     const { stdout } = await runScript(["--dry-run", "--target", "/tmp/fake-codex-adapter.ts"]);
     expect(stdout).toContain("6.2");
   });
+
+  it("stdout does not reintroduce the retired Claude plugin install path as source", async () => {
+    const { stdout } = await runScript(["--dry-run", "--target", "/tmp/fake-codex-adapter.ts"]);
+    expect(stdout).not.toContain("~/.claude/plugins/palantir-mini/hooks/hooks.json");
+  });
+
+  it("stdout states the adapter boundary without copying workflow authority into Codex", async () => {
+    const { stdout } = await runScript(["--dry-run", "--target", "/tmp/fake-codex-adapter.ts"]);
+    expect(stdout).toContain("runtime-local adapters are protocol consumers, not workflow authorities");
+  });
 });
 
 describe("sync-codex-adapter.ts input validation", () => {
@@ -101,5 +111,11 @@ describe("sync-codex-adapter.ts input validation", () => {
     const markerPath = path.join(PLUGIN_ROOT, ".ssot-authority.json");
     const exists = await Bun.file(markerPath).exists();
     expect(exists).toBe(true);
+  });
+
+  it("script source does not name the retired Claude plugin install path as SSoT", async () => {
+    const source = await Bun.file(SCRIPT).text();
+    expect(source).not.toContain("~/.claude/plugins/palantir-mini/hooks/hooks.json");
+    expect(source).toContain("canonical private marketplace plugin hook registry");
   });
 });

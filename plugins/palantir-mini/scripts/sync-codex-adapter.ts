@@ -3,7 +3,7 @@
  * sync-codex-adapter.ts
  *
  * Regenerates ~/.codex/hooks/palantir-mini-claude-hook-adapter.ts from
- * ~/.claude/plugins/palantir-mini/hooks/hooks.json (SSoT).
+ * the canonical private marketplace plugin hook registry.
  *
  * The Codex-side adapter MUST be a thin shim delegating to the plugin
  * lib/codex/claude-hook-adapter.ts source. This script enforces that
@@ -24,7 +24,7 @@
  * AUTO-GENERATED header in output enforces forbidden-fork policy from .ssot-authority.json.
  */
 
-// AUTO-GENERATED from ~/.claude/plugins/palantir-mini/hooks/hooks.json
+// AUTO-GENERATED from plugins/palantir-mini/hooks/hooks.json
 // — see scripts/sync-codex-adapter.ts; DO NOT EDIT BY HAND
 
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -97,6 +97,9 @@ function generateAdapterContent(
   const relativePluginRoot = pluginRoot
     .replace(HOME, "~")
     .replace(/\\/g, "/");
+  const displayHooksJsonPath = hooksJsonPath
+    .replace(HOME, "~")
+    .replace(/\\/g, "/");
 
   const allowlistLines = eventAllowlist.map((e) => `  "${e}",`).join("\n");
 
@@ -104,15 +107,15 @@ function generateAdapterContent(
 /**
  * palantir-mini Codex hook adapter — thin shim.
  *
- * AUTO-GENERATED from ${hooksJsonPath.replace(HOME, "~")} — see scripts/sync-codex-adapter.ts; DO NOT EDIT BY HAND
+ * AUTO-GENERATED from ${displayHooksJsonPath} — see scripts/sync-codex-adapter.ts; DO NOT EDIT BY HAND
  * Generated at: ${generatedAt}
  * Source authority: ${relativePluginRoot}
  *
  * Adapter logic lives in the versioned plugin source:
  *   ${relativePluginRoot}/lib/codex/claude-hook-adapter.ts
  *
- * This file MUST remain a thin shim. Per .ssot-authority.json forbidden-fork policy:
- * Do NOT copy hook logic here; always delegate to the plugin lib source.
+ * This file MUST remain a thin shim. Per .ssot-authority.json forbidden-fork policy,
+ * runtime-local adapters are protocol consumers, not workflow authorities.
  *
  * Event allowlist live-read from SSoT hooks.json (${eventAllowlist.length} events):
 ${allowlistLines}
