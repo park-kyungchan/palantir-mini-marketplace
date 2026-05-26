@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   classifyHookTool,
+  isMcpFirstEvidenceToolName,
   isReadOnlyBashCommand,
   managedSettingsPalantirMiniMcpPattern,
   normalizePalantirMiniMcpToolName,
@@ -94,11 +95,37 @@ describe("classifyHookTool", () => {
       tool_name: "mcp__palantir_mini__get_ontology",
     });
 
-    expect(classification.operation).toBe("unknown");
-    expect(classification.isReadOnly).toBe(false);
+    expect(classification.operation).toBe("get_ontology");
+    expect(classification.isReadOnly).toBe(true);
     expect(classification.isProtectedMutation).toBe(false);
     expect(classification.isDtcMutatingMcpTool).toBe(false);
     expect(classification.mcpToolCapability?.classifierProjection.classificationMode)
       .toBe("legacy-fallback");
+  });
+
+  test("centralizes MCP-first evidence tool namespace aliases", () => {
+    for (const toolName of [
+      "impact_query",
+      "pre_edit_impact",
+      "get_ontology",
+      "mcp__plugin_palantir-mini_palantir-mini__impact_query",
+      "mcp__palantir_mini__pre_edit_impact",
+      "mcp__palantir_mini__.get_ontology",
+      "mcp__palantir-mini__impact_query",
+      "mcp_palantir-mini_pre_edit_impact",
+      "mcp_palantir_mini_get_ontology",
+    ]) {
+      expect(isMcpFirstEvidenceToolName(toolName)).toBe(true);
+    }
+
+    for (const toolName of [
+      "pm_workflow_lineage_query",
+      "propagation_audit_forward",
+      "mcp__palantir_mini__pm_workflow_lineage_query",
+      "mcp__palantir_mini__.propagation_audit_forward",
+      "mcp__palantir_mini__commit_edits",
+    ]) {
+      expect(isMcpFirstEvidenceToolName(toolName)).toBe(false);
+    }
   });
 });

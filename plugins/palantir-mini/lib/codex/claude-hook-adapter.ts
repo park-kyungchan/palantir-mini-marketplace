@@ -25,6 +25,7 @@ export type HookConfig = {
   statusMessage?: string;
   async?: boolean;
   decision?: string;
+  failureMode?: string;
   permissionDecision?: string;
   if?: string;
 };
@@ -696,6 +697,9 @@ export function extractPromptFrontDoorIdentityContext(
 function blockReason(run: HookRun): string | undefined {
   const parsed = run.parsed;
   if (run.exitCode === 2) return run.stderr.trim() || "palantir-mini hook blocked this action";
+  if ((run.timedOut || (run.exitCode !== null && run.exitCode !== 0)) && run.hook.failureMode === "fail-closed") {
+    return run.stderr.trim() || `palantir-mini hook failed closed: ${run.hook.command}`;
+  }
   if ((run.timedOut || (run.exitCode !== null && run.exitCode !== 0)) && run.hook.decision === "block") {
     return run.stderr.trim() || `palantir-mini blocking hook failed closed: ${run.hook.command}`;
   }

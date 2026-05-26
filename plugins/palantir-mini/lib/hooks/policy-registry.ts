@@ -6,6 +6,7 @@ import {
   type HookWorkflowEvent,
   type PalantirMiniRuntime,
 } from "./workflow-registry";
+import { palantirMiniMcpToolAliasesForOperation } from "./tool-classifier";
 
 export type HookPolicyId =
   | "hook-policy:mutation-governance"
@@ -179,6 +180,12 @@ export const HOOK_POLICY_REGISTRY: readonly HookPolicy[] = [
   },
 ];
 
+function mcpMatcher(...operationNames: string[]): string {
+  return operationNames
+    .flatMap((operationName) => palantirMiniMcpToolAliasesForOperation(operationName))
+    .join("|");
+}
+
 export const WORKFLOW_STEP_POLICY_REGISTRY: readonly WorkflowStepPolicy[] = [
   {
     policyId: "hook-step:pretool-ontology-engineering-workflow",
@@ -219,38 +226,35 @@ export const WORKFLOW_STEP_POLICY_REGISTRY: readonly WorkflowStepPolicy[] = [
     policyId: "hook-step:pretool-commit-edits-governance",
     hookPolicyId: "hook-policy:mutation-governance",
     event: "PreToolUse",
-    matcher: "mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits",
+    matcher: mcpMatcher("commit_edits"),
     purpose: "Govern commit_edits calls before ontology edits are committed.",
   },
   {
     policyId: "hook-step:pretool-emit-event-value",
     hookPolicyId: "hook-policy:mutation-governance",
     event: "PreToolUse",
-    matcher: "mcp__plugin_palantir-mini_palantir-mini__emit_event",
+    matcher: mcpMatcher("emit_event"),
     purpose: "Assign value-grade metadata before event emission.",
   },
   {
     policyId: "hook-step:pretool-agent-decision-pre",
     hookPolicyId: "hook-policy:mutation-governance",
     event: "PreToolUse",
-    matcher:
-      "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__plugin_palantir-mini_palantir-mini__emit_event",
+    matcher: mcpMatcher("apply_edit_function", "commit_edits", "emit_event"),
     purpose: "Require subagent decision evidence before privileged MCP calls.",
   },
   {
     policyId: "hook-step:pretool-evidence-domain-coverage",
     hookPolicyId: "hook-policy:mutation-governance",
     event: "PreToolUse",
-    matcher:
-      "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__commit_edits|mcp__palantir_mini__ontology_context_query",
+    matcher: mcpMatcher("apply_edit_function", "commit_edits", "ontology_context_query"),
     purpose: "Require evidence-domain coverage before ontology-affecting tools proceed.",
   },
   {
     policyId: "hook-step:pretool-ontology-routing-dtc",
     hookPolicyId: "hook-policy:mutation-governance",
     event: "PreToolUse",
-    matcher:
-      "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router|mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__pm_intent_router|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__ontology_context_query",
+    matcher: mcpMatcher("pm_intent_router", "apply_edit_function", "ontology_context_query"),
     purpose: "Run prompt-DTC gate before routing and ontology action tools.",
   },
   {
@@ -313,36 +317,35 @@ export const WORKFLOW_STEP_POLICY_REGISTRY: readonly WorkflowStepPolicy[] = [
     policyId: "hook-step:posttool-grade-rubric",
     hookPolicyId: "hook-policy:post-tool-lineage",
     event: "PostToolUse",
-    matcher: "mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric",
+    matcher: mcpMatcher("grade_outcome_with_rubric"),
     purpose: "Trigger harness analyzer after rubric grading.",
   },
   {
     policyId: "hook-step:posttool-commit-edits-backprop",
     hookPolicyId: "hook-policy:post-tool-lineage",
     event: "PostToolUse",
-    matcher: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+    matcher: mcpMatcher("commit_edits"),
     purpose: "Detect terminal sprint state, synthesize learning, and snapshot passing iterations.",
   },
   {
     policyId: "hook-step:posttool-emit-event-value",
     hookPolicyId: "hook-policy:post-tool-lineage",
     event: "PostToolUse",
-    matcher: "mcp__plugin_palantir-mini_palantir-mini__emit_event",
+    matcher: mcpMatcher("emit_event"),
     purpose: "Track outcome pairs, memory layer validity, T3 circuit input, and T4 promotion eligibility.",
   },
   {
     policyId: "hook-step:posttool-agent-decision-post",
     hookPolicyId: "hook-policy:post-tool-lineage",
     event: "PostToolUse",
-    matcher:
-      "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__plugin_palantir-mini_palantir-mini__emit_event",
+    matcher: mcpMatcher("apply_edit_function", "commit_edits", "emit_event"),
     purpose: "Record subagent decision evidence after privileged MCP calls.",
   },
   {
     policyId: "hook-step:posttool-router-suggestion",
     hookPolicyId: "hook-policy:post-tool-lineage",
     event: "PostToolUse",
-    matcher: "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router",
+    matcher: mcpMatcher("pm_intent_router"),
     purpose: "Emit router divergence advisory after intent routing.",
   },
   {

@@ -8,7 +8,7 @@
 //   6. skipped  — no file_path in payload
 //   7. skipped  — not a tracked project (no .palantir-mini/)
 //   8. bypass   — PALANTIR_MINI_MCP_FIRST_BYPASS=1
-//   9. passed   — mcp call with no RID payload (generic call; counts as satisfied)
+//   9. blocked  — mcp call with no RID payload (generic call; weak evidence)
 
 import { test, expect, describe, beforeEach, afterEach } from "bun:test";
 import * as fs from "fs";
@@ -265,7 +265,7 @@ describe("pre-edit-impact-mcp-first", () => {
     expect(result.additionalContext).toBeUndefined();
   });
 
-  test("9. PASSED — mcp call with no RID payload (generic call satisfies advisory)", async () => {
+  test("9. BLOCKED — mcp call with no RID payload is weak evidence", async () => {
     const targetFile = path.join(TMP, "scripts", "run.ts");
     fs.mkdirSync(path.join(TMP, "scripts"), { recursive: true });
 
@@ -280,9 +280,10 @@ describe("pre-edit-impact-mcp-first", () => {
     const result = await preEditImpactMcpFirst(makePayload(targetFile)) as {
       message: string;
       additionalContext?: string;
+      hookSpecificOutput?: { permissionDecision?: string; permissionDecisionReason?: string };
     };
 
-    // Generic call (no RID) = matchesRid returns true → PASSED
-    expect(result.message).toContain("PASSED");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("matching RID/path evidence");
   });
 });
