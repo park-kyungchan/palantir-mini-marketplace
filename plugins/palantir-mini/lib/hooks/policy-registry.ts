@@ -1,4 +1,5 @@
 import {
+  CLAUDE_ONLY_HOOK_EVENTS,
   CODEX_SCHEMA_ONLY_HOOK_EVENTS,
   CODEX_UNSUPPORTED_HOOK_EVENTS,
   GEMINI_UNSUPPORTED_HOOK_EVENTS,
@@ -606,6 +607,7 @@ function isRuntimeParityClaimSupported(event: string, claim: HookRuntimeParityCl
   if (claim.runtime === "claude") return true;
   if (claim.support !== "native") return true;
   if (!isHookWorkflowEvent(event)) return false;
+  if (CLAUDE_ONLY_HOOK_EVENTS.includes(event)) return false;
   if (claim.runtime === "gemini") return !GEMINI_UNSUPPORTED_HOOK_EVENTS.includes(event);
   return !CODEX_UNSUPPORTED_EVENTS.has(event) && !CODEX_SCHEMA_ONLY_EVENTS.has(event);
 }

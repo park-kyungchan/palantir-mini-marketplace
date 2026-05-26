@@ -33,9 +33,11 @@ The Convex backend is authorized for Cloud cutover (user directive 2026-05-13). 
 Codex loads palantir-mini hook entrypoints from `.codex-plugin/plugin.json` →
 `hooks/codex-hooks.json`. That file is intentionally small: it uses only
 Codex-supported events, regex-safe matchers, and adapter commands. The adapter
-then reads `hooks/hooks.json` as the canonical workflow-intent registry. Runtime
-fallback wiring may also exist under `~/.codex/hooks.json`, but it must remain a
-thin consumer of the plugin payload.
+then reads shared `hooks/hooks.json` as the canonical workflow-intent registry.
+Claude-only task/team lifecycle mounts live in `hooks/claude-hooks.json` and are
+not part of the Codex live-read source. Runtime fallback wiring may also exist
+under `~/.codex/hooks.json`, but it must remain a thin consumer of the plugin
+payload.
 
 ## Native Runtime Gaps
 

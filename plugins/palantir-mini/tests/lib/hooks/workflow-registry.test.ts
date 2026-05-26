@@ -8,32 +8,47 @@ import {
   validateWorkflowStepPolicyRegistry,
 } from "../../../lib/hooks/policy-registry";
 import {
+  CLAUDE_ONLY_HOOK_EVENTS,
   CODEX_SCHEMA_ONLY_HOOK_EVENTS,
-  CODEX_UNSUPPORTED_HOOK_EVENTS,
   GEMINI_UNSUPPORTED_HOOK_EVENTS,
   codexUnsupportedHookSummary,
   projectRuntimeHookMount,
 } from "../../../lib/hooks/workflow-registry";
 
 describe("runtime-neutral hook workflow registry", () => {
-  test("Codex projection keeps Claude-only lifecycle gaps explicit", () => {
+  test("Codex projection excludes Claude-only lifecycle mounts from the shared hook layer", () => {
     const projection = projectRuntimeHookMount("codex");
     expect(projection.mountAuthority).toBe("runtime-local");
-    for (const event of CODEX_UNSUPPORTED_HOOK_EVENTS) {
-      expect(projection.unsupportedEvents).toContain(event);
+    for (const event of CLAUDE_ONLY_HOOK_EVENTS) {
+      expect(projection.supportedEvents).not.toContain(event);
+      expect(projection.unsupportedEvents).not.toContain(event);
+      expect(projection.workflows.map((workflow) => workflow.event)).not.toContain(event);
     }
     for (const event of CODEX_SCHEMA_ONLY_HOOK_EVENTS) {
       expect(projection.schemaOnlyEvents).toContain(event);
     }
-    expect(codexUnsupportedHookSummary()).toContain("TaskCreated");
+    expect(codexUnsupportedHookSummary()).toContain("unsupported=none");
     expect(codexUnsupportedHookSummary()).toContain("schemaOnly=none");
     expect(projection.supportedEvents).toContain("PreCompact");
     expect(projection.supportedEvents).toContain("SubagentStop");
   });
 
+  test("Claude projection owns Claude-only task and teammate lifecycle mounts", () => {
+    const projection = projectRuntimeHookMount("claude");
+    for (const event of CLAUDE_ONLY_HOOK_EVENTS) {
+      expect(projection.supportedEvents).toContain(event);
+      expect(projection.workflows.some((workflow) => workflow.event === event && workflow.ownerRuntime === "claude")).toBe(true);
+    }
+  });
+
   test("Gemini projection maps shared workflow intent through native adapter events", () => {
     const projection = projectRuntimeHookMount("gemini");
     expect(projection.mountAuthority).toBe("runtime-local");
+    for (const event of CLAUDE_ONLY_HOOK_EVENTS) {
+      expect(projection.supportedEvents).not.toContain(event);
+      expect(projection.unsupportedEvents).not.toContain(event);
+      expect(projection.workflows.map((workflow) => workflow.event)).not.toContain(event);
+    }
     for (const event of GEMINI_UNSUPPORTED_HOOK_EVENTS) {
       expect(projection.unsupportedEvents).toContain(event);
     }
