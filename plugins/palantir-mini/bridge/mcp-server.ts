@@ -29,6 +29,7 @@ import {
   now as nowMs,
 } from "../lib/event-log/timing";
 import { PROMPT_RUNTIMES } from "../lib/prompt-front-door";
+import { emit } from "../scripts/log";
 
 // ─── JSON-RPC 2.0 types ────────────────────────────────────────────────────
 interface JsonRpcRequest {
@@ -829,6 +830,151 @@ function publicToolSpec(tool: ToolSpec): Pick<ToolSpec, "name" | "description" |
   };
 }
 
+// ─── MCP-first project evidence ────────────────────────────────────────────
+//
+// Codex records native MCP calls in its own session log, but the blocking
+// pre-edit-impact-mcp-first hook reads the target project's append-only
+// events.jsonl. This dispatch boundary is the only place that can distinguish a
+// user/runtime MCP call from hook-internal direct handler imports.
+const MCP_FIRST_EVIDENCE_TOOL_NAMES = new Set([
+  "impact_query",
+  "pre_edit_impact",
+  "pm_workflow_lineage_query",
+  "get_ontology",
+  "propagation_audit_forward",
+]);
+
+type RuntimeIdentity = "claude-code" | "codex" | "gemini";
+
+interface McpFirstEvidencePayload {
+  phase: "design";
+  passed: true;
+  errorClass: "lead_mcp_first_compliance_passed";
+  source: "mcp-server-tools-call";
+  toolName: string;
+  durationMs: number;
+  rid?: string;
+  query?: string;
+  target?: string;
+  filePath?: string;
+  file_path?: string;
+  project?: string;
+  projectRoot?: string;
+  proposedFiles?: string[];
+}
+
+function recordFrom(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+function stringArrayValue(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const strings = value.filter((item): item is string =>
+    typeof item === "string" && item.trim().length > 0
+  );
+  return strings.length > 0 ? strings : undefined;
+}
+
+function hostRuntimeIdentity(): RuntimeIdentity | undefined {
+  const raw =
+    process.env.PALANTIR_MINI_HOST_RUNTIME ??
+    process.env.PALANTIR_MINI_RUNTIME ??
+    process.env.CLAUDE_CODE_RUNTIME ??
+    "";
+  const normalized = raw.toLowerCase();
+  if (normalized.includes("codex") || process.env.CODEX_SESSION_ID) return "codex";
+  if (normalized.includes("gemini")) return "gemini";
+  if (normalized.includes("claude") || process.env.CLAUDE_SESSION_ID) return "claude-code";
+  return undefined;
+}
+
+function hostSessionId(): string | undefined {
+  return process.env.CODEX_SESSION_ID ?? process.env.CLAUDE_SESSION_ID ?? process.env.GEMINI_SESSION_ID;
+}
+
+function projectRootForMcpFirstEvidence(args: Record<string, unknown>): string | undefined {
+  return stringValue(args.project)
+    ?? stringValue(args.projectRoot)
+    ?? stringValue(args.cwd);
+}
+
+function payloadForMcpFirstEvidence(
+  toolName: string,
+  args: Record<string, unknown>,
+  durationMs: number,
+): McpFirstEvidencePayload {
+  const rid = stringValue(args.rid);
+  const query = stringValue(args.query);
+  const filePath = stringValue(args.filePath);
+  const file_path = stringValue(args.file_path);
+  const target = stringValue(args.target);
+  const proposedFiles = stringArrayValue(args.proposedFiles);
+  const project = stringValue(args.project);
+  const projectRoot = stringValue(args.projectRoot);
+
+  return {
+    phase: "design",
+    passed: true,
+    errorClass: "lead_mcp_first_compliance_passed",
+    source: "mcp-server-tools-call",
+    toolName,
+    durationMs,
+    ...(rid !== undefined ? { rid, query: rid } : {}),
+    ...(query !== undefined ? { query } : {}),
+    ...(filePath !== undefined ? { filePath } : {}),
+    ...(file_path !== undefined ? { file_path } : {}),
+    ...(target !== undefined ? { target } : {}),
+    ...(proposedFiles !== undefined
+      ? {
+          proposedFiles,
+          target: [target, ...proposedFiles]
+            .filter((item): item is string => Boolean(item))
+            .join("\n"),
+        }
+      : {}),
+    ...(project !== undefined ? { project } : {}),
+    ...(projectRoot !== undefined ? { projectRoot } : {}),
+  };
+}
+
+export async function emitMcpFirstEvidenceForToolCall(
+  toolName: string,
+  args: unknown,
+  durationMs: number,
+): Promise<void> {
+  if (!MCP_FIRST_EVIDENCE_TOOL_NAMES.has(toolName)) return;
+
+  const record = recordFrom(args);
+  const projectRoot = projectRootForMcpFirstEvidence(record);
+  if (projectRoot === undefined) return;
+
+  const payload = payloadForMcpFirstEvidence(toolName, record, durationMs);
+  const runtime = hostRuntimeIdentity();
+  try {
+    await emit({
+      type: "validation_phase_completed",
+      payload,
+      toolName,
+      cwd: projectRoot,
+      sessionId: hostSessionId(),
+      ...(runtime !== undefined ? { identity: runtime, runtime } : {}),
+      surface: "mcp",
+      memoryLayers: ["procedural", "episodic"],
+      reasoning:
+        `mcp-server: recorded ${toolName} tools/call as MCP-first evidence for ${projectRoot}. ` +
+        "This evidence is emitted only at the MCP dispatch boundary, not from hook-internal handler imports.",
+    });
+  } catch {
+    // Best-effort. Evidence emission must never break the MCP tool response.
+  }
+}
+
 // ─── Handler dispatch — lazy dynamic import per tool call ──────────────────
 async function loadHandler(toolName: string): Promise<(args: unknown) => Promise<unknown>> {
   const modulePath = HANDLER_MODULES[toolName];
@@ -886,11 +1032,13 @@ async function handleRequest(req: JsonRpcRequest): Promise<JsonRpcResponse | nul
         const startedAt = nowMs();
         try {
           const result = await handler(params.arguments ?? {});
+          const durationMs = elapsedMs(startedAt);
           void emitToolInvocationCompleted({
             toolName,
-            durationMs: elapsedMs(startedAt),
+            durationMs,
             success:    true,
           });
+          await emitMcpFirstEvidenceForToolCall(toolName, params.arguments ?? {}, durationMs);
           return respondSuccess(req.id, {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
             isError: false,

@@ -95,6 +95,8 @@ describe("pre-edit-impact-mcp-first (blocking mode)", () => {
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("rule 12 v3.10.0");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("MCP-First protocol");
+    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("mcp__palantir_mini__impact_query");
+    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("mcp__palantir_mini__pre_edit_impact");
   });
 
   test("T2: edit with recent impact_query event → continue", async () => {
