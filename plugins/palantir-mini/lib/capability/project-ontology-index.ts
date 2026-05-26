@@ -6,7 +6,7 @@ import {
   type ProjectOntologyIndexFragment as ProjectOntologyIndexFragmentBase,
   type ProjectOntologySurface,
   type ValidationPackContract,
-} from "@palantirKC/claude-schemas/ontology/primitives/project-ontology-index";
+} from "#schemas/ontology/primitives/project-ontology-index";
 import { loadKnownIssues } from "../issues/issue-store";
 import type { KnownIssue } from "../issues/known-issue";
 import { loadProjectScope, type ProjectScopeDefinition } from "../project-scope/loader";
@@ -31,7 +31,7 @@ export {
 
 /**
  * Plugin specialization of the generic ProjectOntologyIndex shape declared in
- * `@palantirKC/claude-schemas/ontology/primitives/project-ontology-index`.
+ * `#schemas/ontology/primitives/project-ontology-index`.
  * Specialized over the plugin's concrete CapabilityContract / KnownIssue /
  * ProjectScopeDefinition types (those primitives are not promoted in this PR).
  */

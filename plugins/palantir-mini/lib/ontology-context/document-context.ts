@@ -17,7 +17,7 @@ import type {
   DocumentCorpus,
   DocumentCorpusEntry,
   DocumentRetrievalMode,
-} from "@palantirKC/claude-schemas/ontology/primitives/document-corpus";
+} from "#schemas/ontology/primitives/document-corpus";
 
 export interface DocumentContextChunk {
   readonly sourceRef: string;
