@@ -23,6 +23,7 @@ import type {
   ContractGateResult,
   ContractValidationResult,
   DigitalTwinChangeContract,
+  DigitalTwinRiskRecord,
   SemanticClarificationQuestion,
   SemanticIntentContract,
   TurnCardDecisionSpec,
@@ -467,6 +468,7 @@ function draftDigitalTwinForGate(
   input: SemanticIntentGateInput,
   semanticIntent: SemanticIntentContract,
 ): DigitalTwinChangeContract {
+  let contextPlanError: unknown;
   if (isApprovedSemanticIntentContract(semanticIntent)) {
     try {
       const fdeSession = readCurrentFDEOntologyEngineeringSession(input.project);
@@ -488,13 +490,14 @@ function draftDigitalTwinForGate(
           projectIndex,
         }).digitalTwinChangeContract;
       }
-    } catch {
+    } catch (err) {
+      contextPlanError = err;
       // Fall through to the generic DTC draft. ContextEngineeringPlanV2 enriches
       // drafts when available, but the gate must not fail just because no FDE
       // session exists for ordinary Prompt-to-DTC calls.
     }
   }
-  return draftDigitalTwinChangeContract(
+  const draft = draftDigitalTwinChangeContract(
     {
       intent: input.rawIntent,
       scopePaths: input.scopePaths,
@@ -502,6 +505,32 @@ function draftDigitalTwinForGate(
     },
     semanticIntent.contractId,
   );
+  if (contextPlanError === undefined) return draft;
+
+  const fallbackRisk: DigitalTwinRiskRecord = {
+    riskId: "risk.context-engineering-dtc-draft-fallback",
+    kind: "observability",
+    status: "open",
+    description:
+      "ContextEngineeringPlanV2 DTC draft failed; generic DTC fallback used: " +
+      describeUnknownError(contextPlanError),
+    mitigation:
+      "Resolve the context-engineering DTC draft error before approving or routing ontology-affecting DTC work.",
+  };
+  return {
+    ...draft,
+    risks: [...draft.risks, fallbackRisk],
+  };
+}
+
+function describeUnknownError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
 }
 
 function scopeSummary(input: SemanticIntentGateInput, language: "ko" | "en"): string[] {

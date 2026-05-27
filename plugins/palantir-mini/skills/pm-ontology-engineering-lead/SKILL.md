@@ -89,8 +89,12 @@ mcp__palantir-mini__ontology_context_query({
    when available. Treat returned SIC/DTC drafts as evidence only until the user
    approval reference exists.
 3. If DTC fields must be authored turn-by-turn, call
-   `pm_semantic_intent_gate` with `fillPolicy: "dtc-turn-fill"` and one
-   `turn` at a time.
+   `pm_semantic_intent_gate` with one `turn` at a time. Use
+   `fillPolicy: "dtc-turn-fill"` only for generic non-ontology DTC boundary
+   authoring. Use `fillPolicy: "ontology-dtc-build"` for ontology-affecting DTC
+   and complete T0 ObjectType, T1 LinkType, T2 ActionType, T3 Function, T4
+   Chatbot/Application State, T5 Replay/Eval/Validation, and T6 ready-for-DTC
+   before approval or routing.
 4. Render the plugin-owned TurnCard as ordinary assistant text in every
    runtime. Claude and Codex consume the same `TurnCardDecisionSpec`; the user's
    answer is recorded as a `UserDecisionRecord`, not as runtime-local workflow
@@ -129,3 +133,8 @@ WorkflowContract blocking decisions:
 - Do not promote reference evidence to authority by naming it in a skill doc.
 - Do not dispatch implementation from inferred Lead meaning.
 - Do not bypass `pm_semantic_intent_gate` for ontology-affecting raw intent.
+- DATA/LOGIC/ACTION/GOVERNANCE are SIC/context-engineering lanes only; do not
+  use them as DTC primitive readiness.
+- Treat `mutationAuthorized=false`, router domain mismatch, missing approved
+  refs, open blocking TurnCards, and missing ObjectType/LinkType/ActionType/
+  Function/ApplicationState/Eval readiness as hard blockers.

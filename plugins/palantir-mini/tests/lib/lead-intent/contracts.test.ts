@@ -47,7 +47,7 @@ function approvedSemantic(): SemanticIntentContract {
   };
 }
 
-function approvedDigitalTwin(): DigitalTwinChangeContract {
+function baseApprovedDigitalTwin(): DigitalTwinChangeContract {
   return {
     contractId: "digital-twin:test",
     status: "approved",
@@ -83,6 +83,50 @@ function approvedDigitalTwin(): DigitalTwinChangeContract {
     ],
     approvalRef: "user:approved:test",
   };
+}
+
+function completeOntologyDtc(contract: DigitalTwinChangeContract): DigitalTwinChangeContract {
+  const originalAffectedSurfaces = contract.affectedSurfaces;
+  let next = contract;
+  next = advanceOntologyDTCBuildSequence(
+    next,
+    0,
+    "ObjectType:PluginCapability,ObjectType:WorkflowContract",
+  ).dtcDraft;
+  next = advanceOntologyDTCBuildSequence(
+    next,
+    1,
+    "LinkType:contract-authorizes-route,LinkType:evidence-supports-authority",
+  ).dtcDraft;
+  next = advanceOntologyDTCBuildSequence(
+    next,
+    2,
+    "ActionType:start-workflow,ActionType:approve-dtc",
+  ).dtcDraft;
+  next = advanceOntologyDTCBuildSequence(
+    next,
+    3,
+    "Function:validate-release,Function:route-after-approval",
+  ).dtcDraft;
+  next = advanceOntologyDTCBuildSequence(
+    next,
+    4,
+    "ApplicationState:workflow-review,ChatbotSurface:turn-card-rendering",
+  ).dtcDraft;
+  next = advanceOntologyDTCBuildSequence(
+    next,
+    5,
+    "Replay additive fixtures | Observe workflow lineage | Eval release gate || ValidationPack:meta-ontology-completion",
+  ).dtcDraft;
+  next = advanceOntologyDTCBuildSequence(next, 6, "ready-for-dtc").dtcDraft;
+  return {
+    ...next,
+    affectedSurfaces: originalAffectedSurfaces,
+  };
+}
+
+function approvedDigitalTwin(): DigitalTwinChangeContract {
+  return completeOntologyDtc(baseApprovedDigitalTwin());
 }
 
 describe("Lead Intent -> Digital Twin contracts", () => {
@@ -219,7 +263,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
 
   test("approved DTC with ontology-dtc-build policy fails before T0-T6 readiness", () => {
     const contract = {
-      ...approvedDigitalTwin(),
+      ...baseApprovedDigitalTwin(),
       fillPolicy: ONTOLOGY_DTC_BUILD_POLICY,
     } as unknown as DigitalTwinChangeContract;
 
@@ -238,41 +282,55 @@ describe("Lead Intent -> Digital Twin contracts", () => {
 
   test("approved DTC with completed ontology-dtc-build readiness validates", () => {
     let contract = {
-      ...approvedDigitalTwin(),
+      ...baseApprovedDigitalTwin(),
       touchedOntologyRefs: [],
       requiredEvaluationRefs: [],
     } as DigitalTwinChangeContract;
-    contract = advanceOntologyDTCBuildSequence(
-      contract,
-      0,
-      "ObjectType:PluginCapability,ObjectType:WorkflowContract",
-    ).dtcDraft;
-    contract = advanceOntologyDTCBuildSequence(
-      contract,
-      1,
-      "LinkType:contract-authorizes-route,LinkType:evidence-supports-authority",
-    ).dtcDraft;
-    contract = advanceOntologyDTCBuildSequence(
-      contract,
-      2,
-      "ActionType:start-workflow,ActionType:approve-dtc",
-    ).dtcDraft;
-    contract = advanceOntologyDTCBuildSequence(
-      contract,
-      3,
-      "Function:validate-release,Function:route-after-approval",
-    ).dtcDraft;
-    contract = advanceOntologyDTCBuildSequence(
-      contract,
-      4,
-      "ApplicationState:workflow-review,ChatbotSurface:turn-card-rendering",
-    ).dtcDraft;
-    contract = advanceOntologyDTCBuildSequence(
-      contract,
-      5,
-      "Replay additive fixtures | Observe workflow lineage | Eval release gate || ValidationPack:meta-ontology-completion",
-    ).dtcDraft;
-    contract = advanceOntologyDTCBuildSequence(contract, 6, "ready-for-dtc").dtcDraft;
+    contract = completeOntologyDtc(contract);
+
+    expect(validateDigitalTwinChangeContract(contract).valid).toBe(true);
+  });
+
+  test("approved ontology-affecting DTC with legacy/default fill fails closed before ontology-dtc-build", () => {
+    const contract = baseApprovedDigitalTwin();
+    const result = validateDigitalTwinChangeContract(contract);
+    const fields = result.issues.map((issue) => issue.field);
+
+    expect(result.valid).toBe(false);
+    expect(fields).toContain("fillPolicy");
+  });
+
+  test("explicit non-applicable evidence can close primitive readiness fields", () => {
+    const contract = {
+      ...baseApprovedDigitalTwin(),
+      fillPolicy: ONTOLOGY_DTC_BUILD_POLICY,
+      touchedOntologyRefs: [],
+      requiredEvaluationRefs: [],
+      ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
+        step: index + 1,
+        question: `T${index}`,
+        filledAt: "2026-05-27T00:00:00.000Z",
+        source: "agent" as const,
+      })),
+      ontologyDtcBuildReadiness: {
+        objectTypeRefs: [],
+        linkTypeRefs: [],
+        actionTypeRefs: [],
+        functionRefs: [],
+        applicationStateRefs: [],
+        evaluationRefs: [],
+        nonApplicablePrimitiveKinds: [
+          "ObjectType",
+          "LinkType",
+          "ActionType",
+          "Function",
+          "ApplicationState",
+          "Eval",
+        ],
+        nonApplicableEvidenceRefs: ["evidence:non-applicable:docs-only-dtc"],
+        readinessVerdict: "ready-for-dtc" as const,
+      },
+    } as unknown as DigitalTwinChangeContract;
 
     expect(validateDigitalTwinChangeContract(contract).valid).toBe(true);
   });
@@ -770,6 +828,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
       // no touchedOntologyRefs, no requiredEvaluationRefs
       const result = validateDigitalTwinChangeContract(dtc);
       const fields = result.issues.map((i) => i.field);
+      expect(fields).toContain("fillPolicy");
       expect(fields).toContain("touchedOntologyRefs");
       expect(fields).toContain("requiredEvaluationRefs");
     });
@@ -784,9 +843,10 @@ describe("Lead Intent -> Digital Twin contracts", () => {
       const fields = result.issues.map((i) => i.field);
       expect(fields).not.toContain("touchedOntologyRefs");
       expect(fields).toContain("requiredEvaluationRefs");
+      expect(fields).toContain("fillPolicy");
     });
 
-    test("ontology-affecting DTC with both typed refs populated has no new enforcement issues", () => {
+    test("ontology-affecting DTC with both typed refs populated still requires ontology-dtc-build policy", () => {
       const dtc = ontologyAffectingDtc();
       dtc.touchedOntologyRefs = [
         { kind: "ObjectType", rid: "ri.ontology.main.object-type.1", confidence: "exact" },
@@ -798,6 +858,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
       const fields = result.issues.map((i) => i.field);
       expect(fields).not.toContain("touchedOntologyRefs");
       expect(fields).not.toContain("requiredEvaluationRefs");
+      expect(fields).toContain("fillPolicy");
     });
 
     test("non-ontology-affecting DTC with no typed refs has no enforcement triggered", () => {
@@ -823,7 +884,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
       expect(result.valid).toBe(true);
     });
 
-    test("PALANTIR_MINI_DTC_EVAL_REFS_BYPASS=1 skips typed-ref enforcement for ontology-affecting DTC", () => {
+    test("PALANTIR_MINI_DTC_EVAL_REFS_BYPASS=1 skips typed-ref minimums but not ontology-dtc-build policy", () => {
       process.env["PALANTIR_MINI_DTC_EVAL_REFS_BYPASS"] = "1";
       const dtc = ontologyAffectingDtc();
       // no touchedOntologyRefs, no requiredEvaluationRefs — but bypass is set
@@ -831,6 +892,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
       const fields = result.issues.map((i) => i.field);
       expect(fields).not.toContain("touchedOntologyRefs");
       expect(fields).not.toContain("requiredEvaluationRefs");
+      expect(fields).toContain("fillPolicy");
     });
   });
 });

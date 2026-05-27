@@ -134,6 +134,27 @@ then fill one DTC turn at a time. A DTC produced by this path is still a
 contract artifact, not mutation authority, until the user approval reference is
 captured and routing receives the approved SIC/DTC refs.
 
+`dtc-turn-fill` is a generic DTC boundary-authoring path. It does not prove
+ontology primitive readiness for ontology-affecting work. When a DTC can affect
+ontology, schema, routing, action, evaluation, ApplicationState, or other
+Digital Twin runtime behavior, use `fillPolicy: "ontology-dtc-build"` and
+complete all T0..T6 turns before approval or routing:
+
+- **T0** — ObjectType readiness.
+- **T1** — LinkType readiness.
+- **T2** — ActionType readiness.
+- **T3** — Function readiness.
+- **T4** — Chatbot/Application State readiness.
+- **T5** — Replay/Eval/Validation readiness.
+- **T6** — `ready-for-DTC` verdict.
+
+DATA, LOGIC, ACTION, and GOVERNANCE are valid phase labels only while authoring
+or enriching SIC through `fillPolicy: "context-engineering-to-sic"`. Do not
+treat those SIC/context-engineering lanes as DTC primitive readiness. For
+ontology-affecting DTC, missing approved SIC/DTC refs, `mutationAuthorized=false`,
+router domain mismatch, open blocking TurnCards, or missing ObjectType/LinkType/
+ActionType/Function/ApplicationState/Eval readiness are hard blockers.
+
 ## Hook Integration
 
 - `prompt-front-door-capture` is the canonical sync `UserPromptSubmit` capture.

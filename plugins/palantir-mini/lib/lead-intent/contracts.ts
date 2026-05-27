@@ -805,20 +805,23 @@ export function validateDigitalTwinChangeContract(
   }
   // Typed-ref enforcement: ontology-affecting DTCs require at least one touchedOntologyRef
   // and at least one requiredEvaluationRef. Backward-compat: non-affecting DTCs skip this block.
+  const ontologyAffecting = isOntologyAffectingDtc(contract);
   const bypass = process.env["PALANTIR_MINI_DTC_EVAL_REFS_BYPASS"] === "1";
-  if (isOntologyAffectingDtc(contract) && !bypass) {
+  const usesOntologyDtcBuild =
+    (contract as { fillPolicy?: string }).fillPolicy === "ontology-dtc-build";
+  if (ontologyAffecting && !bypass && !usesOntologyDtcBuild) {
     if (!contract.touchedOntologyRefs || contract.touchedOntologyRefs.length === 0) {
       issues.push({
         field: "touchedOntologyRefs",
         message:
-          "ontology-affecting DTC requires at least one touchedOntologyRef (ObjectType/LinkType/ActionType/Function); set PALANTIR_MINI_DTC_EVAL_REFS_BYPASS=1 to bypass (audited)",
+          "ontology-affecting DTC requires at least one touchedOntologyRef (ObjectType/LinkType/ActionType/Function)",
       });
     }
     if (!contract.requiredEvaluationRefs || contract.requiredEvaluationRefs.length === 0) {
       issues.push({
         field: "requiredEvaluationRefs",
         message:
-          "ontology-affecting DTC requires at least one requiredEvaluationRef (ValidationPackRef); set PALANTIR_MINI_DTC_EVAL_REFS_BYPASS=1 to bypass (audited)",
+          "ontology-affecting DTC requires at least one requiredEvaluationRef (ValidationPackRef)",
       });
     }
   }
@@ -905,7 +908,7 @@ export function validateDigitalTwinChangeContract(
       });
     }
   }
-  issues.push(...ontologyDtcBuildReadinessIssues(contract));
+  issues.push(...ontologyDtcBuildReadinessIssues(contract, { requirePolicy: ontologyAffecting }));
   return { valid: issues.length === 0, issues };
 }
 
