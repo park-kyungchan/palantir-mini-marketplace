@@ -128,6 +128,30 @@ function digitalTwinContract(): DigitalTwinChangeContract {
         sourcePath: "lib/ontology-engineering-workflow/types.ts",
         confidence: "exact",
       },
+      {
+        kind: "LinkType",
+        rid: "ontology://palantir-mini/link/FdeSessionGovernsWorkflowContract",
+        displayName: "FdeSessionGovernsWorkflowContract",
+        project: "palantir-mini",
+        sourcePath: "lib/ontology-engineering-workflow/types.ts",
+        confidence: "exact",
+      },
+      {
+        kind: "ActionType",
+        rid: "ontology://palantir-mini/action/RecordWorkflowDecision",
+        displayName: "RecordWorkflowDecision",
+        project: "palantir-mini",
+        sourcePath: "lib/ontology-engineering-workflow/types.ts",
+        confidence: "exact",
+      },
+      {
+        kind: "Function",
+        rid: "ontology://palantir-mini/function/DeriveMutationAuthorization",
+        displayName: "DeriveMutationAuthorization",
+        project: "palantir-mini",
+        sourcePath: "lib/ontology-engineering-workflow/index.ts",
+        confidence: "exact",
+      },
     ],
     requiredEvaluationRefs: [
       {
@@ -139,9 +163,27 @@ function digitalTwinContract(): DigitalTwinChangeContract {
         confidence: "exact",
       },
     ],
+    fillPolicy: "ontology-dtc-build",
+    ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
+      step: index + 1,
+      question: `T${index}`,
+      filledAt: "2026-05-27T00:00:00.000Z",
+      source: "agent",
+    })),
+    ontologyDtcBuildReadiness: {
+      objectTypeRefs: ["ontology://palantir-mini/object/WorkflowContract"],
+      linkTypeRefs: ["ontology://palantir-mini/link/FdeSessionGovernsWorkflowContract"],
+      actionTypeRefs: ["ontology://palantir-mini/action/RecordWorkflowDecision"],
+      functionRefs: ["ontology://palantir-mini/function/DeriveMutationAuthorization"],
+      applicationStateRefs: ["application-state:ontology-engineering-workflow"],
+      evaluationRefs: [
+        "project://palantir-mini/validation-pack/ontology-engineering-cross-runtime-enforcement",
+      ],
+      readinessVerdict: "ready-for-dtc",
+    },
     risks: [],
     approvalRef: "user:approved:ontology-engineering-workflow-test",
-  };
+  } as unknown as DigitalTwinChangeContract;
 }
 
 function approvedGateInput(

@@ -954,7 +954,7 @@ export async function routeIntent(
       basis: "ontology-affecting-raw-intent-fail-closed",
       rationale:
         "Routing FAIL-CLOSED: ontology-affecting intent without approved typed-ref DTC. " +
-        "Run pm_semantic_intent_gate with fillPolicy='dtc-turn-fill' to author DTC before routing.",
+        "Run pm_semantic_intent_gate with fillPolicy='ontology-dtc-build' to author DTC before routing.",
     };
   }
 
@@ -1092,7 +1092,7 @@ export async function routeIntent(
           ? `pm_intent_router FAIL-CLOSED: ontology-affecting intent="${input.intent.slice(0, 80)}" ` +
             `has no typed-ref DTC — returning contract_required. ` +
             `Sprint-097 W5-A dtc-T5; plan §8.2. Run pm_semantic_intent_gate with ` +
-            `fillPolicy='dtc-turn-fill' to author DTC before routing.`
+            `fillPolicy='ontology-dtc-build' to author DTC before routing.`
           : `pm_intent_router: contract gate stopped intent="${input.intent.slice(0, 80)}" ` +
             `status=${routingContractGate.status} species=${dispatchSpecies}`,
         hypothesis: isFailClosed

@@ -116,6 +116,49 @@ describe("ontology-dtc-build fill sequence", () => {
     expect(fields).toContain("ontologyDtcBuildReadiness.readinessVerdict");
   });
 
+  it("requires ontology-dtc-build policy when caller marks DTC as ontology-affecting", () => {
+    const contract = makeDtc({ status: "approved", approvalRef: "user:approved:test" });
+
+    const fields = ontologyDtcBuildReadinessIssues(contract, { requirePolicy: true }).map(
+      (issue) => issue.field,
+    );
+
+    expect(fields).toEqual(["fillPolicy"]);
+  });
+
+  it("accepts explicit non-applicable evidence for primitive readiness", () => {
+    const contract = {
+      ...makeDtc({ status: "approved", approvalRef: "user:approved:test" }),
+      fillPolicy: ONTOLOGY_DTC_BUILD_POLICY,
+      ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
+        step: index + 1,
+        question: `T${index}`,
+        filledAt: "2026-05-27T00:00:00.000Z",
+        source: "agent" as const,
+      })),
+      ontologyDtcBuildReadiness: {
+        objectTypeRefs: [],
+        linkTypeRefs: [],
+        actionTypeRefs: [],
+        functionRefs: [],
+        applicationStateRefs: [],
+        evaluationRefs: [],
+        nonApplicablePrimitiveKinds: [
+          "ObjectType",
+          "LinkType",
+          "ActionType",
+          "Function",
+          "ApplicationState",
+          "Eval",
+        ],
+        nonApplicableEvidenceRefs: ["evidence:non-applicable:read-only-boundary"],
+        readinessVerdict: "ready-for-dtc" as const,
+      },
+    } as unknown as DigitalTwinChangeContract;
+
+    expect(ontologyDtcBuildReadinessIssues(contract, { requirePolicy: true })).toEqual([]);
+  });
+
   it("throws RangeError for turns outside T0-T6", () => {
     const contract = makeDtc();
 

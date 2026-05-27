@@ -122,6 +122,29 @@ The response must make the selected workflow visible:
 Do not invent workflow semantics when the plugin tool, source, hook, or rule is
 unavailable.
 
+## Deterministic Phase Boundary
+
+Keep SIC/context-engineering lanes and DTC ontology primitive readiness separate:
+
+- DATA, LOGIC, ACTION, and GOVERNANCE are valid only while authoring or
+  enriching SIC through `context-engineering-to-sic`.
+- Ontology-affecting DTC work must use `ontology-dtc-build` T0..T6 before DTC
+  approval or routing:
+  - T0 ObjectType
+  - T1 LinkType
+  - T2 ActionType
+  - T3 Function
+  - T4 Chatbot/Application State
+  - T5 Replay/Eval/Validation
+  - T6 ready-for-DTC
+- `mutationAuthorized=false`, router domain mismatch, missing approved SIC/DTC
+  refs, open blocking TurnCards, and missing ObjectType/LinkType/ActionType/
+  Function/ApplicationState/Eval readiness are hard blockers.
+- Do not call a runnable CLI slice an `OntologyEngineering-complete agentic
+  workflow` unless approved SIC/DTC, WorkContract, SprintContract, router
+  binding, governed implementation, validation, and release evidence are all
+  present.
+
 ## User Decision Rendering
 
 Do not use runtime-native question UI for workflow decisions. Render

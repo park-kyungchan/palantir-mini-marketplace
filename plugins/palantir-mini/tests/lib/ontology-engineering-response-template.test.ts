@@ -57,6 +57,10 @@ describe("palantir-mini workflow response template", () => {
     expect(context).toContain("live official-doc currentness");
     expect(context).toContain("generated mirrors are non-authority");
     expect(context).toContain("cache/local loaders are consumer surfaces only");
+    expect(context).toContain("context-engineering-to-sic");
+    expect(context).toContain("ontology-dtc-build");
+    expect(context).toContain("ObjectType, LinkType, ActionType, Function");
+    expect(context).toContain("ApplicationState/Eval readiness");
   });
 
   test("builds mandatory context with non-developer explanation requirements", () => {

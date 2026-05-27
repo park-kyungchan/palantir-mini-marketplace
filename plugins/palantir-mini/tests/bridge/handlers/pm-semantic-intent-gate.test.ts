@@ -104,15 +104,34 @@ function approvedDigitalTwin(
     toolSurfaceReadiness: "Codex and Claude pass refs through additive fields.",
     evaluationPlan: "Targeted typecheck and handler/store tests.",
     touchedOntologyRefs: [
-      { kind: "ProjectSurface", rid: "project-surface:prompt-front-door" } as never,
+      { kind: "ObjectType", rid: "object-type:prompt-envelope" } as never,
+      { kind: "LinkType", rid: "link-type:prompt-envelope-contract" } as never,
+      { kind: "ActionType", rid: "action-type:approve-prompt-contract" } as never,
+      { kind: "Function", rid: "function:validate-prompt-contract" } as never,
     ],
     requiredEvaluationRefs: [
       { kind: "ValidationPack", rid: "validation-pack:prompt-front-door" } as never,
     ],
+    fillPolicy: "ontology-dtc-build",
+    ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
+      step: index + 1,
+      question: `T${index}`,
+      filledAt: "2026-05-27T00:00:00.000Z",
+      source: "agent",
+    })),
+    ontologyDtcBuildReadiness: {
+      objectTypeRefs: ["object-type:prompt-envelope"],
+      linkTypeRefs: ["link-type:prompt-envelope-contract"],
+      actionTypeRefs: ["action-type:approve-prompt-contract"],
+      functionRefs: ["function:validate-prompt-contract"],
+      applicationStateRefs: ["application-state:prompt-front-door-review"],
+      evaluationRefs: ["validation-pack:prompt-front-door"],
+      readinessVerdict: "ready-for-dtc",
+    },
     risks: [],
     approvalRef: "user:approved:wave3",
     ...overrides,
-  };
+  } as unknown as DigitalTwinChangeContract;
 }
 
 beforeEach(() => {

@@ -108,6 +108,21 @@ function approvedDigitalTwinContract(): DigitalTwinChangeContract {
         sourcePath: "ontology/data/visual3D.ts",
         confidence: "exact",
       },
+      {
+        kind: "LinkType",
+        rid: "ontology://palantir-math/link/Scene3DContainsGeometry",
+        confidence: "exact",
+      },
+      {
+        kind: "ActionType",
+        rid: "ontology://palantir-math/action/ApproveScene3D",
+        confidence: "exact",
+      },
+      {
+        kind: "Function",
+        rid: "ontology://palantir-math/function/ValidateScene3D",
+        confidence: "exact",
+      },
     ],
     requiredEvaluationRefs: [
       {
@@ -119,6 +134,22 @@ function approvedDigitalTwinContract(): DigitalTwinChangeContract {
         confidence: "exact",
       },
     ],
+    fillPolicy: "ontology-dtc-build",
+    ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
+      step: index + 1,
+      question: `T${index}`,
+      filledAt: "2026-05-27T00:00:00.000Z",
+      source: "agent",
+    })),
+    ontologyDtcBuildReadiness: {
+      objectTypeRefs: ["ontology://palantir-math/object/Scene3D"],
+      linkTypeRefs: ["ontology://palantir-math/link/Scene3DContainsGeometry"],
+      actionTypeRefs: ["ontology://palantir-math/action/ApproveScene3D"],
+      functionRefs: ["ontology://palantir-math/function/ValidateScene3D"],
+      applicationStateRefs: ["application-state:scene3d-review"],
+      evaluationRefs: ["project://palantir-math/validation-pack/router-tests"],
+      readinessVerdict: "ready-for-dtc",
+    },
     risks: [
       {
         riskId: "risk.tool-surface",
@@ -130,7 +161,7 @@ function approvedDigitalTwinContract(): DigitalTwinChangeContract {
       },
     ],
     approvalRef: "user:approved:scene3d",
-  };
+  } as unknown as DigitalTwinChangeContract;
 }
 
 beforeEach(() => {
