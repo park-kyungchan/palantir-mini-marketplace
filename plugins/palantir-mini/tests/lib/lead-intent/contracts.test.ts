@@ -211,6 +211,23 @@ describe("Lead Intent -> Digital Twin contracts", () => {
     expect(result.allowsRouting).toBe(true);
   });
 
+  test("malformed semantic approved noun and verb entries fail validation", () => {
+    const contract = {
+      ...approvedSemantic(),
+      approvedNouns: ["Scene3D", { rid: "ri.bad.object" } as unknown as string, " "],
+      approvedVerbs: ["author", ["render"] as unknown as string, ""],
+    };
+
+    const result = validateSemanticIntentContract(contract);
+    const fields = result.issues.map((issue) => issue.field);
+
+    expect(result.valid).toBe(false);
+    expect(fields).toContain("approvedNouns.1");
+    expect(fields).toContain("approvedNouns.2");
+    expect(fields).toContain("approvedVerbs.1");
+    expect(fields).toContain("approvedVerbs.2");
+  });
+
   test("approved SIC with context-engineering-to-sic policy fails before T0-T5 readiness", () => {
     const contract = {
       ...approvedSemantic(),
@@ -859,6 +876,53 @@ describe("Lead Intent -> Digital Twin contracts", () => {
       expect(fields).not.toContain("touchedOntologyRefs");
       expect(fields).not.toContain("requiredEvaluationRefs");
       expect(fields).toContain("fillPolicy");
+    });
+
+    test("structured affectedSurfaces fail validation instead of crashing routing projection", () => {
+      const dtc = ontologyAffectingDtc();
+      (dtc as unknown as { affectedSurfaces: unknown[] }).affectedSurfaces = [
+        {
+          surfaceRef: {
+            kind: "FileSurface",
+            rid: "file:bridge/handlers/pm-intent-router.ts",
+            sourcePath: "bridge/handlers/pm-intent-router.ts",
+          },
+        },
+      ];
+      dtc.touchedOntologyRefs = [
+        { kind: "ObjectType", rid: "ri.ontology.main.object-type.1", confidence: "exact" },
+      ];
+      dtc.requiredEvaluationRefs = [
+        { kind: "ValidationPack", rid: "ri.ontology.main.validation-pack.1", confidence: "exact" },
+      ];
+
+      const validation = validateDigitalTwinChangeContract(dtc);
+      expect(validation.valid).toBe(false);
+      expect(validation.issues.map((issue) => issue.field)).toContain("affectedSurfaces.0");
+
+      expect(() =>
+        projectRoutingFromContracts({
+          intent: "Fix pm_intent_router prompt-front-door shape gap",
+          scopePaths: ["bridge/handlers/pm-intent-router.ts"],
+          complexityHint: "cross-cutting",
+          projectRoot: "/tmp/project",
+          semanticIntentContractRef: "semantic-intent:test",
+          digitalTwinChangeContractRef: "digital-twin:test",
+          semanticIntentContract: approvedSemantic(),
+          digitalTwinChangeContract: dtc,
+        }),
+      ).not.toThrow();
+      const projection = projectRoutingFromContracts({
+        intent: "Fix pm_intent_router prompt-front-door shape gap",
+        scopePaths: ["bridge/handlers/pm-intent-router.ts"],
+        complexityHint: "cross-cutting",
+        projectRoot: "/tmp/project",
+        semanticIntentContractRef: "semantic-intent:test",
+        digitalTwinChangeContractRef: "digital-twin:test",
+        semanticIntentContract: approvedSemantic(),
+        digitalTwinChangeContract: dtc,
+      });
+      expect(projection.basis).toBe("unresolved-contract-refs");
     });
 
     test("non-ontology-affecting DTC with no typed refs has no enforcement triggered", () => {
