@@ -16,6 +16,7 @@ import type { IntentRouterInput } from "../../../bridge/handlers/pm-intent-route
 import {
   createPromptEnvelope,
   PromptFrontDoorStore,
+  withPromptState,
 } from "../../../lib/prompt-front-door";
 import type {
   DigitalTwinChangeContract,
@@ -782,6 +783,58 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       digitalTwinChangeContractRef: gate.contractRefs?.digitalTwinChangeContractRef,
       approvalRef: "user:approved:scene3d",
     });
+  });
+
+  test("malformed prompt-front-door DTC surface refs block instead of throwing", async () => {
+    const project = makeTmpProject();
+    const rawPrompt = "Fix pm_intent_router prompt-front-door shape handling";
+    const envelope = await createCapturedPrompt(project, rawPrompt);
+    const store = new PromptFrontDoorStore({ projectRoot: project });
+    const semanticRecord = await store.writeContractRecord(
+      envelope,
+      "semantic-intent",
+      approvedSemanticContract(),
+    );
+    const digitalTwin = approvedDigitalTwinContract();
+    (digitalTwin as unknown as { affectedSurfaces: unknown[] }).affectedSurfaces = [
+      {
+        surfaceRef: {
+          kind: "FileSurface",
+          rid: "file:bridge/handlers/pm-intent-router.ts",
+          sourcePath: "bridge/handlers/pm-intent-router.ts",
+        },
+        impact: "Router dispatch and prompt-front-door contract validation.",
+      },
+    ];
+    const digitalTwinRecord = await store.writeContractRecord(
+      envelope,
+      "digital-twin-change",
+      digitalTwin,
+    );
+    await store.writeEnvelope(
+      withPromptState(envelope, "digital_twin_approved", {
+        semanticIntentContractRef: semanticRecord.ref,
+        digitalTwinChangeContractRef: digitalTwinRecord.ref,
+        approvalRef: "user:approved:scene3d",
+      }),
+    );
+
+    const result = await routeIntent({
+      project,
+      intent: rawPrompt,
+      scopePaths: ["bridge/handlers/pm-intent-router.ts"],
+      complexityHint: "cross-cutting",
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+    });
+
+    expect(result.decision).toBe("blocked_for_clarification");
+    expect(result.routingProjection.basis).toBe("unresolved-contract-refs");
+    expect(result.contractGate.digitalTwin.issues.map((issue) => issue.field)).toContain(
+      "affectedSurfaces.0",
+    );
   });
 
   test("approved inline contracts override draft prompt-front-door refs from the same prompt", async () => {
