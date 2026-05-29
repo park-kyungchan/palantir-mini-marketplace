@@ -132,6 +132,7 @@ describe("prompt-front-door-capture", () => {
     });
 
     const ctx = result.hookSpecificOutput?.additionalContext ?? "";
+    expect(ctx.length).toBeLessThanOrEqual(3200);
     expect(ctx).toContain("palantir-mini workflow response template is mandatory");
     expect(ctx).toContain("현재 workflow phase");
     expect(ctx).toContain("선택된 palantir-mini workflow 또는 workflow gap");
