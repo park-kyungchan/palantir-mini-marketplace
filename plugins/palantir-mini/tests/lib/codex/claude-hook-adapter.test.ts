@@ -30,6 +30,12 @@ function makePlugin(hooks: HooksDocument, env: Record<string, string | undefined
       "}",
       "if (mode === 'user-context') {",
       "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: `gate ${payload.prompt}` } }));",
+      "} else if (mode === 'duplicate-context-a') {",
+      "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'shared context' } }));",
+      "} else if (mode === 'duplicate-context-b') {",
+      "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: ' shared   context ' } }));",
+      "} else if (mode === 'long-context') {",
+      "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'x'.repeat(5000) } }));",
       "} else if (mode === 'deny-pretool') {",
       "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'blocked by fake hook' } }));",
       "} else if (mode === 'stop-block') {",
@@ -104,6 +110,58 @@ describe("Codex Claude hook adapter", () => {
         additionalContext: "gate approve DTC",
       },
     });
+  });
+
+  test("UserPromptSubmit dedupes normalized additionalContext chunks", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        UserPromptSubmit: [
+          {
+            hooks: [
+              { type: "command", command: command("duplicate-context-a"), timeout: 3 },
+              { type: "command", command: command("duplicate-context-b"), timeout: 3 },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      { cwd: root, turn_id: "turn-dedupe", prompt: "approve DTC" },
+      options,
+    );
+
+    expect(result.response).toEqual({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "UserPromptSubmit",
+        additionalContext: "shared context",
+      },
+    });
+  });
+
+  test("UserPromptSubmit caps oversized additionalContext with an explicit footer", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        UserPromptSubmit: [
+          {
+            hooks: [{ type: "command", command: command("long-context"), timeout: 3 }],
+          },
+        ],
+      },
+    });
+
+    const result = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      { cwd: root, turn_id: "turn-context-cap", prompt: "approve DTC" },
+      options,
+    );
+
+    const ctx = (result.response.hookSpecificOutput as { additionalContext?: string }).additionalContext ?? "";
+    expect(ctx.length).toBeLessThanOrEqual(4000);
+    expect(ctx).toContain("palantir-mini Codex adapter: context capped at 4000 chars");
+    expect(ctx).toContain("omitted");
   });
 
   test("adapter live-reads hooks.json between invocations", async () => {

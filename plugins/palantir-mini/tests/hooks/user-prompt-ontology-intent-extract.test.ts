@@ -161,23 +161,26 @@ describe("all_conditions", () => {
 // ─── Advisory content ─────────────────────────────────────────────────────────
 
 describe("advisory_content", () => {
-  test("P9: advisory mentions downstream 6-step protocol", async () => {
+  test("P9: advisory mentions current public discovery path", async () => {
     const prompt = padToLength("refactor and implement", 600);
     const result = await userPromptOntologyIntentExtract({ prompt, prompt_length: 600 });
     const ctx = result.additionalContext ?? "";
     expect(ctx).toContain("pm-intent-to-ontology");
-    expect(ctx).toContain("prompt-front-door-capture");
     expect(ctx).toContain("pm_semantic_intent_gate");
-    expect(ctx).toContain("Bind SprintContract");
-    expect(ctx).toContain("get_ontology");
-    expect(ctx).toContain("propagation_audit_forward");
+    expect(ctx).toContain("ontology_context_query");
+    expect(ctx).toContain("pm_substrate_query");
+    expect(ctx).toContain("pm_intent_router");
+    expect(ctx).toContain("Bind WorkContract/SprintContract");
+    expect(ctx).not.toContain("pm_workflow_lineage_query");
+    expect(ctx).not.toContain("pm_event_query_by_grade");
+    expect(ctx).not.toContain("propagation_audit_forward");
   });
 
   test("P10: advisory marks ontology protocol as downstream discovery", async () => {
     const prompt = padToLength("implement build deploy", 600);
     const result = await userPromptOntologyIntentExtract({ prompt, prompt_length: 600 });
     const ctx = result.additionalContext ?? "";
-    expect(ctx).toContain("downstream 6-step discovery protocol");
+    expect(ctx).toContain("Use current public discovery");
     expect(ctx).not.toContain("SKIPPED");
   });
 
