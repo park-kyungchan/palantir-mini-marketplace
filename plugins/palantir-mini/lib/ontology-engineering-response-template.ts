@@ -151,53 +151,30 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
 ): string {
   const runtime = input.runtime ?? "unknown";
   const surface = input.enforcementSurface ?? "unknown";
+  const requiredFields = PALANTIR_MINI_WORKFLOW_RESPONSE_REQUIRED_FIELDS.join("; ");
+  const gapRequirements = PALANTIR_MINI_WORKFLOW_RESPONSE_GAP_REQUIREMENTS.join("; ");
+  const ssotRequirements = PALANTIR_MINI_WORKFLOW_RESPONSE_SSOT_REQUIREMENTS.join("; ");
+  const explanationRequirements =
+    PALANTIR_MINI_WORKFLOW_RESPONSE_EXPLANATION_REQUIREMENTS.join("; ");
   return [
-    "palantir-mini workflow response template is mandatory for this turn when the prompt is governed by palantir-mini mandatory workflow control.",
-    `Template authority: ${PALANTIR_MINI_WORKFLOW_RESPONSE_TEMPLATE_DOC}`,
-    `Runtime: ${runtime}`,
-    `Enforcement surface: ${surface}`,
+    "palantir-mini workflow response template is mandatory for governed palantir-mini turns.",
+    `Template authority=${PALANTIR_MINI_WORKFLOW_RESPONSE_TEMPLATE_DOC}; Runtime=${runtime}; Enforcement surface=${surface}`,
     "",
-    "Every user-visible palantir-mini workflow reply must include these fields:",
-    ...PALANTIR_MINI_WORKFLOW_RESPONSE_REQUIRED_FIELDS.map((field) => `- ${field}`),
+    `Every user-visible palantir-mini workflow reply must include these fields: ${requiredFields}.`,
     "",
-    "Non-applicable workflow fields:",
-    "- For non-Ontology workflows, FDE session ref and SIC/DTC status may be N/A, but the reply must say why.",
-    "- For read-only work, mutationAuthorized must be false or N/A with the read-only reason.",
-    "- If no matching workflow exists, state workflow/runtime gap instead of inventing behavior.",
+    "N/A rule: say why; if no workflow fits, state workflow/runtime gap.",
     "",
-    "Durable subagent output disclosure is mandatory:",
-    "- State durable subagent .md output status for substantial palantir-mini work: paths written, N/A with reason, or runtime gap.",
-    "- If runtime-native subagents cannot write files directly, state that Lead captured or must capture the output into .md before context compaction.",
+    "Durable subagent disclosure: state .md output status, paths or N/A reason, and Lead-capture/runtime gap before context compaction.",
     "",
-    "Runtime gap disclosure is mandatory:",
-    "- State whether Claude hooks are native in the current runtime.",
-    "- In Codex, state that Claude hooks are not proven native and that hook intent is manually mirrored unless smoke evidence proves otherwise.",
-    "- State MCP/tool availability, subagent/runtime parity, memory or managed-settings gaps when relevant.",
-    "- Do not claim Claude/Codex parity without native runtime smoke evidence.",
+    `Runtime gap disclosure is mandatory: ${gapRequirements}. In Codex, Claude hooks are not proven native without smoke evidence; say manual hook-intent mirroring or manually mirrored when applicable. No Claude/Codex parity claim without evidence.`,
     "",
-    "SSoT decision-basis disclosure is mandatory when giving a recommendation or judgment:",
-    "- Include an 'SSoT 판단 근거' section.",
-    "- Name the Palantir AIP Architecture, Palantir AIP Chatbot Studio, AI FDE, Ontology, Context Engineering, plugin source, schema, hook, rule, MCP output, or research source used.",
-    "- State that plugin source is workflow authority, generated mirrors are non-authority, and cache/local loaders are consumer surfaces only.",
-    "- For each source, state source/ref, provenance/currentness, used-for judgment, confidence/limit, and any runtime gap.",
-    "- If a source was not checked live, say so; do not imply live official-doc currentness from a plugin snapshot.",
+    `SSoT 판단 근거: include ${ssotRequirements}; use schema, hook, rule, MCP output, or research source as applicable. plugin source is workflow authority; cache/local loaders are consumer surfaces only. plugin snapshot is not live official-doc currentness.`,
     "",
-    "Deterministic phase boundary:",
-    "- DATA, LOGIC, ACTION, and GOVERNANCE are valid only through SIC/context-engineering-to-sic.",
-    "- Ontology-affecting DTC must use ontology-dtc-build T0..T6: ObjectType, LinkType, ActionType, Function, Chatbot/Application State, Replay/Eval/Validation, ready-for-DTC.",
-    "- mutationAuthorized=false, router domain mismatch, missing approved SIC/DTC refs, open blocking TurnCards, and missing ObjectType/LinkType/ActionType/Function/ApplicationState/Eval readiness are hard blockers.",
-    "- Do not summarize a runnable CLI slice as an OntologyEngineering-complete agentic workflow without approved SIC/DTC, WorkContract, SprintContract, router binding, governed implementation, validation, and release evidence.",
+    "Deterministic boundary: DATA/LOGIC/ACTION/GOVERNANCE uses context-engineering-to-sic. Ontology DTC uses ontology-dtc-build T0..T6: ObjectType, LinkType, ActionType, Function, Chatbot/Application State, Replay/Eval/Validation, ready-for-DTC. Missing approval, mutationAuthorized=false, router mismatch, blocking TurnCards, or missing ObjectType/LinkType/ActionType/Function/ApplicationState/Eval readiness blocks mutation.",
     "",
-    "Plain-language explanation for non-developers:",
-    "- what this request means: explain the user's request in plain language.",
-    "- why this source is trusted: explain the authority path or evidence.",
-    "- what I am allowed to do now: name the currently allowed action.",
-    "- what needs user approval: name any pending decision or mutation gate.",
-    "- what gap or uncertainty remains: name the runtime, SSoT, or evidence gap.",
+    `Plain-language explanation for non-developers must cover: ${explanationRequirements}.`,
     "",
-    "Question UI boundary:",
-    "- Do not use runtime-native question UI for palantir-mini workflow decisions.",
-    "- Render WorkflowContract / TurnCardDecisionSpec in ordinary assistant text and interpret the user's text answer as UserDecisionRecord.",
+    "Question UI boundary: do not use runtime-native question UI for palantir-mini workflow decisions; render WorkflowContract / TurnCardDecisionSpec in assistant text and interpret the user's text answer as UserDecisionRecord.",
   ].join("\n");
 }
 

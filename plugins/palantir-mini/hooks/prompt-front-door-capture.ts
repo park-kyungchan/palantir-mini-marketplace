@@ -150,13 +150,7 @@ function buildGateContext(envelope: PromptEnvelope, universalOntologyEntryRef?: 
     `  sessionId: ${envelope.sessionId}`,
     `  runtime: ${envelope.runtime}`,
     "",
-    "palantir-mini orchestration policy:",
-    "- Query ontology context first when available; request DTC approval only when mutation is needed.",
-    "- UniversalOntologyEntry and OntologyContextSeed are retrieval/scoring/warning inputs only; they are not mutation authority.",
-    "- Keep runtime-local files as thin loaders; do not copy agent semantics into Codex/Claude-local agent files when the plugin can own the workflow.",
-    "- Use palantir-mini routing first (`pm_intent_router` or `pm-delegate-or-direct`) to decide lead-direct vs delegated work.",
-    "- If delegation is selected, use the current runtime's native subagent surface: Codex `spawn_agent` / `/agent`, Claude `Agent`, with the plugin recipe as the source of truth.",
-    "- Prefer built-in runtime roles unless a project/plugin-owned agent definition is already exposed by that runtime; preserve explicit native gaps instead of claiming parity.",
+    "Policy: Query ontology context first when available. Request DTC approval only for mutation. UniversalOntologyEntry and OntologyContextSeed are retrieval/warning inputs, not mutation authority. Keep runtime-local files thin. Route with palantir-mini first; use native subagents with plugin recipe authority and state native gaps.",
   ];
 
   if (isOntologyEngineeringResponseRequired(envelope.promptExcerpt ?? "")) {

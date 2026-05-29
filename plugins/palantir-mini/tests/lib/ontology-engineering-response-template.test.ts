@@ -32,6 +32,7 @@ describe("palantir-mini workflow response template", () => {
       enforcementSurface: "UserPromptSubmit",
     });
 
+    expect(context.length).toBeLessThanOrEqual(2400);
     for (const field of ONTOLOGY_ENGINEERING_RESPONSE_REQUIRED_FIELDS) {
       expect(context).toContain(field);
     }
