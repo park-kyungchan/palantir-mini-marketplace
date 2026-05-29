@@ -129,6 +129,7 @@ Weights MUST sum to 1.0.
 ## Output contract
 
 - statePath: .palantir-mini/session/agent-output/harness-planner.json
+- markdownReportPath: .palantir-mini/session/agent-output/harness-planner.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

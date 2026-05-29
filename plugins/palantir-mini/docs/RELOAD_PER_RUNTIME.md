@@ -181,7 +181,7 @@ interactive session.
 
 6. **Testing hook changes in Claude Code CLI without verifying Codex parity** — supported Codex hook events are adapter-backed, but Claude-only task/team lifecycle surfaces remain in `hooks/claude-hooks.json`. Consult `docs/NATIVE_RUNTIME_GAPS.md` before declaring a hook "working cross-runtime."
 
-7. **Adding a new skill `.md` file without a `/reload-plugins`** — skill discovery reads the skills directory at session start. An active Claude Code CLI session will not see a newly added skill until reload or fresh session.
+7. **Adding a new skill `.md` file without a `/reload-plugins`** — Claude skill discovery reads the canonical `skills/` directory at session start. Codex default skill discovery reads the curated `codex-skills/` directory from `.codex-plugin/plugin.json`. Active Claude and Codex CLI sessions will not see newly added or moved skills until reload or fresh session.
 
 8. **Forgetting that agent `.md` frontmatter is cached at spawn, not at session start** — if you modify an agent's frontmatter and immediately try to spawn it in the same session without `/reload-plugins`, the old definition may be used.
 

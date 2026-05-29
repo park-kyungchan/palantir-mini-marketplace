@@ -1,7 +1,7 @@
 ---
 name: pm-dtc-fill
 category: core-workflow
-description: "Turn-by-turn DTC (DigitalTwinChangeContract) fill conversation. Use after SIC approval to author DTC boundary via plugin-owned TurnCard decisions surfaced in SemanticWorkbenchState...."
+description: "Turn-by-turn DTC (DigitalTwinChangeContract) fill conversation. Use after SIC..."
 allowed-tools: Read
 effort: low
 disable-model-invocation: false
@@ -26,6 +26,23 @@ Turn map:
 - T5 — `evaluationPlan` + `requiredEvaluationRefs`
 - T6 — finalize (verdict transitions to `dtc-filled`; triggers grading)
 
+`dtc-turn-fill` is generic DTC boundary fill. For ontology-affecting DTC, do
+not use this generic sequence as approval readiness. Use
+`fillPolicy="ontology-dtc-build"` and complete the plugin-owned T0..T6 build
+sequence:
+
+- T0 — ObjectType
+- T1 — LinkType
+- T2 — ActionType
+- T3 — Function
+- T4 — Chatbot/Application State
+- T5 — Replay/Eval/Validation
+- T6 — ready-for-DTC
+
+DATA, LOGIC, ACTION, and GOVERNANCE belong to SIC/context-engineering-to-sic
+readiness. They are not substitutes for DTC ObjectType/LinkType/ActionType/
+Function/ApplicationState/Eval readiness.
+
 ## Outputs
 - Per turn: SemanticWorkbenchState.reviewCards[0] = current DTC turn card; SemanticWorkbenchState.dtcPanel = DtcPanelProjection
 - On T6: `gradeDigitalTwinChangeContract` dispatches `dtc-rubric/v1`; on pass + user approval, envelope advances to `digital_twin_approved`
@@ -48,6 +65,9 @@ Start with `ontology_context_query` for read context, then use this skill only
 after the SIC is approved or the user has explicitly approved the DTC authoring
 task. The produced DTC remains a contract artifact; it does not authorize
 mutation until the approval reference and sprint/governance checks are present.
+For ontology-affecting DTC, missing approved refs, `mutationAuthorized=false`,
+router domain mismatch, open blocking TurnCards, and missing primitive readiness
+remain hard blockers even when generic DTC fields look complete.
 
 ## Cross-references
 - Workbench template: `workbenches/hitl-lead-feedback/templates/dtc-turn-card.md`

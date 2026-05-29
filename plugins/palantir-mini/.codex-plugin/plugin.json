@@ -22,7 +22,7 @@
     "ontology-first-brain",
     "multi-harness"
   ],
-  "skills": "./skills/",
+  "skills": "./codex-skills/",
   "hooks": "./hooks/codex-hooks.json",
   "mcpServers": "./.mcp.json",
   "interface": {

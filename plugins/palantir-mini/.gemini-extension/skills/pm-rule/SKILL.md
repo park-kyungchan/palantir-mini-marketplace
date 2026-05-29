@@ -1,7 +1,7 @@
 ---
 name: pm-rule
 category: delete-candidate
-description: "Fetch or enumerate Claude-local overlay rules from ~/.claude/rules/ via palantir-mini MCP. Thin wrapper over the consolidated `pm_rule_query` handler (schemas v1.31.0 Rule..."
+description: "Fetch or enumerate Claude-local overlay rules from ~/.claude/rules/ via..."
 allowed-tools: mcp__palantir-mini__pm_rule_query
 effort: low
 disable-model-invocation: false

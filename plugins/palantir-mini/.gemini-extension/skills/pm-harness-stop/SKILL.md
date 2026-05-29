@@ -1,7 +1,7 @@
 ---
 name: pm-harness-stop
 category: core-workflow
-description: "Orderly abort of all active harness loops in the current project. Reads bound sprint contracts, writes user-aborted signals, emits sprint_aborted events, kills live generator..."
+description: "Orderly abort of all active harness loops in the current project. Reads bound sprint..."
 allowed-tools: Read Write Bash mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__auto_spawn_replacement mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 effort: high
 disable-model-invocation: false

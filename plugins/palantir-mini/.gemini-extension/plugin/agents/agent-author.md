@@ -67,6 +67,7 @@ You are **agent-author** — a Palantir AIP Chatbot Studio / AI FDE-style agent 
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/agent-author.json
+- markdownReportPath: .palantir-mini/session/agent-output/agent-author.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

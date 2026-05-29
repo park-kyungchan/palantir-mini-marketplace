@@ -16,8 +16,10 @@ The Codex runtime integrates palantir-mini hooks through the plugin manifest:
 
 `hooks/codex-hooks.json` MUST remain a delegation-only entrypoint registry. It
 uses only Codex-supported lifecycle events, regex-safe matchers, and commands
-that call `lib/codex/claude-hook-adapter.ts`. Durable hook intent is read from
-the canonical source root at `plugins/palantir-mini/hooks/hooks.json`.
+that call `lib/codex/claude-hook-adapter.ts`. Durable shared hook intent is read from the canonical source root at
+`plugins/palantir-mini/hooks/hooks.json`. Claude-only task/team lifecycle
+mounts live in `plugins/palantir-mini/hooks/claude-hooks.json` and are not part
+of the Codex live-read source.
 
 ## Adapter Architecture
 
@@ -26,14 +28,25 @@ Codex runtime
   → .codex-plugin/plugin.json
       → hooks/codex-hooks.json  (regex-safe Codex entrypoints)
           → lib/codex/claude-hook-adapter.ts  (Codex adapter)
-              → hooks/hooks.json  (canonical hook intent registry)
+              → hooks/hooks.json  (shared hook intent registry)
 ```
 
-The adapter performs a **live-read** of `hooks/hooks.json` at runtime — it does
-not hardcode source hook matchers or commands. Changes inside already-registered
-hook events are visible to Codex through the canonical source read path. Adding
-or removing Codex entrypoint events still requires updating `hooks/codex-hooks.json`
-and restarting Codex so the runtime re-reads its session hook surface.
+The adapter performs a **live-read** of shared `hooks/hooks.json` at runtime —
+it does not hardcode source hook matchers or commands. Changes inside already-
+registered shared hook events are visible to Codex through the canonical source
+read path. Adding or removing Codex entrypoint events still requires updating
+`hooks/codex-hooks.json` and restarting Codex so the runtime re-reads its
+session hook surface. Claude-only `TaskCreated`, `TaskCompleted`, and
+`TeammateIdle` registrations belong in `hooks/claude-hooks.json`.
+
+Codex `PermissionRequest` is a runtime wire event, not a separate palantir-mini
+policy family. When the adapter receives `PermissionRequest`, it looks up and
+executes the shared `PreToolUse` hook group from `hooks/hooks.json`, and the
+hook script payload uses `hook_event_name: "PreToolUse"`. The adapter still
+returns Codex `PermissionRequest` response shape to the runtime, so a denied
+shared policy becomes a `PermissionRequest` deny decision. `--match
+PermissionRequest` reports this bridge explicitly with
+`policyEventName: "PreToolUse"`.
 
 The live-read claim is covered by `tests/lib/codex/claude-hook-adapter.test.ts`:
 the smoke test rewrites a temporary `hooks.json` between adapter calls and expects
@@ -52,13 +65,17 @@ agents, tests, and runtime manifests. Per `SSOT-AUTHORITY.md`:
 
 The Codex entrypoint registry at `hooks/codex-hooks.json` is **not** a fork. It
 does not duplicate workflow policy. It only registers supported Codex events and
-delegates to the adapter, while hook intent remains in `hooks/hooks.json`.
+delegates to the adapter, while shared hook intent remains in `hooks/hooks.json`.
 
 ## Sync Script
 
 `scripts/sync-codex-adapter.ts` regenerates the legacy fallback shim from the
-SSoT `hooks.json`. The generated timestamp is derived from `hooks/hooks.json`
+shared SSoT `hooks.json`. The generated timestamp is derived from `hooks/hooks.json`
 mtime, so recurring sync jobs are idempotent when the registry has not changed.
+Runtime-local sync is a separate lane after the source change has merged and the
+installed Codex plugin payload has been refreshed. Do not edit the fallback shim
+or `~/.codex` as part of a source-lane PR; regenerate it from the installed
+payload with this script.
 
 Codex fleet sync also runs this generator from:
 
@@ -153,7 +170,8 @@ drift violation and keep the Codex registry as entrypoints only.
 - `plugins/palantir-mini/hooks/codex-hooks.json` — Codex regex-safe hook entrypoints.
 - `plugins/palantir-mini/lib/codex/claude-hook-adapter.ts` — Codex adapter owner.
 - `lib/runtime/capability-matrix.ts` — Codex vs Claude event capability map.
-- `plugins/palantir-mini/hooks/hooks.json` — the live SSoT hook intent registry.
+- `plugins/palantir-mini/hooks/hooks.json` — the live shared SSoT hook intent registry.
+- `plugins/palantir-mini/hooks/claude-hooks.json` — Claude-only task/team lifecycle hook registry.
 - `~/.codex/config.toml` — Codex runtime configuration; plugin install points at `.codex-plugin/plugin.json`.
 - `~/.claude/rules/CONTEXT.md §13.5` — cross-runtime coexistence policy.
 - `~/.claude/rules/CONTEXT.md §15 Glossary` — harness taxonomy.

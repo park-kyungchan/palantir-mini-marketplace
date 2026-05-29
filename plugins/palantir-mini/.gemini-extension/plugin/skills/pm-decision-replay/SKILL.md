@@ -1,7 +1,7 @@
 ---
 name: pm-decision-replay
 category: maintenance
-description: "BackProp circuit replay — folds T3+ events only (T2+ optional via flag) for noise-free decision lineage replay. Composes pm_event_query_by_grade(gradeFilter=\"T3+\") +..."
+description: "BackProp circuit replay — folds T3+ events only (T2+ optional via flag) for..."
 allowed-tools: mcp__palantir-mini__pm_event_query_by_grade mcp__palantir-mini__replay_lineage
 effort: low
 disable-model-invocation: false

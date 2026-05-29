@@ -1,7 +1,7 @@
 ---
 name: pm-guard
 category: core-workflow
-description: "Full safety mode — destructive command warnings + directory-scoped edits. Combines /palantir-mini:pm-careful (warns before rm -rf, DROP TABLE, force-push, etc.) with..."
+description: "Full safety mode — destructive command warnings + directory-scoped edits. Combines..."
 allowed-tools: Read Write Edit Grep Glob Bash
 effort: medium
 disable-model-invocation: false

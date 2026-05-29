@@ -1,7 +1,7 @@
 ---
 name: pm-orchestrate
 category: core-workflow
-description: "Ontology-Driven work orchestration for complex multi-step tasks. Enforces a 6-phase protocol: Deep Context Injection, Parallel Domain Audit, User Scope Decision, Task DAG..."
+description: "Ontology-Driven work orchestration for complex multi-step tasks. Enforces a 6-phase..."
 argument-hint: "task description"
 context: standard
 model: opus

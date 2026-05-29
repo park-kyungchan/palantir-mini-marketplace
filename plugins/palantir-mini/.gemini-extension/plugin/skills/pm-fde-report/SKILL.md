@@ -1,7 +1,7 @@
 ---
 name: pm-fde-report
 category: fde-readiness
-description: "Render an FDEGapReportDetailed (output of pm-fde-grade) as a human-readable markdown file written to ~/.claude/plans/YYYY-MM-DD-fde-gap-report-<slug>.md. Returns the absolute..."
+description: "Render an FDEGapReportDetailed (output of pm-fde-grade) as a human-readable markdown..."
 allowed-tools: Read Write Bash
 effort: low
 disable-model-invocation: false

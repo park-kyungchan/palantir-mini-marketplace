@@ -1,7 +1,7 @@
 ---
 name: pm-fde-naming-audit
 category: fde-workflow
-description: "Run a read-only FDE naming audit against the current project — scans markdown, TypeScript lib, and skill docs for AIP Agent Studio / AIP Chatbot Studio /..."
+description: "Run a read-only FDE naming audit against the current project — scans markdown,..."
 allowed-tools: Read mcp__palantir-mini__emit_event
 effort: medium
 disable-model-invocation: false

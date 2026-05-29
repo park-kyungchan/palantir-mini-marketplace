@@ -1,7 +1,7 @@
 ---
 name: pm-eval-suite-compare
 category: merge-candidate
-description: "Compare two AIPEvaluationRun results (baseline vs candidate) and produce AIPExperimentDeclaration with promote/hold/rollback decision + rationale."
+description: "Compare two AIPEvaluationRun results (baseline vs candidate) and produce..."
 allowed-tools: mcp__palantir-mini__emit_event Read Write Bash
 effort: high
 disable-model-invocation: false

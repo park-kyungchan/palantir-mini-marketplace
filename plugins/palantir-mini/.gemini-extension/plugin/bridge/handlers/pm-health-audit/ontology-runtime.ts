@@ -8,6 +8,7 @@ import { validateCapabilityContract } from "../../../lib/capability/capability-c
 import { listPendingContextApprovals } from "../../../lib/ontology-context/approval";
 import { readEvents } from "../../../lib/event-log/read";
 import {
+  CLAUDE_ONLY_HOOK_EVENTS,
   CODEX_SCHEMA_ONLY_HOOK_EVENTS,
   CODEX_UNSUPPORTED_HOOK_EVENTS,
   projectRuntimeHookMount,
@@ -424,6 +425,13 @@ function validateSubrepoRisk(projectRoot: string): OntologyRuntimeHealthSignal[]
 
 function validateRuntimeHookSplit(): OntologyRuntimeHealthSignal[] {
   const projection = projectRuntimeHookMount("codex");
+  const projectedCodexEvents = new Set([
+    ...projection.supportedEvents,
+    ...projection.unsupportedEvents,
+    ...projection.schemaOnlyEvents,
+    ...projection.workflows.map((workflow) => workflow.event),
+  ]);
+  const leakedClaudeOnly = CLAUDE_ONLY_HOOK_EVENTS.filter((event) => projectedCodexEvents.has(event));
   const missingUnsupported = CODEX_UNSUPPORTED_HOOK_EVENTS.filter((event) =>
     !projection.unsupportedEvents.includes(event)
   );
@@ -431,6 +439,15 @@ function validateRuntimeHookSplit(): OntologyRuntimeHealthSignal[] {
     !projection.schemaOnlyEvents.includes(event)
   );
   const signals: OntologyRuntimeHealthSignal[] = [];
+  if (leakedClaudeOnly.length > 0) {
+    signals.push(signal(
+      "runtime-hook-split-drift",
+      "lib/hooks/workflow-registry.ts",
+      "Claude-only task and teammate lifecycle events must not project into Codex hook mounts",
+      leakedClaudeOnly.join(", "),
+      "fail",
+    ));
+  }
   if (missingUnsupported.length > 0) {
     signals.push(signal(
       "runtime-hook-split-drift",

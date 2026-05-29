@@ -1,7 +1,7 @@
 ---
 name: pm-pr-impact
 category: maintenance
-description: "PR-scoped impact analysis — diffs current branch vs base, computes downstream blast radius per changed RID via impact_query MCP, renders markdown report. Replaces per-PR..."
+description: "PR-scoped impact analysis — diffs current branch vs base, computes downstream blast..."
 effort: low
 disable-model-invocation: false
 ---

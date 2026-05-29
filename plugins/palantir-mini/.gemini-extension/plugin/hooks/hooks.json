@@ -1,5 +1,5 @@
 {
-  "description": "v5.2.2 Surface Consolidation + PR-13 hook-enforcement: UserPromptSubmit prompt-front-door-capture stores promptId/promptHash, context-capsule-init persists prompt-local capsules, pm_semantic_intent_gate supports workflow turn-card decisions plus structured approval provenance and prompt-envelope lookup attribution, pm_intent_router routes from approved prompt-local typed contract refs, projectScope metadata informs impact/gate/router decisions, MCP/skill lifecycle metadata is self-checked, hook timeout policy is strict by default, Codex adapter diagnostics emit timeout/capability evidence, and PALANTIR_MINI_PROMPT_DTC_GATE_MODE remains selective-blocking by default. Ontology Engineering workflow-control-plane mutation is guarded by FDE provenance and runtime-native question UI is forbidden as semantic authority. Legacy complex-task/overlay/ontology/lead-model/pre-delegation/lead-direct/lead-git hooks are downstream governance/advisory only, not prompt-front-door proof. PR-10: workflow-trace-leak-detect PreCompact advisory hook added (scans workflow-traces/*.json for unclosed traces >1h). PR-13: prompt-dtc-enforcement-gate + commit-edits-precondition collapsed into commit-edits-governance for commit_edits matcher (timeout 40s→15s). PR 5.6: agent-decision-trail-enforce PreToolUse hook added — verifies subagent MCP gate-crossing calls have paired agent_decision_logged event in last 30s; advisory on miss, blocking after 5 strikes per session (canonical plan v2 §4 row 5.6 + rule 12 v3.4.0 §Subagent decision audit invariant). PR 5.7: write-scope-runtime-enforce PreToolUse hook added — verifies Edit/Write/MultiEdit target paths against subagent writableRoot (CLAUDE_WORKTREE_PATH → project-scope.json → Lead-direct exempt); advisory on miss, blocking after 3 strikes per session (canonical plan v2 §4 row 5.7 + rule 16 v4.1.0 §Roles worktree isolation). PR 5.14: ontology-engineering-turn-fan-out-gate PreToolUse:Agent advisory→blocking hook added — SIC evidenceDomains > 2 triggers per-domain evidence-gathering fan-out enforcement (rule 28 v1.0.0; canonical plan v2 §4 row 5.14). PR 5.15: evidence-domain-coverage-gate PreToolUse hook added — fires on DTC-mutating MCP tools (apply_edit_function / commit_edits / ontology_context_query); derives evidence-domains from SIC.affectedSurfaces[] top-level path segments; asserts OntologyContextSeed.supportingResearchRefs ≥1 ref per domain; advisory after 1st miss, blocking after 2nd; bypass PALANTIR_MINI_EVIDENCE_DOMAIN_COVERAGE_BYPASS=1 (per canonical plan v2 §4 row 5.15).",
+  "description": "Runtime-neutral palantir-mini hook workflow intent registry. Runtime-specific lifecycle events such as Claude TaskCreated, TaskCompleted, and TeammateIdle live in hooks/claude-hooks.json and must not be mounted by Codex.",
   "hooks": {
     "PreToolUse": [
       {
@@ -89,6 +89,7 @@
             "if": "Edit|Write|MultiEdit",
             "timeout": 25,
             "permissionDecision": "defer",
+            "failureMode": "fail-closed",
             "statusMessage": "MCP-first gate (rule 12 v3.10.0 §MCP-First protocol; BLOCKING sprint-062 W3-α)…"
           },
           {
@@ -134,7 +135,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits",
         "policyRef": "hook-step:pretool-commit-edits-governance",
         "hooks": [
           {
@@ -142,12 +143,13 @@
             "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/commit-edits-governance.ts\"",
             "timeout": 75,
             "permissionDecision": "defer",
+            "failureMode": "fail-closed",
             "statusMessage": "commit-edits governance gate (PR-11 policy compiler + PR-13 merge)…"
           }
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__emit_event",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__emit_event|mcp__palantir_mini__emit_event|mcp__palantir_mini__.emit_event|mcp__palantir-mini__emit_event|mcp_palantir-mini_emit_event|mcp_palantir_mini_emit_event",
         "policyRef": "hook-step:pretool-emit-event-value",
         "hooks": [
           {
@@ -160,7 +162,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__plugin_palantir-mini_palantir-mini__emit_event",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits|mcp__plugin_palantir-mini_palantir-mini__emit_event|mcp__palantir_mini__emit_event|mcp__palantir_mini__.emit_event|mcp__palantir-mini__emit_event|mcp_palantir-mini_emit_event|mcp_palantir_mini_emit_event",
         "policyRef": "hook-step:pretool-agent-decision-pre",
         "hooks": [
           {
@@ -180,7 +182,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__commit_edits|mcp__palantir_mini__ontology_context_query",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__ontology_context_query|mcp__palantir_mini__.ontology_context_query|mcp__palantir-mini__ontology_context_query|mcp_palantir-mini_ontology_context_query|mcp_palantir_mini_ontology_context_query",
         "policyRef": "hook-step:pretool-evidence-domain-coverage",
         "hooks": [
           {
@@ -193,7 +195,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router|mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__pm_intent_router|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__ontology_context_query",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router|mcp__palantir_mini__pm_intent_router|mcp__palantir_mini__.pm_intent_router|mcp__palantir-mini__pm_intent_router|mcp_palantir-mini_pm_intent_router|mcp_palantir_mini_pm_intent_router|mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__ontology_context_query|mcp__palantir_mini__.ontology_context_query|mcp__palantir-mini__ontology_context_query|mcp_palantir-mini_ontology_context_query|mcp_palantir_mini_ontology_context_query",
         "policyRef": "hook-step:pretool-ontology-routing-dtc",
         "hooks": [
           {
@@ -351,7 +353,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric|mcp__palantir_mini__grade_outcome_with_rubric|mcp__palantir_mini__.grade_outcome_with_rubric|mcp__palantir-mini__grade_outcome_with_rubric|mcp_palantir-mini_grade_outcome_with_rubric|mcp_palantir_mini_grade_outcome_with_rubric",
         "policyRef": "hook-step:posttool-grade-rubric",
         "hooks": [
           {
@@ -364,7 +366,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits",
         "policyRef": "hook-step:posttool-commit-edits-backprop",
         "hooks": [
           {
@@ -391,7 +393,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__emit_event",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__emit_event|mcp__palantir_mini__emit_event|mcp__palantir_mini__.emit_event|mcp__palantir-mini__emit_event|mcp_palantir-mini_emit_event|mcp_palantir_mini_emit_event",
         "policyRef": "hook-step:posttool-emit-event-value",
         "hooks": [
           {
@@ -425,7 +427,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__plugin_palantir-mini_palantir-mini__emit_event",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits|mcp__plugin_palantir-mini_palantir-mini__emit_event|mcp__palantir_mini__emit_event|mcp__palantir_mini__.emit_event|mcp__palantir-mini__emit_event|mcp_palantir-mini_emit_event|mcp_palantir_mini_emit_event",
         "policyRef": "hook-step:posttool-agent-decision-post",
         "hooks": [
           {
@@ -438,7 +440,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router",
+        "matcher": "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router|mcp__palantir_mini__pm_intent_router|mcp__palantir_mini__.pm_intent_router|mcp__palantir-mini__pm_intent_router|mcp_palantir-mini_pm_intent_router|mcp_palantir_mini_pm_intent_router",
         "policyRef": "hook-step:posttool-router-suggestion",
         "hooks": [
           {
@@ -613,24 +615,6 @@
         ]
       }
     ],
-    "TaskCompleted": [
-      {
-        "policyRef": "hook-step:taskcompleted-inbox-clean",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" task-completed-gate",
-            "timeout": 50
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" task-completed-inbox-clean",
-            "timeout": 25,
-            "async": true
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "policyRef": "hook-step:stop-session-closeout",
@@ -795,51 +779,6 @@
             "timeout": 40,
             "async": true,
             "statusMessage": "Plugin rules overlay capsule injector (sprint-061 A.W2.b)…"
-          }
-        ]
-      }
-    ],
-    "TaskCreated": [
-      {
-        "policyRef": "hook-step:taskcreated-granularity",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" task-created",
-            "timeout": 50
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" task-created-granularity-gate",
-            "timeout": 50,
-            "decision": "block",
-            "statusMessage": "Validating task granularity (rule 12 §Task granularity)…"
-          }
-        ]
-      }
-    ],
-    "TeammateIdle": [
-      {
-        "policyRef": "hook-step:teammateidle-shutdown-digest",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" teammate-idle",
-            "timeout": 75,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" idle-auto-shutdown",
-            "timeout": 25,
-            "decision": "block",
-            "statusMessage": "Idle auto-shutdown check…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" lead-idle-digest",
-            "timeout": 25,
-            "async": true
           }
         ]
       }

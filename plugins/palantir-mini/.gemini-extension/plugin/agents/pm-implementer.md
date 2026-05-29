@@ -95,6 +95,7 @@ already declared in its registry.
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/pm-implementer.json
+- markdownReportPath: .palantir-mini/session/agent-output/pm-implementer.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

@@ -1,7 +1,7 @@
 ---
 name: pm-t4-promotion-review
 category: research
-description: "Audit T4-graded events (rule 26 §Substrate routing top tier — T3 + D2 K-LLM consensus) and surface promotion candidates for shared-core / canonical surfaces."
+description: "Audit T4-graded events (rule 26 §Substrate routing top tier — T3 + D2 K-LLM..."
 allowed-tools: mcp__palantir-mini__pm_event_query_by_grade mcp__palantir-mini__replay_lineage mcp__palantir-mini__emit_event Read Bash
 effort: high
 disable-model-invocation: false

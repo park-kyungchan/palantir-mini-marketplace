@@ -1,7 +1,7 @@
 ---
 name: pm-harness-abort
 category: core-workflow
-description: "Force-terminate a FeedbackLoop. Preserves all iteration artifacts + evidence, emits feedback_loop termination event with reason=\"user-aborted\". Generator and Evaluator..."
+description: "Force-terminate a FeedbackLoop. Preserves all iteration artifacts + evidence, emits..."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__close_feedback_loop mcp__plugin_palantir-mini_palantir-mini__emit_event SendMessage
 argument-hint: "<loop-rid>   (FeedbackLoopRid from pm-harness-status)"
 effort: medium

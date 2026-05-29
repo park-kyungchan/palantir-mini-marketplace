@@ -1,7 +1,7 @@
 ---
 name: pm-restore
 category: maintenance
-description: "Restore a palantir-mini portable bundle into an explicit checkout directory. Verifies SHA-256 integrity before extraction."
+description: "Restore a palantir-mini portable bundle into an explicit checkout directory...."
 disable-model-invocation: true
 allowed-tools: Read Bash(tar*) Bash(sha256sum*) Bash(mkdir*) Bash(test*) Bash(ls*) Bash(rsync*) mcp__plugin_palantir-mini_palantir-mini__emit_event
 effort: medium

@@ -1,7 +1,7 @@
 ---
 name: pm-fde-grade
 category: fde-readiness
-description: "Grade an FDEOntologyBuildSession against the 17-criterion FDE Ontology Build Readiness rubric (rubric:fde-readiness/v1). Returns FDEGapReportDetailed with per-criterion..."
+description: "Grade an FDEOntologyBuildSession against the 17-criterion FDE Ontology Build..."
 allowed-tools: Read Bash
 effort: medium
 disable-model-invocation: false

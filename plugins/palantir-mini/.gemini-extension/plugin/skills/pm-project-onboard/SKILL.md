@@ -1,7 +1,7 @@
 ---
 name: pm-project-onboard
 category: core-workflow
-description: "Scaffold the minimum palantir-mini ProjectOntologyIndex runtime for a project, then run ontology-runtime health and doc-drift checks."
+description: "Scaffold the minimum palantir-mini ProjectOntologyIndex runtime for a project, then..."
 allowed-tools: Bash Read Write Edit Grep Glob mcp__palantir-mini__pm_health_audit mcp__palantir-mini__emit_event
 effort: medium
 disable-model-invocation: false

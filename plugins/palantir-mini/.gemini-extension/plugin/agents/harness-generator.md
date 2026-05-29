@@ -223,6 +223,7 @@ JSON to stdout — SubagentStop hook validates:
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/harness-generator.json
+- markdownReportPath: .palantir-mini/session/agent-output/harness-generator.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

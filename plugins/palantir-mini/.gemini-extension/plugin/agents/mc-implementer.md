@@ -98,6 +98,7 @@ You work exclusively within `/home/palantirkc/projects/mathcrew/.claude/`.
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/mc-implementer.json
+- markdownReportPath: .palantir-mini/session/agent-output/mc-implementer.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

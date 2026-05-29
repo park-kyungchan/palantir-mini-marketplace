@@ -1,7 +1,7 @@
 ---
 name: pm-lsp-audit
 category: maintenance
-description: "Comprehensive codebase audit using LSP-powered TypeScript code analysis. Finds dead code, boundary violations, and type safety issues across the project. Trigger on: /lsp-audit..."
+description: "Comprehensive codebase audit using LSP-powered TypeScript code analysis. Finds dead..."
 argument-hint: "[--scope home|project|all]"
 context: standard
 effort: high

@@ -28,6 +28,7 @@ Every palantir-mini workflow reply must include:
 - open TurnCardDecisionSpec 목록
 - mutationAuthorized 여부
 - 다음에 허용된 action
+- durable subagent .md output 상태
 - native/runtime gap 여부
 - SSoT 판단 근거
 
@@ -71,6 +72,15 @@ surface for this turn.
 Do not claim Claude/Codex hook, MCP, memory, skill, subagent, or managed-setting
 parity without runtime-native evidence.
 
+## Durable Subagent Output
+
+For substantial palantir-mini workflow work, every reply must state whether
+subagent outputs were saved as durable `.md` files. The status must name the
+paths written, say `N/A` with a reason, or state a runtime gap. If a native
+runtime cannot make a worker write directly, the Lead must capture the worker
+output into `.md` before context compaction and say where the captured report
+lives.
+
 ## SSoT Decision Basis
 
 Every recommendation, judgment, decision card, or risk statement must explain
@@ -89,7 +99,8 @@ include an `SSoT 판단 근거` section with concise rows or bullets covering:
 For Palantir-heavy turns, the SSoT basis should name the smallest relevant
 evidence from:
 
-- Palantir AIP Architecture / Context Engineering references.
+- Palantir AIP Architecture references.
+- Palantir Context Engineering references.
 - Palantir Ontology references.
 - Palantir AIP Chatbot Studio references when the recommendation affects
   review surfaces, user-facing decision state, chatbot/application behavior, or
@@ -122,6 +133,29 @@ The response must make the selected workflow visible:
 Do not invent workflow semantics when the plugin tool, source, hook, or rule is
 unavailable.
 
+## Deterministic Phase Boundary
+
+Keep SIC/context-engineering lanes and DTC ontology primitive readiness separate:
+
+- DATA, LOGIC, ACTION, and GOVERNANCE are valid only while authoring or
+  enriching SIC through `context-engineering-to-sic`.
+- Ontology-affecting DTC work must use `ontology-dtc-build` T0..T6 before DTC
+  approval or routing:
+  - T0 ObjectType
+  - T1 LinkType
+  - T2 ActionType
+  - T3 Function
+  - T4 Chatbot/Application State
+  - T5 Replay/Eval/Validation
+  - T6 ready-for-DTC
+- `mutationAuthorized=false`, router domain mismatch, missing approved SIC/DTC
+  refs, open blocking TurnCards, and missing ObjectType/LinkType/ActionType/
+  Function/ApplicationState/Eval readiness are hard blockers.
+- Do not call a runnable CLI slice an `OntologyEngineering-complete agentic
+  workflow` unless approved SIC/DTC, WorkContract, SprintContract, router
+  binding, governed implementation, validation, and release evidence are all
+  present.
+
 ## User Decision Rendering
 
 Do not use runtime-native question UI for workflow decisions. Render
@@ -152,6 +186,7 @@ SIC/DTC 상태: <state and refs, or N/A with reason>
 open TurnCardDecisionSpec 목록: <none or ids>
 mutationAuthorized 여부: <true/false and authority>
 다음에 허용된 action: <next action>
+durable subagent .md output 상태: <paths, N/A reason, or runtime gap>
 native/runtime gap 여부: <Claude hook native status + Codex runtime gap + tool gaps>
 SSoT 판단 근거:
 - source/ref: <path, ref, MCP output, schema, hook, rule, or URL>

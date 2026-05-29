@@ -1,7 +1,7 @@
 ---
 name: pm-semantic-intent-gate
 category: core-workflow
-description: "Maintain the prompt-to-contract front door: ambient SemanticIntentContract and DigitalTwinChangeContract drafts for every Lead-visible prompt, with approval gates before..."
+description: "Maintain the prompt-to-contract front door: ambient SemanticIntentContract and..."
 allowed-tools: mcp__palantir-mini__pm_semantic_intent_gate mcp__palantir-mini__pm_intent_router mcp__palantir-mini__emit_event
 effort: medium
 disable-model-invocation: false
@@ -19,7 +19,7 @@ palantirSurface:
     - tools-request-clarification
     - security-governance
   palantirSourceAuthorityRefs:
-    - localResearchPath: ~/.claude/research/palantir-official/chatbot-studio/tools.md
+    - localResearchPath: ~/.claude/research/palantir-official/foundry/chatbot-studio/tools.md
       externalUrl: https://www.palantir.com/docs/foundry/chatbot-studio/tools/
       lastVerified: 2026-05-24
       sourceClass: palantir-chatbot-studio
@@ -133,6 +133,27 @@ load read context with `ontology_context_query`, preserve prompt identity fields
 then fill one DTC turn at a time. A DTC produced by this path is still a
 contract artifact, not mutation authority, until the user approval reference is
 captured and routing receives the approved SIC/DTC refs.
+
+`dtc-turn-fill` is a generic DTC boundary-authoring path. It does not prove
+ontology primitive readiness for ontology-affecting work. When a DTC can affect
+ontology, schema, routing, action, evaluation, ApplicationState, or other
+Digital Twin runtime behavior, use `fillPolicy: "ontology-dtc-build"` and
+complete all T0..T6 turns before approval or routing:
+
+- **T0** — ObjectType readiness.
+- **T1** — LinkType readiness.
+- **T2** — ActionType readiness.
+- **T3** — Function readiness.
+- **T4** — Chatbot/Application State readiness.
+- **T5** — Replay/Eval/Validation readiness.
+- **T6** — `ready-for-DTC` verdict.
+
+DATA, LOGIC, ACTION, and GOVERNANCE are valid phase labels only while authoring
+or enriching SIC through `fillPolicy: "context-engineering-to-sic"`. Do not
+treat those SIC/context-engineering lanes as DTC primitive readiness. For
+ontology-affecting DTC, missing approved SIC/DTC refs, `mutationAuthorized=false`,
+router domain mismatch, open blocking TurnCards, or missing ObjectType/LinkType/
+ActionType/Function/ApplicationState/Eval readiness are hard blockers.
 
 ## Hook Integration
 

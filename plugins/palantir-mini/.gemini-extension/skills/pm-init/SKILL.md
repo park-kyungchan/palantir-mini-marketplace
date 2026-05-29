@@ -1,7 +1,7 @@
 ---
 name: pm-init
 category: core-workflow
-description: "Bootstrap palantir-mini for a project. Creates <project>/.palantir-mini/session/ directory structure, emits a session_started event, and optionally writes a stub..."
+description: "Bootstrap palantir-mini for a project. Creates <project>/.palantir-mini/session/..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage
 effort: medium
 disable-model-invocation: false

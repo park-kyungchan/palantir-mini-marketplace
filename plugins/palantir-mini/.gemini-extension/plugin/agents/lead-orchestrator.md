@@ -153,6 +153,7 @@ Reference SSoT: `~/.claude/research/claude-code/lead-system-v2.md` (read-only).
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/lead-orchestrator.json
+- markdownReportPath: .palantir-mini/session/agent-output/lead-orchestrator.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.
