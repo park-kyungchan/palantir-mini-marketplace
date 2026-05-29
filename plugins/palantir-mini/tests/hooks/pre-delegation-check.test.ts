@@ -161,6 +161,14 @@ describe("synthesis_path_exempt", () => {
     expect(result.message).toContain("EXEMPT");
     expect(result.hookSpecificOutput?.permissionDecision).toBeUndefined();
   });
+
+  test("file under .palantir-mini/plan/ is exempt even with counter=10", async () => {
+    writeCounter(10);
+    const planPath = path.join(TMP, ".palantir-mini", "plan", "some-plan.md");
+    const result = await preDelegationCheck(makeEditPayload(planPath));
+    expect(result.message).toContain("EXEMPT");
+    expect(result.hookSpecificOutput?.permissionDecision).toBeUndefined();
+  });
 });
 
 // ─── Test 6: bypass env var ───────────────────────────────────────────────────

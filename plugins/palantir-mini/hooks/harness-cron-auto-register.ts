@@ -36,7 +36,7 @@ interface HookResult {
 }
 
 /**
- * The verbatim cron prompt body from ~/.claude/plans/2026-05-08-weekly-substrate-audit-template.md
+ * The cron prompt body originated in legacy ~/.claude/plans/2026-05-08-weekly-substrate-audit-template.md
  * Kept inline to avoid filesystem reads at hook-fire time (faster, no IO failure risk).
  */
 const WEEKLY_AUDIT_PROMPT = `Run weekly substrate health audit for /home/palantirkc per rule 26 §Substrate routing + sprint-055 W1.D §G:
@@ -52,7 +52,7 @@ const WEEKLY_AUDIT_PROMPT = `Run weekly substrate health audit for /home/palanti
    - t0_reject_rate (alert if > 5%)
    - plugin_self_check pass count (target == total)
 
-3. Write audit doc to ~/.claude/plans/YYYY-MM-DD-weekly-substrate-audit.md (today's date) with:
+3. Write audit doc to /home/palantirkc/.palantir-mini/plan/YYYY-MM-DD-weekly-substrate-audit.md (today's date) with:
    - § Snapshot — totals, distributions, week-over-week deltas (compare with last week's audit doc if present)
    - § Alerts — fire when threshold breached
    - § Recommendations — auto-route to /palantir-mini:pm-three-questions, /palantir-mini:pm-memory-map, or /palantir-mini:pm-rule-memory-prune as appropriate

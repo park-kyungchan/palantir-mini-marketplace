@@ -155,6 +155,20 @@ describe("leadDirectEditWatch", () => {
     expect(counter).toBeNull();
   });
 
+  test("synthesis_path_exempt — .palantir-mini/plan/** paths skip counter increment", async () => {
+    const plansFile = path.join(TMP, ".palantir-mini", "plan", "some-plan.md");
+
+    const payload = makeEditPayload(TMP, {
+      tool_input: { file_path: plansFile },
+    });
+
+    const result = await leadDirectEditWatch(payload);
+    expect(result.message).toContain("EXEMPT");
+
+    const counter = readSessionCounter(TMP);
+    expect(counter).toBeNull();
+  });
+
   test("synthesis_path_exempt — BROWSE.md files are exempt", async () => {
     const browseFile = path.join(TMP, "some", "nested", "BROWSE.md");
 

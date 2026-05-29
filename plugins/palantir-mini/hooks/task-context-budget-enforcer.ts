@@ -133,7 +133,7 @@ export default async function taskContextBudgetEnforcer(payload: unknown): Promi
       ``,
       `To resolve:`,
       `  1. Split into 2+ smaller subagent spawns with disjoint scope.`,
-      `  2. Move shared context (file paths, exact strings) to a plan file (~/.claude/plans/) — synthesis path exempt.`,
+      `  2. Move shared context (file paths, exact strings) to a plan file (<project>/.palantir-mini/plan/; legacy ~/.claude/plans/ is read-compatible) — synthesis path exempt.`,
       `  3. Use TaskCreate to enumerate sub-tasks; spawn one subagent per task chunk.`,
       ``,
       `Bypass (audited): PALANTIR_MINI_TASK_BUDGET_BYPASS=1`,

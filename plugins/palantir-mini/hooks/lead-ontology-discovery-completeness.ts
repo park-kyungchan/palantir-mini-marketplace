@@ -15,7 +15,8 @@
 //
 // Logic:
 //   1. Extract file_path from tool_input.
-//   2. Synthesis path exemption: skip ~/.claude/plans/**, BROWSE.md, INDEX.md, MEMORY.md,
+//   2. Synthesis path exemption: skip <project>/.palantir-mini/plan/**,
+//      legacy ~/.claude/plans/**, BROWSE.md, INDEX.md, MEMORY.md,
 //      retro/cold-start drafts → return continue immediately.
 //   3. Small-file exemption: if edit delta ≤5 LOC (old_string + new_string) → continue.
 //   4. Find project root (.palantir-mini/ ancestor).
@@ -50,6 +51,7 @@ import { emit } from "../scripts/log";
 import { findProjectRoot } from "./harness-base-mode-advisory";
 import { readEvents } from "../lib/event-log/read";
 import { eventsPathFor } from "../scripts/log";
+import { isPlanArtifactPath } from "../lib/plan-root/resolve-plan-root";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -126,7 +128,6 @@ const SMALL_FILE_LOC_THRESHOLD = 5;
  * These are internal palantir-mini planning/docs files where discovery is unnecessary.
  */
 const SYNTHESIS_PATH_PATTERNS: RegExp[] = [
-  /\/\.claude\/plans\//,
   /\/BROWSE\.md$/,
   /\/INDEX\.md$/,
   /\/MEMORY\.md$/,
@@ -174,7 +175,8 @@ function resolveAbsPath(filePath: string): string {
 }
 
 /** Check if the file path is a synthesis/docs exempt path. */
-function isSynthesisPath(absFilePath: string): boolean {
+function isSynthesisPath(absFilePath: string, cwd = process.cwd()): boolean {
+  if (isPlanArtifactPath(absFilePath, { projectRoot: cwd, cwd })) return true;
   for (const pattern of SYNTHESIS_PATH_PATTERNS) {
     if (pattern.test(absFilePath)) return true;
   }
@@ -326,7 +328,7 @@ export default async function leadOntologyDiscoveryCompleteness(
     const absFilePath = resolveAbsPath(rawFilePath);
 
     // ── Synthesis path exemption ───────────────────────────────────────────────
-    if (isSynthesisPath(absFilePath)) {
+    if (isSynthesisPath(absFilePath, cwd)) {
       return {
         message: `palantir-mini: lead-ontology-discovery-completeness skipped (synthesis path: ${rawFilePath})`,
       };

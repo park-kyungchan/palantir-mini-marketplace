@@ -23,7 +23,8 @@ effort: small
 
 - Plugin v4.9.0+ (handler registration includes `outcome_pair_close`).
 - CronCreate / CronList / CronDelete schemas available (load via ToolSearch).
-- Template file at `~/.claude/plans/2026-05-08-weekly-substrate-audit-template.md`.
+- Legacy template evidence at `~/.claude/plans/2026-05-08-weekly-substrate-audit-template.md`.
+- New weekly audit outputs write to `<project>/.palantir-mini/plan/`.
 
 ## How to run
 
@@ -35,7 +36,7 @@ ToolSearch({ query: "select:CronCreate,CronList,CronDelete", max_results: 3 })
 
 ### Step 2 — Read prompt template
 
-Read `~/.claude/plans/2026-05-08-weekly-substrate-audit-template.md` and extract the verbatim cron-prompt body block.
+Read the legacy template at `~/.claude/plans/2026-05-08-weekly-substrate-audit-template.md` as provenance, then update the prompt so the generated weekly audit document writes to `<project>/.palantir-mini/plan/YYYY-MM-DD-weekly-substrate-audit.md`.
 
 ### Step 3 — Check existing registration via CronList
 
@@ -81,6 +82,6 @@ mcp__plugin_palantir-mini_palantir-mini__emit_event({
 ## Authority + cross-refs
 
 - Plan §0.3 R-1 — `~/.claude/plans/2026-05-08-sprint-055-cold-start.md`.
-- Cron prompt template — `~/.claude/plans/2026-05-08-weekly-substrate-audit-template.md`.
+- Cron prompt template provenance — `~/.claude/plans/2026-05-08-weekly-substrate-audit-template.md`.
 - CronCreate primitive — Claude Code v2.1.85+ scheduling DSL (features.md:345).
 - Rule 26 §Substrate routing — `~/.claude/rules/26-valuable-data-standard.md`.

@@ -2,7 +2,7 @@
 name: pm-fde-naming-audit
 category: fde-workflow
 description: "Run a read-only FDE naming audit against the current project — scans markdown,..."
-allowed-tools: Read mcp__palantir-mini__emit_event
+allowed-tools: Read Write mcp__palantir-mini__emit_event
 effort: medium
 disable-model-invocation: false
 ---
@@ -15,7 +15,7 @@ Palantir의 FDE (Foundry Deployment Engine) Naming Brief §8 에서 정의한 3-
 (preferred-user-facing / legacy-user-facing / compatibility-identifier) 에 따라
 현재 프로젝트의 네이밍 준수 여부를 읽기 전용으로 감사합니다.
 
-감사 결과는 마크다운 파일로 `~/.claude/plans/YYYY-MM-DD-fde-naming-audit-<slug>.md`
+감사 결과는 마크다운 파일로 `<project>/.palantir-mini/plan/YYYY-MM-DD-fde-naming-audit-<slug>.md`
 에 저장되고 사용자에게 경로가 안내됩니다.
 
 ## When to use
@@ -59,13 +59,14 @@ const markdown = renderNamingAuditReportMarkdown(report, { language: "ko" });
 ```typescript
 import * as fs from "node:fs";
 import * as path from "node:path";
-import * as os from "node:os";
+import { resolvePlanRoot } from "lib/plan-root/resolve-plan-root";
 
 const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 const slug = "fde-naming-audit-" + report.reportRid.slice(0, 8);
-const plansDir = path.join(os.homedir(), ".claude", "plans");
+const plansDir = resolvePlanRoot({ projectRoot });
 const reportPath = path.join(plansDir, `${today}-${slug}.md`);
 
+fs.mkdirSync(plansDir, { recursive: true });
 fs.writeFileSync(reportPath, markdown, "utf-8");
 ```
 

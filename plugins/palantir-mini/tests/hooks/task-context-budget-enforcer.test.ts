@@ -68,6 +68,7 @@ describe("block_threshold", () => {
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("Rule 12");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("Split into 2+");
+    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain(".palantir-mini/plan");
   });
 });
 
