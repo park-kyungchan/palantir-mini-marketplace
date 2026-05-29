@@ -16,5 +16,6 @@ describe("pm_surface_contract_audit", () => {
     expect(advisory.status).toBe("advisory");
     expect(failClosed.status).toBe("fail");
     expect(advisory.missingContractCount).toBe(1);
+    expect(advisory.missingRequiredContractCount).toBe(1);
   });
 });
