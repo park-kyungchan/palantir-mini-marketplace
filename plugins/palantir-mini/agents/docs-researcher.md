@@ -107,6 +107,7 @@ allowed to write — but strictly within the narrow scope of your task.
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/docs-researcher.json
+- markdownReportPath: .palantir-mini/session/agent-output/docs-researcher.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

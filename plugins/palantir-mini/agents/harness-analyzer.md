@@ -152,6 +152,7 @@ Before returning, emit a `phase_completed` event via `mcp__plugin_palantir-mini_
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/harness-analyzer.json
+- markdownReportPath: .palantir-mini/session/agent-output/harness-analyzer.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

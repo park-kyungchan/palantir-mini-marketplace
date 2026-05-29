@@ -145,6 +145,7 @@ codegen. Per-project ontology edits belong to project implementers
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/ontology-steward.json
+- markdownReportPath: .palantir-mini/session/agent-output/ontology-steward.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

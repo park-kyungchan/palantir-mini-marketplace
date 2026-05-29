@@ -184,6 +184,7 @@ When called for negotiation:
 ## Output contract
 
 - statePath: .palantir-mini/session/agent-output/harness-evaluator.json
+- markdownReportPath: .palantir-mini/session/agent-output/harness-evaluator.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

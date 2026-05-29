@@ -28,7 +28,13 @@ function writeAgentMd(root: string, name: string, body: string): string {
   return file;
 }
 
-function agentMdBody(statePath: string, requiredFields: string[], envelopeKind?: string): string {
+function writeMarkdownReport(root: string, reportPath = "report.md"): void {
+  const file = path.join(root, reportPath);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, "# Subagent Report\n\nValidated output report.\n", "utf8");
+}
+
+function agentMdBody(statePath: string, requiredFields: string[], envelopeKind?: string, markdownReportPath = "report.md"): string {
   return `---
 name: test-agent
 description: test
@@ -39,6 +45,7 @@ tools: [Read]
 ## Output Contract
 
 - statePath: ${statePath}
+- markdownReportPath: ${markdownReportPath}
 - requiredFields: ${requiredFields.join(", ")}
 ${envelopeKind ? `- envelopeKind: ${envelopeKind}\n` : ""}
 ## Body
@@ -53,6 +60,7 @@ describe("parseOutputContract", () => {
     const c = parseOutputContract(md);
     expect(c).not.toBeNull();
     expect(c!.statePath).toBe("state.json");
+    expect(c!.markdownReportPath).toBe("report.md");
     expect(c!.requiredFields).toEqual(["a", "b"]);
     expect(c!.envelopeKind).toBe("blueprint");
   });
@@ -173,11 +181,44 @@ Body only.
   test("valid state file → continue", async () => {
     writeAgentMd(tmpRoot, "v", agentMdBody("state.json", ["a", "b"]));
     fs.writeFileSync(path.join(tmpRoot, "state.json"), JSON.stringify({ a: 1, b: 2 }));
+    writeMarkdownReport(tmpRoot);
     const res = await subagentStop({ agent_id: "a3", agent_name: "v", cwd: tmpRoot });
     expect(res.decision ?? "continue").toBe("continue");
     const events = readEvents(eventsPathFor(tmpRoot));
     const v = events.find((e) => e.type === "subagent_state_validation" && (e.payload as { passed: boolean }).passed === true);
     expect(v).toBeDefined();
+  });
+
+  test("missing markdown report → block", async () => {
+    writeAgentMd(tmpRoot, "missing-report", agentMdBody("state.json", ["a"]));
+    fs.writeFileSync(path.join(tmpRoot, "state.json"), JSON.stringify({ a: 1 }));
+    const res = await subagentStop({ agent_id: "a3b", agent_name: "missing-report", cwd: tmpRoot });
+    expect(res.decision).toBe("block");
+    expect(res.reason).toContain("markdown report");
+    const events = readEvents(eventsPathFor(tmpRoot));
+    const v = events.find((e) => e.type === "subagent_state_validation" && (e.payload as { errorClass?: string }).errorClass === "MarkdownReportMissing");
+    expect(v).toBeDefined();
+  });
+
+  test("non-markdown report path → block", async () => {
+    writeAgentMd(tmpRoot, "bad-report-path", agentMdBody("state.json", ["a"], undefined, "report.txt"));
+    fs.writeFileSync(path.join(tmpRoot, "state.json"), JSON.stringify({ a: 1 }));
+    fs.writeFileSync(path.join(tmpRoot, "report.txt"), "report");
+    const res = await subagentStop({ agent_id: "a3c", agent_name: "bad-report-path", cwd: tmpRoot });
+    expect(res.decision).toBe("block");
+    expect(res.reason).toContain("markdown report");
+    const events = readEvents(eventsPathFor(tmpRoot));
+    const v = events.find((e) => e.type === "subagent_state_validation" && (e.payload as { errorClass?: string }).errorClass === "MarkdownReportInvalid");
+    expect(v).toBeDefined();
+  });
+
+  test("empty markdown report → block", async () => {
+    writeAgentMd(tmpRoot, "empty-report", agentMdBody("state.json", ["a"]));
+    fs.writeFileSync(path.join(tmpRoot, "state.json"), JSON.stringify({ a: 1 }));
+    fs.writeFileSync(path.join(tmpRoot, "report.md"), "");
+    const res = await subagentStop({ agent_id: "a3d", agent_name: "empty-report", cwd: tmpRoot });
+    expect(res.decision).toBe("block");
+    expect(res.reason).toContain("empty");
   });
 
   test("invalid schema → block with reason", async () => {
@@ -198,6 +239,7 @@ Body only.
   test("envelope wrap-on-read: flat payload validates successfully", async () => {
     writeAgentMd(tmpRoot, "env", agentMdBody("blueprint.json", ["schema_version"], "blueprint"));
     fs.writeFileSync(path.join(tmpRoot, "blueprint.json"), JSON.stringify({ schema_version: "1.0" }));
+    writeMarkdownReport(tmpRoot);
     const res = await subagentStop({ agent_id: "a6", agent_name: "env", cwd: tmpRoot });
     expect(res.decision ?? "continue").toBe("continue");
     const events = readEvents(eventsPathFor(tmpRoot));

@@ -10,6 +10,7 @@ import type { OutputContract, ValidationResult } from "./types";
  *
  *   ## Output Contract
  *   - statePath: .palantir-mini/session/blueprint.json
+ *   - markdownReportPath: .palantir-mini/session/blueprint.md
  *   - requiredFields: schema_version, primitives, edges
  *   - envelopeKind: blueprint
  *
@@ -22,6 +23,7 @@ export function parseOutputContract(mdContent: string): OutputContract | null {
   const body = match[1] ?? "";
 
   const pathMatch        = body.match(/-\s*statePath\s*:\s*(.+)$/im);
+  const markdownMatch    = body.match(/-\s*markdownReportPath\s*:\s*(.+)$/im);
   const requiredMatch    = body.match(/-\s*requiredFields\s*:\s*(.+)$/im);
   const envelopeMatch    = body.match(/-\s*envelopeKind\s*:\s*(.+)$/im);
 
@@ -35,6 +37,9 @@ export function parseOutputContract(mdContent: string): OutputContract | null {
     .filter((f) => f.length > 0);
 
   const contract: OutputContract = { statePath, requiredFields };
+  if (markdownMatch) {
+    contract.markdownReportPath = markdownMatch[1]!.trim().replace(/^["']|["']$/g, "");
+  }
   if (envelopeMatch) {
     contract.envelopeKind = envelopeMatch[1]!.trim().replace(/^["']|["']$/g, "");
   }

@@ -308,6 +308,7 @@ export type SubagentStateValidationEnvelope = EventEnvelopeBase & {
     agentId:       string;
     agentName?:    string;
     statePath?:    string;
+    markdownReportPath?: string;
     passed:        boolean;
     errorClass?:   string;
     wrapped?:      boolean;

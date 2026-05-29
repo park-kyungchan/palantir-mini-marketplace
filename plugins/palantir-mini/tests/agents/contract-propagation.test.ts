@@ -115,6 +115,7 @@ describe("PR-G agent inventory", () => {
     expect(mutationAgents.length).toBe(EXPECTED_MUTATION_CAPABLE.length);
     for (const entry of mutationAgents) {
       expect(entry.outputContractStatus.kind).toBe("complete");
+      expect(entry.outputContract?.markdownReportPath ?? "").toMatch(/\.md$/);
       expect(entry.outputContract?.missingMinimumFields).toEqual([]);
       expect(entry.outputContract?.missingRequiredFields).toEqual([]);
       for (const field of OUTPUT_CONTRACT_MINIMUM_FIELDS) {

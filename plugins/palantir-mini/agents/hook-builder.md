@@ -181,6 +181,7 @@ Lineage envelope, shared SubagentStop semantics, and Claude-only TaskCompleted /
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/hook-builder.json
+- markdownReportPath: .palantir-mini/session/agent-output/hook-builder.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

@@ -17,6 +17,7 @@ export const OUTPUT_PAYLOAD_REQUIRED_FIELDS = [
 
 export const OUTPUT_CONTRACT_MINIMUM_FIELDS = [
   "statePath",
+  "markdownReportPath",
   "requiredFields",
   "envelopeKind",
   "mutationSummary",
@@ -66,6 +67,7 @@ export interface MutationCapabilityClassification {
 
 export interface ParsedOutputContract {
   statePath: string;
+  markdownReportPath?: string;
   requiredFields: string[];
   envelopeKind?: string;
   mutationSummary?: string;
@@ -366,6 +368,7 @@ export function parseOutputContractSections(mdContent: string): ParsedOutputCont
     const missingRequiredFields = OUTPUT_PAYLOAD_REQUIRED_FIELDS.filter((field) => !requiredFields.includes(field));
     return {
       statePath: fields.statePath ?? "",
+      markdownReportPath: fields.markdownReportPath,
       requiredFields,
       envelopeKind: fields.envelopeKind,
       mutationSummary: fields.mutationSummary,
