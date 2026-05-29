@@ -2,7 +2,7 @@
 // Fires on: SessionStart (advisory, async)
 //
 // Per rule 02 v3.2.0 §Plans index drift detection (R6-F18):
-// Compares <project>/.palantir-mini/plan/*.md filesystem listing against
+// Compares <project>/.palantir-mini/plan/**/*.md filesystem listing against
 // <project>/.palantir-mini/plan/BROWSE.md. Surfaces unindexed / stale-ref
 // deltas as advisory. Legacy ~/.claude/plans/ remains readable provenance, but
 // new durable palantir-mini synthesis belongs in the plugin-layer plan root.
@@ -42,18 +42,16 @@ export async function run(): Promise<HookResult> {
 
   const browseContent = fs.readFileSync(browseFile, "utf8");
 
-  // Collect .md files on disk (exclude BROWSE.md itself).
-  const diskFiles = fs
-    .readdirSync(plansDir)
-    .filter((f) => f.endsWith(".md") && f !== "BROWSE.md")
-    .map((f) => f);
+  // Collect .md files recursively (exclude root BROWSE.md itself).
+  const diskFiles = collectMarkdownFiles(plansDir);
 
-  // Extract filenames referenced in BROWSE.md (markdown link pattern [text](file.md)).
+  // Extract markdown refs from BROWSE.md; preserve nested relative paths.
   const refPattern = /\(([^)]+\.md)\)/g;
   const indexedFiles = new Set<string>();
   let match: RegExpExecArray | null;
   while ((match = refPattern.exec(browseContent)) !== null) {
-    indexedFiles.add(path.basename(match[1] ?? ""));
+    const indexed = normalizeMarkdownRef(match[1] ?? "", plansDir);
+    if (indexed) indexedFiles.add(indexed);
   }
 
   const diskSet = new Set(diskFiles);
@@ -78,4 +76,35 @@ export async function run(): Promise<HookResult> {
     message: lines.join("\n"),
     additionalContext: JSON.stringify({ unindexed, stale }),
   };
+}
+
+function collectMarkdownFiles(root: string, current = root): string[] {
+  const files: string[] = [];
+  for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+    const fullPath = path.join(current, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectMarkdownFiles(root, fullPath));
+      continue;
+    }
+    if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+    const relativePath = normalizeRelativePath(path.relative(root, fullPath));
+    if (relativePath === "BROWSE.md") continue;
+    files.push(relativePath);
+  }
+  return files.sort();
+}
+
+function normalizeMarkdownRef(ref: string, plansDir: string): string | null {
+  const withoutAnchor = ref.split("#")[0]?.trim() ?? "";
+  if (!withoutAnchor || /^https?:\/\//i.test(withoutAnchor)) return null;
+  const decoded = decodeURIComponent(withoutAnchor);
+  const relativePath = path.isAbsolute(decoded)
+    ? path.relative(plansDir, decoded)
+    : decoded.replace(/^\.\//, "");
+  if (relativePath.startsWith("..")) return null;
+  return normalizeRelativePath(relativePath);
+}
+
+function normalizeRelativePath(value: string): string {
+  return value.split(path.sep).join("/");
 }
