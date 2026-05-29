@@ -1,7 +1,7 @@
 ---
 name: pm-agent-audit-trail
 category: maintenance
-description: "Query subagent decision trail. Aggregates per-correlationId — Agent spawn → N×agent_decision_logged → terminal stop/commit. Lead uses to audit any subagent's..."
+description: "Query subagent decision trail. Aggregates per-correlationId — Agent spawn →..."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__agent_audit_trail mcp__plugin_palantir-mini_palantir-mini__pm_workflow_lineage_query mcp__plugin_palantir-mini_palantir-mini__replay_lineage Read
 effort: low
 disable-model-invocation: false

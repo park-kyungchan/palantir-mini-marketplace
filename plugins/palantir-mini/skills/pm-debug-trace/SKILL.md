@@ -1,7 +1,7 @@
 ---
 name: pm-debug-trace
 category: substrate-query
-description: "Reconstruct an event lineage by promptId / sessionId / commitSha / correlationId. Reads <project>/.palantir-mini/session/events.jsonl + archives + quarantine via..."
+description: "Reconstruct an event lineage by promptId / sessionId / commitSha / correlationId...."
 allowed-tools: Read Bash
 effort: low
 disable-model-invocation: false

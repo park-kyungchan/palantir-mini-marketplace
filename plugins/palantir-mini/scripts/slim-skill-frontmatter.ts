@@ -4,7 +4,8 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dir, "..");
 const SKILLS_ROOT = path.join(ROOT, "skills");
-const MAX_DESCRIPTION_CHARS = 180;
+const MAX_DESCRIPTION_CHARS = 88;
+const MIN_STOP_MARKER_INDEX = 40;
 const STOP_MARKERS = [
   " Use when ",
   " Use to ",
@@ -40,7 +41,7 @@ function compactDescription(raw: string): string {
 
   for (const marker of STOP_MARKERS) {
     const index = text.indexOf(marker);
-    if (index >= 80) {
+    if (index >= MIN_STOP_MARKER_INDEX) {
       text = text.slice(0, index).trim();
       break;
     }
@@ -56,7 +57,8 @@ function compactDescription(raw: string): string {
     sliced.lastIndexOf(";"),
     sliced.lastIndexOf(","),
   );
-  return `${sliced.slice(0, boundary > 120 ? boundary : sliced.length).trimEnd()}...`;
+  const minimumBoundary = Math.floor(MAX_DESCRIPTION_CHARS * 0.65);
+  return `${sliced.slice(0, boundary > minimumBoundary ? boundary : sliced.length).trimEnd()}...`;
 }
 
 function isTopLevelKey(line: string): boolean {

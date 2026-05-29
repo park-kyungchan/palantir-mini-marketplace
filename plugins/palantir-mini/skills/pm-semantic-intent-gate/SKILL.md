@@ -1,7 +1,7 @@
 ---
 name: pm-semantic-intent-gate
 category: core-workflow
-description: "Maintain the prompt-to-contract front door: ambient SemanticIntentContract and DigitalTwinChangeContract drafts for every Lead-visible prompt, with approval gates before..."
+description: "Maintain the prompt-to-contract front door: ambient SemanticIntentContract and..."
 allowed-tools: mcp__palantir-mini__pm_semantic_intent_gate mcp__palantir-mini__pm_intent_router mcp__palantir-mini__emit_event
 effort: medium
 disable-model-invocation: false

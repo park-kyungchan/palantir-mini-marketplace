@@ -1,7 +1,7 @@
 ---
 name: pm-research-diff
 category: research
-description: "Show what changed between the current local research library and its upstream canonical sources — highlights new, removed, and modified sections without overwriting anything."
+description: "Show what changed between the current local research library and its upstream..."
 allowed-tools: mcp__palantir-mini__research_library_diff mcp__palantir-mini__emit_event
 effort: low
 disable-model-invocation: false

@@ -1,7 +1,7 @@
 ---
 name: pm-hitl-feedback-workbench
 category: core-workflow
-description: "Use the generic HITL Lead Feedback Workbench to create user-review artifacts for any ontology engineering stage that needs Human-in-the-Loop feedback."
+description: "Use the generic HITL Lead Feedback Workbench to create user-review artifacts for any..."
 allowed-tools: Read
 effort: low
 disable-model-invocation: false

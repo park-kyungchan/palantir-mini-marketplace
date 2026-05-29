@@ -1,7 +1,7 @@
 ---
 name: pm-ontology-engineering-lead
 category: core-workflow
-description: "Docs-only Lead workflow for session-first ontology engineering. Use when a user asks to start or run FDE/DTC-backed ontology engineering work and the Lead must coordinate..."
+description: "Docs-only Lead workflow for session-first ontology engineering."
 allowed-tools: mcp__palantir-mini__ontology_context_query mcp__palantir-mini__pm_semantic_intent_gate mcp__palantir-mini__pm_intent_router mcp__palantir-mini__emit_event Read
 effort: medium
 disable-model-invocation: false

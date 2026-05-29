@@ -1,7 +1,7 @@
 ---
 name: pm-rule-memory-prune
 category: maintenance
-description: "Unified prune-candidate list combining pm_rule_audit (unused_rule_30d findings) + pm_memory_layer_audit (staleMemoryFiles). Surfaces rules with 0 hook citations + 0..."
+description: "Unified prune-candidate list combining pm_rule_audit (unused_rule_30d findings) +..."
 costClass: free
 effort: medium
 ---

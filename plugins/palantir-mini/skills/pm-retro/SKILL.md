@@ -1,7 +1,7 @@
 ---
 name: pm-retro
 category: research
-description: "Engineering retrospective. Aggregates session metrics from the palantir-mini append-only event log via pm_retro_query and composes a narrative across 4 insight categories —..."
+description: "Engineering retrospective. Aggregates session metrics from the palantir-mini..."
 allowed-tools: Bash Read Grep Glob mcp__palantir-mini__pm_retro_query mcp__palantir-mini__pm_learn_query mcp__palantir-mini__emit_event
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->

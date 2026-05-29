@@ -1,7 +1,7 @@
 ---
 name: pm-three-questions
 category: research
-description: "Run AIP \"no-slop zone\" Three Questions audit (Q1 Trust / Q2 Scope / Q3 Refine) over a sprint or session — interpretation layer wrapping pm_value_grade_metrics + replay_lineage..."
+description: "Run AIP \"no-slop zone\" Three Questions audit (Q1 Trust / Q2 Scope / Q3 Refine) over..."
 allowed-tools: mcp__palantir-mini__pm_value_grade_metrics mcp__palantir-mini__replay_lineage mcp__palantir-mini__pm_outcome_pair_audit mcp__palantir-mini__pm_event_query_by_grade mcp__palantir-mini__emit_event Read Bash
 effort: high
 disable-model-invocation: false

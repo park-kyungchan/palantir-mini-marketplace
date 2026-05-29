@@ -1,7 +1,7 @@
 ---
 name: pm-walk-build
 category: research
-description: "Mode A (Small Block): Build ontology entities step by step using scene-based pedagogy (SENSE, CHALLENGE, REVIEW, LEARN) with small-scale domains like coffee shops or libraries...."
+description: "Mode A (Small Block): Build ontology entities step by step using scene-based..."
 effort: medium
 disable-model-invocation: false
 ---
