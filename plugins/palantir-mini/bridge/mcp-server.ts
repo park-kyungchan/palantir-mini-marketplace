@@ -19,6 +19,7 @@
 // sprint-077 PR-14a: TOOLS array reduced from 36 → 22 entries.
 // Removed 14 deprecated-candidate tools (see bridge/handlers/_deprecation-map.ts for replacement paths).
 // sprint-124 PR 5.13: +1 NEW grade_semantic_intent_contract → 23 tools.
+// v6.80.0: +1 NEW events_log_rotate to satisfy pm-events-rotate skill contract.
 
 import * as readline from "readline";
 import type { EventType } from "../lib/event-log/types";
@@ -500,7 +501,26 @@ const TOOLS: ToolSpec[] = [
       },
     },
   },
-  // ─── D. Validation + Health (4) ────────────────────────────────────────────
+  // ─── D. Validation + Health ────────────────────────────────────────────────
+  {
+    name: "events_log_rotate",
+    description:
+      "Rotate a project's events.jsonl when it crosses size or line-count thresholds. " +
+      "Archives the breached log with an atomic rename and writes an event_log_rotated " +
+      "bridge event into the fresh live log to preserve BackPropagation replay continuity.",
+    inputSchema: {
+      type: "object",
+      required: ["project"],
+      properties: {
+        project:        { type: "string", description: "Absolute path to the project root." },
+        thresholdBytes: { type: "number", description: "Optional byte threshold. Default is 10 MB." },
+        thresholdLines: { type: "number", description: "Optional line-count threshold. Default is 10K lines." },
+        sessionId:      { type: "string", description: "Optional runtime session id for the rotation bridge event." },
+        agentName:      { type: "string", description: "Optional agent name for the rotation bridge event." },
+      },
+      additionalProperties: false,
+    },
+  },
   {
     name: "research_library_refresh",
     description:
@@ -747,6 +767,7 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
     "ontology_context_query",
   ],
   "validation-health": [
+    "events_log_rotate",
     "research_library_refresh",
     "pm_plugin_self_check",
     "pm_workflow_response_validate",
@@ -784,7 +805,8 @@ const HANDLER_MODULES: Record<string, string> = {
   pm_health_audit:                     "./handlers/pm-health-audit",
   pm_substrate_query:                  "./handlers/pm-substrate-query",
   research_context_select:             "./handlers/research-context-select",
-  // D. Validation + Health (4)
+  // D. Validation + Health
+  events_log_rotate:                   "./handlers/events-log-rotate",
   research_library_refresh:            "./handlers/research-library-refresh",
   pm_plugin_self_check:                "./handlers/pm-plugin-self-check",
   pm_workflow_response_validate:        "./handlers/pm-workflow-response-validate",

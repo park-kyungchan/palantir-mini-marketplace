@@ -5,7 +5,8 @@
  *          atomically, under the same .lock that appendEventAtomic uses, so
  *          concurrent writers can't tear the rotation. Preserves rule 10
  *          append-only invariant: the rename does not modify content; the
- *          fresh events.jsonl is created lazily by the next emit() call.
+ *          fresh events.jsonl can be created inside the same lock when callers
+ *          provide a bridge event.
  *
  * Threshold defaults: 10 MB OR 10K lines. Either trigger rotates.
  *
@@ -16,12 +17,29 @@
 import * as fs from "fs";
 import * as path from "path";
 import { acquireLock, lockPath, releaseLock } from "./append";
+import type { EventEnvelope } from "./types";
+
+export interface RotationEventInfo {
+  archivedPath:    string;
+  eventsPath:      string;
+  sizeBytes:       number;
+  lineCount:       number;
+  thresholdBytes:  number;
+  thresholdLines:  number;
+  lastSequence:    number;
+}
 
 export interface RotateOptions {
   /** Bytes threshold; default 10 MB. */
   thresholdBytes?: number;
   /** Line-count threshold; default 10000. */
   thresholdLines?: number;
+  /**
+   * Optional bridge event builder. When present, rotation writes the returned
+   * event into the fresh live log with sequence `last archived sequence + 1`
+   * before releasing the rotation lock.
+   */
+  rotationEvent?: (info: RotationEventInfo) => Omit<EventEnvelope, "sequence">;
 }
 
 export interface RotateResult {
@@ -31,6 +49,9 @@ export interface RotateResult {
   lineCount:      number;
   thresholdBytes: number;
   thresholdLines: number;
+  eventsPath?:    string;
+  lastSequence?:  number;
+  rotationEventSequence?: number;
 }
 
 const DEFAULT_BYTES = 10 * 1024 * 1024;
@@ -47,13 +68,37 @@ function countLines(filePath: string): number {
   }
 }
 
+function readLastSequence(filePath: string): number {
+  try {
+    const lines = fs.readFileSync(filePath, "utf8").split("\n");
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const raw = lines[i]!.trim();
+      if (raw.length === 0 || !raw.startsWith("{")) continue;
+      try {
+        const parsed = JSON.parse(raw) as { sequence?: unknown };
+        if (typeof parsed.sequence === "number" && Number.isFinite(parsed.sequence)) {
+          return parsed.sequence;
+        }
+      } catch {
+        // Skip malformed trailing rows; quarantine belongs to readEvents.
+      }
+    }
+  } catch {
+    // Missing/unreadable events log behaves like an empty log.
+  }
+  return 0;
+}
+
 /**
  * Rotate the project's events.jsonl when it exceeds either threshold.
  * Returns { rotated: false } if file missing OR under both thresholds.
  *
  * Atomicity: acquires events.jsonl.lock (same as appendEventAtomic), so any
- * concurrent emit waits behind the rotation. After rename, the lock is
- * released; the next emit creates a fresh events.jsonl under the same path.
+ * concurrent emit waits behind the rotation. If `rotationEvent` is supplied,
+ * a fresh events.jsonl is written under the same lock and starts at
+ * last archived sequence + 1, preserving replay order across archive + live.
+ * Without `rotationEvent`, legacy behavior is preserved: the next emit creates
+ * the fresh events.jsonl lazily.
  */
 export async function rotateEventLog(
   projectRoot: string,
@@ -88,10 +133,55 @@ export async function rotateEventLog(
     if (!fs.existsSync(eventsPath)) {
       return { rotated: false, sizeBytes: 0, lineCount: 0, thresholdBytes, thresholdLines };
     }
+
+    const lockedStat = fs.statSync(eventsPath);
+    const lockedSizeBytes = lockedStat.size;
+    const lockedLineCount = countLines(eventsPath);
+
+    if (lockedSizeBytes < thresholdBytes && lockedLineCount < thresholdLines) {
+      return {
+        rotated: false,
+        sizeBytes: lockedSizeBytes,
+        lineCount: lockedLineCount,
+        thresholdBytes,
+        thresholdLines,
+      };
+    }
+
+    const lastSequence = readLastSequence(eventsPath);
     fs.renameSync(eventsPath, archivedPath);
+
+    let rotationEventSequence: number | undefined;
+    const rotationEvent = opts.rotationEvent?.({
+      archivedPath,
+      eventsPath,
+      sizeBytes: lockedSizeBytes,
+      lineCount: lockedLineCount,
+      thresholdBytes,
+      thresholdLines,
+      lastSequence,
+    });
+    if (rotationEvent !== undefined) {
+      rotationEventSequence = lastSequence + 1;
+      const sequencedEvent: EventEnvelope = {
+        ...rotationEvent,
+        sequence: rotationEventSequence,
+      } as EventEnvelope;
+      fs.writeFileSync(eventsPath, `${JSON.stringify(sequencedEvent)}\n`, "utf8");
+    }
+
+    return {
+      rotated: true,
+      archivedPath,
+      sizeBytes: lockedSizeBytes,
+      lineCount: lockedLineCount,
+      thresholdBytes,
+      thresholdLines,
+      eventsPath,
+      lastSequence,
+      ...(rotationEventSequence !== undefined ? { rotationEventSequence } : {}),
+    };
   } finally {
     releaseLock(lockDir);
   }
-
-  return { rotated: true, archivedPath, sizeBytes, lineCount, thresholdBytes, thresholdLines };
 }

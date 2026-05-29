@@ -45,6 +45,9 @@ Result shape:
   lineCount:      number;
   thresholdBytes: number;
   thresholdLines: number;
+  eventsPath:      string;
+  lastSequence?:   number;   // present only when rotated=true
+  rotationEventSequence?: number; // bridge event sequence, present when rotated=true
 }
 ```
 

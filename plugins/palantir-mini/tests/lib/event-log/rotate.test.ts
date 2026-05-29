@@ -5,6 +5,8 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { rotateEventLog } from "../../../lib/event-log/rotate";
+import { readEvents } from "../../../lib/event-log/read";
+import type { EventEnvelope } from "../../../lib/event-log/types";
 
 function makeTmpDir(label: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), `pm-rot-${label}-`));
@@ -23,9 +25,59 @@ function writeEvents(root: string, lineCount: number, byteFiller = ""): void {
   fs.mkdirSync(dir, { recursive: true });
   const lines: string[] = [];
   for (let i = 1; i <= lineCount; i++) {
-    lines.push(JSON.stringify({ type: "x", sequence: i, filler: byteFiller }));
+    lines.push(JSON.stringify({
+      eventId: `evt-${i}`,
+      when: "2026-05-29T00:00:00.000Z",
+      atopWhich: "deadbeef",
+      throughWhich: { sessionId: "sess-rotate-test", toolName: "test", cwd: root },
+      byWhom: { identity: "test-agent" },
+      type: "x",
+      sequence: i,
+      payload: { filler: byteFiller },
+    }));
   }
   fs.writeFileSync(eventsPath(root), lines.join("\n") + "\n");
+}
+
+function bridgeEvent(tmp: string): (info: {
+  archivedPath: string;
+  sizeBytes: number;
+  lineCount: number;
+  thresholdBytes: number;
+  thresholdLines: number;
+}) => Omit<EventEnvelope, "sequence"> {
+  return (info) => ({
+    eventId: "evt-bridge" as never,
+    when: "2026-05-29T00:00:01.000Z",
+    atopWhich: "deadbeef" as never,
+    throughWhich: {
+      sessionId: "sess-rotate-test" as never,
+      toolName: "events_log_rotate",
+      cwd: tmp,
+      surface: "mcp",
+    },
+    byWhom: { identity: "test-agent" },
+    withWhat: {
+      reasoning: "test bridge event",
+      hypothesis: "rotation preserves replay continuity",
+      memoryLayers: ["episodic", "procedural"],
+      refinementTarget: {
+        kind: "other",
+        filePathOrRid: "lib/event-log/rotate.ts",
+        description: "test rotation bridge event",
+        confidenceLevel: "high",
+      },
+    },
+    type: "event_log_rotated",
+    payload: {
+      archivedPath: info.archivedPath,
+      sizeBytes: info.sizeBytes,
+      lineCount: info.lineCount,
+      thresholdBytes: info.thresholdBytes,
+      thresholdLines: info.thresholdLines,
+    },
+    valueGrade: "T3",
+  });
 }
 
 describe("rotateEventLog (G3)", () => {
@@ -88,6 +140,29 @@ describe("rotateEventLog (G3)", () => {
     expect(fs.existsSync(eventsPath(tmp))).toBe(false);
     // Archive dir holds the breach.
     expect(fs.existsSync(archiveDir(tmp))).toBe(true);
+  });
+
+  test("rotation bridge event starts fresh log at last archived sequence + 1", async () => {
+    writeEvents(tmp, 3);
+    const r = await rotateEventLog(tmp, {
+      thresholdBytes: 100_000_000,
+      thresholdLines: 1,
+      rotationEvent: bridgeEvent(tmp),
+    });
+
+    expect(r.rotated).toBe(true);
+    expect(r.lastSequence).toBe(3);
+    expect(r.rotationEventSequence).toBe(4);
+    expect(fs.existsSync(eventsPath(tmp))).toBe(true);
+
+    const liveLine = fs.readFileSync(eventsPath(tmp), "utf8").trim();
+    const liveEvent = JSON.parse(liveLine) as EventEnvelope;
+    expect(liveEvent.type).toBe("event_log_rotated");
+    expect(liveEvent.sequence).toBe(4);
+
+    const events = readEvents(eventsPath(tmp));
+    expect(events.map((event) => event.sequence)).toEqual([1, 2, 3, 4]);
+    expect(events.at(-1)?.type).toBe("event_log_rotated");
   });
 
   test("default thresholds: 10 MB OR 10K lines", async () => {
