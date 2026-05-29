@@ -22,7 +22,7 @@ export interface SurfaceContractIssue {
 }
 
 export interface ParsedSurfaceContract {
-  readonly source: "frontmatter" | "surface-contract-section" | "missing";
+  readonly source: "frontmatter" | "surface-contract-section" | "source-comment" | "json" | "missing";
   readonly contract?: AipFdeLocalSurfaceContract;
   readonly issues: readonly SurfaceContractIssue[];
 }
@@ -86,6 +86,77 @@ function extractSurfaceSection(content: string): string | undefined {
   const rest = content.slice(start);
   const nextHeading = rest.search(/^##\s+/m);
   return (nextHeading === -1 ? rest : rest.slice(0, nextHeading)).trim();
+}
+
+function normalizeCommentLine(line: string): string {
+  return line
+    .replace(/^\s*\/\*\*?/, "")
+    .replace(/\*\/\s*$/, "")
+    .replace(/^\s*\*\s?/, "")
+    .replace(/^\s*\/\/\s?/, "");
+}
+
+function extractSourceCommentSurfaceBlock(content: string): string | undefined {
+  const blockPattern = /\/\*\*?[\s\S]*?@palantirSurface[\s\S]*?\*\//m;
+  const blockMatch = content.match(blockPattern);
+  const rawBlock = blockMatch?.[0] ?? content
+    .split(/\r?\n/)
+    .filter((line) => line.includes("@palantirSurface") || line.trim().startsWith("//"))
+    .join("\n");
+  if (!rawBlock.includes("@palantirSurface")) return undefined;
+
+  const lines = rawBlock.split(/\r?\n/).map(normalizeCommentLine);
+  const markerIndex = lines.findIndex((line) => line.trim() === "@palantirSurface");
+  if (markerIndex === -1) return undefined;
+  return lines
+    .slice(markerIndex + 1)
+    .filter((line) => line.trim().length > 0)
+    .join("\n")
+    .trim();
+}
+
+function blockLinesFromJsonObject(value: PrimitiveRecord, indent = 0): string[] {
+  const prefix = " ".repeat(indent);
+  const out: string[] = [];
+  for (const [key, nestedValue] of Object.entries(value)) {
+    if (Array.isArray(nestedValue)) {
+      out.push(`${prefix}${key}:`);
+      for (const item of nestedValue) {
+        if (item && typeof item === "object" && !Array.isArray(item)) {
+          const [first, ...rest] = Object.entries(item as PrimitiveRecord);
+          if (first) {
+            out.push(`${prefix}  - ${first[0]}: ${String(first[1])}`);
+            for (const [nestedKey, nestedItem] of rest) {
+              out.push(`${prefix}    ${nestedKey}: ${String(nestedItem)}`);
+            }
+          }
+        } else {
+          out.push(`${prefix}  - ${String(item)}`);
+        }
+      }
+      continue;
+    }
+    if (nestedValue && typeof nestedValue === "object") {
+      out.push(`${prefix}${key}:`);
+      out.push(...blockLinesFromJsonObject(nestedValue as PrimitiveRecord, indent + 2));
+      continue;
+    }
+    out.push(`${prefix}${key}: ${String(nestedValue)}`);
+  }
+  return out;
+}
+
+function extractJsonSurfaceBlock(content: string): string | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    return undefined;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
+  const surface = (parsed as PrimitiveRecord).palantirSurface;
+  if (!surface || typeof surface !== "object" || Array.isArray(surface)) return undefined;
+  return blockLinesFromJsonObject(surface as PrimitiveRecord).join("\n");
 }
 
 function collectNestedBlock(lines: readonly string[], key: string): string[] {
@@ -325,6 +396,18 @@ export function parseSurfaceContractFromMarkdown(content: string): ParsedSurface
   if (section) {
     const normalized = normalizeSurfaceContract(surfaceSectionBlock(section));
     return { source: "surface-contract-section", ...normalized };
+  }
+
+  const sourceComment = extractSourceCommentSurfaceBlock(content);
+  if (sourceComment) {
+    const normalized = normalizeSurfaceContract(sourceComment.split(/\r?\n/));
+    return { source: "source-comment", ...normalized };
+  }
+
+  const jsonSurface = extractJsonSurfaceBlock(content);
+  if (jsonSurface) {
+    const normalized = normalizeSurfaceContract(jsonSurface.split(/\r?\n/));
+    return { source: "json", ...normalized };
   }
 
   return {
