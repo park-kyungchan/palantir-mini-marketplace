@@ -31,7 +31,7 @@ export const TOKENS_SAVED_PER_PASSED = 25_000;
 const HEURISTIC_MCP_TOOLS = new Set([
   "mcp__plugin_palantir-mini_palantir-mini__impact_query",
   "mcp__plugin_palantir-mini_palantir-mini__pre_edit_impact",
-  "mcp__plugin_palantir-mini_palantir-mini__pm_workflow_lineage_query",
+  "mcp__plugin_palantir-mini_palantir-mini__get_ontology",
 ]);
 
 /**
