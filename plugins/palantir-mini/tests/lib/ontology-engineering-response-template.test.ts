@@ -32,7 +32,7 @@ describe("palantir-mini workflow response template", () => {
       enforcementSurface: "UserPromptSubmit",
     });
 
-    expect(context.length).toBeLessThanOrEqual(2400);
+    expect(context.length).toBeLessThanOrEqual(3200);
     for (const field of ONTOLOGY_ENGINEERING_RESPONSE_REQUIRED_FIELDS) {
       expect(context).toContain(field);
     }
@@ -87,9 +87,9 @@ describe("palantir-mini workflow response template", () => {
       "durable subagent .md output 상태: N/A - 이 단위 테스트 응답은 subagent를 사용하지 않았습니다.",
       "native/runtime gap 여부: Claude hook native 여부는 Codex에서 증명되지 않았고 Codex runtime gap은 manual hook-intent mirroring으로 처리합니다. MCP/tool availability와 subagent/runtime parity도 확인합니다.",
       "SSoT 판단 근거:",
-      "- source/ref: /home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
-      "  provenance/currentness: plugin snapshot 기준이며 live official-doc currentness는 별도 확인이 필요합니다. plugin source가 workflow authority이고 generated mirrors are non-authority입니다.",
-      "  used-for judgment: Palantir AIP Architecture, Palantir AIP Chatbot Studio application-state 관점과 AI FDE turn evidence를 Ontology 및 Context Engineering 판단에 연결합니다.",
+      "- source/ref: /home/palantirkc/.claude/research/BROWSE.md, /home/palantirkc/.claude/research/INDEX.md, /home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
+      "  provenance/currentness: research router BROWSE.md/INDEX.md와 palantir-official plugin snapshot 기준이며 live official-doc currentness는 별도 확인이 필요합니다. plugin source가 workflow authority이고 generated mirrors are non-authority입니다.",
+      "  used-for judgment: Palantir AIP Architecture, Palantir AIP Chatbot Studio application state, Chatbot Studio retrieval context, Chatbot Studio tools, AI FDE turn evidence를 Ontology 및 Context Engineering 판단에 연결합니다.",
       "  confidence/limit: source evidence는 확인되었지만 Codex runtime gap과 live refresh 한계가 남아 있습니다.",
       "전후맥락 요약:",
       "what this request means: 사용자의 요청은 template을 범용 workflow 답변 형식으로 바꾸는 것입니다.",

@@ -96,6 +96,25 @@ include an `SSoT 판단 근거` section with concise rows or bullets covering:
 - `confidence/limit`: what the source proves, what it does not prove, and
   whether a runtime gap or live-refresh gap remains.
 
+For Palantir-heavy turns, the assistant must first ground itself through the
+research routers unless a narrower project-local authority already resolves the
+question:
+
+- Read project-local `BROWSE.md` and `INDEX.md` when present.
+- Read `~/.claude/research/BROWSE.md` and
+  `~/.claude/research/INDEX.md` to select the smallest relevant Palantir
+  evidence surface.
+- Prefer `research_context_select` when the MCP tool is available, then inspect
+  only the exact files it selects or the exact files needed to resolve the
+  user's question.
+- Treat those research router files as upstream evidence routing SSoT. They do
+  not replace project ontology, contracts, tests, plugin source, hook policy, or
+  current workflow state.
+- Prefer `~/.claude/research/palantir-official/` for current Palantir product
+  facts. Treat `palantir-foundry/` as legacy compatibility evidence and
+  `palantir-vision/` as synthesis/interpretation unless current official
+  evidence confirms the claim.
+
 For Palantir-heavy turns, the SSoT basis should name the smallest relevant
 evidence from:
 
@@ -112,6 +131,27 @@ evidence from:
   outputs, and workflow state.
 - generated mirrors are non-authority; caches and local loaders are consumer
   surfaces only.
+
+When the response concerns Palantir's AIP architecture, agent/chatbot behavior,
+or user-visible workflow answers, the assistant must not rely on generic
+"chatbot" assumptions. It must use the current official local evidence for:
+
+- AIP Architecture:
+  `~/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md`.
+- AIP Chatbot Studio overview:
+  `~/.claude/research/palantir-official/foundry/chatbot-studio/overview.md`.
+- Application state:
+  `~/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md`.
+- Retrieval context:
+  `~/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md`.
+- Tools:
+  `~/.claude/research/palantir-official/foundry/chatbot-studio/tools.md`.
+
+The Chatbot Studio basis must cover application variables and value visibility,
+deterministic variable updates, retrieval context run on every user message,
+Ontology/document/function-backed context, Action/Object query/Function/Update
+variable/Command/Request clarification tools, tool mode, and user-confirmation
+boundaries whenever those surfaces affect the answer.
 
 If a source was selected from the plugin-vendored snapshot, say that it is a
 plugin snapshot and do not imply live official-doc currentness. If live official
