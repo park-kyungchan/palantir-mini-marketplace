@@ -26,6 +26,14 @@ export interface SurfaceContractAuditFinding {
   readonly issues: readonly SurfaceContractIssue[];
 }
 
+export interface SurfaceContractAuditBreakdown {
+  readonly surfaceKind: string;
+  readonly scannedFileCount: number;
+  readonly contractCount: number;
+  readonly missingContractCount: number;
+  readonly invalidContractCount: number;
+}
+
 export interface SurfaceContractAuditResult {
   readonly status: "pass" | "fail" | "advisory";
   readonly mode: SurfaceAuditMode;
@@ -34,6 +42,7 @@ export interface SurfaceContractAuditResult {
   readonly contractCount: number;
   readonly missingContractCount: number;
   readonly invalidContractCount: number;
+  readonly surfaceBreakdown: readonly SurfaceContractAuditBreakdown[];
   readonly findings: readonly SurfaceContractAuditFinding[];
 }
 
@@ -99,25 +108,61 @@ function kindForPath(pluginRoot: string, filePath: string): string {
   return "runtime-adapter";
 }
 
+function emptyBreakdown(surfaceKind: string): SurfaceContractAuditBreakdown {
+  return {
+    surfaceKind,
+    scannedFileCount: 0,
+    contractCount: 0,
+    missingContractCount: 0,
+    invalidContractCount: 0,
+  };
+}
+
+function incrementBreakdown(
+  breakdown: Map<string, SurfaceContractAuditBreakdown>,
+  surfaceKind: string,
+  delta: Omit<SurfaceContractAuditBreakdown, "surfaceKind">,
+): void {
+  const current = breakdown.get(surfaceKind) ?? emptyBreakdown(surfaceKind);
+  breakdown.set(surfaceKind, {
+    surfaceKind,
+    scannedFileCount: current.scannedFileCount + delta.scannedFileCount,
+    contractCount: current.contractCount + delta.contractCount,
+    missingContractCount: current.missingContractCount + delta.missingContractCount,
+    invalidContractCount: current.invalidContractCount + delta.invalidContractCount,
+  });
+}
+
 export function auditSurfaceContracts(args: SurfaceContractAuditArgs): SurfaceContractAuditResult {
   const mode = args.mode ?? "all";
   const files = filesForMode(args.pluginRoot, mode);
   const findings: SurfaceContractAuditFinding[] = [];
+  const breakdown = new Map<string, SurfaceContractAuditBreakdown>();
   let contractCount = 0;
   let missingContractCount = 0;
   let invalidContractCount = 0;
 
   for (const filePath of files) {
     const parsed = parseSurfaceContractFromMarkdown(fs.readFileSync(filePath, "utf8"));
+    const surfaceKind = kindForPath(args.pluginRoot, filePath);
+    const hasContract = parsed.contract !== undefined;
+    const isMissing = parsed.source === "missing";
+    const isInvalid = parsed.source !== "missing" &&
+      parsed.issues.some((issue) => issue.severity === "fail");
+
     if (parsed.contract) contractCount += 1;
-    if (parsed.source === "missing") missingContractCount += 1;
-    if (parsed.source !== "missing" && parsed.issues.some((issue) => issue.severity === "fail")) {
-      invalidContractCount += 1;
-    }
+    if (isMissing) missingContractCount += 1;
+    if (isInvalid) invalidContractCount += 1;
+    incrementBreakdown(breakdown, surfaceKind, {
+      scannedFileCount: 1,
+      contractCount: hasContract ? 1 : 0,
+      missingContractCount: isMissing ? 1 : 0,
+      invalidContractCount: isInvalid ? 1 : 0,
+    });
     if (parsed.issues.length > 0) {
       findings.push({
         filePath: path.relative(args.pluginRoot, filePath),
-        surfaceKind: kindForPath(args.pluginRoot, filePath),
+        surfaceKind,
         issues: parsed.issues,
       });
     }
@@ -132,6 +177,9 @@ export function auditSurfaceContracts(args: SurfaceContractAuditArgs): SurfaceCo
     contractCount,
     missingContractCount,
     invalidContractCount,
+    surfaceBreakdown: [...breakdown.values()].sort((left, right) =>
+      left.surfaceKind.localeCompare(right.surfaceKind)
+    ),
     findings,
   };
 }

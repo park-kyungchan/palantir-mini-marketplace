@@ -82,6 +82,22 @@ describe("local AIP/FDE surface contract parsing and audit", () => {
     expect(result.scannedFileCount).toBe(2);
     expect(result.contractCount).toBe(1);
     expect(result.missingContractCount).toBe(1);
+    expect(result.surfaceBreakdown).toEqual([
+      {
+        surfaceKind: "agent",
+        scannedFileCount: 1,
+        contractCount: 0,
+        missingContractCount: 1,
+        invalidContractCount: 0,
+      },
+      {
+        surfaceKind: "skill",
+        scannedFileCount: 1,
+        contractCount: 1,
+        missingContractCount: 0,
+        invalidContractCount: 0,
+      },
+    ]);
   });
 
   test("parses migrated high-priority agent and skill surface contracts", () => {
