@@ -5,8 +5,12 @@ import {
   PALANTIR_MINI_WORKFLOW_RESPONSE_EXPLANATION_REQUIREMENTS,
   buildPalantirMiniWorkflowResponseTemplateContext,
   buildOntologyEngineeringResponseTemplateContext,
+  assertDtcApprovalCardTextBeforeDisplay,
+  detectPalantirMiniPluginOptOut,
+  isPalantirMiniPluginExplicitlyDisabled,
   isPalantirMiniWorkflowResponseRequired,
   isOntologyEngineeringResponseRequired,
+  validateDtcApprovalCardText,
   validatePalantirMiniWorkflowResponseTemplateText,
   validateOntologyEngineeringResponseTemplateText,
 } from "../../lib/ontology-engineering-response-template";
@@ -24,6 +28,20 @@ describe("palantir-mini workflow response template", () => {
       ),
     ).toBe(true);
     expect(isOntologyEngineeringResponseRequired("Summarize this plain text note.")).toBe(false);
+  });
+
+  test("honors explicit user opt-out for palantir-mini plugin workflow enforcement", () => {
+    const optOutPrompt =
+      "Do not use palantir-mini for this turn. Start Ontology Engineering with WorkflowContract.";
+
+    expect(detectPalantirMiniPluginOptOut(optOutPrompt)?.explicit).toBe(true);
+    expect(isPalantirMiniPluginExplicitlyDisabled(optOutPrompt)).toBe(true);
+    expect(isPalantirMiniWorkflowResponseRequired(optOutPrompt)).toBe(false);
+    expect(isOntologyEngineeringResponseRequired(optOutPrompt)).toBe(false);
+
+    const metaPrompt =
+      "palantir-mini plugin을 사용하지 말라고 할 경우에는 opt-out을 감지해야 한다.";
+    expect(detectPalantirMiniPluginOptOut(metaPrompt)).toBeUndefined();
   });
 
   test("builds mandatory context with runtime gap disclosure", () => {
@@ -80,7 +98,15 @@ describe("palantir-mini workflow response template", () => {
       "현재 workflow phase: mutation-authorized",
       "선택된 palantir-mini workflow 또는 workflow gap: pm_ontology_engineering_workflow",
       "FDE session ref: fde-ontology-engineering://session/test",
-      "SIC/DTC 상태: approved",
+      "SIC/DTC 상태: approved; approved DTC ref: digital-twin-change://contract/test; approvalRef: user-decision://approval/test",
+      "DTC approval card: ontology-dtc-build",
+      "T0 ObjectType readiness accepted.",
+      "T1 LinkType readiness accepted.",
+      "T2 ActionType readiness accepted.",
+      "T3 Function readiness accepted.",
+      "T4 Chatbot/Application State readiness accepted.",
+      "T5 Replay/Eval/Validation readiness accepted.",
+      "T6 ready-for-DTC verdict accepted.",
       "open TurnCardDecisionSpec 목록: none",
       "mutationAuthorized 여부: true",
       "다음에 허용된 action: route-with-approved-contracts",
@@ -142,5 +168,89 @@ describe("palantir-mini workflow response template", () => {
       "Claude/Codex parity is complete.",
     );
     expect(parityOnly.falseParityClaimMarkers.length).toBeGreaterThan(0);
+  });
+
+  test("rejects malformed DTC approval cards before display", () => {
+    const badCard = [
+      "DigitalTwinChangeContract approval card",
+      "SIC/DTC 상태: approved",
+      "mutationAuthorized 여부: false",
+      "DTC 5개 추천안 승인",
+      "DTC primitive readiness: DATA, LOGIC, ACTION, GOVERNANCE, TECHNOLOGY",
+      "generated mirror cache proposal is authority",
+    ].join("\n");
+
+    const violations = validateDtcApprovalCardText(badCard);
+    expect(violations).toContain(
+      "legacy DTC approval phrase `DTC 5개 추천안 승인` is not allowed",
+    );
+    expect(violations).toContain(
+      "DATA/LOGIC/ACTION/GOVERNANCE/TECHNOLOGY must not be presented as DTC primitive readiness",
+    );
+    expect(violations).toContain(
+      "ontology-affecting DTC approval cards must name ontology-dtc-build",
+    );
+    expect(violations).toContain(
+      "DTC approval card asks for approval while mutationAuthorized=false",
+    );
+    expect(violations).toContain(
+      "approved-DTC wording must include an approved DTC ref or approvalRef",
+    );
+    expect(violations).toContain(
+      "generated/cache/proposal artifacts must not be presented as authority",
+    );
+
+    const result = validatePalantirMiniWorkflowResponseTemplateText([
+      badCard,
+      "현재 workflow phase: digital-twin-change",
+      "선택된 palantir-mini workflow 또는 workflow gap: pm_semantic_intent_gate",
+      "FDE session ref: fde-ontology-engineering://session/test",
+      "open TurnCardDecisionSpec 목록: semantic-intent.confirm-operational-meaning",
+      "다음에 허용된 action: do-not-route",
+      "durable subagent .md output 상태: N/A - subagent not used",
+      "native/runtime gap 여부: Claude hook native 여부 not proven; Codex runtime gap handled by manual hook-intent mirroring. MCP/tool availability and subagent/runtime parity are stated.",
+      "SSoT 판단 근거: source/ref .claude/research/BROWSE.md and .claude/research/INDEX.md. provenance/currentness palantir-official plugin source, generated mirrors are non-authority. used-for judgment: Palantir AIP Architecture, Palantir AIP Chatbot Studio application state, Chatbot Studio retrieval context, Chatbot Studio tools, AI FDE, Ontology, Context Engineering. confidence/limit: validator evidence only.",
+      "what this request means: validate a DTC approval card.",
+      "why this source is trusted: plugin source.",
+      "what I am allowed to do now: reject bad card text.",
+      "what needs user approval: approved DTC ref.",
+      "what gap or uncertainty remains: Codex runtime gap.",
+    ].join("\n"));
+    expect(result.valid).toBe(false);
+    expect(result.dtcApprovalCardViolations.length).toBeGreaterThan(0);
+    expect(() =>
+      assertDtcApprovalCardTextBeforeDisplay({
+        surface: "unit-test.bad-card",
+        text: badCard,
+      }),
+    ).toThrow("DTC approval-card display blocked on unit-test.bad-card");
+  });
+
+  test("accepts ontology-dtc-build approval cards with primitive readiness and refs", () => {
+    const goodCard = [
+      "DigitalTwinChangeContract approval card",
+      "SIC/DTC 상태: approved",
+      "approved DTC ref: digital-twin-change://contract/test",
+      "approvalRef: user-decision://approval/test",
+      "fillPolicy: ontology-dtc-build",
+      "mutationAuthorized 여부: true",
+      "T0 ObjectType readiness accepted.",
+      "T1 LinkType readiness accepted.",
+      "T2 ActionType readiness accepted.",
+      "T3 Function readiness accepted.",
+      "T4 Chatbot/Application State readiness accepted.",
+      "T5 Replay/Eval/Validation readiness accepted.",
+      "T6 ready-for-DTC verdict accepted.",
+      "Ontology DTC T0-T6 추천안 승인",
+      "generated mirrors are non-authority.",
+    ].join("\n");
+
+    expect(validateDtcApprovalCardText(goodCard)).toEqual([]);
+    expect(() =>
+      assertDtcApprovalCardTextBeforeDisplay({
+        surface: "unit-test.good-card",
+        text: goodCard,
+      }),
+    ).not.toThrow();
   });
 });

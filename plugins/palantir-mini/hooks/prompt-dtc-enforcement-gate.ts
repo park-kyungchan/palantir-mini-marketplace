@@ -448,6 +448,15 @@ async function assessPromptDtc(
         "No current prompt-front-door envelope is available. Run pm_semantic_intent_gate from the captured prompt context before mutating tools.",
     };
   }
+  if (envelope.palantirMiniPluginOptOut?.explicit) {
+    return {
+      ok: true,
+      errorClass: "palantir_mini_plugin_opt_out",
+      envelope,
+      reason:
+        "Current prompt explicitly opted out of palantir-mini plugin workflow enforcement.",
+    };
+  }
 
   const continuity = validatePromptContinuity({
     envelope,

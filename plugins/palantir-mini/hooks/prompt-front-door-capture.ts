@@ -71,6 +71,7 @@ import { createUniversalOntologyEntry } from "../lib/ontology-entry/universal-en
 import { writeUniversalOntologyEntry } from "../lib/ontology-entry/entry-store";
 import {
   buildOntologyEngineeringResponseTemplateContext,
+  detectPalantirMiniPluginOptOut,
   isOntologyEngineeringResponseRequired,
 } from "../lib/ontology-engineering-response-template";
 // transitionUniversalOntologyEntry is used by downstream handlers (ontology-context-query,
@@ -194,6 +195,18 @@ function detectRuntime(payload: HookPayload): PromptRuntime {
 }
 
 function buildGateContext(envelope: PromptEnvelope, universalOntologyEntryRef?: string): string {
+  if (envelope.palantirMiniPluginOptOut?.explicit) {
+    return [
+      "palantir-mini prompt front door captured this prompt.",
+      universalOntologyEntryRef ? `UniversalOntologyEntryRef: ${universalOntologyEntryRef}` : "",
+      "",
+      "Explicit palantir-mini plugin opt-out detected for this prompt.",
+      `Matched opt-out marker: ${envelope.palantirMiniPluginOptOut.matchedMarker}`,
+      "Policy: Do not apply palantir-mini workflow routing, response-template enforcement, or Prompt-DTC mutation gating for this prompt unless the user later opts back in.",
+      "UniversalOntologyEntry and PromptEnvelope were captured only as trace evidence.",
+    ].join("\n");
+  }
+
   const lines = [
     "palantir-mini prompt front door captured this prompt.",
     universalOntologyEntryRef ? `UniversalOntologyEntryRef: ${universalOntologyEntryRef}` : "",
@@ -283,6 +296,7 @@ export default async function promptFrontDoorCapture(payload: unknown): Promise<
   const sessionId = p.session_id ?? "local";
   const runtime = detectRuntime(p);
   const projectRoot = resolveCaptureProjectRoot(cwd);
+  const palantirMiniPluginOptOut = detectPalantirMiniPluginOptOut(rawPrompt);
   const previous = readJsonSync<PromptCurrentPointer>(
     currentPointerPathFor(projectRoot, runtime, sessionId),
   );
@@ -293,6 +307,7 @@ export default async function promptFrontDoorCapture(payload: unknown): Promise<
     projectRoot,
     sequence: Date.now(),
     previousPromptHash: previous?.promptHash,
+    palantirMiniPluginOptOut,
   });
 
   writePromptCaptureSync(envelope);

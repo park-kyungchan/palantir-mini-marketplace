@@ -562,7 +562,7 @@ function decisionSpec(input: {
     choices: [
       {
         choiceId: recommendedChoiceId,
-        label: "추천안 승인",
+        label: "추천 경계 확인",
         consequence: input.recommended,
         recommended: true,
         stateEffectPreview: input.stateEffectPreview,

@@ -21,6 +21,7 @@ import {
   isFillComplete,
   type SicWithFillFields,
 } from "../../../lib/semantic-intent/fill-sequence";
+import { validateDtcApprovalCardText } from "../../../lib/ontology-engineering-response-template";
 
 const tmpDirs: string[] = [];
 const savedEnv: Record<string, string | undefined> = {};
@@ -217,7 +218,7 @@ describe("pm_semantic_intent_gate", () => {
 
     expect(result.status).toBe("contract_required");
     expect(result.draftContracts).toBeUndefined();
-    expect(result.userReviewCard?.title).toBe("Contract 작성 승인 카드");
+    expect(result.userReviewCard?.title).toBe("Contract 작성 검토 카드");
     expect(result.userReviewCard?.semanticIntentCard.title).toBe("제가 이해한 작업 의미");
     expect(result.userReviewCard?.digitalTwinBoundaryCard.title).toBe("실제 변경 범위 확인");
     expect(result.userReviewCard?.semanticIntentCard.recommendedDirection).toContain("FDE");
@@ -235,9 +236,10 @@ describe("pm_semantic_intent_gate", () => {
       expect(question.recommendedAnswer.length).toBeGreaterThan(10);
       expect(question.whyItMatters.length).toBeGreaterThan(10);
       expect(question.choices.length).toBeGreaterThanOrEqual(2);
-      expect(question.choices[0]?.label).toBe("추천안 승인");
+      expect(question.choices[0]?.label).toBe("추천 경계 확인");
       expect(question.freeTextAllowed).toBe(true);
     }
+    expect(validateDtcApprovalCardText(JSON.stringify(result.userReviewCard))).toEqual([]);
   });
 
   test("human collaborative mode can include draft contracts when explicitly requested", async () => {
@@ -260,6 +262,10 @@ describe("pm_semantic_intent_gate", () => {
     expect(result.userReviewCard?.digitalTwinBoundaryCard.recommendedDirection).toContain("validation gates");
     expect(result.draftContracts?.semanticIntent.status).toBe("draft");
     expect(result.draftContracts?.digitalTwin.status).toBe("draft");
+    expect(result.userReviewCard?.questions[0]?.choices[0]?.label).toBe(
+      "Confirm recommendation",
+    );
+    expect(validateDtcApprovalCardText(JSON.stringify(result.userReviewCard))).toEqual([]);
   });
 
   test("projects the same workflow turn cards for Claude and Codex before DTC approval", async () => {
