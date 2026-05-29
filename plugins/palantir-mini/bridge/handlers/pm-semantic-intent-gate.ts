@@ -5,6 +5,59 @@
 // records the user-approved boundary as SIC and derives DTC only from approved
 // SIC + FDE/context-engineering evidence. Durable schema promotion remains in
 // later waves.
+/**
+ * @palantirSurface
+ * schemaVersion: palantir-mini/aip-fde-local-surface/v1
+ * surfaceKind: mcp-tool
+ * surfaceId: mcp:pm_semantic_intent_gate
+ * workflowFamily: semanticIntentAndRouting
+ * phaseRefs:
+ *   - semantic-routing:prompt-contract
+ *   - semantic-routing:dtc-readiness
+ * aipSurfaceRefs:
+ *   - tools-function
+ *   - tools-request-clarification
+ *   - application-state-variables
+ *   - security-governance
+ * palantirSourceAuthorityRefs:
+ *   - localResearchPath: ~/.claude/research/palantir-official/foundry/chatbot-studio/tools.md
+ *     externalUrl: https://www.palantir.com/docs/foundry/chatbot-studio/tools/
+ *     lastVerified: 2026-05-24
+ *     sourceClass: palantir-chatbot-studio
+ * requiredContracts:
+ *   semanticIntent: optional
+ *   digitalTwinChange: optional
+ *   workContract: optional
+ *   userDecisionRecord: optional
+ * mutationCapability: proposal-only
+ * deterministicStatus: enforced
+ * runtimeProjection:
+ *   claude:
+ *     support: native
+ *     evidenceRefs:
+ *       - bridge/handlers/pm-semantic-intent-gate.ts
+ *     fallbackObligations: []
+ *     unsupportedSurfaceRefs: []
+ *     smokeEvidenceRefs: []
+ *   codex:
+ *     support: adapter-native
+ *     evidenceRefs:
+ *       - bridge/handlers/pm-semantic-intent-gate.ts
+ *       - docs/NATIVE_RUNTIME_GAPS.md
+ *     fallbackObligations:
+ *       - State prompt-front-door envelope dereference gaps instead of inventing approved refs.
+ *     unsupportedSurfaceRefs:
+ *       - codex:prompt-front-door-envelope-dereference
+ *     smokeEvidenceRefs: []
+ * outputStateRefs:
+ *   - workflowContract
+ *   - semanticIntentContractRef
+ *   - digitalTwinChangeContractRef
+ * validationRefs:
+ *   - tests/bridge/handlers/pm-semantic-intent-gate.test.ts
+ *   - tests/evals/prompt-to-dtc-regression.test.ts
+ * unsupportedParityClaimsForbidden: true
+ */
 
 import { emit } from "../../scripts/log";
 import * as path from "node:path";
