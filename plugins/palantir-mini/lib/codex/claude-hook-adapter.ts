@@ -1,6 +1,61 @@
 // palantir-mini sprint-064 W5 - reusable Codex adapter for Claude hook surface.
 // Codex and Claude remain native runtimes; this adapter only translates the
 // overlapping hook protocol shapes that Codex can observe.
+/**
+ * @palantirSurface
+ * schemaVersion: palantir-mini/aip-fde-local-surface/v1
+ * surfaceKind: runtime-adapter
+ * surfaceId: runtime-adapter:codex-claude-hook-adapter
+ * workflowFamily: runtimeAdapterAndParity
+ * phaseRefs:
+ *   - runtime-adapter:codex-hook-bridge
+ *   - hook-policy:live-read
+ * aipSurfaceRefs:
+ *   - runtime-projection
+ *   - tools-command
+ *   - security-governance
+ * palantirSourceAuthorityRefs:
+ *   - localResearchPath: ~/.claude/research/palantir-foundry/architecture/architecture-center-aip-architecture.md
+ *     externalUrl: https://www.palantir.com/docs/foundry/architecture-center/aip-architecture/
+ *     lastVerified: 2026-05-24
+ *     sourceClass: palantir-aip
+ * requiredContracts:
+ *   semanticIntent: optional
+ *   digitalTwinChange: optional
+ *   workContract: optional
+ *   userDecisionRecord: optional
+ * mutationCapability: proposal-only
+ * deterministicStatus: enforced
+ * runtimeProjection:
+ *   claude:
+ *     support: unsupported
+ *     evidenceRefs:
+ *       - docs/NATIVE_RUNTIME_GAPS.md
+ *     fallbackObligations:
+ *       - Use Claude-native hook registry instead of this Codex adapter.
+ *     unsupportedSurfaceRefs:
+ *       - claude:codex-adapter-not-mounted
+ *     smokeEvidenceRefs: []
+ *   codex:
+ *     support: adapter-native
+ *     evidenceRefs:
+ *       - hooks/codex-hooks.json
+ *       - lib/codex/claude-hook-adapter.ts
+ *     fallbackObligations:
+ *       - Report Claude-only lifecycle gaps instead of claiming native parity.
+ *     unsupportedSurfaceRefs:
+ *       - codex:claude-task-lifecycle-hooks
+ *     smokeEvidenceRefs:
+ *       - tests/lib/codex/claude-hook-adapter.test.ts
+ * outputStateRefs:
+ *   - hookSpecificOutput
+ *   - additionalContext
+ *   - permissionDecision
+ * validationRefs:
+ *   - tests/lib/codex/claude-hook-adapter.test.ts
+ *   - tests/runtime-boundary/codex-plugin-hooks.test.ts
+ * unsupportedParityClaimsForbidden: true
+ */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";

@@ -4,6 +4,60 @@
 // Captures payload.prompt into a PromptEnvelope without retaining the raw prompt
 // by default, then points the Lead at the semantic gate through Codex's
 // UserPromptSubmit hookSpecificOutput.additionalContext shape.
+/**
+ * @palantirSurface
+ * schemaVersion: palantir-mini/aip-fde-local-surface/v1
+ * surfaceKind: hook
+ * surfaceId: hook:prompt-front-door-capture
+ * workflowFamily: semanticIntentAndRouting
+ * phaseRefs:
+ *   - prompt-front-door:capture
+ *   - semantic-routing:prompt-contract
+ * aipSurfaceRefs:
+ *   - instructions-descriptions
+ *   - retrieval-context
+ *   - application-state-variables
+ *   - security-governance
+ * palantirSourceAuthorityRefs:
+ *   - localResearchPath: ~/.claude/research/palantir-foundry/ai-fde/overview.md
+ *     externalUrl: https://www.palantir.com/docs/foundry/ai-fde/overview/
+ *     lastVerified: 2026-05-24
+ *     sourceClass: palantir-ai-fde
+ * requiredContracts:
+ *   semanticIntent: optional
+ *   digitalTwinChange: optional
+ *   workContract: optional
+ *   userDecisionRecord: optional
+ * mutationCapability: proposal-only
+ * deterministicStatus: enforced
+ * runtimeProjection:
+ *   claude:
+ *     support: native
+ *     evidenceRefs:
+ *       - hooks/hooks.json
+ *       - hooks/prompt-front-door-capture.ts
+ *     fallbackObligations: []
+ *     unsupportedSurfaceRefs: []
+ *     smokeEvidenceRefs: []
+ *   codex:
+ *     support: adapter-native
+ *     evidenceRefs:
+ *       - hooks/codex-hooks.json
+ *       - lib/codex/claude-hook-adapter.ts
+ *     fallbackObligations:
+ *       - Treat PromptEnvelope and UniversalOntologyEntry as retrieval/warning evidence, not mutation authority.
+ *     unsupportedSurfaceRefs:
+ *       - codex:claude-hook-native-parity
+ *     smokeEvidenceRefs: []
+ * outputStateRefs:
+ *   - promptEnvelope
+ *   - universalOntologyEntryRef
+ *   - semanticConversationStateRef
+ * validationRefs:
+ *   - tests/hooks/prompt-front-door-capture.test.ts
+ *   - tests/lib/ontology-engineering-response-template.test.ts
+ * unsupportedParityClaimsForbidden: true
+ */
 
 import * as fs from "fs";
 import * as path from "path";

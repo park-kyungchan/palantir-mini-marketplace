@@ -183,9 +183,13 @@ export interface PmPluginSelfCheckResult {
     status: PmPluginSelfCheckStatus | "advisory";
     details: string;
     scannedFileCount: number;
+    requiredSurfaceCount: number;
+    helperFileCount: number;
     contractCount: number;
     missingContractCount: number;
+    missingRequiredContractCount: number;
     invalidContractCount: number;
+    unsupportedRepresentationCount: number;
     findings: readonly SurfaceContractAuditFinding[];
   };
   overallStatus: "pass" | "fail";

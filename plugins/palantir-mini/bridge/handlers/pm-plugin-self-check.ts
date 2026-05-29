@@ -155,7 +155,10 @@ export async function pmPluginSelfCheck(
     details:
       `Surface contract audit ${rawSurfaceContractAuditResult.status}: ` +
       `${rawSurfaceContractAuditResult.contractCount}/${rawSurfaceContractAuditResult.scannedFileCount} ` +
-      `files carry local AIP/FDE surface contracts; missing=${rawSurfaceContractAuditResult.missingContractCount}; ` +
+      `files carry local AIP/FDE surface contracts; required=${rawSurfaceContractAuditResult.requiredSurfaceCount}; ` +
+      `helpers=${rawSurfaceContractAuditResult.helperFileCount}; missing=${rawSurfaceContractAuditResult.missingContractCount}; ` +
+      `missingRequired=${rawSurfaceContractAuditResult.missingRequiredContractCount}; ` +
+      `unsupportedRepresentation=${rawSurfaceContractAuditResult.unsupportedRepresentationCount}; ` +
       `invalid=${rawSurfaceContractAuditResult.invalidContractCount}.`,
   };
 

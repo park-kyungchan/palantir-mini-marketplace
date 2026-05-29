@@ -1,4 +1,65 @@
 {
+  "palantirSurface": {
+    "schemaVersion": "palantir-mini/aip-fde-local-surface/v1",
+    "surfaceKind": "eval-suite",
+    "surfaceId": "eval-suite:fde-turn-quality-hooks",
+    "workflowFamily": "validationEvalAndHarness",
+    "phaseRefs": [
+      "eval:fde-turn-quality-hooks",
+      "governance:hook-enforcement"
+    ],
+    "aipSurfaceRefs": [
+      "evals-observability",
+      "application-state-variables",
+      "security-governance"
+    ],
+    "palantirSourceAuthorityRefs": [
+      {
+        "localResearchPath": "~/.claude/research/palantir-official/foundry/aip/evaluations.md",
+        "externalUrl": "https://www.palantir.com/docs/foundry/aip/evaluations/",
+        "lastVerified": "2026-05-24",
+        "sourceClass": "palantir-aip-evals"
+      }
+    ],
+    "requiredContracts": {
+      "semanticIntent": "optional",
+      "digitalTwinChange": "optional",
+      "workContract": "optional",
+      "userDecisionRecord": "not-applicable"
+    },
+    "mutationCapability": "none",
+    "deterministicStatus": "enforced",
+    "runtimeProjection": {
+      "claude": {
+        "support": "manual",
+        "evidenceRefs": [
+          "tests/evals/fde-turn-quality-hooks.test.ts"
+        ],
+        "fallbackObligations": [],
+        "unsupportedSurfaceRefs": [],
+        "smokeEvidenceRefs": []
+      },
+      "codex": {
+        "support": "manual",
+        "evidenceRefs": [
+          "tests/evals/fde-turn-quality-hooks.test.ts"
+        ],
+        "fallbackObligations": [
+          "Run the Bun eval test before claiming FDE hook enforcement coverage."
+        ],
+        "unsupportedSurfaceRefs": [],
+        "smokeEvidenceRefs": []
+      }
+    },
+    "outputStateRefs": [
+      "fdeTurnQualityReport",
+      "readinessEvalObservability"
+    ],
+    "validationRefs": [
+      "tests/evals/fde-turn-quality-hooks.test.ts"
+    ],
+    "unsupportedParityClaimsForbidden": true
+  },
   "schemaVersion": "aip-evaluation.v1.37.0",
   "suite": {
     "suiteId": "suite:fde-turn-quality-hooks",
