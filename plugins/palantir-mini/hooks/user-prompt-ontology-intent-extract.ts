@@ -2,12 +2,12 @@
 // Fires on: UserPromptSubmit (advisory, async, NEVER blocking)
 //
 // PURPOSE: Downstream discovery advisory. Detect when a user prompt signals a
-// complex task that should go through the Intent-to-Ontology Protocol (6-step
-// chain). The canonical prompt-to-DTC front door remains prompt-front-door-capture
+// complex task that should go through the current public Intent-to-Ontology path.
+// The canonical prompt-to-DTC front door remains prompt-front-door-capture
 // + pm_semantic_intent_gate; this hook does not prove user intent or DTC approval.
 //
-// sprint-063 W2.B: 8-step → 6-step (steps 3-4 unified into single impact_query call).
-//   semantic_change_plan removed entirely (broken per user directive 2026-05-09).
+// Current public path: pm_semantic_intent_gate -> ontology_context_query ->
+// pm_substrate_query as needed -> pm_intent_router after approved SIC/DTC.
 //
 // Heuristic (any 1 of 3 conditions triggers advisory):
 //   A. prompt length ≥600 chars
@@ -22,8 +22,6 @@
 // Emits: validation_phase_completed errorClass="intent_to_ontology_protocol_advised"
 //
 // NEVER blocks. Pass-through silently when heuristic does not match.
-//
-// sprint-063 W2.B: 8-step → 6-step. steps 3-4 unified into single impact_query call.
 //
 // Authority: sprint-063 W2.B; rule 12 v3.10.0 §MCP-First protocol;
 //            rule 26 §Axis E (procedural + semantic).
@@ -93,20 +91,17 @@ function countKeywordHits(lower: string): number {
 // ─── Advisory text ───────────────────────────────────────────────────────────
 
 /** Build the additionalContext advisory for Lead. */
-// sprint-063 W2.B: 8-step → 6-step (steps 3-4 unified into single impact_query call)
 function buildAdvisory(reasons: string[]): string {
   return [
-    `palantir-mini Intent-to-Ontology Protocol detected (${reasons.join(", ")}):`,
+    `palantir-mini Intent-to-Ontology advisory (${reasons.join(", ")}):`,
     ``,
-    `Canonical prompt/DTC proof: preserve prompt-front-door-capture identity and call pm_semantic_intent_gate with promptId/promptHash when available.`,
+    `Preserve prompt-front-door identity, then call pm_semantic_intent_gate with promptId/promptHash when available.`,
     ``,
-    `Then run this downstream 6-step discovery protocol BEFORE first Edit/Write/MultiEdit:`,
-    `  1. get_ontology → current ontology snapshot`,
-    `  2. impact_query → blast radius for top affected RIDs`,
-    `  3. pm_workflow_lineage_query → past 7-day edit history`,
-    `  4. pm_event_query_by_grade T3+ → prior BackProp decision inputs`,
-    `  5. propagation_audit_forward → ForwardProp chain integrity`,
-    `  6. Bind SprintContract`,
+    `Use current public discovery before first Edit/Write/MultiEdit:`,
+    `  1. ontology_context_query -> context, impact, risk, FDE/DTC readiness`,
+    `  2. pm_substrate_query mode=workflow/by-grade -> lineage and BackProp value when needed`,
+    `  3. pm_intent_router -> only after approved SIC/DTC or an explicit recorded runtime gap`,
+    `  4. Bind WorkContract/SprintContract for mutation slices`,
     ``,
     `Shortcut after semantic gate: /palantir-mini:pm-intent-to-ontology "<intent>" <scopePaths...>`,
     ``,
@@ -184,7 +179,7 @@ export default async function userPromptOntologyIntentExtract(
         sessionId,
         identity:     "monitor",
         memoryLayers: ["procedural", "semantic"],
-        reasoning:    `user-prompt-ontology-intent-extract: downstream Intent-to-Ontology Protocol advisory surfaced after prompt-front-door capture / pm_semantic_intent_gate path. reasons=${reasons.join(", ")}; promptLength=${promptLength}. 6-step protocol (sprint-063 W2.B): steps 3-4 unified into single impact_query; semantic_change_plan removed.`,
+        reasoning:    `user-prompt-ontology-intent-extract: downstream Intent-to-Ontology advisory surfaced after prompt-front-door capture / pm_semantic_intent_gate path. reasons=${reasons.join(", ")}; promptLength=${promptLength}. Current public path uses ontology_context_query, pm_substrate_query, and pm_intent_router after approved SIC/DTC.`,
       });
     } catch { /* best-effort */ }
 

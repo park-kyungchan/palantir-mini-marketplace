@@ -720,14 +720,56 @@ function blockReason(run: HookRun): string | undefined {
   return undefined;
 }
 
-function collectContext(runs: HookRun[]): string {
+const DEFAULT_CONTEXT_LIMIT_CHARS = 2400;
+
+const CONTEXT_LIMIT_CHARS_BY_EVENT: Record<string, number> = {
+  SessionStart:      1600,
+  UserPromptSubmit: 4000,
+  PreCompact:       1600,
+  PostCompact:      1600,
+  Stop:             1600,
+};
+
+function contextLimitForEvent(eventName: string): number {
+  return CONTEXT_LIMIT_CHARS_BY_EVENT[eventName] ?? DEFAULT_CONTEXT_LIMIT_CHARS;
+}
+
+function contextDedupeKey(ctx: string): string {
+  return ctx.replace(/\s+/g, " ").trim();
+}
+
+function capContext(eventName: string, context: string): string {
+  const limit = contextLimitForEvent(eventName);
+  if (context.length <= limit) return context;
+
+  let footer = "";
+  let headLimit = limit;
+  let omitted = context.length - limit;
+  do {
+    footer = `\n\n[palantir-mini Codex adapter: context capped at ${limit} chars; omitted ${omitted} chars from hook output.]`;
+    headLimit = Math.max(0, limit - footer.length);
+    omitted = context.length - headLimit;
+  } while ((context.slice(0, headLimit).trimEnd() + footer).length > limit && headLimit > 0);
+
+  return context.slice(0, headLimit).trimEnd() + footer;
+}
+
+function collectContext(eventName: string, runs: HookRun[]): string {
   const chunks: string[] = [];
+  const seen = new Set<string>();
+  const pushChunk = (chunk: string) => {
+    const key = contextDedupeKey(chunk);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    chunks.push(chunk);
+  };
+
   for (const run of runs) {
     const parsed = run.parsed;
     if (!parsed) {
-      if (run.timedOut) chunks.push(`palantir-mini Codex adapter: timed out running ${run.hook.command}`);
+      if (run.timedOut) pushChunk(`palantir-mini Codex adapter: timed out running ${run.hook.command}`);
       else if (run.exitCode && run.exitCode !== 0) {
-        chunks.push(`palantir-mini Codex adapter: hook exited ${run.exitCode}: ${run.stderr.trim()}`);
+        pushChunk(`palantir-mini Codex adapter: hook exited ${run.exitCode}: ${run.stderr.trim()}`);
       }
       continue;
     }
@@ -736,9 +778,9 @@ function collectContext(runs: HookRun[]): string {
       textField(parsed, "additionalContext") ||
       textField(parsed, "systemMessage") ||
       textField(specific, "additionalContext");
-    if (ctx) chunks.push(ctx);
+    if (ctx) pushChunk(ctx);
   }
-  return chunks.join("\n\n");
+  return capContext(eventName, chunks.join("\n\n"));
 }
 
 export function unsupportedEventSummary(doc: HooksDocument, options: CodexAdapterOptions = {}): string {
@@ -765,7 +807,7 @@ export function responseFor(
   doc: HooksDocument,
   options: CodexAdapterOptions = {},
 ): JsonObject {
-  const context = collectContext(runs);
+  const context = collectContext(eventName, runs);
   const block = runs.map(blockReason).find(Boolean);
 
   if (eventName === "PreToolUse" && block) {
