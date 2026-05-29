@@ -24,6 +24,18 @@ function makeTmpPlan(content: string): string {
   return file;
 }
 
+function makeTmpCanonicalPlan(content: string): string {
+  const dir = path.join(os.tmpdir(), ".palantir-mini", "plan");
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `test-plan-${Date.now()}.md`);
+  const lines = content.split("\n");
+  const padded = lines.length > 20
+    ? content
+    : `${content}\n${Array.from({ length: 21 - lines.length }, (_, i) => `filler ${i + 1}`).join("\n")}`;
+  fs.writeFileSync(file, padded, "utf8");
+  return file;
+}
+
 function buildPayload(filePath: string) {
   return {
     cwd: os.tmpdir(),
@@ -140,6 +152,13 @@ describe("plan-task-dag-validate — ownerAgent required field (v3.19.1)", () =>
 
   test("PASS: full valid DAG with ownerAgent column returns OK message", async () => {
     tmpFile = makeTmpPlan(VALID_DAG_SECTION);
+    const result = await planTaskDagValidate(buildPayload(tmpFile));
+    expect(result.message).toContain("OK");
+    expect(result.message).not.toContain("ADVISORY");
+  });
+
+  test("PASS: canonical .palantir-mini/plan file is validated", async () => {
+    tmpFile = makeTmpCanonicalPlan(VALID_DAG_SECTION);
     const result = await planTaskDagValidate(buildPayload(tmpFile));
     expect(result.message).toContain("OK");
     expect(result.message).not.toContain("ADVISORY");

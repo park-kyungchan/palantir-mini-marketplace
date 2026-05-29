@@ -2,8 +2,10 @@
 // Fires on: SessionStart (advisory, async)
 //
 // Per rule 02 v3.2.0 §Plans index drift detection (R6-F18):
-// Compares ~/.claude/plans/*.md filesystem listing against entries in
-// ~/.claude/plans/BROWSE.md. Surfaces unindexed / stale-ref deltas as advisory.
+// Compares <project>/.palantir-mini/plan/*.md filesystem listing against
+// <project>/.palantir-mini/plan/BROWSE.md. Surfaces unindexed / stale-ref
+// deltas as advisory. Legacy ~/.claude/plans/ remains readable provenance, but
+// new durable palantir-mini synthesis belongs in the plugin-layer plan root.
 //
 // Authority: rule 02 (research-retrieval) v3.2.0 §Plans index drift detection
 //
@@ -14,28 +16,35 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { resolvePlanRoot } from "../lib/plan-root/resolve-plan-root";
 
 interface HookResult {
   message: string;
   additionalContext?: string;
 }
 
-const PLANS_DIR = path.join(process.env.HOME ?? "/home/palantirkc", ".claude", "plans");
-const BROWSE_FILE = path.join(PLANS_DIR, "BROWSE.md");
-
 export async function run(): Promise<HookResult> {
-  // Guard: if BROWSE.md absent, emit advisory to create it.
-  if (!fs.existsSync(BROWSE_FILE)) {
+  const plansDir = resolvePlanRoot({ projectRoot: process.cwd(), cwd: process.cwd() });
+  const browseFile = path.join(plansDir, "BROWSE.md");
+
+  if (!fs.existsSync(plansDir)) {
     return {
-      message: "[plans-index-drift-detect] BROWSE.md missing in ~/.claude/plans/. Create it to enable drift detection.",
+      message: `[plans-index-drift-detect] canonical plan root missing at ${plansDir}. Create it for durable plugin-layer plans.`,
     };
   }
 
-  const browseContent = fs.readFileSync(BROWSE_FILE, "utf8");
+  // Guard: if BROWSE.md absent, emit advisory to create it.
+  if (!fs.existsSync(browseFile)) {
+    return {
+      message: `[plans-index-drift-detect] BROWSE.md missing in ${plansDir}. Create it to enable drift detection.`,
+    };
+  }
+
+  const browseContent = fs.readFileSync(browseFile, "utf8");
 
   // Collect .md files on disk (exclude BROWSE.md itself).
   const diskFiles = fs
-    .readdirSync(PLANS_DIR)
+    .readdirSync(plansDir)
     .filter((f) => f.endsWith(".md") && f !== "BROWSE.md")
     .map((f) => f);
 
@@ -63,7 +72,7 @@ export async function run(): Promise<HookResult> {
   if (stale.length > 0) {
     lines.push(`  Stale BROWSE.md refs (${stale.length}): ${stale.join(", ")}`);
   }
-  lines.push("  Action: update ~/.claude/plans/BROWSE.md manually or via Lead judgment.");
+  lines.push(`  Action: update ${path.join(plansDir, "BROWSE.md")} manually or via Lead judgment.`);
 
   return {
     message: lines.join("\n"),

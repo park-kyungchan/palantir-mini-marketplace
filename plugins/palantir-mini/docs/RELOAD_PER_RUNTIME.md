@@ -47,7 +47,7 @@ Run `/reload-plugins` after any change in the "Yes" rows above while an active C
 - Read-only documentation edits (CHANGELOG, README, docs/).
 - Changes to `.palantir-mini/session/**` (session state is read lazily per-invocation).
 - Changes only to test files under `tests/**`.
-- Changes to `~/.claude/plans/**` or `~/.claude/research/**`.
+- Changes to `<project>/.palantir-mini/plan/**`, legacy `~/.claude/plans/**`, or `~/.claude/research/**`.
 
 ### Caveats
 

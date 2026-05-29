@@ -92,6 +92,17 @@ describe("exemptions", () => {
     expect(result.message).toContain("synthesis path");
   });
 
+  test("E1b: canonical .palantir-mini/plan path → exempt, skipped message", async () => {
+    const { root } = makeTrackedProject();
+    const result = await leadOntologyDiscoveryCompleteness({
+      tool_name:  "Edit",
+      tool_input: { file_path: path.join(root, ".palantir-mini", "plan", "handoff.md") },
+      cwd:        root,
+    });
+    expect(result.additionalContext).toBeUndefined();
+    expect(result.message).toContain("synthesis path");
+  });
+
   test("E2: BROWSE.md → exempt", async () => {
     const result = await leadOntologyDiscoveryCompleteness({
       tool_name:  "Edit",

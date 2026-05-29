@@ -78,7 +78,7 @@ Branch: sprint-135-pr-4-5-xyz-2026-05-13
 
 ## Plan-mode authoring template
 
-When you author a multi-PR plan under `~/.claude/plans/`, include a `## Task DAG` section with this table for every cluster of tasks:
+When you author a multi-PR plan under `<project>/.palantir-mini/plan/` (canonical plugin-layer root; legacy `~/.claude/plans/` remains read-compatible), include a `## Task DAG` section with this table for every cluster of tasks:
 
 | id | runsAfter | parallelEligibleWith | preReservedVersionSlot | worktreeIsolationRequired | riskTier |
 |----|-----------|----------------------|------------------------|---------------------------|----------|

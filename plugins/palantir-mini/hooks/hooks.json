@@ -481,7 +481,7 @@
           {
             "type": "command",
             "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/plan-task-dag-validate.ts\"",
-            "if": "Write(**/.claude/plans/*.md)",
+            "if": "Write(**/.palantir-mini/plan/*.md)|Write(**/.claude/plans/*.md)",
             "timeout": 25,
             "async": true,
             "statusMessage": "rule 12 v3.19.0 §Plan-mode authoring requirement — DAG annotation advisory…"

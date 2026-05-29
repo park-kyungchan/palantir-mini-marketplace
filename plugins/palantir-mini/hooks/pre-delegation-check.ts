@@ -44,6 +44,7 @@ import { findProjectRoot } from "./harness-base-mode-advisory";
 import { findActiveBoundContractPath } from "../lib/harness/active-contract";
 import { readEvents } from "../lib/event-log/read";
 import { eventsPathFor } from "../scripts/log";
+import { isPlanArtifactPath } from "../lib/plan-root/resolve-plan-root";
 import {
   PRE_DELEGATION_TRIGGER,
   PRE_DELEGATION_COOLDOWN_MIN,
@@ -178,12 +179,11 @@ function resolveAbsPath(filePath: string): string {
 
 /**
  * Check if file is a synthesis path — exempt from pre-delegation gate.
- * Exempt: ~/.claude/plans/**, files ending with BROWSE.md or INDEX.md.
+ * Exempt: <project>/.palantir-mini/plan/**, legacy ~/.claude/plans/**,
+ * files ending with BROWSE.md or INDEX.md.
  */
-function isSynthesisPath(absPath: string): boolean {
-  const home = process.env.HOME ?? "/home/palantirkc";
-  const plansPrefix = path.join(home, ".claude", "plans") + path.sep;
-  if (absPath.startsWith(plansPrefix)) return true;
+function isSynthesisPath(absPath: string, cwd = process.cwd()): boolean {
+  if (isPlanArtifactPath(absPath, { projectRoot: cwd, cwd })) return true;
   const base = path.basename(absPath);
   if (base === "BROWSE.md" || base === "INDEX.md") return true;
   return false;
@@ -321,7 +321,7 @@ export default async function preDelegationCheck(payload: unknown): Promise<Hook
     const rawFilePath = p.tool_input?.file_path ?? p.tool_input?.notebook_path;
     if (rawFilePath && typeof rawFilePath === "string" && rawFilePath.length > 0) {
       const absPath = resolveAbsPath(rawFilePath);
-      if (isSynthesisPath(absPath)) {
+      if (isSynthesisPath(absPath, cwd)) {
         // Synthesis paths are EXEMPT from blocking (pass-through), BUT still increment
         // the synthesis-edit counter so mixed-session detection (P1.LD2) can fire.
         const synthProjectRoot = findProjectRoot(cwd);

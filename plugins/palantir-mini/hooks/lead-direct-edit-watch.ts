@@ -15,8 +15,8 @@
 //   Any other named agent               → subagent edit; skip counter increment
 //
 // Synthesis path handling (P1.LD2 tighten):
-//   Files matching ~/.claude/plans/** OR ending with BROWSE.md / INDEX.md (case-
-//   sensitive) are EXEMPT from the production counter — but still increment a
+//   Files matching <project>/.palantir-mini/plan/**, legacy ~/.claude/plans/**,
+//   or ending with BROWSE.md / INDEX.md (case-sensitive) are EXEMPT from the production counter — but still increment a
 //   separate synthesisEditCount in .lead-synthesis-edit-counter.json.
 //   When synthesisEditCount >= SYNTHESIS_MIXED_MIN_COUNT AND a production edit
 //   follows within SYNTHESIS_MIXED_WINDOW_MIN (30 min), emits
@@ -64,6 +64,7 @@ import { emit, eventsPathFor } from "../scripts/log";
 import { findProjectRoot } from "./harness-base-mode-advisory";
 import { findActiveBoundContractPath } from "../lib/harness/active-contract";
 import { readEvents } from "../lib/event-log/read";
+import { isPlanArtifactPath } from "../lib/plan-root/resolve-plan-root";
 import {
   LEAD_DIRECT_ADVISORY,
   LEAD_DIRECT_BLOCKING,
@@ -298,14 +299,12 @@ function isLeadDirect(p: HookPayload): boolean {
  * Synthesis path check — exempt files that Lead legitimately edits directly.
  *
  * Exempt:
- *   - Any path under ~/.claude/plans/  (absolute match)
+ *   - Any path under <project>/.palantir-mini/plan/ or legacy ~/.claude/plans/
  *   - Any file ending with BROWSE.md (case-sensitive)
  *   - Any file ending with INDEX.md  (case-sensitive)
  */
-function isSynthesisPath(absPath: string): boolean {
-  const home = process.env.HOME ?? "/home/palantirkc";
-  const plansPrefix = path.join(home, ".claude", "plans") + path.sep;
-  if (absPath.startsWith(plansPrefix)) return true;
+function isSynthesisPath(absPath: string, cwd = process.cwd()): boolean {
+  if (isPlanArtifactPath(absPath, { projectRoot: cwd, cwd })) return true;
   const base = path.basename(absPath);
   if (base === "BROWSE.md" || base === "INDEX.md") return true;
   return false;
@@ -360,7 +359,7 @@ export default async function leadDirectEditWatch(payload: unknown): Promise<Hoo
     const rawFilePath = p.tool_input?.file_path ?? p.tool_input?.notebook_path;
     if (rawFilePath && typeof rawFilePath === "string" && rawFilePath.length > 0) {
       const absPath = resolveAbsPath(rawFilePath);
-      if (isSynthesisPath(absPath)) {
+      if (isSynthesisPath(absPath, cwd)) {
         // Synthesis paths: exempt from production counter, BUT increment synthesis counter
         // so mixed-session detection (P1.LD2) can fire.
         const synthProjectRoot = findProjectRoot(cwd);

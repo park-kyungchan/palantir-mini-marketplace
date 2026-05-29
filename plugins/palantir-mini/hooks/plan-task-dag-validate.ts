@@ -1,11 +1,12 @@
 // palantir-mini — plan-task-dag-validate hook
-// Fires on: PostToolUse for Write/Edit on ~/.claude/plans/*.md files
+// Fires on: PostToolUse for Write/Edit on plan artifact .md files
 //
 // Per rule 12 v3.19.1 §Plan-mode authoring requirement + user directive 2026-05-13:
 //   "파일 소유권 분리시켜서 EnterPlanMode 또는 평상시 계획서 작성하도록 프로토콜이 안되어있어?"
 //
 // Purpose:
-//   When a plan file under ~/.claude/plans/ contains a "## DAG" or "## Task DAG"
+//   When a plan file under <project>/.palantir-mini/plan/ or legacy
+//   ~/.claude/plans/ contains a "## DAG" or "## Task DAG"
 //   heading AND the file is > 20 LOC → verify the required DAG annotation fields
 //   (id, runsAfter, parallelEligibleWith, preReservedVersionSlot,
 //   worktreeIsolationRequired, riskTier, ownerAgent) are present.
@@ -36,6 +37,11 @@
 import { emit } from "../scripts/log";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  isPlanArtifactPath,
+  resolveCanonicalPlanRoot,
+  resolveLegacyClaudePlanRoot,
+} from "../lib/plan-root/resolve-plan-root";
 
 /** Required DAG annotation field names */
 const REQUIRED_DAG_FIELDS = [
@@ -101,15 +107,14 @@ export default async function planTaskDagValidate(
   const filePath =
     p.tool_input?.file_path ?? p.tool_result?.file_path ?? "";
 
-  // Only act on plan files under ~/.claude/plans/
-  const homePlansDir = path.join(
-    process.env.HOME ?? "/home/palantirKC",
-    ".claude",
-    "plans"
-  );
-  if (!filePath || !filePath.startsWith(homePlansDir)) {
+  // Only act on plugin-layer plan files plus legacy Claude plan files.
+  if (!filePath || !isPlanArtifactPath(filePath, { projectRoot: cwd, cwd })) {
     return {
-      message: `palantir-mini: plan-task-dag-validate skipped (not a plans/ file: ${filePath || "(none)"})`,
+      message: [
+        `palantir-mini: plan-task-dag-validate skipped (not a plan artifact file: ${filePath || "(none)"})`,
+        `canonical=${resolveCanonicalPlanRoot({ projectRoot: cwd, cwd })}`,
+        `legacy=${resolveLegacyClaudePlanRoot()}`,
+      ].join("\n"),
     };
   }
 

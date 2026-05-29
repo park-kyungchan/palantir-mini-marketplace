@@ -19,7 +19,8 @@
 //
 // Logic:
 //   1. Resolve file_path from tool_input; skip if none.
-//   2. Synthesis path exemption: ~/.claude/plans/**, BROWSE.md, INDEX.md, MEMORY.md,
+//   2. Synthesis path exemption: <project>/.palantir-mini/plan/**, legacy
+//      ~/.claude/plans/**, BROWSE.md, INDEX.md, MEMORY.md,
 //      retro/cold-start drafts → return continue.
 //   3. Small-file exemption: tool_input.old_string shorter than SMALL_CHANGE_MAX_CHARS (≤5 LOC
 //      estimate) → continue.
@@ -57,6 +58,7 @@ import { readEvents } from "../lib/event-log/read";
 import { eventsPathFor } from "../scripts/log";
 import { evaluatePreMutationImpactGate } from "../lib/governance/pre-mutation-impact-gate";
 import { isMcpFirstEvidenceToolName } from "../lib/hooks/tool-classifier";
+import { isPlanArtifactPath } from "../lib/plan-root/resolve-plan-root";
 
 /** 5-minute window in milliseconds */
 const MCP_FIRST_WINDOW_MS = 5 * 60 * 1000;
@@ -115,12 +117,11 @@ function resolveAbsPath(filePath: string): string {
 
 /**
  * Check if a file path is a synthesis path exempt from MCP-first gate.
- * Exempt: ~/.claude/plans/**, BROWSE.md, INDEX.md, MEMORY.md.
+ * Exempt: <project>/.palantir-mini/plan/**, legacy ~/.claude/plans/**,
+ * BROWSE.md, INDEX.md, MEMORY.md.
  */
-function isSynthesisPath(absPath: string): boolean {
-  const home = process.env.HOME ?? "/home/palantirkc";
-  const plansPrefix = path.join(home, ".claude", "plans") + path.sep;
-  if (absPath.startsWith(plansPrefix)) return true;
+function isSynthesisPath(absPath: string, cwd = process.cwd()): boolean {
+  if (isPlanArtifactPath(absPath, { projectRoot: cwd, cwd })) return true;
   const base = path.basename(absPath);
   if (
     base === "BROWSE.md" ||
@@ -290,7 +291,7 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
     const absFilePath = resolveAbsPath(rawFilePath);
 
     // Synthesis path exemption
-    if (isSynthesisPath(absFilePath)) {
+    if (isSynthesisPath(absFilePath, cwd)) {
       return {
         message: `palantir-mini: pre-edit-impact-mcp-first skipped (synthesis path: ${path.basename(absFilePath)})`,
       };

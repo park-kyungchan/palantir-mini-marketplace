@@ -13,7 +13,7 @@ disable-model-invocation: false
 
 Render an `FDEGapReportDetailed` (produced by `pm-fde-grade` skill via
 `handleGradeFDEReadiness`) as a human-readable markdown document and write it
-to `~/.claude/plans/YYYY-MM-DD-fde-gap-report-<slug>.md`.
+to `<project>/.palantir-mini/plan/YYYY-MM-DD-fde-gap-report-<slug>.md`.
 
 Returns the absolute file path for user navigation.
 
@@ -49,8 +49,9 @@ truth.
 ```typescript
 import { renderFDEGapReportMarkdown } from
   "lib/fde-build/gap-report-builder";
-import { writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
+import { resolvePlanRoot } from "lib/plan-root/resolve-plan-root";
 
 // 1. Grade the session (pm-fde-grade step).
 const report = await handleGradeFDEReadiness({ session, criteriaInUse });
@@ -61,10 +62,9 @@ const markdown = renderFDEGapReportMarkdown(report);
 // 3. Write to plans dir.
 const date = new Date().toISOString().slice(0, 10);
 const slug = session.project.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-const filePath = join(
-  process.env["HOME"] ?? "/home/palantirkc",
-  `.claude/plans/${date}-fde-gap-report-${slug}.md`,
-);
+const plansDir = resolvePlanRoot({ projectRoot: session.projectRoot ?? process.cwd() });
+mkdirSync(plansDir, { recursive: true });
+const filePath = join(plansDir, `${date}-fde-gap-report-${slug}.md`);
 writeFileSync(filePath, markdown, "utf-8");
 // Return filePath to user.
 ```
@@ -72,7 +72,7 @@ writeFileSync(filePath, markdown, "utf-8");
 ## Output
 
 An absolute path to the written markdown file, e.g.:
-`/home/palantirkc/.claude/plans/2026-05-14-fde-gap-report-my-project.md`
+`/home/palantirkc/.palantir-mini/plan/2026-05-14-fde-gap-report-my-project.md`
 
 The file contains:
 - Executive summary
@@ -91,8 +91,9 @@ The file contains:
    both `submissionCriteriaNeedsHumanReview` is empty AND no criterion failed.
 3. No `commitToken`, `applyToken`, `approvalToken`, or `authorizeMutation` appears
    in the markdown output.
-4. The file is written to `~/.claude/plans/` (internal synthesis target per
-   global CLAUDE.md Artifact Layer Policy). NEVER to `~/docs/` or `research/`.
+4. The file is written to `<project>/.palantir-mini/plan/` (plugin-layer
+   durable synthesis target). Legacy `~/.claude/plans/` remains readable
+   provenance only. NEVER write this report to `~/docs/` or `research/`.
 5. This skill is NOT callable via MCP TOOLS; only via direct lib import.
 
 ## Related skills

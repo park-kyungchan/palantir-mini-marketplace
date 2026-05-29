@@ -232,6 +232,13 @@ describe("pre-edit-impact-mcp-first", () => {
     expect(result.message).toContain("no file_path");
   });
 
+  test("6b. SKIPPED — canonical .palantir-mini/plan paths are synthesis artifacts", async () => {
+    const planFile = path.join(TMP, ".palantir-mini", "plan", "handoff.md");
+    const result = await preEditImpactMcpFirst(makePayload(planFile)) as { message: string };
+    expect(result.message).toContain("skipped");
+    expect(result.message).toContain("synthesis path");
+  });
+
   test("7. SKIPPED — not a tracked project (no .palantir-mini/)", async () => {
     // Create a temp dir without .palantir-mini
     const untrackedDir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-untracked-"));
