@@ -331,9 +331,9 @@ interface HookResult {
  * This hook is registered with matcher `mcp__plugin_palantir-mini_palantir-mini__commit_edits`,
  * so the following read-only tools never trigger it:
  *   pm_rule_query, pm_rule_audit, pm_recap, pm_retro_query, pm_learn_query,
- *   replay_lineage, pm_workflow_lineage_query, pm_agent_lineage_export,
- *   get_ontology, ontology_schema_get, impact_query,
- *   pm_preamble, check_cc_version, pm_plugin_self_check.
+ *   pm_substrate_query, pm_health_audit, pm_lead_brief, get_ontology,
+ *   ontology_schema_get, impact_query, ontology_context_query,
+ *   pm_plugin_self_check.
  * Listed here for documentation alignment with rule 16 v3.0.0 §Default-On Policy.
  */
 

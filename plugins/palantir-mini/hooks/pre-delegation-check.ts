@@ -424,7 +424,7 @@ export default async function preDelegationCheck(payload: unknown): Promise<Hook
 
     // Check 2: Full-mode SprintContract
     // sprint-060 W2.2 R3-F9: emit explicit audit event when mode=full bypass fires so
-    // replay_lineage can distinguish "full-mode was active" from "delegation recipe exists".
+    // substrate lineage can distinguish "full-mode was active" from "delegation recipe exists".
     // Architecture review §5.D.9: full-mode SprintContract must NOT trigger pre-delegation gate;
     // bypass is intentional and correct — but must be auditable.
     if (isFullModeContract(projectRoot)) {

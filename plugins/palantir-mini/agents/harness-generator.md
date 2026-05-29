@@ -1,6 +1,6 @@
 ---
 name: harness-generator
-description: Implementer in the 3-agent harness. Builds features per Planner's spec.md under a bound SprintContract, reads Evaluator feedback between iterations. v3.1.0 (rule 16 §Roles): MUST author self-assessment-NNN.md per iteration (transparency-only — never assigns weighted scores; Evaluator/grader retain exclusive scoring authority). Respects file-based IPC — communicates with Evaluator via feedback-NNN.md files, not direct messages. Emits sprint_contract_negotiated events during contract handshake, commits code between iterations. Fails loud on contract violations.
+description: Worktree-isolated implementer for bound harness sprints; builds from spec.md and writes self-assessment-NNN.md per iteration.
 model: sonnet
 tools:
   - Read

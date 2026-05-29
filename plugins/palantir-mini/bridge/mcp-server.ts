@@ -11,15 +11,9 @@
 // The server is intentionally zero-dep. It reads line-delimited JSON messages
 // from stdin and writes responses to stdout. Logs go to stderr.
 //
-// sprint-063 W4.D: TOOLS array reduced from 75 → 33 entries (plan §2 retain list).
-// Removed 42 entries; added 4 NEW: pm_intent_router, pm_lead_brief, pm_health_audit, pm_substrate_query.
-// Lead Intent -> Digital Twin raises the surface to 34 by adding pm_semantic_intent_gate.
-// Palantir official SSoT refresh raises the surface to 36 with research_context_select
-// and research_library_refresh.
-// sprint-077 PR-14a: TOOLS array reduced from 36 → 22 entries.
-// Removed 14 deprecated-candidate tools (see bridge/handlers/_deprecation-map.ts for replacement paths).
-// sprint-124 PR 5.13: +1 NEW grade_semantic_intent_contract → 23 tools.
-// v6.80.0: +1 NEW events_log_rotate to satisfy pm-events-rotate skill contract.
+// The public tool registry below is the source of truth for the live MCP surface.
+// Historical deprecation mappings live in bridge/handlers/_deprecation-map.ts.
+// events_log_rotate remains present to satisfy the pm-events-rotate skill contract.
 
 import * as readline from "readline";
 import type { EventType } from "../lib/event-log/types";
@@ -29,6 +23,7 @@ import {
   emitToolInvocationCompleted,
   now as nowMs,
 } from "../lib/event-log/timing";
+import { isMcpFirstEvidenceToolName } from "../lib/hooks/tool-classifier";
 import { PROMPT_RUNTIMES } from "../lib/prompt-front-door";
 import { emit } from "../scripts/log";
 
@@ -318,7 +313,7 @@ const TOOLS: ToolSpec[] = [
         projectPath:   { type: "string", description: "Absolute project path." },
         artifactPath:  { type: "string", description: "File or directory being graded (relative to project OK)." },
         rubric:        { type: "object", description: "GradingRubric JSON: { rubricId, criteria: [GradingCriterionLite, ...] }." },
-        evidenceDir:   { type: "string", description: "Optional evidence bundle path (from run_playwright_scenario)." },
+        evidenceDir:   { type: "string", description: "Optional Playwright or scenario evidence bundle path." },
         specPath:      { type: "string", description: "Optional spec path for model graders to ground judgment." },
         loopId:        { type: "string", description: "FeedbackLoopRid cross-reference." },
         sprintNumber:  { type: "number", description: "Sprint context." },
@@ -347,8 +342,8 @@ const TOOLS: ToolSpec[] = [
         specPath:            { type: "string", description: "Optional spec.md path for grader context." },
         evidenceDir:         { type: "string", description: "Optional evidence dir (Playwright snapshots / console logs)." },
         selfAssessmentPath:  { type: "string", description: "Optional Generator self-assessment-NNN.md path (rule 16 v3.1.0 §Roles)." },
-        sprintNumber:        { type: "number", description: "Optional sprint context for replay_lineage." },
-        iteration:           { type: "number", description: "Optional iteration context for replay_lineage." },
+        sprintNumber:        { type: "number", description: "Optional sprint context for replay and audit evidence." },
+        iteration:           { type: "number", description: "Optional iteration context for replay and audit evidence." },
       },
       additionalProperties: false,
     },
@@ -357,15 +352,16 @@ const TOOLS: ToolSpec[] = [
   {
     name: "pm_semantic_intent_gate",
     description:
-      "Lead Intent -> Digital Twin contract gate. Drafts ambient SemanticIntentContract + " +
-      "DigitalTwinChangeContract evidence for every prompt and validates approved refs before " +
-      "pm_intent_router dispatches ontology-affecting execution.",
+      "Lead Intent -> Digital Twin contract gate. FDE sessions surface user meaning turn-by-turn; " +
+      "this gate records the approved boundary as SemanticIntentContract and derives " +
+      "DigitalTwinChangeContract evidence only from approved SIC plus FDE/context-engineering inputs " +
+      "before pm_intent_router dispatches ontology-affecting execution.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
       properties: {
         project:                  { type: "string", description: "Absolute project root." },
-        rawIntent:                { type: "string", description: "User-authored or Lead-captured intent before implementation." },
+        rawIntent:                { type: "string", description: "User-authored prompt or Lead-captured summary used for gate continuity; not DTC authority by itself." },
         scopePaths:               { type: "array", items: { type: "string" } },
         complexityHint:           { type: "string", enum: ["trivial", "single-file", "multi-file", "cross-cutting"] },
         semanticIntentContractRef: { type: "string" },
@@ -382,9 +378,9 @@ const TOOLS: ToolSpec[] = [
         interactionMode:          { type: "string", enum: ["machine", "human_collaborative"] },
         userExpertise:            { type: "string", enum: ["non_programmer", "technical", "developer"] },
         preferredLanguage:        { type: "string", enum: ["ko", "en"] },
-        turn:                     { type: "number", description: "8-turn fill sequence turn index (0-7). When provided, applies one fill step. Omit for single-shot SIC creation (backward compat)." },
+        turn:                     { type: "number", description: "Fill sequence turn index. For SIC, this records FDE/context-confirmed meaning into the contract boundary; raw prompt extraction remains draft-only." },
         turnUserInput:            { type: "string", description: "Free-text user answer for the current fill turn. Only meaningful when `turn` is provided." },
-        fillPolicy:               { type: "string", enum: ["default-8-turn", "fde-ontology-build", "dtc-turn-fill", "context-engineering-to-sic", "ontology-dtc-build"], description: "Fill sequence policy. Absent = legacy T0-T7 EIGHT_TURN_FILL_SEQUENCE (default). 'fde-ontology-build' = FDE 9-step sequence; 'dtc-turn-fill' = DTC 7-turn boundary authoring sequence; 'context-engineering-to-sic' requires DATA/LOGIC/ACTION/GOVERNANCE readiness before SIC; 'ontology-dtc-build' requires Object/Link/Action/Function/ApplicationState readiness before DTC." },
+        fillPolicy:               { type: "string", enum: ["default-8-turn", "fde-ontology-build", "dtc-turn-fill", "context-engineering-to-sic", "ontology-dtc-build"], description: "Fill sequence policy. Absent = legacy T0-T7 boundary fill. 'fde-ontology-build' surfaces meaning in the FDE session; 'context-engineering-to-sic' requires DATA/LOGIC/ACTION/GOVERNANCE readiness before SIC; DTC policies require approved SIC + FDE/context plan evidence before DTC approval." },
       },
       required: ["project", "rawIntent"],
     },
@@ -395,7 +391,7 @@ const TOOLS: ToolSpec[] = [
       "Sprint-063 W3.A — full intent-router. Subsumes delegate_or_direct + dispatch_route_decide + " +
       "dispatch_to_runtime. Enforces the Lead Intent -> Digital Twin contract gate before complex " +
       "ontology-affecting dispatch. Returns enriched recipe + cost-aware species pick + prefetched " +
-      "context (impact_query top-RID + pm_workflow_lineage_query 7d + pm_value_grade_metrics summary).",
+      "context using the current public impact, lineage, and health surfaces.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -422,9 +418,8 @@ const TOOLS: ToolSpec[] = [
   {
     name: "pm_lead_brief",
     description:
-      "Sprint-063 W3.B — 1-call session-opener. Subsumes pm_preamble + session_resume + wake_session + " +
-      "query_session_duration. Returns session ctx + last 5 sprint contracts + value-grade metrics + " +
-      "recent T3+ lineage + dispatch suggestion (when intent provided).",
+      "Sprint-063 W3.B — 1-call session-opener. Returns session context, recent sprint contracts, " +
+      "value-grade summary, recent T3+ lineage, and dispatch suggestion when intent is provided.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -438,11 +433,10 @@ const TOOLS: ToolSpec[] = [
   {
     name: "pm_health_audit",
     description:
-      "Sprint-063 W4.A — mode-dispatched health audit merger. Subsumes pm_handler_usage_audit + " +
-      "pm_harness_base_mode_audit + pm_harness_component_audit + pm_harness_outcome_replay + " +
-      "pm_outcome_pair_audit + pm_memory_layer_audit + pm_research_citation_validate + " +
-      "audit_events_5d_conformance + pm_harness_strictness_audit + doc-drift consolidation. " +
-      "Mode `all` runs every sub-audit sequentially.",
+      "Sprint-063 W4.A — mode-dispatched health audit merger for handler usage, harness base, " +
+      "harness components, harness outcomes, outcome pairs, memory layer, research citations, " +
+      "event conformance, strictness, ontology runtime, and doc drift. Mode `all` runs every " +
+      "sub-audit sequentially.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -464,9 +458,8 @@ const TOOLS: ToolSpec[] = [
   {
     name: "pm_substrate_query",
     description:
-      "Sprint-063 W4.B — 6-handler mode-dispatched merger. Subsumes replay_lineage + " +
-      "pm_workflow_lineage_query + pm_event_query_by_grade + pm_retro_query + pm_learn_query + " +
-      "pm_agent_lineage_export. Mode dispatches to delegated handler with filter passthrough.",
+      "Sprint-063 W4.B — consolidated substrate query for lineage, workflow, by-grade, retro, " +
+      "learn, and agent-export read paths. Mode dispatches with filter passthrough.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -731,7 +724,7 @@ const TOOLS: ToolSpec[] = [
           type: "string",
           description: "Optional fde-ontology-engineering://session/<id> ref or raw sessionId.",
         },
-        projectsRoot:        { type: "string", description: "Optional root for lineage discovery (forwarded to pm_workflow_lineage_query)." },
+        projectsRoot:        { type: "string", description: "Optional root for workflow lineage discovery." },
       },
       additionalProperties: false,
     },
@@ -858,14 +851,6 @@ function publicToolSpec(tool: ToolSpec): Pick<ToolSpec, "name" | "description" |
 // pre-edit-impact-mcp-first hook reads the target project's append-only
 // events.jsonl. This dispatch boundary is the only place that can distinguish a
 // user/runtime MCP call from hook-internal direct handler imports.
-const MCP_FIRST_EVIDENCE_TOOL_NAMES = new Set([
-  "impact_query",
-  "pre_edit_impact",
-  "pm_workflow_lineage_query",
-  "get_ontology",
-  "propagation_audit_forward",
-]);
-
 type RuntimeIdentity = "claude-code" | "codex" | "gemini";
 
 interface McpFirstEvidencePayload {
@@ -970,7 +955,7 @@ export async function emitMcpFirstEvidenceForToolCall(
   args: unknown,
   durationMs: number,
 ): Promise<void> {
-  if (!MCP_FIRST_EVIDENCE_TOOL_NAMES.has(toolName)) return;
+  if (!isMcpFirstEvidenceToolName(toolName)) return;
 
   const record = recordFrom(args);
   const projectRoot = projectRootForMcpFirstEvidence(record);

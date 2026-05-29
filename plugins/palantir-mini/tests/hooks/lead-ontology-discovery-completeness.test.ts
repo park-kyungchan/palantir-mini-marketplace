@@ -211,7 +211,7 @@ describe("blocking_no_discovery_call", () => {
     expect(result.message).toContain("BLOCKED");
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("impact_query");
-    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("propagation_audit_forward");
+    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("ontology_context_query");
   });
 
   test("A2: blocking text mentions pm-intent-to-ontology skill", async () => {
@@ -234,7 +234,8 @@ describe("blocking_no_discovery_call", () => {
     const ctx = result.hookSpecificOutput?.permissionDecisionReason ?? "";
     expect(ctx).toContain("pm-intent-to-ontology");
     expect(ctx).toContain("impact_query");
-    expect(ctx).toContain("propagation_audit_forward");
+    expect(ctx).toContain("ontology_context_query");
+    expect(ctx).toContain("pm_substrate_query");
     expect(ctx).toContain("BLOCKED");
   });
 
@@ -292,9 +293,9 @@ describe("passed_discovery_call_found", () => {
     expect(result.message).toContain("PASSED");
   });
 
-  test("D2: pm_workflow_lineage_query called recently → PASSED", async () => {
+  test("D2: pm_substrate_query called recently → PASSED", async () => {
     const { root, eventsPath } = makeTrackedProject();
-    writeEvent(eventsPath, "pm_workflow_lineage_query");
+    writeEvent(eventsPath, "pm_substrate_query");
 
     const filePath = path.join(root, "lib", "foo.ts");
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -369,9 +370,9 @@ describe("passed_discovery_call_found", () => {
     expect(result.message).toContain("PASSED");
   });
 
-  test("D5: Codex dotted namespace propagation_audit_forward called recently → PASSED", async () => {
+  test("D5: Codex dotted namespace ontology_context_query called recently → PASSED", async () => {
     const { root, eventsPath } = makeTrackedProject();
-    writeEvent(eventsPath, "mcp__palantir_mini__.propagation_audit_forward");
+    writeEvent(eventsPath, "mcp__palantir_mini__.ontology_context_query");
 
     const filePath = path.join(root, "hooks", "codex-propagation.ts");
     fs.mkdirSync(path.dirname(filePath), { recursive: true });

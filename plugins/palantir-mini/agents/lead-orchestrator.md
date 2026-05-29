@@ -1,12 +1,8 @@
 ---
 name: lead-orchestrator
 description: >
-  Formal Lead-as-spawnable-agent per 06-plugin-only-architecture.md §6.1; T4
-  outcome-driven autonomous tier prerequisite. Opus-powered orchestrator
-  implementing Lead Protocol v2 (rule 12) as a spawnable agent. Manages
-  full session lifecycle: task DAG, lazy-spawn, harness state machine, phase
-  gates, and graceful shutdown. Use when headless Lead execution is needed
-  or when reproducing a session from events.jsonl.
+  Spawnable Lead orchestrator for task DAGs, harness state, phase gates, and
+  workflow replay when headless or event-log reproduction is needed.
 tools:
   - Agent
   - TaskCreate
@@ -21,22 +17,18 @@ tools:
   - Grep
   - Bash
   - "mcp__plugin_palantir-mini_palantir-mini__emit_event"
-  - "mcp__plugin_palantir-mini_palantir-mini__pm_preamble"
+  - "mcp__plugin_palantir-mini_palantir-mini__pm_lead_brief"
   - "mcp__plugin_palantir-mini_palantir-mini__get_ontology"
   - "mcp__plugin_palantir-mini_palantir-mini__ontology_schema_get"
-  - "mcp__plugin_palantir-mini_palantir-mini__create_task"
-  - "mcp__plugin_palantir-mini_palantir-mini__update_task"
-  - "mcp__plugin_palantir-mini_palantir-mini__get_task"
-  - "mcp__plugin_palantir-mini_palantir-mini__list_tasks"
+  - "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router"
+  - "mcp__plugin_palantir-mini_palantir-mini__pm_semantic_intent_gate"
+  - "mcp__plugin_palantir-mini_palantir-mini__pm_substrate_query"
   - "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract"
   - "mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric"
-  - "mcp__plugin_palantir-mini_palantir-mini__grade_planner_output"
-  - "mcp__plugin_palantir-mini_palantir-mini__pm_harness_strictness_audit"
-  - "mcp__plugin_palantir-mini_palantir-mini__auto_spawn_replacement"
+  - "mcp__plugin_palantir-mini_palantir-mini__pm_health_audit"
+  - "mcp__plugin_palantir-mini_palantir-mini__pm_plugin_self_check"
   - "mcp__plugin_palantir-mini_palantir-mini__pm_rule_query"
   - "mcp__plugin_palantir-mini_palantir-mini__pm_rule_audit"
-  - "mcp__plugin_palantir-mini_palantir-mini__verify_schema_pin"
-  - "mcp__plugin_palantir-mini_palantir-mini__verify_codegen_headers"
 model: opus
 maxTurns: 40
 memory: project
@@ -123,14 +115,14 @@ Reference SSoT: `~/.claude/research/claude-code/lead-system-v2.md` (read-only).
 
 ## Task DAG Management
 
-1. **Read the task DAG** — from brief or `list_tasks`.
+1. **Read the task DAG** — from brief, runtime task APIs, or durable plan files.
 2. **Build `blockedBy` graph** — verify no circular deps.
 3. **Spawn wave 1** — only tasks with no unresolved `blockedBy`. Lazy.
-4. **Monitor** — poll `list_tasks` for completions. Validate output contracts
+4. **Monitor** — poll runtime task state for completions. Validate output contracts
    via `SubagentStop` phase-gate hooks (blocking).
 5. **Unblock next wave** — spawn next batch when deps clear.
-6. **Idle check** — `idleCount >= 3 && blockedByDepth > 1` → emit
-   `shutdown_request` via `auto_spawn_replacement({action: "kill"})`.
+6. **Idle check** — `idleCount >= 3 && blockedByDepth > 1` → emit a
+   `shutdown_request` event and stop the stalled wave through the native runtime.
 7. **Rebase gate** — submodule rebases and cross-project ship/PR/merge are
    Lead-only. Do NOT delegate.
 

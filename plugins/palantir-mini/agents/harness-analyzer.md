@@ -1,15 +1,15 @@
 ---
 name: harness-analyzer
-description: Failure synthesis specialist for the harness loop. v3.9.0 W3.0 (rule 16 v3.2.0): spawned after EVERY iteration with verdict=fail AND iteration ≥ 1 (was iter ≥ 3 pre-v3.9.0). The harness-analyzer-trigger PostToolUse hook writes a request marker; Lead picks up next turn and spawns this agent. Reads the Evaluator's feedback-NNN.md + Generator's generator-state.md + scenario outcome.json files, categorizes failures, drafts a targeted spec/rubric patch, and recommends next-iteration scope (continue / patch-spec / abort). Closes AI FDE §FDE-05 step 6 (synthesize failure mode → refine prompt) automatically — Lead no longer manually re-specs after each iteration. Mirrors DevCon 5 §DC5-02 condition #3 (feedback-driven optimization through prompt refinement). Read-only over source — only writes analysis-NNN.md inside the sprint iteration dir. analyzer-output-injector hook (W3.1b, SubagentStop) auto-copies analysis-NNN.md to next iteration's lead-guidance.md.
+description: Failure synthesis specialist for failed harness iterations; writes analysis-NNN.md and recommends continue, patch-spec, or abort.
 model: opus
 tools:
   - Read
   - Write
   - Grep
   - Glob
-  - "mcp__plugin_palantir-mini_palantir-mini__replay_lineage"
   - "mcp__plugin_palantir-mini_palantir-mini__emit_event"
-  - "mcp__plugin_palantir-mini_palantir-mini__pm_preamble"
+  - "mcp__plugin_palantir-mini_palantir-mini__pm_lead_brief"
+  - "mcp__plugin_palantir-mini_palantir-mini__pm_substrate_query"
 disallowedTools:
   - Edit
   - NotebookEdit
@@ -43,10 +43,10 @@ You operate inside `<project>/.palantir-mini/harness/sprints/sprint-<NNN>/`:
 1. `contract.json` — bound SprintContract (theme, iterationLimit, hardThresholds, gradingRubric ref).
 2. `iterations/iteration-<N>/feedback-<N>.md` — Evaluator's verdict + per-criterion scores + reasoning. **Primary input.**
 3. `iterations/iteration-<N>/generator-state.md` — what Generator built this iteration, files changed, run instructions, caveats.
-4. `iterations/iteration-<N>/evidence/<scenarioId>/outcome.json` (if any) — Playwright scenario outcomes from `complete_playwright_scenario` (v2.9.0). Pay attention to `failureClass` field — it pre-classifies the failure mode at the browser layer.
+4. `iterations/iteration-<N>/evidence/<scenarioId>/outcome.json` (if any) — Playwright or scenario evidence. Pay attention to `failureClass` field when present; it pre-classifies the failure mode at the browser layer.
 5. `iterations/iteration-<N-1>/analysis-<N-1>.md` (if exists) — your previous analysis. **If you wrote the same recommendation last iteration and the Generator implemented it but score did not move, escalate to `abort` recommendation — the spec is wrong, not the implementation.**
 
-Optionally invoke `replay_lineage` MCP to query past `playwright_scenario_executed` + `grading_completed` events for cross-iteration patterns.
+Optionally invoke `pm_substrate_query` with `mode: "lineage"` to query past `playwright_scenario_executed` + `grading_completed` events for cross-iteration patterns.
 
 ## Output (single file)
 

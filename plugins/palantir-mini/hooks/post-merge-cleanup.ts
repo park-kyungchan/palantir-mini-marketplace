@@ -7,7 +7,7 @@
 //
 // sprint-060 W2.2 R6-F12: Emit `validation_phase_completed{errorClass:"automerge_gate_validated"}`
 // carrying 3-gate values (branchPrefixMatch / isDraftFalse / mergeableMergeable) just before
-// (conceptually) the merge is confirmed, so replay_lineage can reconstruct auto-merge decisions.
+// (conceptually) the merge is confirmed, so substrate lineage can reconstruct auto-merge decisions.
 //
 // Non-blocking by design — emits message + advisory; never fails.
 // Bypass: PALANTIR_MINI_AUTOMERGE_BYPASS=1 (audited via run_marker file).
@@ -108,7 +108,7 @@ export default async function postMergeCleanup(
   }
 
   // sprint-060 W2.2 R6-F12: emit automerge_gate_validated event with 3-gate values.
-  // Fires after successful gh pr merge so replay_lineage can reconstruct auto-merge decisions.
+  // Fires after successful gh pr merge so substrate lineage can reconstruct auto-merge decisions.
   // Rule 25 §Post-merge actions.
   const gates = inferAutomergeGates(command ?? "", cwd, mergeSucceeded);
   if (gates !== null) {
@@ -124,7 +124,7 @@ export default async function postMergeCleanup(
       sessionId: p.session_id,
       identity:  "monitor",
       memoryLayers: ["episodic", "procedural"],
-      reasoning: `sprint-060 W2.2 R6-F12 — post-merge-cleanup hook emits automerge_gate_validated after successful gh pr merge. Gates: branchPrefixMatch=${gates.branchPrefixMatch} (branch="${gates.branchName}"), isDraftFalse=${gates.isDraftFalse}, mergeableMergeable=${gates.mergeableMergeable}. Rule 25 §Post-merge actions. Replay-able via replay_lineage.`,
+      reasoning: `sprint-060 W2.2 R6-F12 — post-merge-cleanup hook emits automerge_gate_validated after successful gh pr merge. Gates: branchPrefixMatch=${gates.branchPrefixMatch} (branch="${gates.branchName}"), isDraftFalse=${gates.isDraftFalse}, mergeableMergeable=${gates.mergeableMergeable}. Rule 25 §Post-merge actions. Replay-able through substrate lineage.`,
     }).catch(() => { /* best-effort — never crash cleanup */ });
   }
 
