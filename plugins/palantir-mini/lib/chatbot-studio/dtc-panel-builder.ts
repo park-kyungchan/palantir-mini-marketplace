@@ -87,7 +87,7 @@ const STATUS_KO: Record<DtcPanelStatus, string> = {
   "dtc-filled":
     "DTC fill이 완료됐습니다 (verdict='dtc-filled'). 사용자 승인을 기다리는 중이에요.",
   "dtc-approved":
-    "DTC가 승인됐습니다. 이제 approved boundary 안에서 구현을 시작할 수 있어요.",
+    "DTC가 승인됐습니다. 이제 라우터가 승인된 경계 안에서만 실행 후보를 고를 수 있습니다. 실제 변경은 WorkContract 또는 SprintContract와 검증을 통과해야 합니다.",
 };
 
 const STATUS_EN: Record<DtcPanelStatus, string> = {
@@ -97,7 +97,7 @@ const STATUS_EN: Record<DtcPanelStatus, string> = {
   "dtc-filled":
     "DTC fill complete (verdict='dtc-filled'). Awaiting user approval.",
   "dtc-approved":
-    "DTC approved. Implementation may proceed inside the approved boundary.",
+    "The DTC is approved. The router may now choose execution candidates only inside the approved boundary. Actual changes still require a WorkContract or SprintContract and validation.",
 };
 
 // ---------------------------------------------------------------------------

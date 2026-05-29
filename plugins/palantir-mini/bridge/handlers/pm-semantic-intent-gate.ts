@@ -660,7 +660,7 @@ function translateQuestion(
   const recommendedAnswer =
     language === "ko"
       ? isDigitalTwin
-        ? "네. 영향 표면, 권한, 검증, 복구 범위를 먼저 고정하고 그 안에서만 진행합니다."
+        ? "네. prompt를 바로 실행하지 않고, FDE 대화에서 확인한 의미와 승인된 SIC를 기준으로 ContextEngineeringPlan(DATA/LOGIC/ACTION), 기술 추천, 검증 계획을 확인한 뒤 DTC 경계 안에서만 라우팅합니다."
         : "네. 사용자가 승인한 의미를 기준으로 삼고, 승인되지 않은 해석으로 구현하지 않습니다."
       : recommendedChoice?.consequence ?? question.defaultIfUserAcceptsRecommendation;
   const whyItMatters =
@@ -753,12 +753,12 @@ function buildUserReviewCard(
       questions: semanticQuestions,
       approvalOptions,
     };
-    const digitalTwinBoundaryCard: UserReviewCardSection = {
-      title: "Change Boundary Review",
-      plainSummary:
-        "The Digital Twin boundary maps the approved meaning to files, tools, validation, and recovery.",
-      recommendedDirection:
-        "Keep implementation inside the approved surfaces and require a separate approval for expansion.",
+  const digitalTwinBoundaryCard: UserReviewCardSection = {
+    title: "Change Boundary Review",
+    plainSummary:
+        "The Digital Twin boundary maps the FDE-confirmed meaning and approved SIC to ContextEngineeringPlan DATA/LOGIC/ACTION, technology recommendation, validation plan, files, tools, and recovery.",
+    recommendedDirection:
+        "Treat the raw prompt as trace identity only; route only after the approved DTC boundary, WorkContract or SprintContract, and validation gates are clear.",
       willChange: scope,
       willNotChange: [
         "No generated registry is hand-edited.",
@@ -804,9 +804,9 @@ function buildUserReviewCard(
   const digitalTwinBoundaryCard: UserReviewCardSection = {
     title: "실제 변경 범위 확인",
     plainSummary:
-      "Digital Twin 변경 경계는 승인된 의미를 실제 파일, 도구, 검증, 복구 범위로 연결합니다.",
+      "Digital Twin 변경 경계는 FDE에서 확인한 의미와 승인된 SIC를 ContextEngineeringPlan(DATA/LOGIC/ACTION), 기술 추천, 검증 계획, 실제 파일, 도구, 복구 범위로 연결합니다.",
     recommendedDirection:
-      "승인된 표면 안에서만 구현하고, 범위가 넓어지면 별도 승인을 받습니다.",
+      "원문 prompt는 추적용 신원으로만 보고, 승인된 DTC 경계와 WorkContract 또는 SprintContract 및 검증 gate가 확인된 뒤에만 라우팅합니다.",
     willChange: scope,
     willNotChange: [
       "generated registry를 직접 손으로 고치지 않습니다.",

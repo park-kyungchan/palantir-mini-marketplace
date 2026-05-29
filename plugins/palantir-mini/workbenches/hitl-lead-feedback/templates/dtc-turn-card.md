@@ -17,6 +17,12 @@ dtc-fill-turn
 ## evidenceRefs
 {{evidenceRefsBulleted}}
 
+## sourceMaterialGuard
+`rawIntent` is trace identity only. DTC field recommendations must cite the
+approved SIC ref, FDE session ref, ContextEngineeringPlan review cards,
+technologyRecommendation, and validationPlan. If any of these are missing, mark
+the DTC unready instead of filling from the raw prompt.
+
 ## userChoices
 - approve-recommendation: {{recommendedAnswer}}
 - revise: User provides revised answer; agent re-drafts contract field

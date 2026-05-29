@@ -303,6 +303,9 @@ describe("buildFDEPanel — plainLanguageStatus language", () => {
     });
     expect(panel.plainLanguageStatus).toContain("SIC");
     expect(panel.plainLanguageStatus).toContain("승인");
+    expect(panel.plainLanguageStatus).toContain("DTC");
+    expect(panel.plainLanguageStatus).toContain("검증 계획");
+    expect(panel.plainLanguageStatus).toContain("구현은 시작되지 않습니다");
   });
 
   test("English output for ready-for-semantic-approval", () => {
@@ -311,7 +314,9 @@ describe("buildFDEPanel — plainLanguageStatus language", () => {
       hints: { preferredLanguage: "en", hasApprovedSemanticIntentContract: true },
     });
     expect(panel.plainLanguageStatus).toContain("SIC");
-    expect(panel.plainLanguageStatus).toContain("implementation");
+    expect(panel.plainLanguageStatus).toContain("DTC");
+    expect(panel.plainLanguageStatus).toContain("validation plan");
+    expect(panel.plainLanguageStatus).toContain("does not start implementation");
   });
 
   test("no language hint → defaults to English", () => {
