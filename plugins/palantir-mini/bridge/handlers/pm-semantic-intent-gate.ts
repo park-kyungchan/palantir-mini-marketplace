@@ -661,12 +661,12 @@ function translateQuestion(
     language === "ko"
       ? isDigitalTwin
         ? "네. prompt를 바로 실행하지 않고, FDE 대화에서 확인한 의미와 승인된 SIC를 기준으로 ContextEngineeringPlan(DATA/LOGIC/ACTION), 기술 추천, 검증 계획을 확인한 뒤 DTC 경계 안에서만 라우팅합니다."
-        : "네. 사용자가 승인한 의미를 기준으로 삼고, 승인되지 않은 해석으로 구현하지 않습니다."
+        : "네. FDE 대화에서 확인한 의미를 SIC 경계로 기록하고, 승인되지 않은 해석으로 구현하지 않습니다."
       : recommendedChoice?.consequence ?? question.defaultIfUserAcceptsRecommendation;
   const whyItMatters =
     language === "ko"
       ? isDigitalTwin
-        ? "이 경계가 있어야 agent가 테스트를 통과해도 잘못된 화면, 권한, 배포, 복구 범위를 바꾸지 않습니다."
+        ? "DTC는 raw prompt가 아니라 승인된 SIC와 FDE/ContextEngineeringPlan/검증 계획에서만 만들어져야 합니다."
         : "이 확인이 있어야 agent가 사용자의 뜻을 추측해서 ontology나 runtime을 바꾸지 않습니다."
       : question.whyItMatters;
 
@@ -682,8 +682,8 @@ function translateQuestion(
             {
               label: "추천안 승인",
               consequencePlain: isDigitalTwin
-                ? "승인된 변경 경계 안에서만 후속 라우팅과 검증을 진행합니다."
-                : "승인된 의미를 SemanticIntentContract의 기준으로 삼습니다.",
+                ? "승인된 SIC+FDE+ContextEngineeringPlan+기술 추천+검증 계획 안에서만 후속 라우팅과 검증을 진행합니다."
+                : "FDE에서 확인한 의미를 SemanticIntentContract의 승인 경계로 삼습니다.",
               internalContractPatch: { status: "user_review_recommended" },
             },
             {
@@ -740,7 +740,7 @@ function buildUserReviewCard(
       title: "Work Meaning Review",
       plainSummary: `I understand the request as: ${input.rawIntent}`,
       recommendedDirection:
-        "Confirm the user-approved meaning first, then route work only from the approved contract.",
+        "Record the FDE-confirmed meaning as the SIC approval boundary first, then route work only from the approved contract.",
       willChange: scope,
       willNotChange: [
         "No mutation runs from private agent interpretation alone.",
@@ -753,12 +753,12 @@ function buildUserReviewCard(
       questions: semanticQuestions,
       approvalOptions,
     };
-  const digitalTwinBoundaryCard: UserReviewCardSection = {
-    title: "Change Boundary Review",
-    plainSummary:
-        "The Digital Twin boundary maps the FDE-confirmed meaning and approved SIC to ContextEngineeringPlan DATA/LOGIC/ACTION, technology recommendation, validation plan, files, tools, and recovery.",
-    recommendedDirection:
-        "Treat the raw prompt as trace identity only; route only after the approved DTC boundary, WorkContract or SprintContract, and validation gates are clear.",
+    const digitalTwinBoundaryCard: UserReviewCardSection = {
+      title: "Change Boundary Review",
+      plainSummary:
+        "This card does not execute the raw prompt. The DTC is derived only from the approved SIC, FDE session, ContextEngineeringPlan DATA/LOGIC/ACTION, technology recommendation, and validation plan.",
+      recommendedDirection:
+        "Let the router choose execution candidates only after the approved DTC exists, and keep actual changes behind work-contract and validation gates.",
       willChange: scope,
       willNotChange: [
         "No generated registry is hand-edited.",
@@ -788,7 +788,7 @@ function buildUserReviewCard(
     title: "제가 이해한 작업 의미",
     plainSummary: `제가 이해한 요청은 다음입니다: ${input.rawIntent}`,
     recommendedDirection:
-      "먼저 사용자가 승인한 의미를 확정하고, 그 contract 기준으로만 후속 작업을 라우팅합니다.",
+      "먼저 FDE 대화에서 확인한 의미를 SIC 승인 경계로 기록하고, 그 contract 기준으로만 후속 작업을 라우팅합니다.",
     willChange: scope,
     willNotChange: [
       "agent의 추측만으로 ontology나 runtime을 변경하지 않습니다.",
@@ -804,9 +804,9 @@ function buildUserReviewCard(
   const digitalTwinBoundaryCard: UserReviewCardSection = {
     title: "실제 변경 범위 확인",
     plainSummary:
-      "Digital Twin 변경 경계는 FDE에서 확인한 의미와 승인된 SIC를 ContextEngineeringPlan(DATA/LOGIC/ACTION), 기술 추천, 검증 계획, 실제 파일, 도구, 복구 범위로 연결합니다.",
+      "이 카드는 prompt를 바로 실행하지 않습니다. DTC는 승인된 SIC, FDE session, ContextEngineeringPlan(DATA/LOGIC/ACTION), 기술 추천, 검증 계획에서만 만듭니다.",
     recommendedDirection:
-      "원문 prompt는 추적용 신원으로만 보고, 승인된 DTC 경계와 WorkContract 또는 SprintContract 및 검증 gate가 확인된 뒤에만 라우팅합니다.",
+      "승인된 DTC가 있을 때만 라우터가 실행 후보를 고르고, 실제 변경은 work contract와 검증 gate 뒤에 둡니다.",
     willChange: scope,
     willNotChange: [
       "generated registry를 직접 손으로 고치지 않습니다.",

@@ -45,7 +45,7 @@ const STATUS_KO: Record<FDEReadinessVerdict, string> = {
   "eval-clear":
     "Eval 검토가 완료됐습니다. 시맨틱 승인 준비 단계에 거의 다 왔어요.",
   "ready-for-semantic-approval":
-    "기본 검토는 끝났습니다. 다음은 FDE에서 확인한 의미를 승인된 SIC 경계로 기록하고, DTC와 검증 계획을 따로 확인하는 단계입니다. 이 화면만으로 구현은 시작되지 않습니다.",
+    "기본 검토는 끝났습니다. 다음은 FDE에서 확인한 의미를 SIC 승인 경계로 기록하고, DTC와 검증 계획을 따로 확인하는 단계입니다. 이 화면만으로 구현은 시작되지 않습니다.",
 };
 
 const STATUS_EN: Record<FDEReadinessVerdict, string> = {
