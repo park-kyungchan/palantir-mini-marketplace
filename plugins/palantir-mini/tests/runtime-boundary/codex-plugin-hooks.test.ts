@@ -8,6 +8,7 @@ const CLAUDE_PLUGIN_MANIFEST = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json"
 const CODEX_HOOKS_PATH = join(PLUGIN_ROOT, "hooks", "codex-hooks.json");
 const SHARED_HOOKS_PATH = join(PLUGIN_ROOT, "hooks", "hooks.json");
 const CLAUDE_HOOKS_PATH = join(PLUGIN_ROOT, "hooks", "claude-hooks.json");
+const TSCONFIG_PATH = join(PLUGIN_ROOT, "tsconfig.json");
 const CLAUDE_ONLY_EVENTS = ["TaskCreated", "TaskCompleted", "TeammateIdle"] as const;
 
 type HookConfig = {
@@ -74,6 +75,18 @@ describe("Codex plugin hook entrypoints", () => {
       expect(hook.async).toBeUndefined();
       expect(hook.command).toContain("lib/codex/claude-hook-adapter.ts");
     }
+  });
+
+  test("TypeScript accepts plugin hook shims that import .ts adapter files", () => {
+    const tsconfig = readJson<{
+      compilerOptions?: {
+        allowImportingTsExtensions?: boolean;
+        noEmit?: boolean;
+      };
+    }>(TSCONFIG_PATH);
+
+    expect(tsconfig.compilerOptions?.noEmit).toBe(true);
+    expect(tsconfig.compilerOptions?.allowImportingTsExtensions).toBe(true);
   });
 });
 
