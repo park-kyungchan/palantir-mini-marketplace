@@ -130,6 +130,9 @@ describe("pm_rule_query no discriminators (list mode)", () => {
     expect(res.count).toBeGreaterThan(0);
     expect(Array.isArray(res.entries)).toBe(true);
     expect(res.totalRegistered).toBeGreaterThanOrEqual(res.count);
+    expect(res.registeredTotal).toBe(res.totalRegistered);
+    expect(res.activeGlobalCount).toBeGreaterThan(0);
+    expect(res.registeredTotal).toBeGreaterThanOrEqual(res.activeGlobalCount);
     // none of the entries are retired (rule 18 has supersededBy=10)
     for (const e of res.entries) {
       if ("supersededBy" in e) {

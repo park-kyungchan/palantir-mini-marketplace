@@ -5,6 +5,7 @@ import {
   RULE_REGISTRY_ENTRIES,
 } from "#schemas/src/generated/rule-registry";
 import type { RuleDeclaration } from "#schemas/ontology/primitives/rule";
+import { ruleRegistryCounts } from "../../rule-counts";
 import { matchesScope, isRetired } from "../resolve";
 import type { PmRuleQueryArgs, PmRuleQueryResult, RuleListEntry } from "../types";
 
@@ -22,10 +23,13 @@ export function runList(args: PmRuleQueryArgs): Extract<PmRuleQueryResult, { mod
         invariant: r.invariant,
       }))
     : [...filtered];
+  const counts = ruleRegistryCounts();
   return {
     mode: "list",
     count: entries.length,
     entries,
-    totalRegistered: RULE_REGISTRY_ENTRIES.length,
+    totalRegistered: counts.registeredTotal,
+    registeredTotal: counts.registeredTotal,
+    activeGlobalCount: counts.activeGlobalCount,
   };
 }

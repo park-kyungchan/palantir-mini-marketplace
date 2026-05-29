@@ -47,6 +47,13 @@ describe("pm_rule_audit", () => {
     expect(res.summary.registeredRules).toBeGreaterThanOrEqual(7);
   });
 
+  test("summary separates registeredTotal from activeGlobalCount", async () => {
+    const res = await pmRuleAudit({});
+    expect(res.summary.registeredTotal).toBe(res.summary.registeredRules);
+    expect(res.summary.activeGlobalCount).toBeGreaterThan(0);
+    expect(res.summary.registeredTotal).toBeGreaterThanOrEqual(res.summary.activeGlobalCount);
+  });
+
   test("each finding has required keys: kind, severity, detail", async () => {
     const res = await pmRuleAudit({});
     for (const f of res.findings) {
