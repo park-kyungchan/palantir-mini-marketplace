@@ -284,6 +284,26 @@ describe("buildDtcPanel — nextAllowedAction", () => {
     expect(panel.nextAllowedAction).toEqual(["route-with-approved-dtc"]);
   });
 
+  test("dtc-approved copy allows routing but not direct mutation", () => {
+    const ko = buildDtcPanel({
+      session: session({ fillVerdict: "dtc-approved", completedTurns: [0] }),
+      hints: { preferredLanguage: "ko" },
+    });
+    expect(ko.plainLanguageStatus).toContain("라우터");
+    expect(ko.plainLanguageStatus).toContain("WorkContract");
+    expect(ko.plainLanguageStatus).toContain("검증");
+    expect(ko.plainLanguageStatus).not.toContain("구현을 시작");
+
+    const en = buildDtcPanel({
+      session: session({ fillVerdict: "dtc-approved", completedTurns: [0] }),
+      hints: { preferredLanguage: "en" },
+    });
+    expect(en.plainLanguageStatus).toContain("router");
+    expect(en.plainLanguageStatus).toContain("WorkContract");
+    expect(en.plainLanguageStatus).toContain("validation");
+    expect(en.plainLanguageStatus).not.toContain("Implementation may proceed");
+  });
+
   test("dtc-filled → ['request-dtc-approval', 'revise-dtc-turn']", () => {
     const panel = buildDtcPanel({
       session: session({ fillVerdict: "dtc-filled", completedTurns: [0] }),

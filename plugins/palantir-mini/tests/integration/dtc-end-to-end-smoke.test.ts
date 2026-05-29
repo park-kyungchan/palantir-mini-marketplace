@@ -382,13 +382,21 @@ describe("Sprint 97 DTC governance invariants (structural)", () => {
     }
   });
 
-  test("workbench hitl DTC turn card template exists (or is a known W5D deliverable gap)", () => {
+  test("workbench hitl DTC turn card template keeps rawIntent trace-only", () => {
     const templatePath = path.join(PLUGIN_ROOT, "workbenches", "hitl-lead-feedback", "templates", "dtc-turn-card.md");
     if (!fs.existsSync(templatePath)) {
       console.warn("[dtc-e2e-smoke] dtc-turn-card.md not found; acceptable — W5D ships concurrently with this test");
+      expect(true).toBe(true);
+      return;
     }
-    // Non-blocking for CI — workbench ships in the same PR as this test
-    expect(true).toBe(true);
+    const template = fs.readFileSync(templatePath, "utf8");
+    expect(template).toContain("sourceMaterialGuard");
+    expect(template).toContain("`rawIntent` is trace identity only");
+    expect(template).toContain("approved SIC ref");
+    expect(template).toContain("FDE session ref");
+    expect(template).toContain("ContextEngineeringPlan");
+    expect(template).toContain("technologyRecommendation");
+    expect(template).toContain("validationPlan");
   });
 
   test("plugin version is 6.79.0 in package.json", () => {
