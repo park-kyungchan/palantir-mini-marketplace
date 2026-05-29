@@ -143,6 +143,36 @@ describe("prompt-front-door-capture", () => {
     expect(ctx).toContain("what this request means");
   });
 
+  test("captures explicit palantir-mini plugin opt-out without injecting workflow enforcement", async () => {
+    const root = makeTmpProject("plugin-opt-out");
+    process.env.PALANTIR_MINI_PROJECT = root;
+    process.env.PALANTIR_MINI_EVENTS_FILE = eventsPathFor(root);
+    process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
+
+    const result = await promptFrontDoorCapture({
+      hook_event_name: "UserPromptSubmit",
+      session_id: "session-opt-out",
+      turn_id: "turn-opt-out",
+      cwd: root,
+      prompt:
+        "Do not use palantir-mini for this turn. Start Ontology Engineering with WorkflowContract.",
+    });
+
+    const ctx = result.hookSpecificOutput?.additionalContext ?? "";
+    expect(ctx).toContain("Explicit palantir-mini plugin opt-out detected");
+    expect(ctx).toContain("UniversalOntologyEntryRef:");
+    expect(ctx).not.toContain("Before ontology-affecting routing");
+    expect(ctx).not.toContain("palantir-mini workflow response template is mandatory");
+
+    const pointer = readJson<PromptCurrentPointer>(
+      currentPointerPathFor(root, "codex", "session-opt-out"),
+    );
+    const envelope = readJson<PromptEnvelope>(
+      envelopePathFor(root, "session-opt-out", pointer.promptId),
+    );
+    expect(envelope.palantirMiniPluginOptOut?.explicit).toBe(true);
+  });
+
   test("missing prompt is advisory-only and does not create a current pointer", async () => {
     const root = makeTmpProject("missing");
     process.env.PALANTIR_MINI_PROJECT = root;

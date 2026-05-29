@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { ApprovalRef } from "./approval-ref";
+import type { PalantirMiniPluginOptOut } from "../ontology-engineering-response-template";
 
 export const PROMPT_FRONT_DOOR_SCHEMA_VERSION = "prompt-front-door/v1";
 
@@ -45,6 +46,7 @@ export interface PromptEnvelope {
   readonly contractRefs: PromptContractRefs;
   readonly previousPromptHash?: string;
   readonly supersededByPromptId?: string;
+  readonly palantirMiniPluginOptOut?: PalantirMiniPluginOptOut;
   readonly rawPrompt?: string;
 }
 
@@ -56,6 +58,7 @@ export interface CreatePromptEnvelopeInput {
   readonly capturedAt?: string;
   readonly sequence?: number;
   readonly previousPromptHash?: string;
+  readonly palantirMiniPluginOptOut?: PalantirMiniPluginOptOut;
   readonly retainRawPrompt?: boolean;
   readonly excerptLength?: number;
 }
@@ -121,6 +124,9 @@ export function createPromptEnvelope(input: CreatePromptEnvelopeInput): PromptEn
     state: "captured",
     contractRefs: {},
     previousPromptHash: input.previousPromptHash,
+    ...(input.palantirMiniPluginOptOut
+      ? { palantirMiniPluginOptOut: input.palantirMiniPluginOptOut }
+      : {}),
     ...(input.retainRawPrompt ? { rawPrompt: input.rawPrompt } : {}),
   };
 }

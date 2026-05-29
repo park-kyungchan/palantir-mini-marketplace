@@ -9,6 +9,7 @@ import { DTC_FILL_SEQUENCE_SESSION_SCHEMA_VERSION } from "../../../lib/chatbot-s
 import type { DigitalTwinRequiredUserDecision } from "../../../lib/lead-intent/contracts";
 import { DTC_FILL_SEQUENCE } from "../../../lib/semantic-intent/fill-sequence";
 import type { DtcWithFillFields } from "../../../lib/semantic-intent/dtc-fill-sequence";
+import { validateDtcApprovalCardText } from "../../../lib/ontology-engineering-response-template";
 
 // ---------------------------------------------------------------------------
 // Fixture factory
@@ -214,6 +215,8 @@ describe("buildDtcPanel — bilingual plainLanguageStatus", () => {
     expect(panel.plainLanguageStatus).toContain("WorkContract");
     expect(panel.plainLanguageStatus).toContain("검증");
     expect(panel.plainLanguageStatus).not.toContain("구현을 시작할 수");
+    expect(panel.plainLanguageStatus).not.toContain("DTC가 승인");
+    expect(validateDtcApprovalCardText(panel.plainLanguageStatus)).toEqual([]);
   });
 
   test("dtc-approved English status routes before execution and names validation", () => {
@@ -226,6 +229,8 @@ describe("buildDtcPanel — bilingual plainLanguageStatus", () => {
     expect(panel.plainLanguageStatus).toContain("WorkContract");
     expect(panel.plainLanguageStatus).toContain("validation");
     expect(panel.plainLanguageStatus).not.toContain("Implementation may proceed");
+    expect(panel.plainLanguageStatus).not.toContain("The DTC is approved");
+    expect(validateDtcApprovalCardText(panel.plainLanguageStatus)).toEqual([]);
   });
 });
 
@@ -317,6 +322,8 @@ describe("buildDtcPanel — nextAllowedAction", () => {
     expect(ko.plainLanguageStatus).toContain("WorkContract");
     expect(ko.plainLanguageStatus).toContain("검증");
     expect(ko.plainLanguageStatus).not.toContain("구현을 시작");
+    expect(ko.plainLanguageStatus).not.toContain("DTC가 승인");
+    expect(validateDtcApprovalCardText(ko.plainLanguageStatus)).toEqual([]);
 
     const en = buildDtcPanel({
       session: session({ fillVerdict: "dtc-approved", completedTurns: [0] }),
@@ -326,6 +333,8 @@ describe("buildDtcPanel — nextAllowedAction", () => {
     expect(en.plainLanguageStatus).toContain("WorkContract");
     expect(en.plainLanguageStatus).toContain("validation");
     expect(en.plainLanguageStatus).not.toContain("Implementation may proceed");
+    expect(en.plainLanguageStatus).not.toContain("The DTC is approved");
+    expect(validateDtcApprovalCardText(en.plainLanguageStatus)).toEqual([]);
   });
 
   test("dtc-filled → ['request-dtc-approval', 'revise-dtc-turn']", () => {

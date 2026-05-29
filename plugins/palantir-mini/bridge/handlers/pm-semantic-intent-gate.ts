@@ -147,6 +147,9 @@ import {
 import { readCurrentFDEOntologyEngineeringSession } from "../../lib/fde-ontology-engineering/session-store";
 import { buildContextEngineeringPlanV2 } from "../../lib/context-engineering/context-plan-builder";
 import { draftDtcFromContextPlanV2 } from "../../lib/context-engineering/dtc-from-context-plan";
+import {
+  assertDtcApprovalCardTextBeforeDisplay,
+} from "../../lib/ontology-engineering-response-template";
 
 export interface SemanticIntentGateInput {
   /** Absolute project path. Required for event routing. */
@@ -680,7 +683,7 @@ function translateQuestion(
       language === "ko"
         ? [
             {
-              label: "추천안 승인",
+              label: "추천 경계 확인",
               consequencePlain: isDigitalTwin
                 ? "승인된 SIC+FDE+ContextEngineeringPlan+기술 추천+검증 계획 안에서만 후속 라우팅과 검증을 진행합니다."
                 : "FDE에서 확인한 의미를 SemanticIntentContract의 승인 경계로 삼습니다.",
@@ -697,7 +700,7 @@ function translateQuestion(
           ]
         : [
             {
-              label: "Approve recommendation",
+              label: "Confirm recommendation",
               consequencePlain: isDigitalTwin
                 ? "Follow-up routing and verification stay inside the approved change boundary."
                 : "The approved meaning becomes the SemanticIntentContract baseline.",
@@ -744,7 +747,7 @@ function buildUserReviewCard(
       willChange: scope,
       willNotChange: [
         "No mutation runs from private agent interpretation alone.",
-        "No raw prompt retention is enabled by this approval card.",
+        "No raw prompt retention is enabled by this review card.",
         "No gate mode is promoted to blocking by this review step.",
       ],
       risksPlain: [
@@ -792,7 +795,7 @@ function buildUserReviewCard(
     willChange: scope,
     willNotChange: [
       "agent의 추측만으로 ontology나 runtime을 변경하지 않습니다.",
-      "이 승인 카드만으로 원문 prompt 저장을 켜지 않습니다.",
+      "이 검토 카드만으로 원문 prompt 저장을 켜지 않습니다.",
       "이 단계에서 Prompt-DTC 기본 모드를 blocking으로 올리지 않습니다.",
     ],
     risksPlain: [
@@ -820,7 +823,7 @@ function buildUserReviewCard(
   };
 
   return {
-    title: "Contract 작성 승인 카드",
+    title: "Contract 작성 검토 카드",
     plainSummary: semanticIntentCard.plainSummary,
     recommendedDirection: semanticIntentCard.recommendedDirection,
     willChange: semanticIntentCard.willChange,
@@ -831,6 +834,59 @@ function buildUserReviewCard(
     semanticIntentCard,
     digitalTwinBoundaryCard,
   };
+}
+
+function userReviewCardText(card: SemanticIntentUserReviewCard): string {
+  const sectionText = (section: UserReviewCardSection): string =>
+    [
+      section.title,
+      section.plainSummary,
+      section.recommendedDirection,
+      ...section.willChange,
+      ...section.willNotChange,
+      ...section.risksPlain,
+      ...section.questions.flatMap((question) => [
+        question.plainQuestion,
+        question.recommendedAnswer,
+        question.whyItMatters,
+        ...question.choices.flatMap((choice) => [
+          choice.label,
+          choice.consequencePlain,
+        ]),
+      ]),
+    ].join("\n");
+
+  return [
+    card.title,
+    card.plainSummary,
+    card.recommendedDirection,
+    ...card.willChange,
+    ...card.willNotChange,
+    ...card.risksPlain,
+    ...card.questions.flatMap((question) => [
+      question.plainQuestion,
+      question.recommendedAnswer,
+      question.whyItMatters,
+      ...question.choices.flatMap((choice) => [
+        choice.label,
+        choice.consequencePlain,
+      ]),
+    ]),
+    sectionText(card.semanticIntentCard),
+    sectionText(card.digitalTwinBoundaryCard),
+    ...card.approvalOptions,
+  ].join("\n");
+}
+
+function assertUserReviewCardBeforeDisplay(
+  card: SemanticIntentUserReviewCard | undefined,
+): SemanticIntentUserReviewCard | undefined {
+  if (card === undefined) return undefined;
+  assertDtcApprovalCardTextBeforeDisplay({
+    surface: "pm_semantic_intent_gate.userReviewCard",
+    text: userReviewCardText(card),
+  });
+  return card;
 }
 
 function continuityFailure(field: string, message: string): ContractValidationResult {
@@ -1362,7 +1418,9 @@ export async function semanticIntentGate(
     digitalTwinReady: gate.digitalTwin.valid,
   });
   const turnCardDecisionQueue = buildTurnCardDecisionQueue(gate.questions);
-  const userReviewCard = buildUserReviewCard(input, turnCardDecisionQueue);
+  const userReviewCard = assertUserReviewCardBeforeDisplay(
+    buildUserReviewCard(input, turnCardDecisionQueue),
+  );
 
   const shouldDraft = shouldIncludeDrafts(input, gate);
   let draftContracts: SemanticIntentGateResult["draftContracts"];

@@ -39,6 +39,11 @@ describe("Layer 0 AIP #3/#4 context engineering", () => {
 
     const result = validateClarificationGuardRails(questions);
     expect(result.ok).toBe(true);
+    expect(
+      questions.every(
+        (question) => question.decisionSpec.choices[0]?.label === "추천 경계 확인",
+      ),
+    ).toBe(true);
   });
 
   test("#3/#4 omissions fail while #5/#7 omissions warn only", () => {

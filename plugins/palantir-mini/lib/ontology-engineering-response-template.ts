@@ -87,6 +87,57 @@ const PARITY_LIMIT_MARKERS = [
   "한계",
 ] as const;
 
+const DTC_APPROVAL_CARD_CONTEXT_MARKERS = [
+  "approval card",
+  "turncard",
+  "decision card",
+  "decisionSpec",
+  "recommendedChoiceId",
+  "choiceId",
+  "추천안 승인",
+  "승인 카드",
+  "선택지",
+  "primitive readiness",
+  "ontology primitive",
+  "ObjectType",
+  "LinkType",
+  "ActionType",
+  "Application State",
+] as const;
+
+const DTC_APPROVAL_CARD_NEGATING_MARKERS = [
+  "fail closed",
+  "reject",
+  "rejected",
+  "invalid",
+  "superseded",
+  "old phrase",
+  "do not",
+  "must not",
+  "forbidden",
+  "blocked",
+  "bad card",
+  "regression",
+  "not dtc primitive readiness",
+  "not dtc readiness",
+  "차단",
+  "거부",
+  "금지",
+  "무효",
+  "이전 표현",
+  "잘못",
+  "실패",
+  "회귀",
+] as const;
+
+const DTC_APPROVAL_CARD_LANE_TERMS = [
+  "DATA",
+  "LOGIC",
+  "ACTION",
+  "GOVERNANCE",
+  "TECHNOLOGY",
+] as const;
+
 const PALANTIR_MINI_WORKFLOW_RESPONSE_MARKERS = [
   "palantir-mini mandatory workflow",
   "mandatory workflow instructions for any user request",
@@ -133,6 +184,29 @@ const PALANTIR_MINI_WORKFLOW_RESPONSE_MARKERS = [
   "ai fde",
 ] as const;
 
+const PALANTIR_MINI_PLUGIN_DIRECT_OPT_OUT_MARKERS = [
+  "do not use palantir-mini",
+  "don't use palantir-mini",
+  "without palantir-mini",
+  "skip palantir-mini",
+  "avoid palantir-mini",
+  "palantir-mini plugin 사용하지 말고",
+  "palantir-mini 플러그인 사용하지 말고",
+  "palantir-mini 사용하지 말고",
+  "palantir-mini 쓰지 말고",
+  "palantir-mini plugin 쓰지 말고",
+  "palantir-mini 플러그인 쓰지 말고",
+  "palantir-mini 없이",
+  "palantir-mini 제외하고",
+  "palantir-mini 빼고",
+] as const;
+
+export interface PalantirMiniPluginOptOut {
+  readonly explicit: true;
+  readonly matchedMarker: string;
+  readonly reason: string;
+}
+
 export interface PalantirMiniWorkflowResponseTemplateContextInput {
   readonly runtime?: string;
   readonly enforcementSurface?: string;
@@ -147,9 +221,29 @@ export interface PalantirMiniWorkflowResponseTemplateValidation {
   readonly forbiddenRuntimeUiMarkers: readonly string[];
   readonly falseParityClaimMarkers: readonly string[];
   readonly authorityOverclaimMarkers: readonly string[];
+  readonly dtcApprovalCardViolations: readonly string[];
+}
+
+export function detectPalantirMiniPluginOptOut(text: string): PalantirMiniPluginOptOut | undefined {
+  const lower = text.toLowerCase();
+  const matchedMarker = PALANTIR_MINI_PLUGIN_DIRECT_OPT_OUT_MARKERS.find((marker) =>
+    lower.includes(marker.toLowerCase()),
+  );
+  if (!matchedMarker) return undefined;
+  return {
+    explicit: true,
+    matchedMarker,
+    reason:
+      "User prompt explicitly requested that the palantir-mini plugin not be used for this turn.",
+  };
+}
+
+export function isPalantirMiniPluginExplicitlyDisabled(text: string): boolean {
+  return detectPalantirMiniPluginOptOut(text) !== undefined;
 }
 
 export function isPalantirMiniWorkflowResponseRequired(text: string): boolean {
+  if (isPalantirMiniPluginExplicitlyDisabled(text)) return false;
   const normalized = text.toLowerCase();
   return PALANTIR_MINI_WORKFLOW_RESPONSE_MARKERS.some((marker) =>
     normalized.includes(marker),
@@ -178,14 +272,219 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
     "",
     `Runtime gap disclosure is mandatory: ${gapRequirements}. In Codex, Claude hooks are not proven native without smoke evidence; say manual hook-intent mirroring or manually mirrored when applicable. No Claude/Codex parity claim without evidence.`,
     "",
-    `SSoT 판단 근거: include ${ssotRequirements}; use schema, hook, rule, MCP output, or research source as applicable. For Palantir-heavy work, route through ~/.claude/research/BROWSE.md + INDEX.md, prefer palantir-official, and for Chatbot Studio use overview/application-state/retrieval-context/tools. Cover application variables, retrieval per user message, tools/actions, and confirmation boundaries. plugin source is workflow authority; cache/local loaders are consumer surfaces only. plugin snapshot is not live official-doc currentness.`,
+    `SSoT 판단 근거: include ${ssotRequirements}. Authority: research BROWSE/INDEX, palantir-official, plugin source. Chatbot Studio: application state, retrieval context, tools. plugin snapshot is not live official-doc currentness; generated mirrors are non-authority; cache/local loaders are consumer surfaces only.`,
     "",
-    "Deterministic boundary: DATA/LOGIC/ACTION/GOVERNANCE uses context-engineering-to-sic. Ontology DTC uses ontology-dtc-build T0..T6: ObjectType, LinkType, ActionType, Function, Chatbot/Application State, Replay/Eval/Validation, ready-for-DTC. Missing approval, mutationAuthorized=false, router mismatch, blocking TurnCards, or missing ObjectType/LinkType/ActionType/Function/ApplicationState/Eval readiness blocks mutation.",
+    "Deterministic boundary: context-engineering-to-sic uses DATA/LOGIC/ACTION/GOVERNANCE. ontology-dtc-build T0..T6 requires ObjectType, LinkType, ActionType, Function, ApplicationState/Eval readiness, ready-for-DTC. Missing approval, mutationAuthorized=false, router mismatch, or blocking TurnCards blocks mutation.",
     "",
     `Plain-language explanation for non-developers must cover: ${explanationRequirements}.`,
     "",
     "Question UI boundary: do not use runtime-native question UI for palantir-mini workflow decisions; render WorkflowContract / TurnCardDecisionSpec in assistant text and interpret the user's text answer as UserDecisionRecord.",
   ].join("\n");
+}
+
+function includesAnyCaseInsensitive(text: string, markers: readonly string[]): boolean {
+  const lower = text.toLowerCase();
+  return markers.some((marker) => lower.includes(marker.toLowerCase()));
+}
+
+function indexOfCaseInsensitive(text: string, marker: string): number {
+  return text.toLowerCase().indexOf(marker.toLowerCase());
+}
+
+function hasNegatingContext(text: string, index: number): boolean {
+  if (index < 0) return false;
+  const lower = text.toLowerCase();
+  const start = Math.max(0, index - 140);
+  const end = Math.min(lower.length, index + 140);
+  const window = lower.slice(start, end);
+  return DTC_APPROVAL_CARD_NEGATING_MARKERS.some((marker) =>
+    window.includes(marker.toLowerCase()),
+  );
+}
+
+function hasNonNegatedMarker(text: string, markers: readonly string[]): boolean {
+  return markers.some((marker) => {
+    const index = indexOfCaseInsensitive(text, marker);
+    return index >= 0 && !hasNegatingContext(text, index);
+  });
+}
+
+function hasDtcSignal(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    /\bdtc\b/i.test(text) ||
+    lower.includes("digitaltwinchangecontract") ||
+    lower.includes("digital twin change") ||
+    lower.includes("digital-twin-change")
+  );
+}
+
+function hasDtcApprovalSignal(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("approval") ||
+    lower.includes("approve") ||
+    lower.includes("approved") ||
+    text.includes("승인")
+  );
+}
+
+function hasDtcApprovalCardContext(text: string): boolean {
+  return hasNonNegatedMarker(text, DTC_APPROVAL_CARD_CONTEXT_MARKERS);
+}
+
+function hasExplicitDtcApprovalCardContext(text: string): boolean {
+  return hasNonNegatedMarker(text, [
+    "DigitalTwinChangeContract approval card",
+    "DTC approval card",
+    "approval card",
+    "승인 카드",
+  ]);
+}
+
+function hasDtcPrimitiveLaneMisuse(text: string): boolean {
+  const lower = text.toLowerCase();
+  const hasLaneCluster = DTC_APPROVAL_CARD_LANE_TERMS.filter((term) =>
+    lower.includes(term.toLowerCase()),
+  ).length >= 3;
+  if (!hasLaneCluster) return false;
+  const readinessIndex = [
+    "dtc primitive",
+    "dtc readiness",
+    "primitive readiness",
+    "ontology primitive",
+    "ready-for-dtc",
+  ]
+    .map((marker) => indexOfCaseInsensitive(text, marker))
+    .find((index) => index >= 0);
+  return readinessIndex !== undefined && !hasNegatingContext(text, readinessIndex);
+}
+
+function hasApprovedDtcClaim(text: string): boolean {
+  const lower = text.toLowerCase();
+  const markers = [
+    "sic/dtc 상태: approved",
+    "dtc 상태: approved",
+    "approved dtc",
+    "dtc approved",
+    "approved-dtc",
+    "dtc 승인",
+    "dtc가 승인",
+  ];
+  return markers.some((marker) => {
+    const index = lower.indexOf(marker);
+    return index >= 0 && !hasNegatingContext(text, index);
+  });
+}
+
+function hasActualDtcApprovalRequest(text: string): boolean {
+  const approvalRequestMarkers = [
+    "DTC 5개 추천안 승인",
+    "Ontology DTC T0-T6 추천안 승인",
+    "추천안 승인",
+    "approve this DTC",
+    "approve the DTC",
+    "select approval",
+    "승인하려면",
+    "승인 문구",
+  ] as const;
+  return hasNonNegatedMarker(text, approvalRequestMarkers);
+}
+
+function missingOntologyDtcBuildLabels(text: string): readonly string[] {
+  const lower = text.toLowerCase();
+  const requiredLabels = ["T0", "T1", "T2", "T3", "T4", "T5", "T6"] as const;
+  return requiredLabels.filter((label) => !lower.includes(label.toLowerCase()));
+}
+
+export function validateDtcApprovalCardText(text: string): readonly string[] {
+  if (!hasDtcSignal(text) || !hasDtcApprovalSignal(text)) return [];
+
+  const legacyPhraseIndex = indexOfCaseInsensitive(text, "DTC 5개 추천안 승인");
+  const primitiveLaneMisuse = hasDtcPrimitiveLaneMisuse(text);
+  const approvalRequest = hasActualDtcApprovalRequest(text);
+  const approvedDtcClaim = hasApprovedDtcClaim(text);
+  const explicitApprovalCardContext = hasExplicitDtcApprovalCardContext(text);
+  const requiresApprovalCardContract =
+    approvalRequest ||
+    legacyPhraseIndex >= 0 ||
+    primitiveLaneMisuse ||
+    explicitApprovalCardContext;
+  const cardCandidate =
+    hasDtcApprovalCardContext(text) ||
+    legacyPhraseIndex >= 0 ||
+    primitiveLaneMisuse ||
+    approvalRequest;
+
+  if (!cardCandidate) return [];
+
+  const violations: string[] = [];
+  if (legacyPhraseIndex >= 0 && !hasNegatingContext(text, legacyPhraseIndex)) {
+    violations.push("legacy DTC approval phrase `DTC 5개 추천안 승인` is not allowed");
+  }
+  if (primitiveLaneMisuse) {
+    violations.push(
+      "DATA/LOGIC/ACTION/GOVERNANCE/TECHNOLOGY must not be presented as DTC primitive readiness",
+    );
+  }
+
+  if (requiresApprovalCardContract) {
+    if (!text.toLowerCase().includes("ontology-dtc-build")) {
+      violations.push("ontology-affecting DTC approval cards must name ontology-dtc-build");
+    }
+    const missingLabels = missingOntologyDtcBuildLabels(text);
+    if (missingLabels.length > 0) {
+      violations.push(
+        `ontology-affecting DTC approval cards must include T0-T6 labels; missing ${missingLabels.join(", ")}`,
+      );
+    }
+  }
+
+  if (
+    /mutationauthorized\s*(?:여부)?\s*[:=]\s*false/i.test(text) &&
+    requiresApprovalCardContract &&
+    !includesAnyCaseInsensitive(text, ["mutation is blocked", "mutation blocked", "mutation 차단"])
+  ) {
+    violations.push("DTC approval card asks for approval while mutationAuthorized=false");
+  }
+
+  const lower = text.toLowerCase();
+  if (
+    approvedDtcClaim &&
+    requiresApprovalCardContract &&
+    !lower.includes("approvalref") &&
+    !lower.includes("approval ref") &&
+    !lower.includes("approved dtc ref") &&
+    !lower.includes("dtc ref")
+  ) {
+    violations.push("approved-DTC wording must include an approved DTC ref or approvalRef");
+  }
+
+  if (
+    requiresApprovalCardContract &&
+    (lower.includes("generated") || lower.includes("cache") || lower.includes("proposal")) &&
+    lower.includes("authority") &&
+    !lower.includes("non-authority") &&
+    !lower.includes("proposal-only")
+  ) {
+    violations.push("generated/cache/proposal artifacts must not be presented as authority");
+  }
+
+  return violations;
+}
+
+export function assertDtcApprovalCardTextBeforeDisplay(input: {
+  readonly text: string;
+  readonly surface: string;
+}): void {
+  const violations = validateDtcApprovalCardText(input.text);
+  if (violations.length === 0) return;
+  throw new Error(
+    [
+      `DTC approval-card display blocked on ${input.surface}.`,
+      ...violations.map((violation) => `- ${violation}`),
+    ].join("\n"),
+  );
 }
 
 export function validatePalantirMiniWorkflowResponseTemplateText(
@@ -309,6 +608,7 @@ export function validatePalantirMiniWorkflowResponseTemplateText(
       ? ["runtime-local semantic authority overclaim"]
       : []),
   ];
+  const dtcApprovalCardViolations = validateDtcApprovalCardText(text);
 
   return {
     valid:
@@ -318,7 +618,8 @@ export function validatePalantirMiniWorkflowResponseTemplateText(
       missingExplanationRequirements.length === 0 &&
       forbiddenRuntimeUiMarkers.length === 0 &&
       falseParityClaimMarkers.length === 0 &&
-      authorityOverclaimMarkers.length === 0,
+      authorityOverclaimMarkers.length === 0 &&
+      dtcApprovalCardViolations.length === 0,
     missingFields,
     missingGapRequirements,
     missingSsotRequirements,
@@ -326,6 +627,7 @@ export function validatePalantirMiniWorkflowResponseTemplateText(
     forbiddenRuntimeUiMarkers,
     falseParityClaimMarkers,
     authorityOverclaimMarkers,
+    dtcApprovalCardViolations,
   };
 }
 
