@@ -19,7 +19,7 @@ palantirSurface:
     - tools-request-clarification
     - security-governance
   palantirSourceAuthorityRefs:
-    - localResearchPath: ~/.claude/research/palantir-official/chatbot-studio/tools.md
+    - localResearchPath: ~/.claude/research/palantir-official/foundry/chatbot-studio/tools.md
       externalUrl: https://www.palantir.com/docs/foundry/chatbot-studio/tools/
       lastVerified: 2026-05-24
       sourceClass: palantir-chatbot-studio

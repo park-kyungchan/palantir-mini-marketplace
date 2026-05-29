@@ -28,6 +28,7 @@ Every palantir-mini workflow reply must include:
 - open TurnCardDecisionSpec 목록
 - mutationAuthorized 여부
 - 다음에 허용된 action
+- durable subagent .md output 상태
 - native/runtime gap 여부
 - SSoT 판단 근거
 
@@ -71,6 +72,15 @@ surface for this turn.
 Do not claim Claude/Codex hook, MCP, memory, skill, subagent, or managed-setting
 parity without runtime-native evidence.
 
+## Durable Subagent Output
+
+For substantial palantir-mini workflow work, every reply must state whether
+subagent outputs were saved as durable `.md` files. The status must name the
+paths written, say `N/A` with a reason, or state a runtime gap. If a native
+runtime cannot make a worker write directly, the Lead must capture the worker
+output into `.md` before context compaction and say where the captured report
+lives.
+
 ## SSoT Decision Basis
 
 Every recommendation, judgment, decision card, or risk statement must explain
@@ -89,7 +99,8 @@ include an `SSoT 판단 근거` section with concise rows or bullets covering:
 For Palantir-heavy turns, the SSoT basis should name the smallest relevant
 evidence from:
 
-- Palantir AIP Architecture / Context Engineering references.
+- Palantir AIP Architecture references.
+- Palantir Context Engineering references.
 - Palantir Ontology references.
 - Palantir AIP Chatbot Studio references when the recommendation affects
   review surfaces, user-facing decision state, chatbot/application behavior, or
@@ -175,6 +186,7 @@ SIC/DTC 상태: <state and refs, or N/A with reason>
 open TurnCardDecisionSpec 목록: <none or ids>
 mutationAuthorized 여부: <true/false and authority>
 다음에 허용된 action: <next action>
+durable subagent .md output 상태: <paths, N/A reason, or runtime gap>
 native/runtime gap 여부: <Claude hook native status + Codex runtime gap + tool gaps>
 SSoT 판단 근거:
 - source/ref: <path, ref, MCP output, schema, hook, rule, or URL>
