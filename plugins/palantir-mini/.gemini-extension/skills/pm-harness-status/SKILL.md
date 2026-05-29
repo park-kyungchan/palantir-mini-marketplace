@@ -1,7 +1,7 @@
 ---
 name: pm-harness-status
 category: core-workflow
-description: "Query current state of all active FeedbackLoops in a project. Shows per-loop iterationCount, state, best score so far, time remaining (vs timeoutMs), and pending gate action...."
+description: "Query current state of all active FeedbackLoops in a project. Shows per-loop..."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__replay_lineage mcp__plugin_palantir-mini_palantir-mini__pm_preamble mcp__plugin_palantir-mini_palantir-mini__pm_harness_strictness_audit
 effort: low
 disable-model-invocation: false

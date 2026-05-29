@@ -1,7 +1,7 @@
 ---
 name: pm-lineage
 category: maintenance
-description: "Cross-project workflow lineage query — joins events.jsonl across registered + auto-discovered palantir-mini projects, filters by 5-dim Decision Lineage (whenRange, atopWhich,..."
+description: "Cross-project workflow lineage query — joins events.jsonl across registered +..."
 allowed-tools:
   - mcp__plugin_palantir-mini_palantir-mini__pm_workflow_lineage_query
   - Read

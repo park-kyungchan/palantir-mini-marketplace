@@ -1,7 +1,7 @@
 ---
 name: pm-harness-analyze
 category: maintenance
-description: "Spawn the harness-analyzer agent for a failed sprint iteration. Reads feedback-NNN.md + generator-state.md + scenario outcomes, writes analysis-NNN.md with structured failure..."
+description: "Spawn the harness-analyzer agent for a failed sprint iteration. Reads..."
 allowed-tools: Agent mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 argument-hint: "<sprint-number> <iteration-number>   (the failed iteration to analyze)"
 effort: medium

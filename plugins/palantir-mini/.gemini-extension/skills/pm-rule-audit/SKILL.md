@@ -1,7 +1,7 @@
 ---
 name: pm-rule-audit
 category: maintenance
-description: "Comprehensive rules/ health check via palantir-mini MCP. Detects T1/T2 bottleneck violations + stale crossRefs + stale hook citations + file-count drift vs MEMORY.md + recycled..."
+description: "Comprehensive rules/ health check via palantir-mini MCP. Detects T1/T2 bottleneck..."
 allowed-tools: mcp__palantir-mini__pm_rule_audit mcp__palantir-mini__pm_rule_query
 effort: low
 disable-model-invocation: false

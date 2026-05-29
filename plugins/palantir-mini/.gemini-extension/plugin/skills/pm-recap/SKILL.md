@@ -1,7 +1,7 @@
 ---
 name: pm-recap
 category: maintenance
-description: "Produce a /recap-compatible summary (Claude Code v2.1.114+ Native Runtime, plugin v4.1.0+) from the project's events.jsonl — cold-start state surfacing. Reads the last N events..."
+description: "Produce a /recap-compatible summary (Claude Code v2.1.114+ Native Runtime, plugin..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage mcp__palantir-mini__pm_event_query_by_grade mcp__palantir-mini__pm_memory_layer_audit
 effort: low
 disable-model-invocation: false

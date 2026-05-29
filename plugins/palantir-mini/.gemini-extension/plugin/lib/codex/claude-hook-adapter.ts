@@ -25,6 +25,7 @@ export type HookConfig = {
   statusMessage?: string;
   async?: boolean;
   decision?: string;
+  failureMode?: string;
   permissionDecision?: string;
   if?: string;
 };
@@ -100,6 +101,10 @@ export const DOCUMENTED_WIRE_EVENTS = new Set([
   "SubagentStop",
   "Stop",
 ]);
+
+function policyEventNameFor(eventName: string): string {
+  return eventName === "PermissionRequest" ? "PreToolUse" : eventName;
+}
 
 function resolveOptions(options: CodexAdapterOptions = {}): ResolvedOptions {
   const home = options.home ?? DEFAULT_HOME;
@@ -692,6 +697,9 @@ export function extractPromptFrontDoorIdentityContext(
 function blockReason(run: HookRun): string | undefined {
   const parsed = run.parsed;
   if (run.exitCode === 2) return run.stderr.trim() || "palantir-mini hook blocked this action";
+  if ((run.timedOut || (run.exitCode !== null && run.exitCode !== 0)) && run.hook.failureMode === "fail-closed") {
+    return run.stderr.trim() || `palantir-mini hook failed closed: ${run.hook.command}`;
+  }
   if ((run.timedOut || (run.exitCode !== null && run.exitCode !== 0)) && run.hook.decision === "block") {
     return run.stderr.trim() || `palantir-mini blocking hook failed closed: ${run.hook.command}`;
   }
@@ -887,10 +895,11 @@ export async function runCodexHookAdapter(
     };
   }
 
+  const policyEventName = policyEventNameFor(eventName);
   const payload = deepCloneObject(inputPayload);
-  payload.hook_event_name = eventName;
+  payload.hook_event_name = policyEventName;
 
-  const hooks = matchingHooks(doc, eventName, payload, options);
+  const hooks = matchingHooks(doc, policyEventName, payload, options);
   const syncHooks = hooks.filter((hook) => !hook.async);
   const asyncHooks = hooks.filter((hook) => hook.async);
 
@@ -934,14 +943,16 @@ export async function runCodexHookAdapterCli(
 
   if (eventName === "--match") {
     const matchEventName = argv[3] ?? "";
+    const policyEventName = policyEventNameFor(matchEventName);
     const payload = await readPayload(stdinText);
-    payload.hook_event_name = matchEventName;
-    const hooks = matchingHooks(doc, matchEventName, payload, options);
+    payload.hook_event_name = policyEventName;
+    const hooks = matchingHooks(doc, policyEventName, payload, options);
     return JSON.stringify(
       {
         event: matchEventName,
+        policyEventName,
         toolName: payload.tool_name,
-        candidates: matcherCandidates(matchEventName, payload, options),
+        candidates: matcherCandidates(policyEventName, payload, options),
         matchedCommands: hooks.map((hook) => hook.command),
       },
       null,

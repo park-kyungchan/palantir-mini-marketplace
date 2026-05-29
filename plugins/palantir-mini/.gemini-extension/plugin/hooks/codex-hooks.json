@@ -1,5 +1,5 @@
 {
-  "description": "Codex-native hook entrypoints for palantir-mini. Codex must not parse hooks/hooks.json directly because that registry includes Claude-compatible async fields and file-glob matchers. These regex-safe entrypoints delegate to lib/codex/claude-hook-adapter.ts, which live-reads hooks/hooks.json as the workflow-intent registry.",
+  "description": "Codex-native hook entrypoints for palantir-mini. Codex must not parse hooks/hooks.json directly because that shared workflow-intent registry can contain Claude-compatible fields and file-glob matchers. These regex-safe entrypoints delegate to lib/codex/claude-hook-adapter.ts, which live-reads hooks/hooks.json. Claude-only task/team lifecycle events are mounted only through hooks/claude-hooks.json.",
   "hooks": {
     "SessionStart": [
       {

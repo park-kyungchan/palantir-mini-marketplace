@@ -1,7 +1,7 @@
 ---
 name: pm-eval-suite-run
 category: merge-candidate
-description: "Execute an authored AIPEvaluationSuiteDeclaration over a target artifact — dispatches per-criterion grade_outcome_with_rubric calls, aggregates per-criterion scores, persists..."
+description: "Execute an authored AIPEvaluationSuiteDeclaration over a target artifact —..."
 allowed-tools: mcp__palantir-mini__grade_outcome_with_rubric mcp__palantir-mini__pm_grader_dispatch mcp__palantir-mini__emit_event Read Write Bash
 effort: high
 disable-model-invocation: false

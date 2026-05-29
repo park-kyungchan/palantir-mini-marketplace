@@ -1,7 +1,7 @@
 ---
 name: pm-rehydrate
 category: maintenance
-description: "One-pass user-scope → plugin-scope migration helper per 06-plugin-only-architecture.md §7.5. Copies the 14 user-scope agents and 4 user-scope skills (per the Phase 1 migration..."
+description: "One-pass user-scope → plugin-scope migration helper per 06-plugin-only-architecture.m..."
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Bash(cp*), Bash(mkdir*), Bash(test*), Bash(diff*), Bash(jq*), Bash(claude*), mcp__plugin_palantir-mini_palantir-mini__emit_event
 effort: medium

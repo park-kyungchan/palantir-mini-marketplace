@@ -28,7 +28,13 @@ export interface OntologyDtcBuildReadiness {
   readonly functionRefs: readonly string[];
   readonly applicationStateRefs: readonly string[];
   readonly evaluationRefs: readonly string[];
+  readonly nonApplicablePrimitiveKinds?: readonly string[];
+  readonly nonApplicableEvidenceRefs?: readonly string[];
   readonly readinessVerdict: "draft" | "ready-for-dtc";
+}
+
+export interface OntologyDtcBuildReadinessIssueOptions {
+  readonly requirePolicy?: boolean;
 }
 
 export type OntologyDtcBuildContract = DigitalTwinChangeContract & DtcWithFillFields & {
@@ -223,9 +229,19 @@ export function advanceOntologyDTCBuildSequence(
 
 export function ontologyDtcBuildReadinessIssues(
   contract: DigitalTwinChangeContract,
+  options: OntologyDtcBuildReadinessIssueOptions = {},
 ): ContractValidationIssue[] {
   const ext = contract as OntologyDtcBuildContract;
-  if (ext.fillPolicy !== ONTOLOGY_DTC_BUILD_POLICY) return [];
+  if (ext.fillPolicy !== ONTOLOGY_DTC_BUILD_POLICY) {
+    if (!options.requirePolicy) return [];
+    return [
+      {
+        field: "fillPolicy",
+        message:
+          "ontology-affecting DTC must use fillPolicy=ontology-dtc-build before approval or routing",
+      },
+    ];
+  }
 
   const issues: ContractValidationIssue[] = [];
   const readiness = ext.ontologyDtcBuildReadiness;
@@ -235,18 +251,21 @@ export function ontologyDtcBuildReadinessIssues(
       message: "ontology-dtc-build requires all T0-T6 turns before DTC approval",
     });
   }
-  for (const [field, values] of [
-    ["objectTypeRefs", readiness?.objectTypeRefs],
-    ["linkTypeRefs", readiness?.linkTypeRefs],
-    ["actionTypeRefs", readiness?.actionTypeRefs],
-    ["functionRefs", readiness?.functionRefs],
-    ["applicationStateRefs", readiness?.applicationStateRefs],
-    ["evaluationRefs", readiness?.evaluationRefs],
+  for (const [field, primitiveKind, values] of [
+    ["objectTypeRefs", "ObjectType", readiness?.objectTypeRefs],
+    ["linkTypeRefs", "LinkType", readiness?.linkTypeRefs],
+    ["actionTypeRefs", "ActionType", readiness?.actionTypeRefs],
+    ["functionRefs", "Function", readiness?.functionRefs],
+    ["applicationStateRefs", "ApplicationState", readiness?.applicationStateRefs],
+    ["evaluationRefs", "Eval", readiness?.evaluationRefs],
   ] as const) {
-    if (!Array.isArray(values) || values.length === 0) {
+    if (
+      (!Array.isArray(values) || values.length === 0) &&
+      !hasNonApplicableEvidence(readiness, primitiveKind)
+    ) {
       issues.push({
         field: `ontologyDtcBuildReadiness.${field}`,
-        message: `${field} must be non-empty for ontology-dtc-build`,
+        message: `${field} must be non-empty or explicitly non-applicable with evidence for ontology-dtc-build`,
       });
     }
   }
@@ -257,20 +276,39 @@ export function ontologyDtcBuildReadinessIssues(
     });
   }
   for (const requiredKind of ["ObjectType", "LinkType", "ActionType", "Function"]) {
-    if (!hasTouchedKind(contract.touchedOntologyRefs, requiredKind)) {
+    if (
+      !hasTouchedKind(contract.touchedOntologyRefs, requiredKind) &&
+      !hasNonApplicableEvidence(readiness, requiredKind)
+    ) {
       issues.push({
         field: "touchedOntologyRefs",
-        message: `ontology-dtc-build requires touchedOntologyRefs for ${requiredKind}`,
+        message: `ontology-dtc-build requires touchedOntologyRefs for ${requiredKind} or explicit non-applicable evidence`,
       });
     }
   }
-  if (!contract.requiredEvaluationRefs || contract.requiredEvaluationRefs.length === 0) {
+  if (
+    (!contract.requiredEvaluationRefs || contract.requiredEvaluationRefs.length === 0) &&
+    !hasNonApplicableEvidence(readiness, "Eval")
+  ) {
     issues.push({
       field: "requiredEvaluationRefs",
-      message: "ontology-dtc-build requires at least one requiredEvaluationRef",
+      message:
+        "ontology-dtc-build requires at least one requiredEvaluationRef or explicit non-applicable evidence",
     });
   }
   return issues;
+}
+
+function hasNonApplicableEvidence(
+  readiness: OntologyDtcBuildReadiness | undefined,
+  primitiveKind: string,
+): boolean {
+  const evidenceRefs = readiness?.nonApplicableEvidenceRefs ?? [];
+  if (evidenceRefs.length === 0) return false;
+  const target = primitiveKind.toLowerCase();
+  return (readiness?.nonApplicablePrimitiveKinds ?? []).some(
+    (kind) => kind.toLowerCase() === target,
+  );
 }
 
 function typedRefTurn(

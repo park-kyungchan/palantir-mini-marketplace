@@ -6,12 +6,15 @@
 
 This document catalogs palantir-mini hook/event parity between Claude Code CLI,
 Codex CLI, and Gemini CLI. It is a runtime map, not a plugin source authority.
-The source of truth for Claude/Codex hook intent is
-`plugins/palantir-mini/hooks/hooks.json`. Codex mounts that intent through
-`hooks/codex-hooks.json` and `lib/codex/claude-hook-adapter.ts` so the Codex
-runtime never parses Claude-oriented glob matchers or `async: true` fields
-directly. Gemini mounts the same intent through `.gemini-extension/hooks/hooks.json`
-and `lib/gemini/native-hook-adapter.ts`.
+The source of truth for shared Claude/Codex hook intent is
+`plugins/palantir-mini/hooks/hooks.json`. Claude-only task/team lifecycle
+mounts live in `hooks/claude-hooks.json` and are referenced by the Claude
+plugin manifest. Codex mounts only the shared intent through
+`hooks/codex-hooks.json` and `lib/codex/claude-hook-adapter.ts`, so Codex
+never sees Claude-only `TaskCreated`, `TaskCompleted`, or `TeammateIdle`
+registrations as plugin-layer native gaps. Gemini mounts its own extension
+intent through `.gemini-extension/hooks/hooks.json` and
+`lib/gemini/native-hook-adapter.ts`.
 
 ## Context
 
@@ -20,22 +23,29 @@ Per rule 27 (cross-runtime substrate), Claude and Codex may append to the same
 integrates through:
 
 ```
+palantir-mini/.claude-plugin/plugin.json
+  -> hooks/claude-hooks.json  (Claude-only lifecycle mounts included)
+
 palantir-mini/.codex-plugin/plugin.json
   -> hooks/codex-hooks.json  (Codex regex-safe entrypoints)
     -> lib/codex/claude-hook-adapter.ts
-      -> hooks/hooks.json  (canonical hook intent registry)
+      -> hooks/hooks.json  (shared hook intent registry)
 ```
 
 The Codex hook entrypoint file is not a source fork. It contains only supported
 Codex lifecycle events, regex-safe matchers, and adapter commands. The adapter
-reads the canonical hook intent from `hooks/hooks.json`, preserves `if` path
+reads the shared hook intent from `hooks/hooks.json`, preserves `if` path
 conditions, and runs `async: true` source hooks as background best-effort work
 instead of asking Codex to parse unsupported async hook declarations directly.
+Claude-only task/team lifecycle hooks remain in `hooks/claude-hooks.json` and
+are not part of the shared Codex live-read surface.
 
-As of v6.79.0, `hooks/hooks.json` reports 105 hook commands. The removed
-`image-teacher-qa` UserPromptSubmit workflow is no longer a runtime surface; the
-Methodological SSoT remains a documentation/ontology-engineering authority, not
-an image-teacher-qa hook.
+As of v6.79.0, shared `hooks/hooks.json` reports 98 hook commands. Claude
+`hooks/claude-hooks.json` reports 105 hook commands, including the seven
+Claude-only task/team lifecycle commands. The removed `image-teacher-qa`
+UserPromptSubmit workflow is no longer a runtime surface; the Methodological
+SSoT remains a documentation/ontology-engineering authority, not an
+image-teacher-qa hook.
 
 Current Codex hook config wires these events through the adapter:
 
@@ -66,10 +76,11 @@ Gemini adapter maps:
 | `PreCompress` | `PreCompact` |
 | `SessionEnd` | `Stop` |
 
-Canonical source `hooks/hooks.json` currently contains 12 event groups:
-`PreToolUse`, `PostToolUse`, `PreCompact`, `TaskCompleted`, `Stop`,
-`SessionStart`, `TaskCreated`, `TeammateIdle`, `SubagentStart`, `SubagentStop`,
-`PostCompact`, and `UserPromptSubmit`.
+Shared source `hooks/hooks.json` currently contains 9 event groups:
+`PreToolUse`, `PostToolUse`, `PreCompact`, `Stop`, `SessionStart`,
+`SubagentStart`, `SubagentStop`, `PostCompact`, and `UserPromptSubmit`.
+Claude source `hooks/claude-hooks.json` currently contains 12 event groups,
+adding `TaskCreated`, `TaskCompleted`, and `TeammateIdle`.
 
 ## Parity Table
 
@@ -83,9 +94,9 @@ Canonical source `hooks/hooks.json` currently contains 12 event groups:
 | User prompt submit | `UserPromptSubmit` | partial | Adapter-wired, but Codex cannot assume prompt-to-DTC approval. Call `pm_semantic_intent_gate` explicitly before ontology-affecting routing. |
 | Pre-compact | `PreCompact` | partial | Adapter-wired through `hooks/codex-hooks.json`; verify compaction payload assumptions before claiming full Claude parity. |
 | Post-compact | `PostCompact` | partial | Adapter-wired through `hooks/codex-hooks.json`; verify compaction payload assumptions before relying on side effects. |
-| Task created | `TaskCreated` | native gap | Codex has no observed native TaskCreated lifecycle equivalent. |
-| Task completed | `TaskCompleted` | native gap | Codex has no observed native TaskCompleted lifecycle equivalent. |
-| Teammate idle | `TeammateIdle` | native gap | Claude Agent Teams concept; no Codex-native teammate idle surface. |
+| Task created | `TaskCreated` | native gap | Claude-only lifecycle mount in `hooks/claude-hooks.json`; Codex shared registry must not include it. |
+| Task completed | `TaskCompleted` | native gap | Claude-only lifecycle mount in `hooks/claude-hooks.json`; Codex shared registry must not include it. |
+| Teammate idle | `TeammateIdle` | native gap | Claude Agent Teams concept mounted only in `hooks/claude-hooks.json`; no Codex-native teammate idle surface. |
 | Subagent start | `SubagentStart` | partial | Adapter-wired; keep explicit briefing discipline because Codex subagent payloads are not Claude payloads. |
 | Subagent stop | `SubagentStop` | partial | Adapter-wired; inspect worker output and handoff fields because payload parity is not guaranteed. |
 | Agent/TaskUpdate matchers | `PreToolUse`/`PostToolUse` matchers | native gap unless represented in Codex payload | Do not assume Claude Agent or TaskUpdate matchers fire in Codex. |
@@ -127,7 +138,8 @@ For ontology-affecting work in Gemini:
 
 ## References
 
-- `plugins/palantir-mini/hooks/hooks.json` — hook intent registry SSoT.
+- `plugins/palantir-mini/hooks/hooks.json` — shared hook intent registry SSoT.
+- `plugins/palantir-mini/hooks/claude-hooks.json` — Claude-only lifecycle hook registry.
 - `plugins/palantir-mini/hooks/codex-hooks.json` — Codex regex-safe hook entrypoint registry.
 - `plugins/palantir-mini/lib/codex/claude-hook-adapter.ts` — Codex-native protocol adapter owner.
 - `plugins/palantir-mini/.gemini-extension/` — Gemini-native extension package.

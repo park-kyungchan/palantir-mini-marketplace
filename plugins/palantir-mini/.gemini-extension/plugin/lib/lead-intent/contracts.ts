@@ -448,16 +448,31 @@ function normalizeScope(scopePaths: readonly string[]): string {
   return scopePaths.join(" ").toLowerCase();
 }
 
-function uniqueNonEmpty(values: readonly string[] | undefined): string[] {
+function uniqueNonEmpty(values: readonly unknown[] | undefined): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
   for (const value of values ?? []) {
+    if (typeof value !== "string") continue;
     const normalized = value.trim();
     if (!normalized || seen.has(normalized)) continue;
     seen.add(normalized);
     result.push(normalized);
   }
   return result;
+}
+
+function validateStringArrayElements(
+  issues: ContractValidationIssue[],
+  field: string,
+  values: readonly unknown[],
+): void {
+  values.forEach((value, index) => {
+    if (typeof value === "string" && value.trim().length > 0) return;
+    issues.push({
+      field: `${field}.${index}`,
+      message: `${field} entries must be non-empty strings`,
+    });
+  });
 }
 
 export function isReadOnlyIntent(intent: string): boolean {
@@ -739,12 +754,18 @@ export function validateSemanticIntentContract(
   }
   if (!Array.isArray(contract.approvedNouns) || contract.approvedNouns.length === 0) {
     issues.push({ field: "approvedNouns", message: "at least one approved noun is required" });
+  } else {
+    validateStringArrayElements(issues, "approvedNouns", contract.approvedNouns);
   }
   if (!Array.isArray(contract.approvedVerbs) || contract.approvedVerbs.length === 0) {
     issues.push({ field: "approvedVerbs", message: "at least one approved verb is required" });
+  } else {
+    validateStringArrayElements(issues, "approvedVerbs", contract.approvedVerbs);
   }
   if (!Array.isArray(contract.affectedSurfaces) || contract.affectedSurfaces.length === 0) {
     issues.push({ field: "affectedSurfaces", message: "at least one affected surface is required" });
+  } else {
+    validateStringArrayElements(issues, "affectedSurfaces", contract.affectedSurfaces);
   }
   const openBlocking = Array.isArray(contract.clarificationQuestions)
     ? contract.clarificationQuestions.filter(
@@ -789,6 +810,8 @@ export function validateDigitalTwinChangeContract(
   }
   if (!Array.isArray(contract.affectedSurfaces) || contract.affectedSurfaces.length === 0) {
     issues.push({ field: "affectedSurfaces", message: "at least one affected surface is required" });
+  } else {
+    validateStringArrayElements(issues, "affectedSurfaces", contract.affectedSurfaces);
   }
   for (const field of [
     "changeBoundary",
@@ -805,20 +828,23 @@ export function validateDigitalTwinChangeContract(
   }
   // Typed-ref enforcement: ontology-affecting DTCs require at least one touchedOntologyRef
   // and at least one requiredEvaluationRef. Backward-compat: non-affecting DTCs skip this block.
+  const ontologyAffecting = isOntologyAffectingDtc(contract);
   const bypass = process.env["PALANTIR_MINI_DTC_EVAL_REFS_BYPASS"] === "1";
-  if (isOntologyAffectingDtc(contract) && !bypass) {
+  const usesOntologyDtcBuild =
+    (contract as { fillPolicy?: string }).fillPolicy === "ontology-dtc-build";
+  if (ontologyAffecting && !bypass && !usesOntologyDtcBuild) {
     if (!contract.touchedOntologyRefs || contract.touchedOntologyRefs.length === 0) {
       issues.push({
         field: "touchedOntologyRefs",
         message:
-          "ontology-affecting DTC requires at least one touchedOntologyRef (ObjectType/LinkType/ActionType/Function); set PALANTIR_MINI_DTC_EVAL_REFS_BYPASS=1 to bypass (audited)",
+          "ontology-affecting DTC requires at least one touchedOntologyRef (ObjectType/LinkType/ActionType/Function)",
       });
     }
     if (!contract.requiredEvaluationRefs || contract.requiredEvaluationRefs.length === 0) {
       issues.push({
         field: "requiredEvaluationRefs",
         message:
-          "ontology-affecting DTC requires at least one requiredEvaluationRef (ValidationPackRef); set PALANTIR_MINI_DTC_EVAL_REFS_BYPASS=1 to bypass (audited)",
+          "ontology-affecting DTC requires at least one requiredEvaluationRef (ValidationPackRef)",
       });
     }
   }
@@ -905,7 +931,7 @@ export function validateDigitalTwinChangeContract(
       });
     }
   }
-  issues.push(...ontologyDtcBuildReadinessIssues(contract));
+  issues.push(...ontologyDtcBuildReadinessIssues(contract, { requirePolicy: ontologyAffecting }));
   return { valid: issues.length === 0, issues };
 }
 

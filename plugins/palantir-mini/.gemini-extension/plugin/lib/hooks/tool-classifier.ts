@@ -8,6 +8,7 @@ export type PalantirMiniToolOperation =
   | "commit_edits"
   | "compute_edits_dry_run"
   | "emit_event"
+  | "get_ontology"
   | "grade_outcome_with_rubric"
   | "impact_query"
   | "negotiate_sprint_contract"
@@ -49,6 +50,7 @@ const READ_ONLY_TOOLS = new Set([
 
 const READ_ONLY_OPERATIONS = new Set<PalantirMiniToolOperation>([
   "compute_edits_dry_run",
+  "get_ontology",
   "grade_outcome_with_rubric",
   "impact_query",
   "ontology_schema_get",
@@ -92,6 +94,12 @@ const PALANTIR_MINI_MCP_ALIAS_PREFIXES = [
 
 export const PALANTIR_MINI_MANAGED_SETTINGS_MCP_PREFIX = "mcp__palantir-mini__";
 
+export const MCP_FIRST_EVIDENCE_OPERATIONS = new Set<PalantirMiniToolOperation>([
+  "get_ontology",
+  "impact_query",
+  "pre_edit_impact",
+]);
+
 function normalizeToolName(toolName: string): string {
   return toolName.trim().toLowerCase();
 }
@@ -117,6 +125,11 @@ export function normalizePalantirMiniMcpToolName(toolName: string): string {
 export function palantirMiniMcpToolAliasesFor(toolName: string): string[] {
   if (!isPalantirMiniMcpToolName(toolName)) return [];
   const canonicalName = normalizePalantirMiniMcpToolName(toolName);
+  return palantirMiniMcpToolAliasesForOperation(canonicalName);
+}
+
+export function palantirMiniMcpToolAliasesForOperation(operationName: string): string[] {
+  const canonicalName = normalizeToolName(operationName);
   return [...new Set(PALANTIR_MINI_MCP_ALIAS_PREFIXES.map((prefix) => `${prefix}${canonicalName}`))];
 }
 
@@ -124,11 +137,12 @@ export function managedSettingsPalantirMiniMcpPattern(toolName: string): string 
   return `${PALANTIR_MINI_MANAGED_SETTINGS_MCP_PREFIX}${normalizePalantirMiniMcpToolName(toolName)}`;
 }
 
-function operationFromToolName(normalizedName: string): PalantirMiniToolOperation {
+export function operationFromToolName(normalizedName: string): PalantirMiniToolOperation {
   if (normalizedName.includes("apply_edit_function")) return "apply_edit_function";
   if (normalizedName.includes("commit_edits")) return "commit_edits";
   if (normalizedName.includes("compute_edits_dry_run")) return "compute_edits_dry_run";
   if (normalizedName.includes("emit_event")) return "emit_event";
+  if (normalizedName.includes("get_ontology")) return "get_ontology";
   if (normalizedName.includes("grade_outcome_with_rubric")) return "grade_outcome_with_rubric";
   if (normalizedName.includes("impact_query")) return "impact_query";
   if (normalizedName.includes("negotiate_sprint_contract")) return "negotiate_sprint_contract";
@@ -141,6 +155,11 @@ function operationFromToolName(normalizedName: string): PalantirMiniToolOperatio
   if (normalizedName.includes("pm_substrate_query")) return "pm_substrate_query";
   if (normalizedName.includes("pre_edit_impact")) return "pre_edit_impact";
   return "unknown";
+}
+
+export function isMcpFirstEvidenceToolName(toolName: string): boolean {
+  const canonicalName = normalizePalantirMiniMcpToolName(toolName);
+  return MCP_FIRST_EVIDENCE_OPERATIONS.has(operationFromToolName(canonicalName));
 }
 
 function extractMcpToolName(normalizedName: string): string | undefined {

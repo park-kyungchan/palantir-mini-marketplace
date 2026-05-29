@@ -149,6 +149,7 @@ codegen, lib/*). Those are owned by the hook-builder agent.
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/plugin-maintainer.json
+- markdownReportPath: .palantir-mini/session/agent-output/plugin-maintainer.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

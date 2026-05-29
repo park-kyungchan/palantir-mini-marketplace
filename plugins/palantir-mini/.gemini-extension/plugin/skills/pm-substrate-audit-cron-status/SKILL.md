@@ -1,7 +1,7 @@
 ---
 name: pm-substrate-audit-cron-status
 category: delete-candidate
-description: "Read-only CronList wrapper filtered to weekly-substrate-audit registrations. Surfaces registered jobs + last-fire timestamps + days-until-expiry + recommendation (re-register..."
+description: "Read-only CronList wrapper filtered to weekly-substrate-audit registrations...."
 costClass: free
 effort: small
 ---

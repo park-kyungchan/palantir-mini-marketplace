@@ -1,7 +1,7 @@
 ---
 name: pm-convex-mirror-verify
 category: substrate-query
-description: "Audit local events.jsonl vs Convex Cloud decisionEvents table parity. Reads last N events from local + queries Cloud, computes diff, emits convex_mirror_parity_verified event..."
+description: "Audit local events.jsonl vs Convex Cloud decisionEvents table parity. Reads last N..."
 allowed-tools: Read Bash
 effort: low
 disable-model-invocation: false

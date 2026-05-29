@@ -3,7 +3,7 @@ name: pm-delegate-or-direct
 category: deprecated
 deprecated: true
 supersededBy: pm_intent_router
-description: "Deprecated compatibility wrapper. Use pm_intent_router for Lead routing and delegation recipes; this skill remains for one sprint as a redirect only."
+description: "Deprecated compatibility wrapper. Use pm_intent_router for Lead routing and..."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__pm_intent_router mcp__plugin_palantir-mini_palantir-mini__impact_query mcp__plugin_palantir-mini_palantir-mini__pm_rule_query
 effort: medium
 disable-model-invocation: false

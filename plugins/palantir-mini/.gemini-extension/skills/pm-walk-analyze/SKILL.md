@@ -1,7 +1,7 @@
 ---
 name: pm-walk-analyze
 category: research
-description: "Mode B (Project Analysis): Walk real production ontology code (palantir-math, mathcrew) block by block — analyze design decisions, connect to research markers, compare..."
+description: "Mode B (Project Analysis): Walk real production ontology code (palantir-math,..."
 effort: medium
 disable-model-invocation: false
 ---

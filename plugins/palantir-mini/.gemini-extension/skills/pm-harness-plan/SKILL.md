@@ -1,7 +1,7 @@
 ---
 name: pm-harness-plan
 category: core-workflow
-description: "Spawn the harness-planner agent to expand a 1-4 sentence brief into a full product spec + GradingRubric. Reads <project>/.palantir-mini/harness/brief.txt (or accepts inline..."
+description: "Spawn the harness-planner agent to expand a 1-4 sentence brief into a full product..."
 allowed-tools: Agent mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 argument-hint: "[1-4 sentence product brief — or empty to read from brief.txt]"
 effort: high

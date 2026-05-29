@@ -1,7 +1,7 @@
 ---
 name: pm-dirty-classify
 category: maintenance
-description: "Manual triage of working-tree dirt via 4-axis classifier (auto-regen / runtime-substrate / user-WIP / ephemeral). Default --dry-run prints table; --auto-stage applies..."
+description: "Manual triage of working-tree dirt via 4-axis classifier (auto-regen /..."
 costClass: free
 effort: small
 ---

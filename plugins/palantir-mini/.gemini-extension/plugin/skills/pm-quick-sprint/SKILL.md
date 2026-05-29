@@ -1,7 +1,7 @@
 ---
 name: pm-quick-sprint
 category: core-workflow
-description: "Bootstrap a 1-iteration SprintContract for Lead-direct work, satisfying harness default-on commit-gate (rule 16 v3.3.0)."
+description: "Bootstrap a 1-iteration SprintContract for Lead-direct work, satisfying harness..."
 allowed-tools: Read Write Edit Bash mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 effort: medium
 disable-model-invocation: false

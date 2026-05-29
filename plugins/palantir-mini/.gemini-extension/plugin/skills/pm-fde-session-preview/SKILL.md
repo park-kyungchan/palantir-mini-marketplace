@@ -1,7 +1,7 @@
 ---
 name: pm-fde-session-preview
 category: core-workflow
-description: "Show a read-only FDE Ontology Build Session preview — mission/object/link/action/function/chatbot/governance/eval readiness in plain language."
+description: "Show a read-only FDE Ontology Build Session preview — mission/object/link/action/func..."
 allowed-tools: mcp__palantir-mini__ontology_context_query mcp__palantir-mini__emit_event Read
 effort: medium
 disable-model-invocation: false

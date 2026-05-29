@@ -1,7 +1,7 @@
 ---
 name: pm-plan-eng-review
 category: research
-description: "Eng manager-mode plan review. Locks in execution — architecture, data flow, diagrams, edge cases, test coverage, performance. Walks through issues interactively with..."
+description: "Eng manager-mode plan review. Locks in execution — architecture, data flow, diagrams..."
 allowed-tools: Bash Read Write Edit Grep Glob WebSearch mcp__palantir-mini__pm_preamble mcp__palantir-mini__impact_query mcp__palantir-mini__emit_event
 effort: high
 disable-model-invocation: false

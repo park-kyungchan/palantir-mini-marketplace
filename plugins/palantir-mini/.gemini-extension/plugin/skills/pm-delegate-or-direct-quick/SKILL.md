@@ -3,7 +3,7 @@ name: pm-delegate-or-direct-quick
 category: deprecated
 deprecated: true
 supersededBy: pm_intent_router
-description: "Deprecated compatibility shortcut. Use pm_intent_router with an intent and inferred or explicit scopePaths; this skill remains for one sprint as a redirect only."
+description: "Deprecated compatibility shortcut. Use pm_intent_router with an intent and inferred..."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__pm_intent_router mcp__plugin_palantir-mini_palantir-mini__pm_rule_query
 effort: low
 disable-model-invocation: false

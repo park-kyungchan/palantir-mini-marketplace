@@ -1,7 +1,7 @@
 ---
 name: pm-value-audit
 category: delete-candidate
-description: "Substrate health dashboard for rule 26 valuable-data. Calls pm_value_grade_metrics MCP and renders T0-T4 distribution + 7-day trend + alarm thresholds (T0 reject rate > 5%, T2+..."
+description: "Substrate health dashboard for rule 26 valuable-data."
 allowed-tools: mcp__palantir-mini__pm_value_grade_metrics
 effort: high
 disable-model-invocation: false

@@ -1,7 +1,7 @@
 ---
 name: pm-mcp-reload
 category: maintenance
-description: "Guide the user through MCP server module reload after a bridge handler edit — palantir-mini MCP server caches imported handlers, so newly-edited bridge code requires a Claude..."
+description: "Guide the user through MCP server module reload after a bridge handler edit —..."
 allowed-tools: mcp__palantir-mini__emit_event Read Bash
 effort: medium
 disable-model-invocation: false

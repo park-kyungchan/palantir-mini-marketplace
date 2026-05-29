@@ -1,7 +1,7 @@
 ---
 name: pm-claude-code-version-watch
 category: maintenance
-description: "Audit Claude Code release drift. Wraps claude_code_version_delta MCP handler — diffs installed Claude Code version vs last-checked, spawns claude-code-guide subagent for..."
+description: "Audit Claude Code release drift. Wraps claude_code_version_delta MCP handler — diffs..."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__claude_code_version_delta mcp__plugin_palantir-mini_palantir-mini__emit_event Read Glob Grep Bash
 effort: low
 disable-model-invocation: false

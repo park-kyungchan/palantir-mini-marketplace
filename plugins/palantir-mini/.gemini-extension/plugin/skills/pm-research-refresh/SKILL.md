@@ -1,7 +1,7 @@
 ---
 name: pm-research-refresh
 category: research
-description: "Audit and refresh manifest-backed palantir-mini research libraries through the research_library_refresh MCP bridge. Supports canonical libraryRoot calls plus compatibility..."
+description: "Audit and refresh manifest-backed palantir-mini research libraries through the..."
 allowed-tools: mcp__palantir-mini__research_context_select mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event
 effort: medium
 disable-model-invocation: false

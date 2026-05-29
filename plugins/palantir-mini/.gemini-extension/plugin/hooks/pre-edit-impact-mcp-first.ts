@@ -6,8 +6,8 @@
 //
 // PURPOSE: MCP-First discipline enforcement (rule 12 v3.10.0 §MCP-First protocol).
 // Before editing a file in a tracked palantir-mini project, checks whether Lead
-// called impact_query / pre_edit_impact / pm_workflow_lineage_query /
-// propagation_audit_forward / get_ontology / pm-impact-quick in the last 5 minutes.
+// called impact_query / pre_edit_impact / get_ontology / pm-impact-quick
+// with matching RID/path evidence in the last 5 minutes.
 //
 // sprint-063 W2.B: semantic_change_plan removed (broken per user directive 2026-05-09);
 // pre_edit_impact added as alternative to impact_query.
@@ -27,7 +27,7 @@
 //   5. Read last 100 events from project events.jsonl.
 //   6. Filter to events within last MCP_FIRST_WINDOW_MS (5 min) whose throughWhich.toolName
 //      matches the MCP-first tool set (impact_query / pre_edit_impact /
-//      pm_workflow_lineage_query / get_ontology / propagation_audit_forward) or
+//      get_ontology) through the shared hook classifier, or
 //      event.type === "skill_started" && payload.skillName === "pm-impact-quick".
 //   7. If match found: emit lead_mcp_first_compliance{outcome:"passed"} → continue.
 //   8. If no match:
@@ -56,6 +56,7 @@ import { findProjectRoot } from "./harness-base-mode-advisory";
 import { readEvents } from "../lib/event-log/read";
 import { eventsPathFor } from "../scripts/log";
 import { evaluatePreMutationImpactGate } from "../lib/governance/pre-mutation-impact-gate";
+import { isMcpFirstEvidenceToolName } from "../lib/hooks/tool-classifier";
 
 /** 5-minute window in milliseconds */
 const MCP_FIRST_WINDOW_MS = 5 * 60 * 1000;
@@ -69,35 +70,6 @@ const MAX_EVENTS_SCAN = 100;
  * ~5 lines * ~80 chars/line = 400 chars as proxy.
  */
 const SMALL_CHANGE_MAX_CHARS = 400;
-
-/** MCP tool names that satisfy MCP-first requirement */
-// sprint-063 W2.B: semantic_change_plan removed (broken per user directive 2026-05-09);
-//                  pre_edit_impact added as alternative to impact_query.
-const MCP_FIRST_TOOL_NAMES = new Set([
-  "impact_query",
-  "pre_edit_impact",
-  "pm_workflow_lineage_query",
-  "get_ontology",
-  "propagation_audit_forward",
-  // mcp__plugin_palantir-mini_palantir-mini__ prefixed forms
-  "mcp__plugin_palantir-mini_palantir-mini__impact_query",
-  "mcp__plugin_palantir-mini_palantir-mini__pre_edit_impact",
-  "mcp__plugin_palantir-mini_palantir-mini__pm_workflow_lineage_query",
-  "mcp__plugin_palantir-mini_palantir-mini__get_ontology",
-  "mcp__plugin_palantir-mini_palantir-mini__propagation_audit_forward",
-  // Codex palantir-mini MCP namespace aliases. These are evidence-name aliases
-  // only; they do not imply native Claude/Codex hook parity.
-  "mcp__palantir_mini__impact_query",
-  "mcp__palantir_mini__pre_edit_impact",
-  "mcp__palantir_mini__pm_workflow_lineage_query",
-  "mcp__palantir_mini__get_ontology",
-  "mcp__palantir_mini__propagation_audit_forward",
-  "mcp__palantir_mini__.impact_query",
-  "mcp__palantir_mini__.pre_edit_impact",
-  "mcp__palantir_mini__.pm_workflow_lineage_query",
-  "mcp__palantir_mini__.get_ontology",
-  "mcp__palantir_mini__.propagation_audit_forward",
-]);
 
 /** pm-impact-quick skill satisfies MCP-first (it bundles all 3 calls) */
 const PM_IMPACT_QUICK_SLUG = "pm-impact-quick";
@@ -189,15 +161,13 @@ function deriveRidTokens(
  * MCP_FIRST_WINDOW_MS that references the target file or its parent directory.
  *
  * Matching criteria (any one is sufficient):
- *   A. event.throughWhich.toolName in MCP_FIRST_TOOL_NAMES
+ *   A. event.throughWhich.toolName is a central-classifier MCP-first evidence tool
  *   B. event.type === "skill_started" && payload.skillName === PM_IMPACT_QUICK_SLUG
  *
  * AND event.when within last MCP_FIRST_WINDOW_MS.
  *
- * RID/path matching is best-effort: if payload has rid/query/filePath containing
- * relPath or parentDir, that's a positive match. If the event has the right tool
- * name but no RID payload (some older emit shapes), we still count it as advisory
- * satisfaction (Lead called impact_query for *something* recently).
+ * RID/path matching is required: payload must carry rid/query/filePath/proposedFiles
+ * evidence that references relPath, parentDir, or basename.
  */
 function hasMcpFirstCall(
   projectRoot: string,
@@ -220,8 +190,7 @@ function hasMcpFirstCall(
       // A. Tool-name match
       const toolName = (evt as unknown as { throughWhich?: { toolName?: string } })
         .throughWhich?.toolName ?? "";
-      if (MCP_FIRST_TOOL_NAMES.has(toolName)) {
-        // Best-effort RID path match — if no RID in payload, still satisfy
+      if (isMcpFirstEvidenceToolName(toolName)) {
         if (matchesRid(evt.payload as Record<string, unknown>, tokens)) return true;
       }
 
@@ -241,9 +210,8 @@ function hasMcpFirstCall(
 
 /**
  * Check if the event payload references the target file or its parent directory.
- * Returns true when:
- *   - payload has no rid/query/filePath fields (tool was called; RID unknown → allow)
- *   - payload.rid or payload.query or payload.filePath contains relPath or parentDir
+ * Returns true when payload.rid/query/filePath/proposedFiles/files contains relPath
+ * or parentDir. Generic MCP evidence is intentionally insufficient.
  */
 function matchesRid(
   payload: Record<string, unknown>,
@@ -257,12 +225,13 @@ function matchesRid(
     payload?.file_path,
     payload?.target,
     payload?.skillContext,
+    ...(Array.isArray(payload?.proposedFiles) ? payload.proposedFiles : []),
+    ...(Array.isArray(payload?.files) ? payload.files : []),
   ]
     .filter((v) => typeof v === "string")
     .map((v) => v as string);
 
-  // No RID fields present → the tool was called generically; accept as satisfied
-  if (candidates.length === 0) return true;
+  if (candidates.length === 0) return false;
 
   // Check if any candidate contains the relPath or parentDir substring
   for (const c of candidates) {
@@ -380,7 +349,7 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
           sessionId,
           identity:    "monitor",
           memoryLayers: ["procedural", "episodic"],
-          reasoning:   `pre-edit-impact-mcp-first: Lead called impact_query/pre_edit_impact/pm_workflow_lineage_query/get_ontology/propagation_audit_forward/pm-impact-quick within last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. MCP-first protocol satisfied (rule 12 v3.10.0 §MCP-First protocol). sprint-063 W2.B.`,
+          reasoning:   `pre-edit-impact-mcp-first: Lead called impact_query/pre_edit_impact/get_ontology/pm-impact-quick with matching RID/path evidence within last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. MCP-first protocol satisfied (rule 12 v3.10.0 §MCP-First protocol). sprint-063 W2.B.`,
         });
       } catch { /* best-effort */ }
       return {
@@ -390,12 +359,14 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
 
     // NO MCP-first call found — emit non-compliance event
     const mcpCallSuggestion = [
+      `mcp__palantir_mini__impact_query({"rid": "file:${relPath}", "depth": 3, "projectRoot": "<projectRoot>"})`,
+      `mcp__palantir_mini__pre_edit_impact({"proposedFiles": ["${relPath}"], "project": "<projectRoot>"})`,
       `mcp__plugin_palantir-mini_palantir-mini__impact_query({"rid": "file:${relPath}", "depth": 3})`,
       `mcp__plugin_palantir-mini_palantir-mini__pre_edit_impact({"proposedFiles": ["${relPath}"], "project": "<projectRoot>"})`,
     ].join("\n  OR: ");
     const denyReason = [
       `rule 12 v3.10.0 §MCP-First protocol: no impact_query/pre_edit_impact/`,
-      `get_ontology/propagation_audit_forward/pm-impact-quick call detected for`,
+      `get_ontology/pm-impact-quick call with matching RID/path evidence detected for`,
       `file "${relPath}" in last 5 min.`,
       ``,
       `Run MCP analysis BEFORE editing:`,
@@ -420,11 +391,11 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
         sessionId,
         identity:    "monitor",
         memoryLayers: ["procedural", "episodic"],
-        reasoning:   `pre-edit-impact-mcp-first: BLOCKED — no impact_query/pre_edit_impact/get_ontology/propagation_audit_forward/pm-impact-quick call found in last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. Sprint-062 W3-α promoted to blocking; sprint-063 W2.B removed semantic_change_plan (rule 12 v3.10.0).`,
+        reasoning:   `pre-edit-impact-mcp-first: BLOCKED — no impact_query/pre_edit_impact/get_ontology/pm-impact-quick call with matching RID/path evidence found in last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. Sprint-062 W3-α promoted to blocking; sprint-063 W2.B removed semantic_change_plan (rule 12 v3.10.0).`,
         refinementTarget: {
           kind:            "rule-conformance-policy",
           filePathOrRid:   relPath,
-          description:     "no MCP impact analysis call detected before file edit; rule 12 v3.10.0 §MCP-First protocol requires impact_query/pre_edit_impact/get_ontology call within 5 min; semantic_change_plan removed sprint-063 W2.B",
+          description:     "no MCP impact analysis call with matching RID/path evidence detected before file edit; rule 12 v3.10.0 §MCP-First protocol requires impact_query/pre_edit_impact/get_ontology call within 5 min; semantic_change_plan removed sprint-063 W2.B",
           confidenceLevel: "high",
         },
       });
@@ -448,13 +419,25 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
     };
 
   } catch (err) {
-    // Never fail the hook — always allow through on unexpected error
     const errMsg = (err as Error).message ?? String(err);
+    const reason = `pre-edit-impact-mcp-first failed closed on unexpected error: ${errMsg}`;
     try {
       process.stderr.write(
-        `[palantir-mini/pre-edit-impact-mcp-first] unexpected error (suppressed): ${errMsg}\n`
+        `[palantir-mini/pre-edit-impact-mcp-first] unexpected error (fail-closed): ${errMsg}\n`
       );
     } catch { /* truly silent */ }
-    return { message: `palantir-mini: pre-edit-impact-mcp-first error suppressed (${errMsg})` };
+    if (advisoryOnly) {
+      return {
+        message:           `palantir-mini: pre-edit-impact-mcp-first ADVISORY (unexpected error; PALANTIR_MINI_MCP_FIRST_ADVISORY_ONLY=1)`,
+        additionalContext: reason,
+      };
+    }
+    return {
+      message: `palantir-mini: pre-edit-impact-mcp-first BLOCKED (unexpected error)`,
+      hookSpecificOutput: {
+        permissionDecision:       "deny",
+        permissionDecisionReason: reason,
+      },
+    };
   }
 }

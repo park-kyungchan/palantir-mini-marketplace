@@ -15,6 +15,7 @@ export const PALANTIR_MINI_WORKFLOW_RESPONSE_REQUIRED_FIELDS = [
   "open TurnCardDecisionSpec 목록",
   "mutationAuthorized 여부",
   "다음에 허용된 action",
+  "durable subagent .md output 상태",
   "native/runtime gap 여부",
   "SSoT 판단 근거",
 ] as const;
@@ -28,6 +29,7 @@ export const PALANTIR_MINI_WORKFLOW_RESPONSE_GAP_REQUIREMENTS = [
 ] as const;
 
 export const PALANTIR_MINI_WORKFLOW_RESPONSE_SSOT_REQUIREMENTS = [
+  "Palantir AIP Architecture",
   "Palantir AIP Chatbot Studio",
   "AI FDE",
   "Ontology",
@@ -106,9 +108,14 @@ const PALANTIR_MINI_WORKFLOW_RESPONSE_MARKERS = [
   "fde-ontology-engineering",
   "semanticintentcontract",
   "digitaltwinchangecontract",
+  "context-engineering-to-sic",
+  "ontology-dtc-build",
   "objecttype",
   "linktype",
   "actiontype",
+  "function",
+  "applicationstate",
+  "eval",
   "chatbot/application context",
   "claude hook",
   "codex runtime gap",
@@ -158,6 +165,10 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
     "- For read-only work, mutationAuthorized must be false or N/A with the read-only reason.",
     "- If no matching workflow exists, state workflow/runtime gap instead of inventing behavior.",
     "",
+    "Durable subagent output disclosure is mandatory:",
+    "- State durable subagent .md output status for substantial palantir-mini work: paths written, N/A with reason, or runtime gap.",
+    "- If runtime-native subagents cannot write files directly, state that Lead captured or must capture the output into .md before context compaction.",
+    "",
     "Runtime gap disclosure is mandatory:",
     "- State whether Claude hooks are native in the current runtime.",
     "- In Codex, state that Claude hooks are not proven native and that hook intent is manually mirrored unless smoke evidence proves otherwise.",
@@ -166,10 +177,16 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
     "",
     "SSoT decision-basis disclosure is mandatory when giving a recommendation or judgment:",
     "- Include an 'SSoT 판단 근거' section.",
-    "- Name the Palantir AIP Chatbot Studio, AI FDE, Ontology, Context Engineering, plugin source, schema, hook, rule, MCP output, or research source used.",
+    "- Name the Palantir AIP Architecture, Palantir AIP Chatbot Studio, AI FDE, Ontology, Context Engineering, plugin source, schema, hook, rule, MCP output, or research source used.",
     "- State that plugin source is workflow authority, generated mirrors are non-authority, and cache/local loaders are consumer surfaces only.",
     "- For each source, state source/ref, provenance/currentness, used-for judgment, confidence/limit, and any runtime gap.",
     "- If a source was not checked live, say so; do not imply live official-doc currentness from a plugin snapshot.",
+    "",
+    "Deterministic phase boundary:",
+    "- DATA, LOGIC, ACTION, and GOVERNANCE are valid only through SIC/context-engineering-to-sic.",
+    "- Ontology-affecting DTC must use ontology-dtc-build T0..T6: ObjectType, LinkType, ActionType, Function, Chatbot/Application State, Replay/Eval/Validation, ready-for-DTC.",
+    "- mutationAuthorized=false, router domain mismatch, missing approved SIC/DTC refs, open blocking TurnCards, and missing ObjectType/LinkType/ActionType/Function/ApplicationState/Eval readiness are hard blockers.",
+    "- Do not summarize a runnable CLI slice as an OntologyEngineering-complete agentic workflow without approved SIC/DTC, WorkContract, SprintContract, router binding, governed implementation, validation, and release evidence.",
     "",
     "Plain-language explanation for non-developers:",
     "- what this request means: explain the user's request in plain language.",
@@ -209,6 +226,9 @@ export function validatePalantirMiniWorkflowResponseTemplateText(
     });
   const missingSsotRequirements =
     PALANTIR_MINI_WORKFLOW_RESPONSE_SSOT_REQUIREMENTS.filter((requirement) => {
+      if (requirement === "Palantir AIP Architecture") {
+        return !lower.includes("aip architecture");
+      }
       if (requirement === "Palantir AIP Chatbot Studio") {
         return !lower.includes("chatbot studio") && !lower.includes("chatbot-studio");
       }

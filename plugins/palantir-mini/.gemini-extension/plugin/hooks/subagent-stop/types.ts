@@ -12,6 +12,7 @@ export interface HookPayload {
 
 export interface OutputContract {
   statePath:     string;
+  markdownReportPath?: string;
   requiredFields: string[];
   envelopeKind?: string;
 }

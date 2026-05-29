@@ -1,7 +1,7 @@
 ---
 name: pm-cold-start-orchestrate
 category: core-workflow
-description: "Auto-fired at SessionStart (via cold-start-browse-index-loader hook) — deep-injects canonical sources into Lead context. Reads BROWSE/INDEX from research/ + schemas/, runs..."
+description: "Auto-fired at SessionStart (via cold-start-browse-index-loader hook) — deep-injects..."
 allowed-tools: mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event Read Bash
 effort: high
 disable-model-invocation: false

@@ -1,7 +1,7 @@
 ---
 name: pm-codegen
 category: maintenance
-description: "Run palantir-mini codegen to regenerate <project>/src/generated/ from ~/.claude/schemas/ontology/ declarations."
+description: "Run palantir-mini codegen to regenerate <project>/src/generated/ from..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage
 effort: low
 disable-model-invocation: false
