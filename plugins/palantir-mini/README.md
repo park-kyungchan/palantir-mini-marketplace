@@ -67,27 +67,50 @@ Canonical prompt/DTC proof is:
 1. `prompt-front-door-capture` runs first on `UserPromptSubmit` and writes the
    prompt envelope/current pointer under
    `<project>/.palantir-mini/session/prompt-front-door/`.
-2. The runtime calls `pm_semantic_intent_gate` with `promptId`, `promptHash`,
-   `sessionId`, and `runtime` from that envelope.
-3. `pm_intent_router` consumes approved prompt-local `SemanticIntentContract`
+2. For ontology-affecting work, the Lead continues the
+   `FDEOntologyEngineeringSession` so user meaning is surfaced turn-by-turn
+   before contract approval.
+3. The runtime calls `pm_semantic_intent_gate` with `promptId`, `promptHash`,
+   `sessionId`, `runtime`, and FDE provenance from that envelope/session.
+4. `pm_semantic_intent_gate` records the user-approved FDE outcome as a
+   `SemanticIntentContract`; it does not treat raw prompt text as approved
+   meaning.
+5. `DigitalTwinChangeContract` authoring derives from approved SIC + FDE session
+   + ContextEngineeringPlan DATA/LOGIC/ACTION evidence + technology
+   recommendation + validation plan. Missing inputs produce an unready draft,
+   not mutation authority.
+6. `pm_intent_router` consumes approved prompt-local `SemanticIntentContract`
    and `DigitalTwinChangeContract` refs, preserving prompt hash continuity.
-4. Prompt-DTC PreToolUse enforcement is controlled by
+7. Prompt-DTC PreToolUse enforcement is controlled by
    `PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off|advisory|selective-blocking|scoped-blocking|blocking`.
    The fleet default is managed by policy; promoting any runtime to full
    blocking remains intentionally deferred until sustained Claude and Codex
    smoke evidence supports it.
 
 v5.1.0 adds a human-collaborative authoring layer on top of this proof path:
-non-programmer users review plain-language cards, answer at most five
-clarifying questions, and approve meaning/change-boundary summaries. Codex or
-Claude then maps that approval into internal `SemanticIntentContract` and
-`DigitalTwinChangeContract` fields, including typed refs and structured
+non-programmer users review plain-language cards, answer bounded clarifying
+questions, and approve the FDE-discovered meaning/change-boundary summaries.
+Codex or Claude then maps that approval into internal `SemanticIntentContract`
+fields and derives `DigitalTwinChangeContract` fields only from the approved
+SIC/FDE/context-plan evidence, including typed refs and structured
 `approvalRef` provenance. Approval authorizes routing/gating only; it does not
 execute mutation.
 
 ## DTC (DigitalTwinChangeContract) Governance
 
-Sprint 97 v6.78.0 introduces 4-stage DTC governance as the canonical control path for all ontology-affecting work: (1) **SIC authoring** — `pm_semantic_intent_gate` drives an 8-turn fill sequence producing an approved `SemanticIntentContract`; (2) **DTC fill** — `/palantir-mini:pm-dtc-fill` skill drives a 7-turn T0-T6 fill sequence producing an approved `DigitalTwinChangeContract` with typed tool-surface refs, ontology-context seed, and project-scope conformance evaluation; (3) **DTC grading** — `dtc-rubric/v1` 12-criterion rubric (code/model/simulator/rule domains; criteria #2/#6/#10 tier=critical Opus xhigh dispatch) produces a grade verdict ≥0.7 required for promotion; (4) **Router + enforcement** — `pm_intent_router` consumes approved SIC+DTC refs as the `"approved-inline-contracts"` routing basis; without approved refs, ontology-affecting prompts receive `{decision: "contract_required", basis: "ontology-affecting-raw-intent-fail-closed"}`. A 7-day shakedown window (2026-05-15 → 2026-05-22) is active for selective-blocking gate enforcement.
+Sprint 97 v6.78.0 introduces DTC governance as the canonical control path for
+all ontology-affecting work: (1) **FDE discovery** — the Lead/user
+`FDEOntologyEngineeringSession` surfaces implicit meaning turn-by-turn; (2)
+**SIC recording** — `pm_semantic_intent_gate` records the approved FDE outcome as
+a `SemanticIntentContract`; (3) **Context plan** — `ontology_context_query` and
+the context-engineering planner prepare DATA/LOGIC/ACTION, technology
+recommendation, and validation-plan evidence; (4) **DTC fill** —
+`/palantir-mini:pm-dtc-fill` drives a T0-T6 workbench that derives an approved
+`DigitalTwinChangeContract` from approved SIC + FDE + context-plan evidence; (5)
+**DTC grading** — `dtc-rubric/v1` must pass before promotion; (6) **Router +
+enforcement** — `pm_intent_router` consumes approved SIC+DTC refs as the
+`"approved-inline-contracts"` routing basis. Without approved refs,
+ontology-affecting prompts receive a contract-required fail-closed response.
 
 ### Skill
 

@@ -186,6 +186,13 @@ describe("pm_semantic_intent_gate", () => {
     );
     expect(result.draftContracts?.semanticIntent.status).toBe("draft");
     expect(result.draftContracts?.digitalTwin.status).toBe("draft");
+    expect(result.draftContracts?.digitalTwin.contractId).toBe(
+      "digital-twin-change:awaiting-approved-sic-fde-context-plan",
+    );
+    expect(result.draftContracts?.digitalTwin.contractId).not.toContain("scene3d");
+    expect(result.draftContracts?.digitalTwin.risks[0]?.riskId).toBe(
+      "risk.approved-sic-required-for-dtc-draft",
+    );
     expect(result.semanticConversationState?.lifecycle).toBe("clarifying");
     expect(result.semanticConversationState?.contractFacing.dtcReady).toBe(false);
     expect(result.semanticConversationState?.userFacing.unresolvedQuestions.length).toBe(
@@ -431,6 +438,32 @@ describe("pm_semantic_intent_gate", () => {
       "GOVERNANCE",
     ]);
     expect(decisions.every((decision) => decision.blocking && decision.status === "open")).toBe(true);
+  });
+
+  test("approved SIC without FDE session does not derive DTC from raw intent", async () => {
+    const project = makeTmpProject();
+
+    const result = await semanticIntentGate({
+      project,
+      rawIntent: "Draft a DigitalTwinChangeContract directly from this raw prompt",
+      scopePaths: ["bridge/handlers/pm-semantic-intent-gate.ts"],
+      semanticIntentContract: approvedSemantic({
+        affectedSurfaces: ["workflow-control-plane"],
+      }),
+      includeDrafts: true,
+      runtime: "codex",
+    });
+
+    expect(result.draftContracts?.digitalTwin.contractId).toBe(
+      "digital-twin-change:awaiting-approved-sic-fde-context-plan",
+    );
+    expect(result.draftContracts?.digitalTwin.contractId).not.toContain("raw-prompt");
+    expect(result.draftContracts?.digitalTwin.risks[0]?.riskId).toBe(
+      "risk.fde-session-required-for-dtc-draft",
+    );
+    expect(result.draftContracts?.digitalTwin.observabilityPlan).toContain(
+      "approved SIC, FDE session, ContextEngineeringPlan",
+    );
   });
 
   test("required-only draft mode preserves the legacy no-draft read-only path", async () => {

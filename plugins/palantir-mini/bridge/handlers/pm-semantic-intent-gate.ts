@@ -1,8 +1,10 @@
 // palantir-mini — MCP tool handler: pm_semantic_intent_gate.
 //
 // Runtime-side entrypoint for the Lead Intent -> Digital Twin contract gate.
-// This handler owns the contract gate plus a lightweight human-collaborative
-// review-card projection. Durable schema promotion remains in later waves.
+// FDEOntologyEngineeringSession owns first-pass meaning discovery; this handler
+// records the user-approved boundary as SIC and derives DTC only from approved
+// SIC + FDE/context-engineering evidence. Durable schema promotion remains in
+// later waves.
 
 import { emit } from "../../scripts/log";
 import * as path from "node:path";
@@ -464,11 +466,74 @@ function applyFDEProvenanceFailure(
   };
 }
 
+function draftUnreadyDigitalTwinForGate(
+  input: SemanticIntentGateInput,
+  semanticIntent: SemanticIntentContract,
+  reason:
+    | "semantic-contract-not-approved"
+    | "fde-session-missing"
+    | "context-plan-error",
+  detail?: string,
+): DigitalTwinChangeContract {
+  const draft = draftDigitalTwinChangeContract(
+    {
+      intent: "awaiting approved SIC, FDE session, and context plan",
+      scopePaths: input.scopePaths,
+      complexityHint: input.complexityHint,
+    },
+    semanticIntent.contractId,
+  );
+
+  const riskByReason: Record<typeof reason, DigitalTwinRiskRecord> = {
+    "semantic-contract-not-approved": {
+      riskId: "risk.approved-sic-required-for-dtc-draft",
+      kind: "evaluation",
+      status: "open",
+      description:
+        "DigitalTwinChangeContract derivation is withheld because the SemanticIntentContract is not approved.",
+      mitigation:
+        "Surface meaning in FDEOntologyEngineeringSession, then capture an approved SIC boundary before DTC authoring.",
+    },
+    "fde-session-missing": {
+      riskId: "risk.fde-session-required-for-dtc-draft",
+      kind: "observability",
+      status: "open",
+      description:
+        "DigitalTwinChangeContract derivation is withheld because no current FDEOntologyEngineeringSession was available.",
+      mitigation:
+        "Load or continue the FDE session and derive DTC from approved SIC plus the ContextEngineeringPlan.",
+    },
+    "context-plan-error": {
+      riskId: "risk.context-engineering-dtc-draft-failed",
+      kind: "evaluation",
+      status: "open",
+      description:
+        "ContextEngineeringPlan-based DTC derivation failed; raw-prompt DTC fallback is forbidden." +
+        (detail ? ` Detail: ${detail}` : ""),
+      mitigation:
+        "Resolve the ContextEngineeringPlan, technology recommendation, and validation plan before DTC approval.",
+    },
+  };
+
+  return {
+    ...draft,
+    contractId: "digital-twin-change:awaiting-approved-sic-fde-context-plan",
+    changeBoundary: "",
+    branchProposalPolicy: "",
+    permissionBoundary: "",
+    replayMigrationPlan: "",
+    observabilityPlan:
+      "DTC draft is intentionally unready until it is derived from approved SIC, FDE session, ContextEngineeringPlan, technology recommendation, and validation plan evidence.",
+    toolSurfaceReadiness: "",
+    evaluationPlan: "",
+    risks: [riskByReason[reason]],
+  };
+}
+
 function draftDigitalTwinForGate(
   input: SemanticIntentGateInput,
   semanticIntent: SemanticIntentContract,
 ): DigitalTwinChangeContract {
-  let contextPlanError: unknown;
   if (isApprovedSemanticIntentContract(semanticIntent)) {
     try {
       const fdeSession = readCurrentFDEOntologyEngineeringSession(input.project);
@@ -490,37 +555,17 @@ function draftDigitalTwinForGate(
           projectIndex,
         }).digitalTwinChangeContract;
       }
+      return draftUnreadyDigitalTwinForGate(input, semanticIntent, "fde-session-missing");
     } catch (err) {
-      contextPlanError = err;
-      // Fall through to the generic DTC draft. ContextEngineeringPlanV2 enriches
-      // drafts when available, but the gate must not fail just because no FDE
-      // session exists for ordinary Prompt-to-DTC calls.
+      return draftUnreadyDigitalTwinForGate(
+        input,
+        semanticIntent,
+        "context-plan-error",
+        describeUnknownError(err),
+      );
     }
   }
-  const draft = draftDigitalTwinChangeContract(
-    {
-      intent: input.rawIntent,
-      scopePaths: input.scopePaths,
-      complexityHint: input.complexityHint,
-    },
-    semanticIntent.contractId,
-  );
-  if (contextPlanError === undefined) return draft;
-
-  const fallbackRisk: DigitalTwinRiskRecord = {
-    riskId: "risk.context-engineering-dtc-draft-fallback",
-    kind: "observability",
-    status: "open",
-    description:
-      "ContextEngineeringPlanV2 DTC draft failed; generic DTC fallback used: " +
-      describeUnknownError(contextPlanError),
-    mitigation:
-      "Resolve the context-engineering DTC draft error before approving or routing ontology-affecting DTC work.",
-  };
-  return {
-    ...draft,
-    risks: [...draft.risks, fallbackRisk],
-  };
+  return draftUnreadyDigitalTwinForGate(input, semanticIntent, "semantic-contract-not-approved");
 }
 
 function describeUnknownError(error: unknown): string {
