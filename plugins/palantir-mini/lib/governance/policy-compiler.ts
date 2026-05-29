@@ -123,9 +123,9 @@ export interface CompilePreMutationPolicyResult {
 const READ_ONLY_ALLOWLIST = new Set<string>([
   "Read", "Grep", "Glob", "NotebookRead",
   "pm_rule_query", "pm_rule_audit", "pm_recap", "pm_retro_query", "pm_learn_query",
-  "replay_lineage", "pm_workflow_lineage_query", "pm_agent_lineage_export",
-  "get_ontology", "ontology_schema_get", "impact_query",
-  "pm_preamble", "check_cc_version", "pm_plugin_self_check",
+  "pm_substrate_query", "pm_health_audit", "pm_agent_lineage_export",
+  "get_ontology", "ontology_schema_get", "impact_query", "pre_edit_impact",
+  "ontology_context_query", "pm_semantic_intent_gate", "pm_plugin_self_check",
   "pm_lead_brief", "pm_intent_router",
 ]);
 

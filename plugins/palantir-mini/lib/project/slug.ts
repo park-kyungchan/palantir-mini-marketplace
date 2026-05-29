@@ -4,9 +4,8 @@
  * @purpose Derive a stable, human-readable slug for a palantir-mini project root.
  *
  * Used by harness sprint contract authoring (pm-quick-sprint skill +
- * harness-base-mode-advisory hook) and cross-project lineage queries
- * (replay_lineage, pm_workflow_lineage_query) to disambiguate contractIds
- * across projects.
+ * harness-base-mode-advisory hook) and substrate lineage queries to
+ * disambiguate contractIds across projects.
  *
  * Rules:
  *   1. Read `<projectPath>/package.json#name`. Strip leading `@scope/`.

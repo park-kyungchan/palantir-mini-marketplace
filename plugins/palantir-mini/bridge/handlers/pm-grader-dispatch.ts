@@ -87,7 +87,7 @@ export interface PmGraderDispatchArgs {
   selfAssessmentPath?: string;
   /**
    * Sprint identification — surfaces in events.jsonl + grading_completed event.
-   * Optional but recommended for replay_lineage.
+   * Optional but recommended for substrate replay.
    */
   sprintNumber?: number;
   iteration?: number;
