@@ -80,12 +80,12 @@ Branch: sprint-135-pr-4-5-xyz-2026-05-13
 
 When you author a multi-PR plan under `<project>/.palantir-mini/plan/` (canonical plugin-layer root; legacy `~/.claude/plans/` remains read-compatible), include a `## Task DAG` section with this table for every cluster of tasks:
 
-| id | runsAfter | parallelEligibleWith | preReservedVersionSlot | worktreeIsolationRequired | riskTier |
-|----|-----------|----------------------|------------------------|---------------------------|----------|
-| pr-4.5 | [pr-4.1a] | [pr-4.6, pr-6.7] | 6.43.0 | true | low |
-| pr-4.6 | [pr-4.1a] | [pr-4.5, pr-6.7] | 6.44.0 | true | low |
-| pr-6.7 | [pr-4.1a] | [pr-4.5, pr-4.6] | 6.45.0 | true | low |
-| pr-4.1a | [] | [] | 6.42.0 | false | medium |
+| id | runsAfter | parallelEligibleWith | ownerAgent | preReservedVersionSlot | worktreeIsolationRequired | riskTier |
+|----|-----------|----------------------|------------|------------------------|---------------------------|----------|
+| pr-4.5 | [pr-4.1a] | [pr-4.6, pr-6.7] | palantir-mini:plugin-maintainer | 6.43.0 | true | low |
+| pr-4.6 | [pr-4.1a] | [pr-4.5, pr-6.7] | palantir-mini:hook-builder | 6.44.0 | true | low |
+| pr-6.7 | [pr-4.1a] | [pr-4.5, pr-4.6] | palantir-mini:protocol-designer | 6.45.0 | true | low |
+| pr-4.1a | [] | [] | palantir-mini:protocol-designer | 6.42.0 | false | medium |
 
 **Reading**: pr-4.5, pr-4.6, pr-6.7 all wait for pr-4.1a to merge, then run in parallel; each pre-reserves a plugin version slot and runs with worktree isolation. pr-4.1a is sequential (no parallel peers).
 
@@ -96,6 +96,7 @@ When you author a multi-PR plan under `<project>/.palantir-mini/plan/` (canonica
 | `id` | yes | Unique task/PR identifier referenced in `runsAfter` |
 | `runsAfter` | yes | IDs that must merge BEFORE this starts. Empty `[]` = no prerequisite. |
 | `parallelEligibleWith` | yes | IDs that may run concurrently. Empty `[]` = strictly sequential. |
+| `ownerAgent` | yes | Canonical palantir-mini agent that owns the task. Use plugin-owned agent names such as `palantir-mini:hook-builder`, `palantir-mini:plugin-maintainer`, or `palantir-mini:protocol-designer`. |
 | `preReservedVersionSlot` | when version-bumping | Omit for docs/config-only PRs that don't bump plugin/schema version. |
 | `worktreeIsolationRequired` | yes | `true` when in any `parallelEligibleWith` group; `false` for strictly sequential only. |
 | `riskTier` | yes | `"high"` → cannot be in `parallelEligibleWith` group; stays sequential. |
