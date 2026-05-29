@@ -18,10 +18,7 @@ dtc-fill-turn
 {{evidenceRefsBulleted}}
 
 ## sourceMaterialGuard
-`rawIntent` is trace identity only. DTC field recommendations must cite the
-approved SIC ref, FDE session ref, ContextEngineeringPlan review cards,
-technologyRecommendation, and validationPlan. If any of these are missing, mark
-the DTC unready instead of filling from the raw prompt.
+`rawIntent` is trace identity only. DTC recommendations must cite the approved SIC ref, FDE session ref, ContextEngineeringPlan review cards, technologyRecommendation, and validationPlan. If any of these are missing, mark the DTC unready instead of filling from the raw prompt.
 
 비개발자 설명: prompt를 바로 실행하지 않습니다. FDE 대화에서 의미를 확인하고, SIC는 그 승인 경계를 기록합니다. DTC는 승인된 SIC, FDE session, ContextEngineeringPlan(DATA/LOGIC/ACTION), 기술 추천, 검증 계획에서만 만듭니다.
 
