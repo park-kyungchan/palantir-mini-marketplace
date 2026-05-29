@@ -220,6 +220,12 @@ describe("pm_semantic_intent_gate", () => {
     expect(result.userReviewCard?.title).toBe("Contract 작성 승인 카드");
     expect(result.userReviewCard?.semanticIntentCard.title).toBe("제가 이해한 작업 의미");
     expect(result.userReviewCard?.digitalTwinBoundaryCard.title).toBe("실제 변경 범위 확인");
+    expect(result.userReviewCard?.semanticIntentCard.recommendedDirection).toContain("FDE");
+    expect(result.userReviewCard?.semanticIntentCard.recommendedDirection).toContain("SIC 승인 경계");
+    expect(result.userReviewCard?.digitalTwinBoundaryCard.plainSummary).toContain("prompt를 바로 실행하지 않습니다");
+    expect(result.userReviewCard?.digitalTwinBoundaryCard.plainSummary).toContain("ContextEngineeringPlan(DATA/LOGIC/ACTION)");
+    expect(result.userReviewCard?.digitalTwinBoundaryCard.recommendedDirection).toContain("라우터");
+    expect(result.userReviewCard?.digitalTwinBoundaryCard.recommendedDirection).toContain("work contract");
     expect(result.userReviewCard?.questions.length).toBeLessThanOrEqual(5);
     expect(result.userReviewCard?.questions.length).toBeGreaterThanOrEqual(2);
 
@@ -247,6 +253,11 @@ describe("pm_semantic_intent_gate", () => {
     });
 
     expect(result.userReviewCard?.title).toBe("Contract Authoring Review");
+    expect(result.userReviewCard?.semanticIntentCard.recommendedDirection).toContain("FDE-confirmed meaning");
+    expect(result.userReviewCard?.digitalTwinBoundaryCard.plainSummary).toContain("does not execute the raw prompt");
+    expect(result.userReviewCard?.digitalTwinBoundaryCard.plainSummary).toContain("ContextEngineeringPlan DATA/LOGIC/ACTION");
+    expect(result.userReviewCard?.digitalTwinBoundaryCard.recommendedDirection).toContain("router");
+    expect(result.userReviewCard?.digitalTwinBoundaryCard.recommendedDirection).toContain("validation gates");
     expect(result.draftContracts?.semanticIntent.status).toBe("draft");
     expect(result.draftContracts?.digitalTwin.status).toBe("draft");
   });

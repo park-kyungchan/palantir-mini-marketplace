@@ -32,9 +32,9 @@ function hypothesisText(session: FDEOntologyEngineeringSession, ids: readonly st
 function nextAction(verdict: FDEOntologyEngineeringSessionVerdict): string {
   switch (verdict) {
     case "ready-for-dtc":
-      return "Review the DTC from the approved SIC, FDE session, ContextEngineeringPlan DATA/LOGIC/ACTION, technology recommendation, and validation plan; do not route execution from the raw prompt.";
+      return "Review the DTC from the approved SIC, FDE session, ContextEngineeringPlan DATA/LOGIC/ACTION, technology recommendation, and validation plan before routing; do not route execution from the raw prompt.";
     case "ready-for-semantic-contract":
-      return "Record the FDE-confirmed meaning as the SemanticIntentContract boundary, then continue to DTC and validation-plan review before routing.";
+      return "Record the FDE-confirmed meaning as the SemanticIntentContract approved boundary from accepted FDE session state; do not treat SIC as first discovery; continue to DTC and validation-plan review before routing.";
     case "reject":
       return "Stop and re-open the mission decision before drafting contracts.";
     case "continue-turns":

@@ -203,6 +203,30 @@ describe("buildDtcPanel — bilingual plainLanguageStatus", () => {
     // STATUS_KO["not-started"] contains Korean characters
     expect(/[가-힯]/.test(panel.plainLanguageStatus)).toBe(true);
   });
+
+  test("dtc-approved Korean status routes before execution and names work-contract validation", () => {
+    const panel = buildDtcPanel({
+      session: session({ fillVerdict: "dtc-approved", completedTurns: [0, 1, 2, 3, 4, 5, 6] }),
+      hints: { preferredLanguage: "ko" },
+    });
+
+    expect(panel.plainLanguageStatus).toContain("라우터");
+    expect(panel.plainLanguageStatus).toContain("WorkContract");
+    expect(panel.plainLanguageStatus).toContain("검증");
+    expect(panel.plainLanguageStatus).not.toContain("구현을 시작할 수");
+  });
+
+  test("dtc-approved English status routes before execution and names validation", () => {
+    const panel = buildDtcPanel({
+      session: session({ fillVerdict: "dtc-approved", completedTurns: [0, 1, 2, 3, 4, 5, 6] }),
+      hints: { preferredLanguage: "en" },
+    });
+
+    expect(panel.plainLanguageStatus).toContain("router");
+    expect(panel.plainLanguageStatus).toContain("WorkContract");
+    expect(panel.plainLanguageStatus).toContain("validation");
+    expect(panel.plainLanguageStatus).not.toContain("Implementation may proceed");
+  });
 });
 
 // ---------------------------------------------------------------------------
