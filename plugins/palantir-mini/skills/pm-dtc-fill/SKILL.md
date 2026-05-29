@@ -11,11 +11,14 @@ disable-model-invocation: false
 
 ## When to use
 - After SemanticIntentContract is approved (envelope state = `semantic_intent_approved`)
+- After the approved SIC is tied to an FDEOntologyEngineeringSession and
+  ContextEngineeringPlan evidence for DATA/LOGIC/ACTION, technology
+  recommendation, and validation plan is available
 - Before any ontology-affecting mutation (per rule 16 §B2 default-on hard gate)
 - When the Lead or DTC author wants to confirm change boundary turn-by-turn rather than as bulk JSON
 
 ## How it works
-Each call to `pm_semantic_intent_gate` with `fillPolicy="dtc-turn-fill"` + `turn=N` advances ONE of 7 DTC turns. The MCP public schema must expose this fill policy because the handler already implements it. Turn descriptors are in `lib/semantic-intent/fill-sequence.ts:DTC_FILL_SEQUENCE`.
+Each call to `pm_semantic_intent_gate` with `fillPolicy="dtc-turn-fill"` + `turn=N` advances ONE of 7 DTC turns. The source material is not the raw prompt: it is the approved SIC plus FDE session and ContextEngineeringPlan evidence. The MCP public schema must expose this fill policy because the handler already implements it. Turn descriptors are in `lib/semantic-intent/fill-sequence.ts:DTC_FILL_SEQUENCE`.
 
 Turn map:
 - T0 — `changeBoundary` (surfaces + non-touched scope)
@@ -62,9 +65,9 @@ plugin workflow binding represented by the `WorkContract` router contract.
 ## Session-first invariant
 
 Start with `ontology_context_query` for read context, then use this skill only
-after the SIC is approved or the user has explicitly approved the DTC authoring
-task. The produced DTC remains a contract artifact; it does not authorize
-mutation until the approval reference and sprint/governance checks are present.
+after the SIC is approved and the FDE/context-plan evidence is available. The
+produced DTC remains a contract artifact; it does not authorize mutation until
+the approval reference and sprint/governance checks are present.
 For ontology-affecting DTC, missing approved refs, `mutationAuthorized=false`,
 router domain mismatch, open blocking TurnCards, and missing primitive readiness
 remain hard blockers even when generic DTC fields look complete.
