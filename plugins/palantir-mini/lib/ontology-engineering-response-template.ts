@@ -29,8 +29,13 @@ export const PALANTIR_MINI_WORKFLOW_RESPONSE_GAP_REQUIREMENTS = [
 ] as const;
 
 export const PALANTIR_MINI_WORKFLOW_RESPONSE_SSOT_REQUIREMENTS = [
+  "research BROWSE/INDEX",
+  "palantir-official",
   "Palantir AIP Architecture",
   "Palantir AIP Chatbot Studio",
+  "Chatbot Studio application state",
+  "Chatbot Studio retrieval context",
+  "Chatbot Studio tools",
   "AI FDE",
   "Ontology",
   "Context Engineering",
@@ -117,6 +122,11 @@ const PALANTIR_MINI_WORKFLOW_RESPONSE_MARKERS = [
   "applicationstate",
   "eval",
   "chatbot/application context",
+  ".claude/research/browse.md",
+  "research_context_select",
+  "palantir-official",
+  "retrieval context",
+  "application state",
   "claude hook",
   "codex runtime gap",
   "chatbot studio",
@@ -168,7 +178,7 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
     "",
     `Runtime gap disclosure is mandatory: ${gapRequirements}. In Codex, Claude hooks are not proven native without smoke evidence; say manual hook-intent mirroring or manually mirrored when applicable. No Claude/Codex parity claim without evidence.`,
     "",
-    `SSoT 판단 근거: include ${ssotRequirements}; use schema, hook, rule, MCP output, or research source as applicable. plugin source is workflow authority; cache/local loaders are consumer surfaces only. plugin snapshot is not live official-doc currentness.`,
+    `SSoT 판단 근거: include ${ssotRequirements}; use schema, hook, rule, MCP output, or research source as applicable. For Palantir-heavy work, route through ~/.claude/research/BROWSE.md + INDEX.md, prefer palantir-official, and for Chatbot Studio use overview/application-state/retrieval-context/tools. Cover application variables, retrieval per user message, tools/actions, and confirmation boundaries. plugin source is workflow authority; cache/local loaders are consumer surfaces only. plugin snapshot is not live official-doc currentness.`,
     "",
     "Deterministic boundary: DATA/LOGIC/ACTION/GOVERNANCE uses context-engineering-to-sic. Ontology DTC uses ontology-dtc-build T0..T6: ObjectType, LinkType, ActionType, Function, Chatbot/Application State, Replay/Eval/Validation, ready-for-DTC. Missing approval, mutationAuthorized=false, router mismatch, blocking TurnCards, or missing ObjectType/LinkType/ActionType/Function/ApplicationState/Eval readiness blocks mutation.",
     "",
@@ -203,11 +213,32 @@ export function validatePalantirMiniWorkflowResponseTemplateText(
     });
   const missingSsotRequirements =
     PALANTIR_MINI_WORKFLOW_RESPONSE_SSOT_REQUIREMENTS.filter((requirement) => {
+      if (requirement === "research BROWSE/INDEX") {
+        const hasResearchRoot =
+          lower.includes(".claude/research") || lower.includes("research router");
+        return !(
+          hasResearchRoot &&
+          (lower.includes("browse.md") || lower.includes("browse/index")) &&
+          (lower.includes("index.md") || lower.includes("browse/index"))
+        );
+      }
+      if (requirement === "palantir-official") {
+        return !lower.includes("palantir-official");
+      }
       if (requirement === "Palantir AIP Architecture") {
         return !lower.includes("aip architecture");
       }
       if (requirement === "Palantir AIP Chatbot Studio") {
         return !lower.includes("chatbot studio") && !lower.includes("chatbot-studio");
+      }
+      if (requirement === "Chatbot Studio application state") {
+        return !(lower.includes("chatbot studio") && lower.includes("application state"));
+      }
+      if (requirement === "Chatbot Studio retrieval context") {
+        return !(lower.includes("chatbot studio") && lower.includes("retrieval context"));
+      }
+      if (requirement === "Chatbot Studio tools") {
+        return !(lower.includes("chatbot studio") && lower.includes("tools"));
       }
       if (requirement === "AI FDE") {
         return !text.includes("FDE");
