@@ -22,6 +22,7 @@ import {
 interface PmOutcomePairAuditArgs {
   project:            string;
   orphanThresholdMs?: number;
+  maxOrphanDetails?:  number;
 }
 
 interface PmOutcomePairAuditResult {
@@ -32,10 +33,26 @@ interface PmOutcomePairAuditResult {
   orphanRatio:   number;
   avgLatencyMs:  number;
   orphanedRids:  OutcomePairingRid[];
+  orphanedByScenario: Record<string, number>;
+  orphanedDetails: OutcomePairOrphanDetail[];
   perState:      Record<OutcomePairingState, number>;
 }
 
 const DEFAULT_ORPHAN_THRESHOLD_MS = 30 * 60 * 1000; // 30 min
+const DEFAULT_MAX_ORPHAN_DETAILS = 500;
+
+interface OutcomePairOrphanDetail {
+  pairingId: OutcomePairingRid;
+  filePath: string;
+  actionRid?: string;
+  scenario: string;
+  createdAt: string;
+  ageMs: number;
+  baselineVerdict?: string;
+  baselineScore?: number;
+  reason: "missing_refined_outcome_or_closed_at";
+  retentionDecision: "retain-until-reconciled";
+}
 
 export default async function pmOutcomePairAudit(
   rawArgs: unknown,
@@ -45,6 +62,7 @@ export default async function pmOutcomePairAudit(
     throw new Error("pm_outcome_pair_audit: `project` is required");
   }
   const orphanThresholdMs = args.orphanThresholdMs ?? DEFAULT_ORPHAN_THRESHOLD_MS;
+  const maxOrphanDetails = args.maxOrphanDetails ?? DEFAULT_MAX_ORPHAN_DETAILS;
 
   const dir = path.join(args.project, ".palantir-mini", "session", "outcome-pairs");
   if (!fs.existsSync(dir)) {
@@ -56,6 +74,8 @@ export default async function pmOutcomePairAudit(
       orphanRatio: 0,
       avgLatencyMs: 0,
       orphanedRids: [],
+      orphanedByScenario: {},
+      orphanedDetails: [],
       perState: { open: 0, closed: 0, orphaned: 0 },
     };
   }
@@ -64,15 +84,18 @@ export default async function pmOutcomePairAudit(
   let totalPairs = 0;
   const perState: Record<OutcomePairingState, number> = { open: 0, closed: 0, orphaned: 0 };
   const orphanedRids: OutcomePairingRid[] = [];
+  const orphanedByScenario: Record<string, number> = {};
+  const orphanedDetails: OutcomePairOrphanDetail[] = [];
   let totalLatencyMs = 0;
   let latencyCount = 0;
 
-  const entries = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
+  const entries = fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort();
   for (const f of entries) {
-    let decl: OutcomePairingDeclaration;
+    let decl: OutcomePairingDeclaration & { actionRid?: string };
+    const filePath = path.join(dir, f);
     try {
-      const raw = fs.readFileSync(path.join(dir, f), "utf8");
-      decl = JSON.parse(raw) as OutcomePairingDeclaration;
+      const raw = fs.readFileSync(filePath, "utf8");
+      decl = JSON.parse(raw) as OutcomePairingDeclaration & { actionRid?: string };
     } catch {
       continue;
     }
@@ -81,6 +104,29 @@ export default async function pmOutcomePairAudit(
     perState[state] += 1;
     if (state === "orphaned") {
       orphanedRids.push(decl.pairingId);
+      const scenario = decl.scenario || "(unknown)";
+      orphanedByScenario[scenario] = (orphanedByScenario[scenario] ?? 0) + 1;
+      if (orphanedDetails.length < maxOrphanDetails) {
+        const createdMs = Date.parse(decl.createdAt);
+        orphanedDetails.push({
+          pairingId: decl.pairingId,
+          filePath,
+          ...(decl.evidence?.actionRid ?? decl.actionRid
+            ? { actionRid: decl.evidence?.actionRid ?? decl.actionRid }
+            : {}),
+          scenario,
+          createdAt: decl.createdAt,
+          ageMs: Number.isFinite(createdMs) ? Math.max(0, nowMs - createdMs) : 0,
+          ...(decl.baselineOutcome?.verdict !== undefined
+            ? { baselineVerdict: decl.baselineOutcome.verdict }
+            : {}),
+          ...(typeof decl.baselineOutcome?.score === "number"
+            ? { baselineScore: decl.baselineOutcome.score }
+            : {}),
+          reason: "missing_refined_outcome_or_closed_at",
+          retentionDecision: "retain-until-reconciled",
+        });
+      }
     }
     if (decl.deltaMetrics?.latencyMs !== undefined) {
       totalLatencyMs += decl.deltaMetrics.latencyMs;
@@ -105,6 +151,8 @@ export default async function pmOutcomePairAudit(
     orphanRatio,
     avgLatencyMs,
     orphanedRids,
+    orphanedByScenario,
+    orphanedDetails,
     perState,
   };
 }
