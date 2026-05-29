@@ -106,6 +106,7 @@ control-plane artifacts that don't belong to project-specific implementers.
 ## Output Contract
 
 - statePath: .palantir-mini/session/agent-output/home-implementer.json
+- markdownReportPath: .palantir-mini/session/agent-output/home-implementer.md
 - requiredFields: mutationSummary, filesTouched, verification, eventRefs, handoffStatus
 - envelopeKind: agentOutput
 - mutationSummary: Describe every state, file, ontology, task, or runtime mutation performed; use "none" if execution ended before mutation.

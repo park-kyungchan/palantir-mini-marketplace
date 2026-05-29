@@ -160,6 +160,53 @@ export default async function subagentStop(payload: unknown): Promise<HookResult
     return { message: `palantir-mini: subagent_stop — ${msg}`, decision: "block", reason: msg };
   }
 
+  if (outcome.kind === "missing-markdown-report") {
+    const msg = `expected markdown report ${outcome.markdownReportPath} was not written`;
+    try {
+      await emit({
+        type: "subagent_state_validation",
+        payload: {
+          agentId,
+          agentName,
+          statePath: outcome.statePath,
+          markdownReportPath: outcome.markdownReportPath,
+          passed: false,
+          errorClass: "MarkdownReportMissing",
+        },
+        toolName:  "SubagentStop",
+        cwd,
+        sessionId: p.session_id,
+        identity:  "monitor",
+      });
+    } catch { /* best-effort */ }
+    process.stderr.write(`[palantir-mini/subagent-stop] ${msg}\n`);
+    return { message: `palantir-mini: subagent_stop — ${msg}`, decision: "block", reason: msg };
+  }
+
+  if (outcome.kind === "invalid-markdown-report") {
+    const msg = `markdown report ${outcome.markdownReportPath} is invalid: ${outcome.message}`;
+    try {
+      await emit({
+        type: "subagent_state_validation",
+        payload: {
+          agentId,
+          agentName,
+          statePath: outcome.statePath,
+          markdownReportPath: outcome.markdownReportPath,
+          passed: false,
+          errorClass: "MarkdownReportInvalid",
+        },
+        toolName:  "SubagentStop",
+        cwd,
+        sessionId: p.session_id,
+        identity:  "monitor",
+        reasoning: outcome.message,
+      });
+    } catch { /* best-effort */ }
+    process.stderr.write(`[palantir-mini/subagent-stop] ${msg}\n`);
+    return { message: `palantir-mini: subagent_stop — ${msg}`, decision: "block", reason: msg };
+  }
+
   // outcome.kind === "validated"
   const result = outcome.result;
   try {
@@ -168,6 +215,7 @@ export default async function subagentStop(payload: unknown): Promise<HookResult
       payload: {
         agentId, agentName,
         statePath:  outcome.statePath,
+        markdownReportPath: outcome.markdownReportPath,
         passed:     result.passed,
         errorClass: result.errorClass,
         wrapped:    result.wrapped,
@@ -187,7 +235,7 @@ export default async function subagentStop(payload: unknown): Promise<HookResult
   }
 
   return {
-    message: `palantir-mini: subagent_stop recorded (agent=${agentId}, contract ok${result.wrapped ? ", wrapped on read" : ""})`,
+    message: `palantir-mini: subagent_stop recorded (agent=${agentId}, contract ok${outcome.markdownReportPath ? ", markdown report ok" : ""}${result.wrapped ? ", wrapped on read" : ""})`,
     decision: "continue",
   };
 }
