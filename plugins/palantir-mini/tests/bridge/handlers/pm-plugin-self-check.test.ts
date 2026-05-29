@@ -202,10 +202,10 @@ describe("pm_plugin_self_check", () => {
     expect(result.mode).toBe("public-mcp");
     expect(result.activeChecks).toEqual(["mcp-tools"]);
     expect(result.mcpToolsRegistrationResult.status).toBe("pass");
-    // v6.78.0+: public DTC governance surface includes ontology workflow control.
+    // v6.80.0+: public retention surface includes events_log_rotate.
     // HANDLER_MODULES also includes one legacy/internal module mapping.
-    expect(result.mcpToolsRegistrationResult.registeredToolCount).toBe(29);
-    expect(result.mcpToolsRegistrationResult.registeredHandlerModules).toBe(30);
+    expect(result.mcpToolsRegistrationResult.registeredToolCount).toBe(30);
+    expect(result.mcpToolsRegistrationResult.registeredHandlerModules).toBe(31);
     expect(result.mcpToolsRegistrationResult.missingMetadataFields).toEqual([]);
     expect(result.mcpToolsRegistrationResult.handlerFileCount).toBeGreaterThan(22);
     expect(result.mcpToolsRegistrationResult.unregisteredTopLevelHandlers.length).toBeGreaterThan(0);
