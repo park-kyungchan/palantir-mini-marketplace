@@ -1,7 +1,7 @@
 ---
 name: pm-harness-sprint
 category: core-workflow
-description: "Execute a sprint in the harness (rule 16). Default 2-role — spawns Generator; Lead acts as Evaluator. Optional 3-role variant additionally spawns harness-evaluator when..."
+description: "Execute a sprint in the harness (rule 16). Default 2-role — spawns Generator; Lead..."
 allowed-tools: Agent mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric
 argument-hint: "<sprint-number>   (1-based; must match spec.md sprint plan)"
 effort: high

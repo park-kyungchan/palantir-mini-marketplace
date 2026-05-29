@@ -1,7 +1,7 @@
 ---
 name: pm-dtc-fill
 category: core-workflow
-description: "Turn-by-turn DTC (DigitalTwinChangeContract) fill conversation. Use after SIC approval to author DTC boundary via plugin-owned TurnCard decisions surfaced in..."
+description: "Turn-by-turn DTC (DigitalTwinChangeContract) fill conversation. Use after SIC..."
 allowed-tools: Read
 effort: low
 disable-model-invocation: false

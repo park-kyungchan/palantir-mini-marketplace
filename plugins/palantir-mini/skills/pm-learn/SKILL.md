@@ -1,7 +1,7 @@
 ---
 name: pm-learn
 category: research
-description: "Manage cross-session project learnings. Review, search, prune, export, and log insights captured across sessions. palantir-mini stores learnings as `learning_captured` events..."
+description: "Manage cross-session project learnings. Review, search, prune, export, and log..."
 allowed-tools: Bash Read Grep Glob mcp__palantir-mini__pm_learn_query mcp__palantir-mini__emit_event
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->

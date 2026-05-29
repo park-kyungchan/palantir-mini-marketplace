@@ -1,7 +1,7 @@
 ---
 name: pm-research-staleness-audit
 category: research
-description: "Audit research-library MANIFEST.json files for stale entries against their expected refresh cadence (hot=7d / warm=30d / cold=90d) — wraps research_library_refresh in dryRun..."
+description: "Audit research-library MANIFEST.json files for stale entries against their expected..."
 allowed-tools: mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event Read Bash
 effort: low
 disable-model-invocation: false

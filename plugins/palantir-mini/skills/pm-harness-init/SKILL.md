@@ -1,7 +1,7 @@
 ---
 name: pm-harness-init
 category: core-workflow
-description: "Bootstrap the 3-agent harness workspace in a project. Creates <project>/.palantir-mini/harness/ directory tree (spec.md, eval-rubric.md, sprints/, scenarios/playwright/), emits..."
+description: "Bootstrap the 3-agent harness workspace in a project."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 effort: medium
 disable-model-invocation: false

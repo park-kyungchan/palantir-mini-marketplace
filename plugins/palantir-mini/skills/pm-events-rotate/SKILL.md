@@ -1,7 +1,7 @@
 ---
 name: pm-events-rotate
 category: delete-candidate
-description: "Rotate a project's events.jsonl when it crosses size or line-count thresholds. Renames the breached log to <sessionDir>/archive/events-rotated-<ISO>.jsonl (atomic) and lets the..."
+description: "Rotate a project's events.jsonl when it crosses size or line-count thresholds...."
 allowed-tools: mcp__palantir-mini__events_log_rotate
 effort: medium
 disable-model-invocation: false
