@@ -35,7 +35,10 @@ export interface RuleAuditResult {
     totalFindings: number;
     byKind: Record<string, number>;
     bySeverity: Record<string, number>;
+    /** Backward-compatible alias; prefer registeredTotal for new callers. */
     registeredRules: number;
+    registeredTotal: number;
+    activeGlobalCount: number;
   };
 }
 

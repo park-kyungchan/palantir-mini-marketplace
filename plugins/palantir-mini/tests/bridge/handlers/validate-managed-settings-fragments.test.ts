@@ -35,6 +35,10 @@ describe("pluginMcpToolPatterns", () => {
     const sorted = [...patterns].sort((a, b) => a.localeCompare(b));
     expect(patterns).toEqual(sorted);
   });
+
+  test("includes public event-log retention surface", () => {
+    expect(pluginMcpToolPatterns()).toContain("mcp__palantir-mini__events_log_rotate");
+  });
 });
 
 describe("validateManagedSettingsFragments", () => {

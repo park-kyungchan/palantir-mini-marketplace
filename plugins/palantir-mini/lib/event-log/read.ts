@@ -31,6 +31,66 @@ function validateEnvelope(obj: unknown): { valid: boolean; missingField?: string
   return { valid: true };
 }
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function stringField(source: Record<string, unknown> | undefined, field: string): string | undefined {
+  const value = source?.[field];
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+function isLegacyRuntimeGapEvent(obj: Record<string, unknown>): boolean {
+  const type = stringField(obj, "type") ?? "";
+  if (type.includes("runtime_gap") || type.includes("runtime-gap")) return true;
+
+  const payload = asRecord(obj.payload);
+  const status = stringField(payload, "status") ?? "";
+  const errorClass = stringField(payload, "errorClass") ?? "";
+  const reason = stringField(payload, "reason") ?? "";
+  return [status, errorClass, reason].some((value) =>
+    value.toLowerCase().includes("runtime-gap") ||
+    value.toLowerCase().includes("runtime gap") ||
+    value.toLowerCase().includes("runtime_gap"),
+  );
+}
+
+function reconcileLegacyRuntimeGapWithWhat(obj: Record<string, unknown>): EventEnvelope {
+  if (obj.withWhat !== undefined || !isLegacyRuntimeGapEvent(obj)) {
+    return obj as unknown as EventEnvelope;
+  }
+
+  const payload = asRecord(obj.payload);
+  const byWhom = asRecord(obj.byWhom);
+  const runtime =
+    stringField(payload, "runtime") ??
+    stringField(byWhom, "runtime") ??
+    stringField(byWhom, "identity") ??
+    "unknown";
+  const reason = stringField(payload, "reason") ?? stringField(payload, "errorClass") ?? "runtime gap";
+  const type = stringField(obj, "type") ?? "unknown";
+
+  return {
+    ...obj,
+    withWhat: {
+      reasoning:
+        `readEvents reconciled legacy runtime-gap event without rewriting source log; ` +
+        `type=${type}; runtime=${runtime}; reason=${reason}`,
+      hypothesis:
+        "Legacy runtime-gap events remain queryable through Decision Lineage without mutating append-only events.jsonl.",
+      memoryLayers: ["procedural"],
+      refinementTarget: {
+        kind: "rule-conformance-policy",
+        filePathOrRid: "rule 26 §R5 runtime-gap legacy reconciliation",
+        description: "Legacy runtime-gap event lacked withWhat and was enriched in memory only.",
+        confidenceLevel: "medium",
+      },
+    },
+  } as unknown as EventEnvelope;
+}
+
 export interface ReadEventsOptions {
   includeArchive?: "all" | "live-only" | "archive-only";
   since?: number;
@@ -106,7 +166,7 @@ export function readEvents(
       return;
     }
 
-    all.push(parsed as EventEnvelope);
+    all.push(reconcileLegacyRuntimeGapWithWhat(parsed as Record<string, unknown>));
   }
 
   if (mode !== "archive-only" && liveExists) {

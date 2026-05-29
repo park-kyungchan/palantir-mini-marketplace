@@ -17,7 +17,6 @@
 // Authority: rules/CONTEXT.md §12 ceiling contract + §10 anti-patterns.
 // Rules: 07 (file-ownership), 22 (hook-citation-validation)
 
-import { RULE_REGISTRY_ENTRIES } from "#schemas/src/generated/rule-registry";
 import type { RuleAuditFinding } from "#schemas/ontology/primitives/rule";
 import { checkT1Bottleneck, checkT2Bottleneck } from "./pm-rule-audit/detect-bottleneck";
 import {
@@ -30,6 +29,7 @@ import {
   checkRecycledIds,
   checkUnusedRules30d,
 } from "./pm-rule-audit/detect-drift";
+import { ruleRegistryCounts } from "./rule-counts";
 import type { Args, RuleAuditResult } from "./pm-rule-audit/types";
 import validateHookCitations from "./validate-hook-citations";
 
@@ -84,6 +84,7 @@ export default async function pmRuleAudit(args: Args): Promise<RuleAuditResult> 
     byKind[f.kind] = (byKind[f.kind] ?? 0) + 1;
     bySeverity[f.severity] = (bySeverity[f.severity] ?? 0) + 1;
   }
+  const counts = ruleRegistryCounts();
 
   return {
     findings: filtered,
@@ -91,7 +92,9 @@ export default async function pmRuleAudit(args: Args): Promise<RuleAuditResult> 
       totalFindings: filtered.length,
       byKind,
       bySeverity,
-      registeredRules: RULE_REGISTRY_ENTRIES.length,
+      registeredRules: counts.registeredTotal,
+      registeredTotal: counts.registeredTotal,
+      activeGlobalCount: counts.activeGlobalCount,
     },
   };
 }

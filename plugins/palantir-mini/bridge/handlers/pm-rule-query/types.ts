@@ -59,7 +59,10 @@ export type PmRuleQueryResult =
       mode: "list";
       count: number;
       entries: Array<RuleDeclaration | RuleListEntry>;
+      /** Backward-compatible alias; prefer registeredTotal for new callers. */
       totalRegistered: number;
+      registeredTotal: number;
+      activeGlobalCount: number;
     }
   | {
       mode: "search";

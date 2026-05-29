@@ -166,4 +166,28 @@ describe("readEvents options (v6.43.0 -- includeArchive + since + archiveCount)"
     expect(result.archiveCount).toBe(3);
     expect(result.events.map((e) => e.sequence)).toEqual([1, 2, 3, 4]);
   });
+
+  test("legacy runtime-gap events missing withWhat are reconciled in memory only", () => {
+    const filePath = eventsPath(tmp);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    const legacy = {
+      type: "dtc_grader_runtime_gap",
+      sequence: 1,
+      eventId: "evt-runtime-gap-legacy",
+      when: "2026-05-29T00:00:00.000Z",
+      atopWhich: "abc123",
+      throughWhich: { sessionId: "s", toolName: "pm_semantic_intent_gate", cwd: tmp },
+      byWhom: { identity: "codex", runtime: "codex" },
+      payload: { runtime: "codex", reason: "model grader runtime gap" },
+    };
+    fs.writeFileSync(filePath, `${JSON.stringify(legacy)}\n`);
+
+    const result = readEvents(filePath, {});
+    expect(result.events).toHaveLength(1);
+    const event = result.events[0]!;
+    expect(event.withWhat?.reasoning).toContain("reconciled legacy runtime-gap event");
+    expect(event.withWhat?.memoryLayers).toEqual(["procedural"]);
+    expect(event.withWhat?.refinementTarget?.kind).toBe("rule-conformance-policy");
+    expect(fs.readFileSync(filePath, "utf8")).not.toContain("withWhat");
+  });
 });

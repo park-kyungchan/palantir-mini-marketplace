@@ -207,6 +207,7 @@ describe("pm_plugin_self_check", () => {
     expect(result.mcpToolsRegistrationResult.registeredToolCount).toBe(30);
     expect(result.mcpToolsRegistrationResult.registeredHandlerModules).toBe(31);
     expect(result.mcpToolsRegistrationResult.missingMetadataFields).toEqual([]);
+    expect(result.mcpToolsRegistrationResult.missingHandlerModules).not.toContain("ontology_schema_get");
     expect(result.mcpToolsRegistrationResult.handlerFileCount).toBeGreaterThan(22);
     expect(result.mcpToolsRegistrationResult.unregisteredTopLevelHandlers.length).toBeGreaterThan(0);
   });
