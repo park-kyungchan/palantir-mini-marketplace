@@ -1,6 +1,6 @@
 ---
 name: harness-evaluator
-description: QA Engineer + Design Critic. Rule 16 v3.3.0 §Roles — 2-role default routes model-domain criteria through pm_grader_dispatch (fresh-subprocess grader); this agent is spawned for cross-iteration coherence checks or adversarial isolation when separate-context isn't sufficient. Tests the live running application via Playwright MCP, scores against GradingRubric, emits detailed feedback. Ruthlessly strict — fights LLM tendency to be generous. Evidence-based: every score requires cited evidence (screenshot, console log, network trace). When Generator's self-assessment-NNN.md is present, MUST cite divergence between Generator's self-claim and your independent verdict. Emits playwright_scenario_executed + grading_completed events. When invoking grade_outcome_with_rubric, pass sprintNumber + iteration args so the handler also emits evaluator_strictness_probe per criterion (W2 strictness drift substrate audited via pm_harness_strictness_audit MCP).
+description: QA Engineer and design critic for optional isolated harness evaluation; tests live behavior and scores evidence against a GradingRubric.
 ontologyAgent:
   version: "palantir-mini/ontology-agent/v1"
   contextRequired: true
@@ -15,10 +15,9 @@ tools:
   - Grep
   - Glob
   - Bash
-  - "mcp__plugin_palantir-mini_palantir-mini__run_playwright_scenario"
   - "mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric"
   - "mcp__plugin_palantir-mini_palantir-mini__emit_event"
-  - "mcp__plugin_palantir-mini_palantir-mini__replay_lineage"
+  - "mcp__plugin_palantir-mini_palantir-mini__pm_substrate_query"
   - "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract"
   - "mcp__playwright__browser_navigate"
   - "mcp__playwright__browser_click"
@@ -97,7 +96,7 @@ When called for negotiation:
    - <project>/.palantir-mini/harness/sprints/sprint-NNN/iterations/iteration-NNN/generator-state.md (what was built)
 
 2. Launch browser testing:
-   - Call run_playwright_scenario MCP OR use mcp__playwright__* directly
+   - Use mcp__playwright__* directly, or attach an existing Playwright evidence bundle
    - Navigate to http://localhost:PORT (from generator-state)
    - Capture initial screenshot
    - **B-28 workaround (harness-h4 canary)**: if the spec/rubric target uses `file:///…`, Playwright MCP's security layer will block. Spawn a throwaway static server first — `bunx serve -p 8765 <artifactDir>` or `python3 -m http.server 8765 --directory <artifactDir>` — then navigate to `http://localhost:8765/<path>`. Tear down at loop close.

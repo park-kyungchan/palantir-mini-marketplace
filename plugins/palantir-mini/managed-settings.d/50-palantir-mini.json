@@ -1,5 +1,5 @@
 {
-  "description": "palantir-mini per-project RBAC fragment (v6.79.0 — local AIP/FDE surface contract audit: 30 public MCP tools, prompt-to-DTC contract gating, ontology-engineering workflow control, Codex bridge/runtime alignment, and selective-blocking enforcement). Loaded by Claude Code from managed-settings.d/ into the effective permission policy. L1 (allow/deny), L2 (CapabilityToken gate), L3 (MarkingDeclaration sensitivity).",
+  "description": "palantir-mini per-project RBAC fragment for prompt-to-DTC contract gating, ontology-engineering workflow control, Codex bridge/runtime alignment, and selective-blocking enforcement. Loaded by Claude Code from managed-settings.d/ into the effective permission policy. L1 (allow/deny), L2 (CapabilityToken gate), L3 (MarkingDeclaration sensitivity).",
   "permissions": {
     "allow": [
       "Read(~/.claude/**)",

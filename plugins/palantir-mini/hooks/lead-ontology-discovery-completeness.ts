@@ -5,11 +5,11 @@
 // Fires on: PreToolUse(Edit|Write|MultiEdit|NotebookEdit) — BLOCKING MODE (promoted sprint-063 W2.B)
 //
 // PURPOSE: Detect when Lead is about to edit a file without having first run an
-// ontology discovery MCP call (impact_query AND propagation_audit_forward) for the
+// ontology discovery MCP call (impact_query plus ontology_context_query or pm_substrate_query) for the
 // target file's RID neighborhood within the last 5 minutes.
 //
 // SPRINT-062 W1: ADVISORY mode only. Returns additionalContext (NEVER permissionDecision: deny).
-// SPRINT-063 W2.B: BLOCKING — impact_query + propagation_audit_forward BOTH required.
+// SPRINT-063 W2.B: BLOCKING — impact_query plus current context/substrate evidence required.
 //   semantic_change_plan removed (broken per user directive 2026-05-09).
 //   Returns permissionDecision: deny when BOTH tools absent in last 5 min.
 //
@@ -26,20 +26,18 @@
 //
 // Discovery tools checked (sprint-063 W2.B active list — semantic_change_plan removed):
 //   - impact_query (required for RID blast-radius)
-//   - propagation_audit_forward (required for ForwardProp chain integrity)
+//   - ontology_context_query or pm_substrate_query (required for context/substrate evidence)
 //   - get_ontology (fallback — satisfies ontology snapshot requirement)
-//   - pm_workflow_lineage_query
-//   - pm_event_query_by_grade
 //   - pm_intent_router (sprint-063 W3 new skill; satisfies all)
 //   - intent_to_ontology_skill_invoked (pm-intent-to-ontology skill completion event)
 //
 // BLOCKING criteria (sprint-063 W2.B):
-//   Block when BOTH impact_query AND propagation_audit_forward are absent in last 5 min.
-//   Any other discovery tool (get_ontology, pm_workflow_lineage_query, etc.) satisfies on its own.
+//   Block when BOTH impact_query AND context/substrate evidence are absent in last 5 min.
+//   Any other discovery tool (get_ontology, pm_intent_router, etc.) satisfies on its own.
 //
 // Bypass: PALANTIR_MINI_INTENT_PROTOCOL_BYPASS=1 (audited via intent_protocol_bypass_invoked)
 //
-// sprint-063 W2.B (rule 12 v3.12.0): BLOCKING — required impact_query + propagation_audit_forward
+// sprint-063 W2.B (rule 12 v3.12.0): BLOCKING — required impact_query + context/substrate evidence
 //   (semantic_change_plan removed)
 //
 // Authority: sprint-063 W2.B; rule 12 v3.10.0 §MCP-First protocol;
@@ -64,40 +62,44 @@ const MAX_EVENTS_SCAN = 100;
 /**
  * MCP tool names that satisfy the ontology discovery requirement.
  *
- * SPRINT-063 W2.B: Added impact_query + propagation_audit_forward (now REQUIRED pair).
+ * SPRINT-063 W2.B: Added impact_query + context/substrate evidence requirement.
  *   semantic_change_plan removed (broken per user directive 2026-05-09).
  *   Any tool from this set satisfies the discovery check on its own.
- *   BLOCKING triggers only when BOTH impact_query AND propagation_audit_forward are absent.
+ *   BLOCKING triggers only when BOTH impact_query AND context/substrate evidence are absent.
  */
 const DISCOVERY_TOOL_NAMES = new Set([
   "impact_query",
-  "propagation_audit_forward",
+  "ontology_context_query",
   "get_ontology",
-  "pm_workflow_lineage_query",
-  "pm_event_query_by_grade",
+  "pm_substrate_query",
+  "pm_intent_router",
+  "pm_semantic_intent_gate",
   // MCP-prefixed forms
   "mcp__plugin_palantir-mini_palantir-mini__impact_query",
-  "mcp__plugin_palantir-mini_palantir-mini__propagation_audit_forward",
+  "mcp__plugin_palantir-mini_palantir-mini__ontology_context_query",
   "mcp__plugin_palantir-mini_palantir-mini__get_ontology",
-  "mcp__plugin_palantir-mini_palantir-mini__pm_workflow_lineage_query",
-  "mcp__plugin_palantir-mini_palantir-mini__pm_event_query_by_grade",
+  "mcp__plugin_palantir-mini_palantir-mini__pm_substrate_query",
+  "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router",
+  "mcp__plugin_palantir-mini_palantir-mini__pm_semantic_intent_gate",
   // Codex palantir-mini MCP namespace aliases. These are evidence-name aliases
   // only; they do not imply native Claude/Codex hook parity.
   "mcp__palantir_mini__impact_query",
-  "mcp__palantir_mini__propagation_audit_forward",
+  "mcp__palantir_mini__ontology_context_query",
   "mcp__palantir_mini__get_ontology",
-  "mcp__palantir_mini__pm_workflow_lineage_query",
-  "mcp__palantir_mini__pm_event_query_by_grade",
+  "mcp__palantir_mini__pm_substrate_query",
+  "mcp__palantir_mini__pm_intent_router",
+  "mcp__palantir_mini__pm_semantic_intent_gate",
   "mcp__palantir_mini__.impact_query",
-  "mcp__palantir_mini__.propagation_audit_forward",
+  "mcp__palantir_mini__.ontology_context_query",
   "mcp__palantir_mini__.get_ontology",
-  "mcp__palantir_mini__.pm_workflow_lineage_query",
-  "mcp__palantir_mini__.pm_event_query_by_grade",
+  "mcp__palantir_mini__.pm_substrate_query",
+  "mcp__palantir_mini__.pm_intent_router",
+  "mcp__palantir_mini__.pm_semantic_intent_gate",
 ]);
 
 /**
  * Tool names that SPECIFICALLY satisfy the impact_query leg of the BLOCKING criteria.
- * sprint-063 W2.B: BLOCKING fires only when BOTH impact_query AND propagation_audit_forward
+ * sprint-063 W2.B: BLOCKING fires only when BOTH impact_query AND context/substrate evidence
  * are absent. If either is present, the hook passes.
  */
 const IMPACT_TOOL_NAMES = new Set([
@@ -108,13 +110,25 @@ const IMPACT_TOOL_NAMES = new Set([
 ]);
 
 /**
- * Tool names that SPECIFICALLY satisfy the propagation_audit_forward leg.
+ * Tool names that SPECIFICALLY satisfy the context/substrate evidence leg.
  */
-const PROPAGATION_TOOL_NAMES = new Set([
-  "propagation_audit_forward",
-  "mcp__plugin_palantir-mini_palantir-mini__propagation_audit_forward",
-  "mcp__palantir_mini__propagation_audit_forward",
-  "mcp__palantir_mini__.propagation_audit_forward",
+const CONTEXT_TOOL_NAMES = new Set([
+  "ontology_context_query",
+  "pm_substrate_query",
+  "pm_intent_router",
+  "pm_semantic_intent_gate",
+  "mcp__plugin_palantir-mini_palantir-mini__ontology_context_query",
+  "mcp__plugin_palantir-mini_palantir-mini__pm_substrate_query",
+  "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router",
+  "mcp__plugin_palantir-mini_palantir-mini__pm_semantic_intent_gate",
+  "mcp__palantir_mini__ontology_context_query",
+  "mcp__palantir_mini__pm_substrate_query",
+  "mcp__palantir_mini__pm_intent_router",
+  "mcp__palantir_mini__pm_semantic_intent_gate",
+  "mcp__palantir_mini__.ontology_context_query",
+  "mcp__palantir_mini__.pm_substrate_query",
+  "mcp__palantir_mini__.pm_intent_router",
+  "mcp__palantir_mini__.pm_semantic_intent_gate",
 ]);
 
 /** Event type emitted when pm-intent-to-ontology skill completes (satisfies discovery). */
@@ -191,13 +205,13 @@ function countLines(text: string | undefined): number {
 
 /**
  * Result of scanning recent events for discovery calls.
- * sprint-063 W2.B: BLOCKING fires only when BOTH hasImpact AND hasPropagation are false.
+ * sprint-063 W2.B: BLOCKING fires only when BOTH hasImpact AND hasContext are false.
  * If any other discovery tool is found (hasAny=true), hook passes regardless.
  */
 interface DiscoveryCallResult {
-  hasAny:         boolean; // any DISCOVERY_TOOL_NAMES hit
-  hasImpact:      boolean; // impact_query specifically
-  hasPropagation: boolean; // propagation_audit_forward specifically
+  hasAny:     boolean; // any DISCOVERY_TOOL_NAMES hit
+  hasImpact:  boolean; // impact_query specifically
+  hasContext: boolean; // ontology_context_query / pm_substrate_query / router gate evidence
 }
 
 /**
@@ -205,10 +219,10 @@ interface DiscoveryCallResult {
  * for this file's RID neighborhood in the project's events.jsonl.
  *
  * sprint-063 W2.B: returns granular result so caller can decide BLOCKING criteria:
- *   Block when hasImpact=false AND hasPropagation=false AND hasAny=false.
+ *   Block when hasImpact=false AND hasContext=false AND hasAny=false.
  */
 function hasDiscoveryCall(projectRoot: string): DiscoveryCallResult {
-  const result: DiscoveryCallResult = { hasAny: false, hasImpact: false, hasPropagation: false };
+  const result: DiscoveryCallResult = { hasAny: false, hasImpact: false, hasContext: false };
   try {
     const eventsPath = eventsPathFor(projectRoot);
     if (!fs.existsSync(eventsPath)) return result;
@@ -228,15 +242,15 @@ function hasDiscoveryCall(projectRoot: string): DiscoveryCallResult {
         .throughWhich?.toolName ?? "";
       if (DISCOVERY_TOOL_NAMES.has(toolName)) {
         result.hasAny = true;
-        if (IMPACT_TOOL_NAMES.has(toolName))      result.hasImpact = true;
-        if (PROPAGATION_TOOL_NAMES.has(toolName)) result.hasPropagation = true;
+        if (IMPACT_TOOL_NAMES.has(toolName))  result.hasImpact = true;
+        if (CONTEXT_TOOL_NAMES.has(toolName)) result.hasContext = true;
       }
 
       // B. Check validation_phase_completed with intent_to_ontology_protocol_advised errorClass
       if (evt.type === "validation_phase_completed") {
         const errorClass = (evt.payload as Record<string, unknown>)?.errorClass;
         if (errorClass === INTENT_TO_ONTOLOGY_SKILL_EVENT_CLASS) {
-          result.hasAny = result.hasImpact = result.hasPropagation = true;
+          result.hasAny = result.hasImpact = result.hasContext = true;
         }
       }
 
@@ -244,7 +258,7 @@ function hasDiscoveryCall(projectRoot: string): DiscoveryCallResult {
       if (evt.type === "skill_started") {
         const skillName = (evt.payload as Record<string, unknown>)?.skillName;
         if (skillName === "pm-intent-to-ontology") {
-          result.hasAny = result.hasImpact = result.hasPropagation = true;
+          result.hasAny = result.hasImpact = result.hasContext = true;
         }
       }
     }
@@ -256,21 +270,22 @@ function hasDiscoveryCall(projectRoot: string): DiscoveryCallResult {
 
 // ─── Advisory text ────────────────────────────────────────────────────────────
 
-function buildDenyReason(relPath: string, hasImpact: boolean, hasPropagation: boolean): string {
+function buildDenyReason(relPath: string, hasImpact: boolean, hasContext: boolean): string {
   const missingTools: string[] = [];
-  if (!hasImpact)      missingTools.push("impact_query");
-  if (!hasPropagation) missingTools.push("propagation_audit_forward");
+  if (!hasImpact)  missingTools.push("impact_query");
+  if (!hasContext) missingTools.push("ontology_context_query or pm_substrate_query");
 
   return [
     `palantir-mini Intent-to-Ontology BLOCKED: ontology discovery incomplete for ${relPath}.`,
     ``,
-    `sprint-063 W2.B (rule 12 v3.12.0): BLOCKING — required tools missing: ${missingTools.join(" + ")}`,
+    `sprint-063 W2.B (rule 12 v3.12.0): BLOCKING — required evidence missing: ${missingTools.join(" + ")}`,
     ``,
-    `Both impact_query AND propagation_audit_forward must be called within 5 min BEFORE this edit.`,
+    `Call impact_query plus ontology_context_query or pm_substrate_query within 5 min BEFORE this edit.`,
     ``,
     `Run BEFORE editing:`,
     `  mcp__plugin_palantir-mini_palantir-mini__impact_query({"rid": "file:${relPath}", "depth": 3})`,
-    `  mcp__plugin_palantir-mini_palantir-mini__propagation_audit_forward({"project": "<projectRoot>"})`,
+    `  mcp__plugin_palantir-mini_palantir-mini__ontology_context_query({"project": "<projectRoot>", "scopePaths": ["${relPath}"]})`,
+    `  # or: mcp__plugin_palantir-mini_palantir-mini__pm_substrate_query({"project": "<projectRoot>", "mode": "lineage"})`,
     ``,
     `Or use the shortcut (satisfies both):`,
     `  /palantir-mini:pm-intent-to-ontology "<intent>" ${relPath}`,
@@ -282,7 +297,7 @@ function buildDenyReason(relPath: string, hasImpact: boolean, hasPropagation: bo
 // ─── Hook entry point ─────────────────────────────────────────────────────────
 
 // SPRINT-062 W1: ADVISORY mode only.
-// SPRINT-063 W2.B: BLOCKING — permissionDecision: deny when impact_query AND propagation_audit_forward
+// SPRINT-063 W2.B: BLOCKING — permissionDecision: deny when impact_query AND context/substrate evidence
 //   are both absent in last 5 min. semantic_change_plan removed entirely.
 
 export default async function leadOntologyDiscoveryCompleteness(
@@ -365,9 +380,9 @@ export default async function leadOntologyDiscoveryCompleteness(
     }
 
     // ── No discovery call found — sprint-063 W2.B BLOCKING ───────────────────
-    // Block when BOTH impact_query AND propagation_audit_forward are absent.
-    const shouldBlock = !discoveryResult.hasImpact && !discoveryResult.hasPropagation;
-    const denyReason = buildDenyReason(relPath, discoveryResult.hasImpact, discoveryResult.hasPropagation);
+    // Block when BOTH impact_query AND current context/substrate evidence are absent.
+    const shouldBlock = !discoveryResult.hasImpact && !discoveryResult.hasContext;
+    const denyReason = buildDenyReason(relPath, discoveryResult.hasImpact, discoveryResult.hasContext);
 
     try {
       await emit({
@@ -382,14 +397,14 @@ export default async function leadOntologyDiscoveryCompleteness(
         sessionId,
         identity:     "monitor",
         memoryLayers: ["procedural", "semantic"],
-        reasoning:    `lead-ontology-discovery-completeness: BLOCKED (sprint-063 W2.B) — impact_query=${discoveryResult.hasImpact} propagation_audit_forward=${discoveryResult.hasPropagation} in last ${DISCOVERY_WINDOW_MS / 60000} min for file=${relPath} in projectRoot=${projectRoot}. semantic_change_plan removed. rule 12 v3.12.0.`,
+        reasoning:    `lead-ontology-discovery-completeness: BLOCKED (sprint-063 W2.B) — impact_query=${discoveryResult.hasImpact} context_or_substrate=${discoveryResult.hasContext} in last ${DISCOVERY_WINDOW_MS / 60000} min for file=${relPath} in projectRoot=${projectRoot}. semantic_change_plan removed. rule 12 v3.12.0.`,
       });
     } catch { /* best-effort */ }
 
     if (shouldBlock) {
       // sprint-063 W2.B: hard block
       return {
-        message: `palantir-mini: lead-ontology-discovery-completeness BLOCKED (no impact_query+propagation_audit_forward for ${relPath})`,
+        message: `palantir-mini: lead-ontology-discovery-completeness BLOCKED (no impact_query+context/substrate evidence for ${relPath})`,
         hookSpecificOutput: {
           permissionDecision:       "deny",
           permissionDecisionReason: denyReason,
