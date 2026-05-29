@@ -5,6 +5,7 @@ import type { IntentRouterInput } from "../../bridge/handlers/pm-intent-router";
 import type { OntologyContextQueryInput } from "../../bridge/handlers/ontology-context-query";
 import type { OntologyEngineeringWorkflowHandlerInput } from "../../bridge/handlers/pm-ontology-engineering-workflow";
 import type { SemanticIntentGateInput } from "../../bridge/handlers/pm-semantic-intent-gate";
+import type { EventsLogRotateArgs } from "../../bridge/handlers/events-log-rotate";
 
 type JsonSchemaObject = {
   additionalProperties?: boolean;
@@ -106,6 +107,14 @@ const ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS = [
   "emittedAt",
 ] as const satisfies readonly (keyof OntologyEngineeringWorkflowHandlerInput)[];
 
+const EVENTS_LOG_ROTATE_PUBLIC_FIELDS = [
+  "project",
+  "thresholdBytes",
+  "thresholdLines",
+  "sessionId",
+  "agentName",
+] as const satisfies readonly (keyof EventsLogRotateArgs)[];
+
 type MissingSemanticIntentGatePublicField = Exclude<
   keyof SemanticIntentGateInput,
   typeof SEMANTIC_INTENT_GATE_PUBLIC_FIELDS[number]
@@ -122,11 +131,16 @@ type MissingOntologyEngineeringWorkflowPublicField = Exclude<
   keyof OntologyEngineeringWorkflowHandlerInput,
   typeof ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS[number]
 >;
+type MissingEventsLogRotatePublicField = Exclude<
+  keyof EventsLogRotateArgs,
+  typeof EVENTS_LOG_ROTATE_PUBLIC_FIELDS[number]
+>;
 
 const semanticIntentGateInputFieldsAreCovered: Record<MissingSemanticIntentGatePublicField, never> = {};
 const intentRouterInputFieldsAreCovered: Record<MissingIntentRouterPublicField, never> = {};
 const ontologyContextQueryInputFieldsAreCovered: Record<MissingOntologyContextQueryPublicField, never> = {};
 const ontologyEngineeringWorkflowInputFieldsAreCovered: Record<MissingOntologyEngineeringWorkflowPublicField, never> = {};
+const eventsLogRotateInputFieldsAreCovered: Record<MissingEventsLogRotatePublicField, never> = {};
 
 function toolSchema(name: string): JsonSchemaObject {
   const tool = TOOLS.find((entry) => entry.name === name);
@@ -359,5 +373,21 @@ describe("mcp-server ToolSpec metadata", () => {
     expect(props.runtime?.type).toBe("string");
     expect(props.enforcementSurface?.type).toBe("string");
     expect(props.forceRequired?.type).toBe("boolean");
+  });
+
+  test("events_log_rotate schema matches handler input fields", () => {
+    expect(eventsLogRotateInputFieldsAreCovered).toEqual({});
+
+    const props = expectSchemaPropertiesExactly(
+      "events_log_rotate",
+      EVENTS_LOG_ROTATE_PUBLIC_FIELDS,
+    );
+
+    expect(toolSchema("events_log_rotate").required).toEqual(["project"]);
+    expect(props.project?.type).toBe("string");
+    expect(props.thresholdBytes?.type).toBe("number");
+    expect(props.thresholdLines?.type).toBe("number");
+    expect(props.sessionId?.type).toBe("string");
+    expect(props.agentName?.type).toBe("string");
   });
 });
