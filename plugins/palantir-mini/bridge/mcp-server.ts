@@ -556,7 +556,7 @@ const TOOLS: ToolSpec[] = [
   {
     name: "pm_workflow_response_validate",
     description:
-      "Validate user-visible palantir-mini workflow response text against the plugin-owned mandatory response template. " +
+      "Validate user-visible palantir-mini workflow response text against the plugin-owned prompt response requirements. " +
       "Reports missing status fields, runtime-gap disclosure, SSoT basis, forbidden runtime UI markers, and false parity claims.",
     inputSchema: {
       type: "object",

@@ -1,11 +1,11 @@
-// palantir-mini - workflow response template contract.
+// palantir-mini - prompt-enforced workflow response requirements.
 //
-// This file owns the plugin-visible text contract for palantir-mini mandatory
-// workflow replies. The filename is retained for compatibility with the first
-// Ontology Engineering enforcement slice. Generic exports below are preferred.
+// This file owns the plugin-visible response requirements embedded in the
+// user requirement prompt template. The filename and legacy exports are retained
+// for compatibility with the first Ontology Engineering enforcement slice.
 
 export const PALANTIR_MINI_WORKFLOW_RESPONSE_TEMPLATE_DOC =
-  "docs/ONTOLOGY_ENGINEERING_RESPONSE_TEMPLATE.md";
+  "docs/PALANTIR_MINI_USER_REQUIREMENT_PROMPT_TEMPLATE.md";
 
 export const PALANTIR_MINI_WORKFLOW_RESPONSE_REQUIRED_FIELDS = [
   "현재 workflow phase",
@@ -264,8 +264,8 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
   const explanationRequirements =
     PALANTIR_MINI_WORKFLOW_RESPONSE_EXPLANATION_REQUIREMENTS.join("; ");
   return [
-    "palantir-mini workflow response template is mandatory for governed palantir-mini turns.",
-    `Template authority=${PALANTIR_MINI_WORKFLOW_RESPONSE_TEMPLATE_DOC}; Runtime=${runtime}; Enforcement surface=${surface}`,
+    "palantir-mini user requirement prompt response requirements are mandatory for governed palantir-mini turns.",
+    `Prompt template authority=${PALANTIR_MINI_WORKFLOW_RESPONSE_TEMPLATE_DOC}; Runtime=${runtime}; Enforcement surface=${surface}`,
     "",
     `Every user-visible palantir-mini workflow reply must include these fields: ${requiredFields}.`,
     "",

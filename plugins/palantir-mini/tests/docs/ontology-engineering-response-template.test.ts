@@ -4,55 +4,52 @@ import { join } from "node:path";
 import { ONTOLOGY_ENGINEERING_RESPONSE_REQUIRED_FIELDS } from "../../lib/ontology-engineering-response-template";
 
 const PLUGIN_ROOT = join(import.meta.dir, "../..");
-const DOC_PATH = join(PLUGIN_ROOT, "docs/ONTOLOGY_ENGINEERING_RESPONSE_TEMPLATE.md");
+const USER_REQUIREMENT_PROMPT_DOC_PATH = join(
+  PLUGIN_ROOT,
+  "docs/PALANTIR_MINI_USER_REQUIREMENT_PROMPT_TEMPLATE.md",
+);
 
-describe("ONTOLOGY_ENGINEERING_RESPONSE_TEMPLATE.md", () => {
-  test("documents every required status field", () => {
-    const content = readFileSync(DOC_PATH, "utf8");
+describe("PALANTIR_MINI_USER_REQUIREMENT_PROMPT_TEMPLATE.md", () => {
+  test("is the sole prompt and answer-shape template", () => {
+    const content = readFileSync(USER_REQUIREMENT_PROMPT_DOC_PATH, "utf8");
+    expect(content).toContain("This document is the only prompt/answer-shape template");
+    expect(content).not.toContain("docs/ONTOLOGY_ENGINEERING_RESPONSE_TEMPLATE.md");
+  });
+
+  test("provides a dedicated user requirement slot and workflow guardrails", () => {
+    const content = readFileSync(USER_REQUIREMENT_PROMPT_DOC_PATH, "utf8");
+    expect(content).toContain("<USER_REQUIREMENT>");
+    expect(content).toContain("</USER_REQUIREMENT>");
+    expect(content).toContain("/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini");
+    expect(content).toContain("park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/");
+    expect(content).toContain("Installed runtime caches are consumer payloads only");
+    expect(content).toContain("Do not edit:");
+    expect(content).toContain("~/.codex/plugins/cache/**");
+    expect(content).toContain("Classify the request semantically");
+    expect(content).toContain("mutation authority");
+  });
+
+  test("requires Palantir SSoT grounding and non-developer explanation", () => {
+    const content = readFileSync(USER_REQUIREMENT_PROMPT_DOC_PATH, "utf8");
+    expect(content).toContain("~/.claude/research/BROWSE.md");
+    expect(content).toContain("~/.claude/research/INDEX.md");
+    expect(content).toContain("~/.claude/research/palantir-official/");
+    expect(content).toContain("live www.palantir.com official docs");
+    expect(content).toContain("AIP Chatbot Studio");
+    expect(content).toContain("application-state.md");
+    expect(content).toContain("retrieval-context.md");
+    expect(content).toContain("tools.md");
+    expect(content).toContain("plain language for a non-developer");
+    expect(content).toContain("evidence supports that judgment");
+  });
+
+  test("embeds every required response status field", () => {
+    const content = readFileSync(USER_REQUIREMENT_PROMPT_DOC_PATH, "utf8");
     for (const field of ONTOLOGY_ENGINEERING_RESPONSE_REQUIRED_FIELDS) {
       expect(content).toContain(field);
     }
-  });
-
-  test("documents Claude hook native status and Codex runtime gap disclosure", () => {
-    const content = readFileSync(DOC_PATH, "utf8");
-    expect(content).toContain("Claude hooks");
-    expect(content).toContain("Codex");
-    expect(content).toContain("runtime gap");
-    expect(content).toContain("manual");
-    expect(content).toContain("smoke evidence");
-  });
-
-  test("documents SSoT decision-basis disclosure", () => {
-    const content = readFileSync(DOC_PATH, "utf8");
-    expect(content).toContain("SSoT 판단 근거");
-    expect(content).toContain("Palantir AIP Chatbot Studio");
-    expect(content).toContain("AI FDE");
-    expect(content).toContain("Context Engineering");
-    expect(content).toContain("plugin source");
-    expect(content).toContain("generated mirrors");
-    expect(content).toContain("source/ref");
-    expect(content).toContain("provenance/currentness");
-    expect(content).toContain("used-for judgment");
-    expect(content).toContain("confidence/limit");
-  });
-
-  test("documents generic workflow and non-developer explanation behavior", () => {
-    const content = readFileSync(DOC_PATH, "utf8");
-    expect(content).toContain("palantir-mini Workflow Response Template");
-    expect(content).toContain("not limited to Ontology Engineering");
-    expect(content).toContain("For non-Ontology workflows");
-    expect(content).toContain("what this request means");
-    expect(content).toContain("why this source is trusted");
-    expect(content).toContain("what I am allowed to do now");
-    expect(content).toContain("what needs user approval");
-    expect(content).toContain("what gap or uncertainty remains");
-  });
-
-  test("documents plugin enforcement surfaces", () => {
-    const content = readFileSync(DOC_PATH, "utf8");
-    expect(content).toContain("hooks/prompt-front-door-capture.ts");
-    expect(content).toContain("hooks/ontology-engineering-workflow-enforcement-gate.ts");
-    expect(content).toContain("lib/ontology-engineering-response-template.ts");
+    expect(content).toContain("Claude/Codex/Gemini parity");
+    expect(content).toContain("runtime-native evidence");
+    expect(content).toContain("SSoT decision basis");
   });
 });

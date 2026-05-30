@@ -1,6 +1,6 @@
 // palantir-mini — MCP handler: pm_workflow_response_validate
 // Validates user-visible palantir-mini workflow response text against the
-// plugin-owned mandatory response template.
+// plugin-owned prompt response requirements.
 
 import {
   PALANTIR_MINI_WORKFLOW_RESPONSE_TEMPLATE_DOC,

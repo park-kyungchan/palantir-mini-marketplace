@@ -237,7 +237,7 @@ describe("pm_plugin_self_check", () => {
     expect(result.surfaceContractAuditResult.scannedFileCount).toBeGreaterThan(0);
   });
 
-  test("9b. release mode validates mandatory workflow response template", async () => {
+  test("9b. release mode validates mandatory workflow response requirements", async () => {
     const eventsDir = makeTmpDir();
     process.env.PALANTIR_MINI_PROJECT = eventsDir;
     process.env.PALANTIR_MINI_EVENTS_FILE = path.join(eventsDir, "events.jsonl");

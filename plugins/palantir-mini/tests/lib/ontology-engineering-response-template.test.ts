@@ -15,7 +15,7 @@ import {
   validateOntologyEngineeringResponseTemplateText,
 } from "../../lib/ontology-engineering-response-template";
 
-describe("palantir-mini workflow response template", () => {
+describe("palantir-mini workflow response requirements", () => {
   test("detects generic workflow and ontology-engineering prompts", () => {
     expect(
       isPalantirMiniWorkflowResponseRequired(

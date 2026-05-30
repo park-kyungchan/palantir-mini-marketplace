@@ -117,7 +117,7 @@ describe("prompt-front-door-capture", () => {
     expect(secondEnvelope.previousPromptHash).toBe(firstPointer.promptHash);
   });
 
-  test("injects workflow response template context for palantir-mini mandatory prompts", async () => {
+  test("injects workflow response requirements context for palantir-mini mandatory prompts", async () => {
     const root = makeTmpProject("ontology-template");
     process.env.PALANTIR_MINI_PROJECT = root;
     process.env.PALANTIR_MINI_EVENTS_FILE = eventsPathFor(root);
@@ -133,7 +133,7 @@ describe("prompt-front-door-capture", () => {
 
     const ctx = result.hookSpecificOutput?.additionalContext ?? "";
     expect(ctx.length).toBeLessThanOrEqual(3200);
-    expect(ctx).toContain("palantir-mini workflow response template is mandatory");
+    expect(ctx).toContain("palantir-mini user requirement prompt response requirements are mandatory");
     expect(ctx).toContain("현재 workflow phase");
     expect(ctx).toContain("선택된 palantir-mini workflow 또는 workflow gap");
     expect(ctx).toContain("FDE session ref");
@@ -162,7 +162,7 @@ describe("prompt-front-door-capture", () => {
     expect(ctx).toContain("Explicit palantir-mini plugin opt-out detected");
     expect(ctx).toContain("UniversalOntologyEntryRef:");
     expect(ctx).not.toContain("Before ontology-affecting routing");
-    expect(ctx).not.toContain("palantir-mini workflow response template is mandatory");
+    expect(ctx).not.toContain("palantir-mini user requirement prompt response requirements are mandatory");
 
     const pointer = readJson<PromptCurrentPointer>(
       currentPointerPathFor(root, "codex", "session-opt-out"),
