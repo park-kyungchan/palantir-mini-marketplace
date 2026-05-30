@@ -22,6 +22,7 @@ import {
   type SicWithFillFields,
 } from "../../../lib/semantic-intent/fill-sequence";
 import { validateDtcApprovalCardText } from "../../../lib/ontology-engineering-response-template";
+import { crmBillingSupportCustomerFixture } from "../../../lib/semantic-consistency/fixtures";
 
 const tmpDirs: string[] = [];
 const savedEnv: Record<string, string | undefined> = {};
@@ -1021,6 +1022,30 @@ describe("pm_semantic_intent_gate", () => {
     expect(result.draftContracts).toBeUndefined();
     expect(result.contractRefs).toBeUndefined();
     expect(saved?.state).toBe("captured");
+  });
+});
+
+describe("pm_semantic_intent_gate semantic consistency projection", () => {
+  test("returns deterministic resolver evidence in conversation state", async () => {
+    const project = makeTmpProject();
+    const result = await semanticIntentGate({
+      project,
+      rawIntent: "Read-only semantic consistency projection before ontology promotion.",
+      semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+    });
+
+    expect(result.semanticConsistencyResult?.deterministic).toBe(true);
+    expect(result.semanticConsistencyResult?.llmPromotionUsed).toBe(false);
+    expect(result.semanticConversationState?.semanticConsistencyFacing?.resolverRunRef)
+      .toBe(result.semanticConsistencyResult?.resolverRunId);
+    expect(result.semanticConversationState?.semanticConsistencyFacing?.promotionReady)
+      .toBe(true);
+
+    const event = readEvents(project).find((entry) =>
+      entry.payload?.semanticConsistencyResolverRunId === result.semanticConsistencyResult?.resolverRunId
+    );
+    expect(event?.payload?.semanticConsistencyConflictCount).toBe(0);
+    expect(event?.payload?.semanticConsistencyPromotionReady).toBe(true);
   });
 });
 

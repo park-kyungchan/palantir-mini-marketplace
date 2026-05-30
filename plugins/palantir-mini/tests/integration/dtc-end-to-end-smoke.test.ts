@@ -404,9 +404,9 @@ describe("Sprint 97 DTC governance invariants (structural)", () => {
     expect(pkg.version).toBe("6.79.0");
   });
 
-  test("plugin version is 6.79.0 in .claude-plugin/plugin.json", () => {
+  test("plugin version is 6.79.0 in .codex-plugin/plugin.json", () => {
     const manifest = JSON.parse(
-      fs.readFileSync(path.join(PLUGIN_ROOT, ".claude-plugin", "plugin.json"), "utf8")
+      fs.readFileSync(path.join(PLUGIN_ROOT, ".codex-plugin", "plugin.json"), "utf8")
     );
     expect(manifest.version).toBe("6.79.0");
   });

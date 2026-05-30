@@ -71,7 +71,7 @@ describe("leadIdleDigest hook", () => {
       if (v === undefined) delete process.env[k];
       else process.env[k] = v;
     }
-    const dir = path.join("/tmp", "claude-hooks", sessionId);
+    const dir = path.join("/tmp", "palantir-mini-hooks", sessionId);
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
     const evtFile = process.env.PALANTIR_MINI_EVENTS_FILE;
     if (evtFile) {
@@ -92,7 +92,7 @@ describe("leadIdleDigest hook", () => {
 
   test("digest file is created after first ping", async () => {
     await leadIdleDigest({ agent_id: "a1", idle_count: 1, session_id: sessionId });
-    const digestFile = path.join("/tmp", "claude-hooks", sessionId, "idle-digest.jsonl");
+    const digestFile = path.join("/tmp", "palantir-mini-hooks", sessionId, "idle-digest.jsonl");
     expect(fs.existsSync(digestFile)).toBe(true);
     const content = fs.readFileSync(digestFile, "utf8");
     expect(content).toContain("a1");
@@ -102,7 +102,7 @@ describe("leadIdleDigest hook", () => {
     for (let i = 0; i < 5; i++) {
       await leadIdleDigest({ agent_id: "agent-multi", idle_count: i, session_id: sessionId });
     }
-    const digestFile = path.join("/tmp", "claude-hooks", sessionId, "idle-digest.jsonl");
+    const digestFile = path.join("/tmp", "palantir-mini-hooks", sessionId, "idle-digest.jsonl");
     const lines = fs.readFileSync(digestFile, "utf8").split("\n").filter((l) => l.trim());
     expect(lines.length).toBe(5);
   });
@@ -114,7 +114,7 @@ describe("leadIdleDigest hook", () => {
 
   test("flush clears digest buffer", async () => {
     // Write a flush meta with old timestamp to force flush on next call
-    const dir = path.join("/tmp", "claude-hooks", sessionId);
+    const dir = path.join("/tmp", "palantir-mini-hooks", sessionId);
     fs.mkdirSync(dir, { recursive: true });
     const flushMetaPath = path.join(dir, "idle-digest-flush.json");
     fs.writeFileSync(flushMetaPath, JSON.stringify({ lastFlushedAt: new Date(0).toISOString() }));

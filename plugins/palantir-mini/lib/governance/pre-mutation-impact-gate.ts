@@ -16,6 +16,11 @@ import {
   projectSurfaceRefMatchesTarget,
   surfaceRefMatchesTarget,
 } from "./dtc-surface-policy";
+import {
+  hasUnresolvedBlockingSemanticConflict,
+  semanticConsistencyGateMode,
+} from "../semantic-consistency/policy";
+import type { SemanticConsistencyResolverOutput } from "../semantic-consistency/types";
 
 export type PreMutationImpactGateMode = "advisory" | "blocking";
 
@@ -32,6 +37,8 @@ export interface PreMutationImpactGateInput {
   readonly workContractRef?: string;
   readonly semanticIntentContract?: SemanticIntentContract;
   readonly digitalTwinChangeContract?: DigitalTwinChangeContract;
+  readonly semanticConsistencyResultRef?: string;
+  readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
   readonly projectScope?: ProjectScopeDefinition;
   readonly mode?: PreMutationImpactGateMode;
 }
@@ -86,6 +93,18 @@ export function evaluatePreMutationImpactGate(
   if (capability?.requiresSprintContract && !input.workContractRef) {
     missingApprovals.push(`${capability.toolName}:WorkContract`);
   }
+  const semanticMode = semanticConsistencyGateMode();
+  const hasSemanticConflict = semanticMode !== "off" &&
+    hasUnresolvedBlockingSemanticConflict(input.semanticConsistencyResult);
+  if (hasSemanticConflict) {
+    const resolverRef = input.semanticConsistencyResultRef ?? input.semanticConsistencyResult?.resolverRunId;
+    missingApprovals.push(
+      resolverRef ? `${resolverRef}:SemanticConsistencyApproval` : "SemanticConsistencyApproval",
+    );
+    requiredNextActions.push(
+      "Resolve semantic consistency conflicts or provide explicit SemanticConsistencyApproval before mutation.",
+    );
+  }
 
   for (const forbidden of unique(forbiddenMatches)) {
     requiredNextActions.push(`Remove forbidden surface from mutation: ${forbidden}`);
@@ -101,8 +120,9 @@ export function evaluatePreMutationImpactGate(
     forbiddenMatches.length > 0 ||
     mismatchDiagnostics.length > 0 ||
     missingApprovals.length > 0;
+  const effectiveMode = hasSemanticConflict && semanticMode === "blocking" ? "blocking" : mode;
   const decision: PreMutationImpactGateResult["decision"] =
-    hasPolicyFinding ? (mode === "blocking" ? "deny" : "advisory") : "allow";
+    hasPolicyFinding ? (effectiveMode === "blocking" ? "deny" : "advisory") : "allow";
   const reason = hasPolicyFinding
     ? [
         `pre-mutation impact gate ${decision}`,
@@ -132,6 +152,8 @@ function collectEvidenceRefs(
     input.semanticIntentContractRef,
     input.digitalTwinChangeContractRef,
     input.workContractRef,
+    input.semanticConsistencyResultRef,
+    input.semanticConsistencyResult?.resolverRunId,
     capability?.rid,
   ].filter((value): value is string => typeof value === "string" && value.length > 0);
 }

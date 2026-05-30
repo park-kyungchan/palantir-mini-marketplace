@@ -186,7 +186,7 @@ describe("CT-3 W3.1d marker cleanup", () => {
 
   test("cleanupConsumedMarkers deletes matching markers + leaves others", () => {
     const sid = `test-cleanup-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", sid);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", sid);
     fs.mkdirSync(markerDir, { recursive: true });
     // Markers for sprint 5 iter 2 (target) — multi-rubric
     fs.writeFileSync(path.join(markerDir, "analyzer-request-5-2-rubricA.json"), "{}");
@@ -308,7 +308,7 @@ describe("CT-3 W3.1d marker cleanup", () => {
       { iter: 2, body: "## CT-3 e2e analysis" },
     ]);
     // Pre-write the marker the trigger hook would have written
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", sid);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", sid);
     fs.mkdirSync(markerDir, { recursive: true });
     const markerPath = path.join(markerDir, "analyzer-request-7-2-rubric-X.json");
     fs.writeFileSync(markerPath, JSON.stringify({

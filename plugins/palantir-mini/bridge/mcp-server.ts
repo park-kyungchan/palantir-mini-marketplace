@@ -381,6 +381,7 @@ const TOOLS: ToolSpec[] = [
         turn:                     { type: "number", description: "Fill sequence turn index. For SIC, this records FDE/context-confirmed meaning into the contract boundary; raw prompt extraction remains draft-only." },
         turnUserInput:            { type: "string", description: "Free-text user answer for the current fill turn. Only meaningful when `turn` is provided." },
         fillPolicy:               { type: "string", enum: ["default-8-turn", "fde-ontology-build", "dtc-turn-fill", "context-engineering-to-sic", "ontology-dtc-build"], description: "Fill sequence policy. Absent = legacy T0-T7 boundary fill. 'fde-ontology-build' surfaces meaning in the FDE session; 'context-engineering-to-sic' requires DATA/LOGIC/ACTION/GOVERNANCE readiness before SIC; DTC policies require approved SIC + FDE/context plan evidence before DTC approval." },
+        semanticConsistencyResolverInput: { type: "object", description: "Optional deterministic semantic consistency resolver input. Resolves source-system terms without LLM promotion and projects resolver evidence into conversation/application state." },
       },
       required: ["project", "rawIntent"],
     },

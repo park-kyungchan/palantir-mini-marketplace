@@ -3,16 +3,17 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const PLUGIN_ROOT = resolve(import.meta.dir, "..", "..");
-const PRIVATE_MARKETPLACE_SOURCE = "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini";
+const LOCAL_PLUGIN_SOURCE = "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini";
+const UPSTREAM_MARKETPLACE_SOURCE = "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini";
 
 interface RuntimeBoundaryContract {
   schemaVersion: string;
   sourceAuthority: {
     canonicalPluginSource: string;
+    upstreamPluginSource: string;
     runtimeBoundaryContract: string;
-    claudeInstallPath: string;
     codexInstallPath: string;
-    geminiInstallPath: string;
+    inactiveRuntimeInstallPaths: string[];
     note: string;
   };
   neutralCore: {
@@ -45,22 +46,23 @@ describe("runtime-neutral boundary contract", () => {
 
     expect(contract.schemaVersion).toBe("palantir-mini/runtime-boundary-contract/v1");
     expect(contract.neutralCore.root).toBe(".palantir-mini/core");
-    expect(contract.sourceAuthority.canonicalPluginSource).toBe(PRIVATE_MARKETPLACE_SOURCE);
+    expect(contract.sourceAuthority.canonicalPluginSource).toBe(LOCAL_PLUGIN_SOURCE);
+    expect(contract.sourceAuthority.upstreamPluginSource).toBe(UPSTREAM_MARKETPLACE_SOURCE);
     expect(contract.sourceAuthority.runtimeBoundaryContract).toBe(
       "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
-    );
-    expect(contract.sourceAuthority.claudeInstallPath).toContain(
-      "~/.claude/plugins/cache/palantir-mini-marketplace",
     );
     expect(contract.sourceAuthority.codexInstallPath).toContain(
       "~/.codex/plugins/cache/palantir-mini-marketplace",
     );
-    expect(contract.sourceAuthority.geminiInstallPath).toBe("~/.gemini/extensions/palantir-mini");
+    expect(contract.sourceAuthority.inactiveRuntimeInstallPaths).toContain(
+      "~/.claude/plugins/cache/palantir-mini-marketplace/palantir-mini/<version>",
+    );
+    expect(contract.sourceAuthority.inactiveRuntimeInstallPaths).toContain("~/.gemini/extensions/palantir-mini");
 
     const overlays = new Map(contract.runtimeNativeOverlays.map((overlay) => [overlay.runtime, overlay]));
     expect(overlays.get("codex")?.ownedRoots).toContain("~/.codex/**");
-    expect(overlays.get("claude")?.ownedRoots).toContain("~/.claude/**");
-    expect(overlays.get("gemini")?.ownedRoots).toContain("~/.gemini/**");
+    expect(overlays.has("claude")).toBe(false);
+    expect(overlays.has("gemini")).toBe(false);
 
     for (const ownedConcept of contract.neutralCore.owns) {
       expect(ownedConcept).not.toMatch(/codex|claude/i);
@@ -93,11 +95,12 @@ describe("runtime-neutral boundary contract", () => {
   test("SSoT marker points runtimeBoundaryAuthority at the neutral root contract", () => {
     const marker = loadSsotAuthority();
 
-    expect(marker.authority).toBe(PRIVATE_MARKETPLACE_SOURCE);
+    expect(marker.authority).toBe(LOCAL_PLUGIN_SOURCE);
+    expect(marker.upstreamAuthority).toBe(UPSTREAM_MARKETPLACE_SOURCE);
     expect(marker.runtimeBoundaryAuthority).toBe(
       "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
     );
     expect(String(marker.runtimeBoundaryAuthority)).not.toContain("/palantir-mini/.palantir-mini/");
-    expect(marker.runtimeBoundaryAuthorityScope).toContain("canonical plugin workflow source remains");
+    expect(marker.runtimeBoundaryAuthorityScope).toContain("runtime-neutral local checkout");
   });
 });

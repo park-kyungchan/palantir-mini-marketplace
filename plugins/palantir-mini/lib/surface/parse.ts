@@ -246,8 +246,9 @@ function runtimeProjectionFromBlock(lines: readonly string[]): AipFdeLocalSurfac
 
 function runtimeProjectionFor(runtime: "claude" | "codex", lines: readonly string[]): RuntimeSurfaceProjection {
   const block = collectNestedBlock(lines, runtime);
+  const support = scalarFromBlock(block, "support");
   return {
-    support: scalarFromBlock(block, "support") as RuntimeSurfaceProjection["support"],
+    support: (support ?? "unsupported") as RuntimeSurfaceProjection["support"],
     evidenceRefs: arrayFromBlock(block, "evidenceRefs"),
     fallbackObligations: arrayFromBlock(block, "fallbackObligations"),
     unsupportedSurfaceRefs: arrayFromBlock(block, "unsupportedSurfaceRefs"),

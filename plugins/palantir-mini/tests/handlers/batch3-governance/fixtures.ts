@@ -32,7 +32,7 @@ export function makeFakeTeamsDir(dir: string): void {
   ]));
 
   const sid = process.env["CLAUDE_SESSION_ID"] ?? "test-session-health";
-  const idleDir = path.join("/tmp", "claude-hooks", sid);
+  const idleDir = path.join("/tmp", "palantir-mini-hooks", sid);
   fs.mkdirSync(idleDir, { recursive: true });
   fs.writeFileSync(path.join(idleDir, "idle-state.json"), JSON.stringify({
     alice: 2,

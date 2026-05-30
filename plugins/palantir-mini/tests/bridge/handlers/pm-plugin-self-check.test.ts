@@ -484,6 +484,34 @@ describe("pm_plugin_self_check", () => {
     expect(passing.missingArtifacts).toEqual([]);
   });
 
+  test("15b. eval suite artifact gate maps semantic consistency surfaces", () => {
+    const project = makeTmpDir();
+    const changedFiles = [
+      ".claude/plugins/palantir-mini/lib/semantic-consistency/resolver.ts",
+    ];
+    const missing = checkEvalSuiteArtifacts(project, changedFiles);
+    expect(missing.status).toBe("fail");
+    expect(missing.requiredSuiteIds).toContain("suite:semantic-consistency-regression");
+    expect(missing.missingArtifacts.some((artifact) =>
+      artifact.suiteId === "suite:semantic-consistency-regression"
+    )).toBe(true);
+
+    const artifactDir = path.join(project, ".palantir-mini", "session", "eval-runs");
+    fs.mkdirSync(artifactDir, { recursive: true });
+    for (const suiteId of missing.requiredSuiteIds) {
+      fs.writeFileSync(path.join(artifactDir, `${suiteId.replace(/[^a-z0-9-]+/gi, "-")}.json`), JSON.stringify({
+        suiteId,
+        evalRunId: `eval-run:${suiteId}:pass`,
+        status: "passed",
+      }, null, 2));
+    }
+
+    const passing = checkEvalSuiteArtifacts(project, changedFiles);
+    expect(passing.status).toBe("pass");
+    expect(passing.requiredSuiteIds).toContain("suite:semantic-consistency-regression");
+    expect(passing.missingArtifacts).toEqual([]);
+  });
+
   test("16. adversarial verifier evidence gate blocks governance slices without verifier-adversarial proof", () => {
     const project = makeTmpDir();
     const changedFiles = [

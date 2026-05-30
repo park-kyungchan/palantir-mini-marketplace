@@ -5,7 +5,6 @@ const ROOT_ENV_PRECEDENCE = [
   "PALANTIR_MINI_ROOT",
   "PALANTIR_MINI_PLUGIN_ROOT",
   "PLUGIN_ROOT",
-  "CLAUDE_PLUGIN_ROOT",
 ] as const;
 
 const PACKAGE_RELATIVE_ROOT = path.resolve(import.meta.dir, "..", "..");

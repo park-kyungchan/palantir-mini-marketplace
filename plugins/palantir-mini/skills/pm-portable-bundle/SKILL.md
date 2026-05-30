@@ -16,9 +16,9 @@ Creates a portable tarball of canonical `plugins/palantir-mini/` for fresh-machi
 ### 1. Read plugin version
 
 ```bash
-jq -r .version plugins/palantir-mini/.claude-plugin/plugin.json
+jq -r .version plugins/palantir-mini/.codex-plugin/plugin.json
 # → e.g. "2.23.0"
-jq -r '.compatibleSchemaVersions' plugins/palantir-mini/.claude-plugin/plugin.json
+jq -r '.compatibleSchemaVersions' plugins/palantir-mini/.codex-plugin/plugin.json
 # → e.g. ">=1.15.0 <2.0.0"
 ```
 

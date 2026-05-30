@@ -1,12 +1,12 @@
 # palantir-mini
 
-> Cross-project Ontology-First control-plane plugin for Claude Code and Codex native runtimes.
+> Cross-project Ontology-First control-plane plugin packaged for the Codex native runtime.
 > Current release: **v6.79.0** — FDE turn quality, structured DTC surfaces, and image-teacher-qa retirement. The control plane now documents the PR-B through PR-J closeout surface: Lead orchestration, ContextEngineeringPlanV3 advisory lanes, MCP capability metadata, DTC surface pre-mutation checks, WorkContract router bindings, agent output contracts, harness ratchet release gates, Codex runtime-gap docs, and BackPropagation ratchet proposals.
 > Release inventory is checked by `pm_plugin_self_check mode=release`; do not copy volatile MCP/hook/skill/agent counts into this header.
 
 ## What this is
 
-palantir-mini is the **Ontology-First Brain for multi-harness agent swarms** — a control plane that grounds any harness species (Claude Code CLI, Claude Agent SDK, palantir-mini-sprint-harness, Managed Agents, task-specific harnesses) in:
+palantir-mini is the **Ontology-First Brain for multi-harness agent swarms** — a control plane that grounds Codex-native plugin workflows and compatible task-specific harnesses in:
 - Append-only `events.jsonl` lineage (rule 10)
 - `~/.claude/schemas/` ontology (rule 08)
 - 5-dimensional Decision Lineage (when / atopWhich / throughWhich / byWhom / withWhat)
@@ -18,7 +18,9 @@ palantir-mini is **not itself a harness species** — it dispatches to and audit
 
 ## Plugin Source Authority (SSoT)
 
-The canonical source root is the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. Runtime plugin caches are install payloads, not semantic SSoT. Runtime-neutral ownership boundaries remain described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`; runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong in the owning runtime homes. Machine-readable authority marker: `.ssot-authority.json`. Human-readable companion: `SSOT-AUTHORITY.md`.
+The canonical local source root is `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/`, backed by the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. Runtime plugin caches are install payloads, not semantic SSoT. Runtime-neutral ownership boundaries remain described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`; current local install support is Codex-only, and Codex-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and capability facts belong under `~/.codex/**`. Machine-readable authority marker: `.ssot-authority.json`. Human-readable companion: `SSOT-AUTHORITY.md`.
+
+`docs/RUNTIME_LAYER_BOUNDARY.md` is the mandatory operator checklist for palantir-mini self-improvement. It separates the LLM/provider layer, Codex-native runtime adapter layer, runtime-neutral local source checkout, upstream GitHub marketplace source, and installed cache payloads. A palantir-mini implementation plan must name those layers before editing.
 
 ## Convex Cloud Deployment
 
@@ -33,15 +35,13 @@ The Convex backend is authorized for Cloud cutover (user directive 2026-05-13). 
 Codex loads palantir-mini hook entrypoints from `.codex-plugin/plugin.json` →
 `hooks/codex-hooks.json`. That file is intentionally small: it uses only
 Codex-supported events, regex-safe matchers, and adapter commands. The adapter
-then reads shared `hooks/hooks.json` as the canonical workflow-intent registry.
-Claude-only task/team lifecycle mounts live in `hooks/claude-hooks.json` and are
-not part of the Codex live-read source. Runtime fallback wiring may also exist
-under `~/.codex/hooks.json`, but it must remain a thin consumer of the plugin
-payload.
+then reads `hooks/hooks.json` as the canonical workflow-intent registry.
+Runtime fallback wiring may also exist under `~/.codex/hooks.json`, but it must
+remain a thin consumer of the plugin payload.
 
-## Native Runtime Gaps
-
-`docs/NATIVE_RUNTIME_GAPS.md` catalogs the hook/event parity between the Claude Code CLI runtime and the Codex CLI runtime for all palantir-mini surfaces (SessionStart/Stop, PreToolUse/PostToolUse, SubagentStart/Stop, TaskCreated/TaskCompleted/TaskUpdated, TeammateIdle, UserPromptSubmit, PreCompact/PostCompact, Notification, Agent). Each surface is marked **bridged** | **partial** | **gap** | **not-applicable**, with a workaround priority map for future bridge work. Use this as the smoke-test target registry for cross-runtime parity. Per canonical plan v2 §4 row 6.3 (sprint-130 PR 6.3; PHASE 6 PR 3/7).
+`docs/RUNTIME_LAYER_BOUNDARY.md` owns the source/install/cache separation that
+prevents native runtime facts from being mistaken for palantir-mini semantic
+authority.
 
 ## Parallel-Spawn Dispatch
 
@@ -58,7 +58,10 @@ Advisory hook: `hooks/parallel-spawn-version-advisory.ts`
 
 ## Per-Runtime Reload Requirements
 
-`docs/RELOAD_PER_RUNTIME.md` is the compatibility cheatsheet for what reload action is needed — and when — after adding or modifying a tool / skill / agent / manifest / hook / handler / lib / schema in the palantir-mini plugin. Covers: what change categories trigger a reload, how to reload in Claude Code CLI (`/reload-plugins` or fresh session), how to reload in Codex CLI (CLI restart + adapter sync), and explicit native-gap caveats. Runtime-specific install and trust state still belong to the owning runtime.
+`docs/RELOAD_PER_RUNTIME.md` is the Codex reload cheatsheet for what reload
+action is needed after adding or modifying a tool / skill / agent / manifest /
+hook / handler / lib / schema in the palantir-mini plugin. Runtime-specific
+install and trust state still belong to the owning runtime.
 
 ## Prompt-to-DTC Front Door
 
@@ -83,18 +86,17 @@ Canonical prompt/DTC proof is:
    and `DigitalTwinChangeContract` refs, preserving prompt hash continuity.
 7. Prompt-DTC PreToolUse enforcement is controlled by
    `PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off|advisory|selective-blocking|scoped-blocking|blocking`.
-   The fleet default is managed by policy; promoting any runtime to full
-   blocking remains intentionally deferred until sustained Claude and Codex
-   smoke evidence supports it.
+   The fleet default is managed by policy; promoting Codex to full blocking
+   remains intentionally deferred until sustained smoke evidence supports it.
 
 v5.1.0 adds a human-collaborative authoring layer on top of this proof path:
 non-programmer users review plain-language cards, answer bounded clarifying
 questions, and approve the FDE-discovered meaning/change-boundary summaries.
-Codex or Claude then maps that approval into internal `SemanticIntentContract`
-fields and derives `DigitalTwinChangeContract` fields only from the approved
-SIC/FDE/context-plan evidence, including typed refs and structured
-`approvalRef` provenance. Approval authorizes routing/gating only; it does not
-execute mutation.
+Codex then maps that approval into internal `SemanticIntentContract` fields and
+derives `DigitalTwinChangeContract` fields only from the approved
+SIC/FDE/context-plan evidence, including typed refs and structured `approvalRef`
+provenance. Approval authorizes routing/gating only; it does not execute
+mutation.
 
 ## DTC (DigitalTwinChangeContract) Governance
 
@@ -140,12 +142,11 @@ Session snapshots are written under `<project>/.palantir-mini/session/fde-ontolo
 
 ### Per-turn Overlay Stability
 
-Root and project `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `.claude/rules/*`
-are stable runtime overlays, not release-note mirrors. Update them only when
-read order, edit ownership, hook bridge/reload behavior, MCP/skill visibility,
-or cross-runtime gaps change. Normal palantir-mini implementation and release
-facts belong in this README, `CHANGELOG.md`, manifests, `hooks/hooks.json`, and
-`managed-settings.d/`.
+Root and project `AGENTS.md` files are stable runtime overlays, not release-note
+mirrors. Update them only when read order, edit ownership, hook bridge/reload
+behavior, or MCP/skill visibility changes. Normal palantir-mini implementation
+and release facts belong in this README, `CHANGELOG.md`, manifests,
+`hooks/hooks.json`, and `managed-settings.d/`.
 
 Before expanding per-turn overlays for palantir-mini drift, use the existing
 control plane first: `pm-rule-audit`, `validate_managed_settings_fragments`,
@@ -172,8 +173,7 @@ that handler, not this README, for exact live counts.
 - Plugin agents, skill docs, managed settings, eval-suite artifacts,
   adversarial verifier evidence, outcome replay evidence, and broad-test ratchet
   evidence are release axes.
-- `docs/NATIVE_RUNTIME_GAPS.md` and `docs/RELOAD_PER_RUNTIME.md` own
-  runtime-specific hook parity and reload caveats.
+- `docs/RELOAD_PER_RUNTIME.md` owns Codex reload caveats.
 
 > **v3.0.0 cutover note**: `~/.claude/{agents,skills}/` user-scope directories DELETED. Plugin agents now ACTIVE at scope precedence 5 (no longer LOWEST since user-scope no longer exists per https://code.claude.com/docs/en/sub-agents). External callers using `Agent(subagent_type: "<name>")` or slash-skill invocation patterns now resolve to plugin scope automatically. Recovery: `git checkout HEAD~1 -- ~/.claude/agents ~/.claude/skills` from the v3.0.0 commit's parent restores user-scope.
 
@@ -201,7 +201,6 @@ public families are:
 
 ```text
 palantir-mini/
-├── .claude-plugin/              # plugin + marketplace manifests
 ├── .codex-plugin/               # Codex plugin manifest
 ├── .mcp.json                    # Codex bundled MCP config, plugin-root-relative
 ├── bridge/
@@ -242,9 +241,8 @@ Open these in order when you need the current palantir-mini picture:
 1. `plugins/palantir-mini/README.md`
 2. `plugins/palantir-mini/SSOT-AUTHORITY.md`
 3. `plugins/palantir-mini/CHANGELOG.md`
-4. `plugins/palantir-mini/docs/NATIVE_RUNTIME_GAPS.md`
-5. `~/.claude/schemas/ontology/2026-04-23-palantir-mini-next-direction.md`
-6. `~/docs/palantir-mini-v3-control-plane-blueprint.md`
+4. `plugins/palantir-mini/docs/RUNTIME_LAYER_BOUNDARY.md`
+5. `plugins/palantir-mini/docs/RELOAD_PER_RUNTIME.md`
 
 If you are changing runtime behavior, then read:
 
@@ -264,10 +262,10 @@ node -e 'import("./bridge/mcp-server.ts").then(({TOOLS}) => console.log(TOOLS.le
 node -e 'const fs=require("fs");const hooks=JSON.parse(fs.readFileSync("./hooks/hooks.json","utf8"));console.log(Object.values(hooks.hooks).flatMap(v=>v.flatMap(x=>x.hooks||[])).length)'
 ```
 
-For home-scope RBAC drift:
+For runtime RBAC drift:
 
 ```bash
-jq '.permissions.allow[]' ~/.claude/managed-settings.d/50-palantir-mini.json | rg 'mcp__palantir-mini__'
+rg 'palantir-mini' ~/.codex/config.toml ~/.codex/hooks.json
 ```
 
 ## Canonical companion docs

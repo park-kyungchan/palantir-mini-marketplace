@@ -38,11 +38,13 @@ describe("ssot-authority", () => {
       expect((m.version as string).length).toBeGreaterThan(0);
     });
 
-    it("consumerRuntimes is an array with at least 2 entries", () => {
+    it("consumerRuntimes is an array with Codex as the active runtime", () => {
       const raw = readFileSync(markerPath, "utf8");
       const m = JSON.parse(raw);
       expect(Array.isArray(m.consumerRuntimes)).toBe(true);
-      expect((m.consumerRuntimes as unknown[]).length).toBeGreaterThanOrEqual(2);
+      expect((m.consumerRuntimes as Array<Record<string, unknown>>).map((entry) => entry.runtime)).toEqual([
+        "codex-cli",
+      ]);
     });
 
     it("each consumerRuntime has 'runtime' and 'consumesVia' fields", () => {

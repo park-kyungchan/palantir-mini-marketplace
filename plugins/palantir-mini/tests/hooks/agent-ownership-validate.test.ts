@@ -2,8 +2,8 @@
 //
 // 5 acceptance scenarios per task spec:
 //   1. hook-builder editing hooks/ — ALLOW
-//   2. hook-builder editing .claude-plugin/plugin.json — DENY
-//   3. plugin-maintainer editing .claude-plugin/plugin.json — ALLOW
+//   2. hook-builder editing .codex-plugin/plugin.json — DENY
+//   3. plugin-maintainer editing .codex-plugin/plugin.json — ALLOW
 //   4. protocol-designer editing rules/ (out of plugin scope) — EXEMPT (not in plugin root)
 //   5. bypass envvar — BYPASS (audit emitted)
 //
@@ -66,10 +66,10 @@ describe("agent-ownership-validate: 5 acceptance scenarios", () => {
     expect(result.hookSpecificOutput?.permissionDecision).toBeUndefined();
   });
 
-  // 2. hook-builder editing .claude-plugin/plugin.json — DENY
-  test("scenario 2: hook-builder editing .claude-plugin/plugin.json — DENY", async () => {
+  // 2. hook-builder editing .codex-plugin/plugin.json — DENY
+  test("scenario 2: hook-builder editing .codex-plugin/plugin.json — DENY", async () => {
     const payload = makePayload({
-      filePath:  `${PLUGIN_ROOT}/.claude-plugin/plugin.json`,
+      filePath:  `${PLUGIN_ROOT}/.codex-plugin/plugin.json`,
       agentName: "hook-builder",
     });
     const result = await agentOwnershipValidate(payload) as {
@@ -83,10 +83,10 @@ describe("agent-ownership-validate: 5 acceptance scenarios", () => {
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("rule 07");
   });
 
-  // 3. plugin-maintainer editing .claude-plugin/plugin.json — ALLOW
-  test("scenario 3: plugin-maintainer editing .claude-plugin/plugin.json — ALLOW", async () => {
+  // 3. plugin-maintainer editing .codex-plugin/plugin.json — ALLOW
+  test("scenario 3: plugin-maintainer editing .codex-plugin/plugin.json — ALLOW", async () => {
     const payload = makePayload({
-      filePath:  `${PLUGIN_ROOT}/.claude-plugin/plugin.json`,
+      filePath:  `${PLUGIN_ROOT}/.codex-plugin/plugin.json`,
       agentName: "plugin-maintainer",
     });
     const result = await agentOwnershipValidate(payload) as {
@@ -119,7 +119,7 @@ describe("agent-ownership-validate: 5 acceptance scenarios", () => {
     process.env.PALANTIR_MINI_AGENT_OWNERSHIP_BYPASS = "1";
     try {
       const payload = makePayload({
-        filePath:  `${PLUGIN_ROOT}/.claude-plugin/plugin.json`,
+        filePath:  `${PLUGIN_ROOT}/.codex-plugin/plugin.json`,
         agentName: "hook-builder",
       });
       const result = await agentOwnershipValidate(payload) as {
@@ -158,9 +158,9 @@ describe("agent-ownership-validate: PR-G inventory coverage", () => {
 
   test("mutation-capable plugin agent missing output contract is denied before ownership", async () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pm-own-prg-"));
-    const saved = process.env.CLAUDE_PLUGIN_ROOT;
+    const saved = process.env.PALANTIR_MINI_PLUGIN_ROOT;
     try {
-      process.env.CLAUDE_PLUGIN_ROOT = tmp;
+      process.env.PALANTIR_MINI_PLUGIN_ROOT = tmp;
       fs.mkdirSync(path.join(tmp, "agents"), { recursive: true });
       fs.mkdirSync(path.join(tmp, "hooks"), { recursive: true });
       fs.writeFileSync(path.join(tmp, "agents", "hook-builder.md"), `---
@@ -177,8 +177,8 @@ model: sonnet
       expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
       expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("output contract");
     } finally {
-      if (saved === undefined) delete process.env.CLAUDE_PLUGIN_ROOT;
-      else process.env.CLAUDE_PLUGIN_ROOT = saved;
+      if (saved === undefined) delete process.env.PALANTIR_MINI_PLUGIN_ROOT;
+      else process.env.PALANTIR_MINI_PLUGIN_ROOT = saved;
       fs.rmSync(tmp, { recursive: true, force: true });
     }
   });
@@ -194,7 +194,7 @@ describe("agent-ownership-validate: additional coverage", () => {
       session_id: "test-session-lead",
       tool_name:  "Edit",
       tool_input: {
-        file_path: `${PLUGIN_ROOT}/.claude-plugin/plugin.json`,
+        file_path: `${PLUGIN_ROOT}/.codex-plugin/plugin.json`,
       },
       byWhom: {
         agentName: "claude-code",

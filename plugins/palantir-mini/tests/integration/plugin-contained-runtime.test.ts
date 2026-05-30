@@ -5,7 +5,7 @@ import { resolveResearchAnchor } from "../../lib/runtime-overlay/research-core-s
 import { resolveSchemaPath } from "../../lib/runtime-overlay/schema-resolve";
 import { resolveSharedCorePath } from "../../lib/runtime-overlay/shared-core-resolve";
 
-const PLUGIN_ROOT = "/home/palantirkc/.claude/plugins/palantir-mini";
+const PLUGIN_ROOT = path.resolve(import.meta.dir, "../..");
 
 function walkTs(dir: string): string[] {
   const out: string[] = [];

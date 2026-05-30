@@ -42,7 +42,7 @@ describe("resolveStartTime", () => {
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
-    const hookDir = path.join("/tmp", "claude-hooks", sessionId);
+    const hookDir = path.join("/tmp", "palantir-mini-hooks", sessionId);
     if (fs.existsSync(hookDir)) fs.rmSync(hookDir, { recursive: true, force: true });
   });
 
@@ -74,7 +74,7 @@ describe("readAlarmState / writeAlarmState", () => {
 
   beforeEach(() => { sessionId = `test-sda-rw-${Date.now()}`; });
   afterEach(() => {
-    const dir = path.join("/tmp", "claude-hooks", sessionId);
+    const dir = path.join("/tmp", "palantir-mini-hooks", sessionId);
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
   });
 
@@ -115,7 +115,7 @@ describe("sessionDurationAlarm hook", () => {
       else process.env[k] = v;
     }
     fs.rmSync(tmpEvents, { recursive: true, force: true });
-    const dir = path.join("/tmp", "claude-hooks", sessionId);
+    const dir = path.join("/tmp", "palantir-mini-hooks", sessionId);
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
   });
 

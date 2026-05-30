@@ -40,6 +40,7 @@ function requiredCategoryFor(surface: ReleaseChangedSurface): RequiredCategory[]
     case "contract":
     case "prompt":
     case "dtc":
+    case "semantic-consistency":
       return ["governance"];
     case "security":
       return ["security"];
@@ -152,4 +153,3 @@ export function checkAdversarialVerifierEvidence(
     missingCategories,
   };
 }
-

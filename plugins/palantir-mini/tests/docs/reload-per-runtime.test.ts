@@ -18,11 +18,11 @@ describe("RELOAD_PER_RUNTIME.md", () => {
     expect(content.length).toBeGreaterThan(0);
   });
 
-  it("should contain at least 3 runtime sections", () => {
+  it("should document Codex as the active runtime section", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).toContain("## Claude Code CLI");
     expect(content).toContain("## Codex CLI");
-    expect(content).toContain("## Gemini CLI");
+    expect(content).not.toContain("## Claude Code CLI");
+    expect(content).not.toContain("## Gemini");
   });
 
   it("should contain a common pitfalls section with at least 1 entry", () => {
@@ -33,9 +33,9 @@ describe("RELOAD_PER_RUNTIME.md", () => {
     expect(pitfallEntries.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("should document the /reload-plugins command for Claude Code CLI", () => {
+  it("should not document Claude reload commands in the Codex-only checkout", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).toContain("/reload-plugins");
+    expect(content).not.toContain("/reload-plugins");
   });
 
   it("should reference hooks.json as SSoT for Codex CLI", () => {
@@ -46,27 +46,21 @@ describe("RELOAD_PER_RUNTIME.md", () => {
 
   it("should require fleet sync plus Codex restart for Codex hook/plugin reloads", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).toContain("bun run ~/.codex/scripts/sync-claude-palantir-mini.ts");
     expect(content).toContain("restart the Codex CLI process");
-    expect(content).toContain("There is no\nCodex equivalent of Claude Code's `/reload-plugins`");
-    expect(content).toContain("does **not** hot-reload MCP servers or plugins");
+    expect(content).toContain("no in-session hot-reload");
   });
 
-  it("should preserve documented Codex native gaps and payload-sensitive adapter caveats", () => {
+  it("should document Codex cache and restart caveats", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    for (const eventName of ["TaskCreated", "TaskCompleted", "TeammateIdle", "SubagentStart", "SubagentStop"]) {
-      expect(content).toContain(eventName);
-    }
-    expect(content).toContain("subagent and compact lifecycle parity remains payload-sensitive");
+    expect(content).toContain("~/.codex/plugins/cache/**");
+    expect(content).toContain("Codex must be restarted");
   });
 
-  it("should document exactly the active Claude, Codex, and Gemini runtime families", () => {
+  it("should document exactly the active Codex runtime family", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).toContain("gemini extensions validate plugins/palantir-mini/.gemini-extension");
-    expect(content).toContain("Gemini hook timeouts are milliseconds");
-    expect(content).not.toContain("Future runtimes");
-    expect(content).not.toContain("Cursor");
-    expect(content.match(/TBD/g)?.length ?? 0).toBe(0);
+    expect(content).toContain("Current local install scope: Codex only");
+    expect(content).not.toContain("gemini extensions validate");
+    expect(content).not.toContain("claude plugin");
   });
 
   it("should include a 'What triggers a reload requirement' section with a table", () => {
@@ -88,8 +82,8 @@ describe("RELOAD_PER_RUNTIME.md", () => {
     expect(content).toContain("Last audited:");
   });
 
-  it("should reference NATIVE_RUNTIME_GAPS.md for cross-runtime parity", () => {
+  it("should reference RUNTIME_LAYER_BOUNDARY.md for install separation", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).toContain("NATIVE_RUNTIME_GAPS.md");
+    expect(content).toContain("RUNTIME_LAYER_BOUNDARY.md");
   });
 });

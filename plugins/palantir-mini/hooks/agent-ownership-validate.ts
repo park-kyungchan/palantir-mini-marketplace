@@ -135,14 +135,14 @@ function resolveAbsPath(filePath: string, cwd: string): string {
  * Minimal glob pattern matcher sufficient for the ownership table patterns:
  *   - "hooks/**"      → any file under hooks/ (any depth)
  *   - "hooks/**"      also matches "hooks/foo.ts"
- *   - ".claude-plugin/plugin.json" → exact match
+ *   - ".codex-plugin/plugin.json" → exact match
  *   - "README.md"     → exact match
  *
  * Supported wildcards:
  *   **  → matches any path segment(s) including /
  *    *  → matches any single path segment (no /)
  *
- * dot-files (e.g. .claude-plugin/) are matched transparently.
+ * dot-files (e.g. .codex-plugin/) are matched transparently.
  */
 function globMatch(pattern: string, input: string): boolean {
   // Convert glob to a RegExp

@@ -22,5 +22,5 @@ export function currentSessionId(): string {
 }
 
 export function idleStatePath(): string {
-  return path.join("/tmp", "claude-hooks", currentSessionId(), "idle-state.json");
+  return path.join("/tmp", "palantir-mini-hooks", currentSessionId(), "idle-state.json");
 }

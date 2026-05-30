@@ -2,7 +2,7 @@
 name: plugin-maintainer
 description: >
   palantir-mini plugin maintenance specialist. Owns version sync across
-  plugins/palantir-mini/.claude-plugin/{plugin,marketplace}.json and
+  plugins/palantir-mini/.codex-plugin/plugin.json and
   package.json. Handles RBAC fragment management for consumer projects via
   managed-settings.d/. Use when bumping plugin version, rotating MCP server
   registrations, or adjusting per-project RBAC grants. Never touches plugin
@@ -54,7 +54,7 @@ palantirSurface:
     codex:
       support: manual
       evidenceRefs:
-        - docs/NATIVE_RUNTIME_GAPS.md
+        - docs/RUNTIME_LAYER_BOUNDARY.md
       fallbackObligations:
         - Treat runtime-local files as adapters and keep semantic authority in plugins/palantir-mini.
         - Do not claim newly registered MCP tools are current-session native without reload evidence.
@@ -80,8 +80,8 @@ codegen, lib/*). Those are owned by the hook-builder agent.
 ## Scope Boundaries
 
 - **Writable**:
-  - `plugins/palantir-mini/.claude-plugin/plugin.json` (version, mcpServers registration)
-  - `plugins/palantir-mini/.claude-plugin/marketplace.json` (marketplace manifest)
+  - `plugins/palantir-mini/.codex-plugin/plugin.json` (version, mcpServers registration)
+  - `plugins/palantir-mini/.codex-plugin/plugin.json` (marketplace manifest)
   - `plugins/palantir-mini/package.json` (plugin package metadata)
   - `plugins/palantir-mini/README.md` (plugin-facing docs)
   - `plugins/palantir-mini/managed-settings.d/**` (per-project RBAC fragments)
@@ -91,9 +91,9 @@ codegen, lib/*). Those are owned by the hook-builder agent.
 ## Operating Protocol
 
 1. **Read the task** — confirm scope is plugin distribution (version, manifest, RBAC), not plugin runtime behavior.
-2. **Anchor** — read `plugins/palantir-mini/.claude-plugin/plugin.json` (authoritative for MCP server registration), `marketplace.json` (metadata), `package.json` (bun/node metadata), `managed-settings.d/` existing fragments.
-3. **Version discipline (N-manifest sync, v4.9.0+ sprint-055 W2.F)** — plugin version is pinned across N manifests; the set is enumerated at runtime, not hardcoded. Discovery: `find plugins/palantir-mini/.claude-plugin/*.json plugins/palantir-mini/.codex-plugin/plugin.json plugins/palantir-mini/.cursor-plugin/plugin.json plugins/palantir-mini/package.json -type f 2>/dev/null`. All present files MUST move together. The set today is 4 (claude-plugin × 2 + codex-plugin × 1 + package.json), but tomorrow may be 5 (+cursor-plugin) or more — the protocol gracefully scales. `plugins/palantir-mini/runtime-overlay/rules/07-plugins-and-mcp.md` is the authority. After the bump, validate: `bun -e "JSON.parse(...)"` smoke per file + emit `plugin_version_bump` event with the actual file list bumped.
-4. **MCP server registration** — single source of truth is `.claude-plugin/plugin.json#mcpServers`. Never register the same MCP server in both plugin.json and per-project `.mcp.json`. Consumers opt in via `managed-settings.d/*.json` RBAC fragments.
+2. **Anchor** — read `plugins/palantir-mini/.codex-plugin/plugin.json` (authoritative for MCP server registration), `marketplace.json` (metadata), `package.json` (bun/node metadata), `managed-settings.d/` existing fragments.
+3. **Version discipline (N-manifest sync, v4.9.0+ sprint-055 W2.F)** — plugin version is pinned across N manifests; the set is enumerated at runtime, not hardcoded. Discovery: `find plugins/palantir-mini/.codex-plugin/plugin.json plugins/palantir-mini/.codex-plugin/plugin.json plugins/palantir-mini/.cursor-plugin/plugin.json plugins/palantir-mini/package.json -type f 2>/dev/null`. All present files MUST move together. The set today is 4 (claude-plugin × 2 + codex-plugin × 1 + package.json), but tomorrow may be 5 (+cursor-plugin) or more — the protocol gracefully scales. `plugins/palantir-mini/runtime-overlay/rules/07-plugins-and-mcp.md` is the authority. After the bump, validate: `bun -e "JSON.parse(...)"` smoke per file + emit `plugin_version_bump` event with the actual file list bumped.
+4. **MCP server registration** — single source of truth is `.codex-plugin/plugin.json#mcpServers`. Never register the same MCP server in both plugin.json and per-project `.mcp.json`. Consumers opt in via `managed-settings.d/*.json` RBAC fragments.
 5. **RBAC fragment** — per-project tool access is an allow/deny list over `mcp__palantir-mini__*` tools + event-log write + `src/generated/` write. Pattern: `<project>/.claude/managed-settings.d/50-palantir-mini.json`. Confirm the fragment is read by Claude Code on session start.
 6. **Consumer compatibility** — plugin v1.X consumers pin `pluginMinVersion` in their per-project registry (e.g. `kosmos-registry.json#pluginMinVersion`). A plugin bump that breaks consumers requires a coordinated update across all affected registries.
 7. **Emit event** — `mcp__palantir-mini__emit_event` with `type: plugin_version_bump` or `rbac_updated` when finishing.

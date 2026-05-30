@@ -149,7 +149,7 @@ function sevenDaysAgo(): string {
  *   6. negotiate_sprint_contract — Lead action; not called here
  *
  * @param args - Intent, scope paths, and optional project root.
- * @param mcpClient - Injectable MCP callable map (for tests and Claude/Codex/Gemini runtime adapters).
+ * @param mcpClient - Injectable MCP callable map (for tests and Codex/Gemini runtime adapters).
  */
 export async function runIntentToOntology(
   args: IntentToOntologyArgs,

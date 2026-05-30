@@ -14,7 +14,8 @@ export type ReleaseChangedSurface =
   | "harness"
   | "governance"
   | "security"
-  | "runtime";
+  | "runtime"
+  | "semantic-consistency";
 
 export interface ReleaseChangedSurfaceEvidence {
   readonly surface: ReleaseChangedSurface;
@@ -122,6 +123,16 @@ export function classifyReleaseChangedSurfaces(
       addSurface(output, seen, pathName, "prompt", "prompt contract behavior changed");
       addSurface(output, seen, pathName, "dtc", "Digital Twin contract behavior changed");
       addSurface(output, seen, pathName, "governance", "governance contract behavior changed");
+    }
+    if (
+      lower.includes("/lib/semantic-consistency/") ||
+      lower.includes("/tests/lib/semantic-consistency/") ||
+      lower.includes("/eval-suites/semantic-consistency-regression") ||
+      lower.includes("/tests/evals/semantic-consistency-regression.test.ts")
+    ) {
+      addSurface(output, seen, pathName, "semantic-consistency", "semantic consistency resolver/gate behavior changed");
+      addSurface(output, seen, pathName, "contract", "semantic consistency contract boundary changed");
+      addSurface(output, seen, pathName, "governance", "semantic consistency governance behavior changed");
     }
     if (
       lower.includes("/agents/") ||

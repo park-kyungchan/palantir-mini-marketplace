@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import {
   evaluatePreMutationImpactGate,
   type PreMutationImpactGateInput,
@@ -6,6 +6,7 @@ import {
 import { extractDtcMutationSurfacePolicy } from "../../../lib/governance/dtc-surface-policy";
 import type { DigitalTwinChangeContract } from "../../../lib/lead-intent/contracts";
 import type { McpToolCapability } from "../../../lib/capability-registry/mcp-tool-capability";
+import { fixtureOutputs } from "../../../lib/semantic-consistency/fixtures";
 
 const BASE_DTC: DigitalTwinChangeContract = {
   contractId: "digital-twin-change:test",
@@ -56,6 +57,10 @@ function evaluate(input: Partial<PreMutationImpactGateInput>) {
 }
 
 describe("PreMutationImpactGate typed surface policy", () => {
+  afterEach(() => {
+    delete process.env.PALANTIR_MINI_SEMANTIC_CONSISTENCY_GATE;
+  });
+
   test("FileSurface: allowed target produces allow with matched surface", () => {
     const dtc: DigitalTwinChangeContract = {
       ...BASE_DTC,
@@ -209,5 +214,24 @@ describe("PreMutationImpactGate typed surface policy", () => {
       mode: "blocking",
     });
     expect(blocking.decision).toBe("deny");
+  });
+
+  test("semantic consistency conflicts deny mutation when semantic gate is blocking", () => {
+    process.env.PALANTIR_MINI_SEMANTIC_CONSISTENCY_GATE = "blocking";
+
+    const semanticConsistencyResult = fixtureOutputs().overloaded;
+    const result = evaluate({
+      toolName: "Edit",
+      resolvedTargetFiles: ["/repo/lib/lead-intent/contracts.ts"],
+      semanticConsistencyResult,
+      semanticConsistencyResultRef: semanticConsistencyResult.resolverRunId,
+    });
+
+    expect(result.decision).toBe("deny");
+    expect(result.missingApprovals).toContain(
+      `${semanticConsistencyResult.resolverRunId}:SemanticConsistencyApproval`,
+    );
+    expect(result.requiredNextActions.join("\n")).toContain("Resolve semantic consistency conflicts");
+    expect(result.evidenceRefs).toContain(semanticConsistencyResult.resolverRunId);
   });
 });

@@ -113,7 +113,7 @@ describe("subagent-orchestration-audit", () => {
 
     // Point plugin root at the real plugin so agent .md files are found
     const pluginRoot = path.resolve(import.meta.dirname!, "../..");
-    const result = runHook(payload, { CLAUDE_PLUGIN_ROOT: pluginRoot });
+    const result = runHook(payload, { PALANTIR_MINI_PLUGIN_ROOT: pluginRoot });
 
     expect(result.exitCode).toBe(0);
     expect(result.result).not.toBeNull();
@@ -154,7 +154,7 @@ describe("subagent-orchestration-audit", () => {
     };
 
     const pluginRoot = path.resolve(import.meta.dirname!, "../..");
-    const result = runHook(payload, { CLAUDE_PLUGIN_ROOT: pluginRoot });
+    const result = runHook(payload, { PALANTIR_MINI_PLUGIN_ROOT: pluginRoot });
 
     expect(result.exitCode).toBe(0);
 
@@ -190,7 +190,7 @@ describe("subagent-orchestration-audit", () => {
     };
 
     const pluginRoot = path.resolve(import.meta.dirname!, "../..");
-    const result = runHook(payload, { CLAUDE_PLUGIN_ROOT: pluginRoot });
+    const result = runHook(payload, { PALANTIR_MINI_PLUGIN_ROOT: pluginRoot });
 
     expect(result.exitCode).toBe(0);
     // model should fall back to "unknown"
@@ -222,7 +222,7 @@ describe("subagent-orchestration-audit", () => {
     };
 
     const pluginRoot = path.resolve(import.meta.dirname!, "../..");
-    const result = runHook(payload, { CLAUDE_PLUGIN_ROOT: pluginRoot });
+    const result = runHook(payload, { PALANTIR_MINI_PLUGIN_ROOT: pluginRoot });
 
     expect(result.exitCode).toBe(0);
 

@@ -58,8 +58,12 @@ function completeOntologyDtc(): OntologyDtcBuildContract {
     5,
     "Replay additive fixtures | Observe workflow lineage | Eval release gate || ValidationPack:meta-ontology-completion",
   ).dtcDraft;
-  contract = advanceOntologyDTCBuildSequence(contract, 6, "ready-for-dtc").dtcDraft;
-  return contract;
+  contract = advanceOntologyDTCBuildSequence(
+    contract,
+    6,
+    "ready-for-dtc,semantic-resolver-run:fixture-customer,mapping:fixture-crm-customer",
+  ).dtcDraft;
+  return contract as OntologyDtcBuildContract;
 }
 
 describe("ontology-dtc-build fill sequence", () => {
@@ -94,6 +98,8 @@ describe("ontology-dtc-build fill sequence", () => {
     expect(contract.ontologyDtcBuildReadiness?.functionRefs).toContain("validate-release");
     expect(contract.ontologyDtcBuildReadiness?.applicationStateRefs).toContain("ApplicationState:workflow-review");
     expect(contract.ontologyDtcBuildReadiness?.evaluationRefs).toContain("meta-ontology-completion");
+    expect(contract.ontologyDtcBuildReadiness?.semanticTermRefs).toContain("semantic-resolver-run:fixture-customer");
+    expect(contract.ontologyDtcBuildReadiness?.semanticTermRefs).toContain("mapping:fixture-crm-customer");
     expect(contract.ontologyDtcBuildReadiness?.readinessVerdict).toBe("ready-for-dtc");
     expect(ontologyDtcBuildReadinessIssues(contract)).toEqual([]);
   });
@@ -113,6 +119,7 @@ describe("ontology-dtc-build fill sequence", () => {
     expect(fields).toContain("ontologyDtcBuildReadiness.functionRefs");
     expect(fields).toContain("ontologyDtcBuildReadiness.applicationStateRefs");
     expect(fields).toContain("ontologyDtcBuildReadiness.evaluationRefs");
+    expect(fields).toContain("ontologyDtcBuildReadiness.semanticTermRefs");
     expect(fields).toContain("ontologyDtcBuildReadiness.readinessVerdict");
   });
 
@@ -143,6 +150,7 @@ describe("ontology-dtc-build fill sequence", () => {
         functionRefs: [],
         applicationStateRefs: [],
         evaluationRefs: [],
+        semanticTermRefs: [],
         nonApplicablePrimitiveKinds: [
           "ObjectType",
           "LinkType",
@@ -150,6 +158,7 @@ describe("ontology-dtc-build fill sequence", () => {
           "Function",
           "ApplicationState",
           "Eval",
+          "SemanticConsistency",
         ],
         nonApplicableEvidenceRefs: ["evidence:non-applicable:read-only-boundary"],
         readinessVerdict: "ready-for-dtc" as const,

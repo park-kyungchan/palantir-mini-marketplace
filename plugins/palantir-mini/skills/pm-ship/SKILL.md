@@ -545,7 +545,7 @@ Before pushing, re-verify if code changed during Steps 9-15:
    ```bash
    BASE_BRANCH="${BASE_BRANCH:-main}"
    if git diff --name-only "origin/$BASE_BRANCH"..HEAD | \
-      grep -qE '^(palantir-mini/(hooks/|bridge/|\.claude-plugin/|\.codex-plugin/|\.mcp\.json$|package\.json$)|\.claude/plugins/palantir-mini$)'; then # compatibility install-target symlink also triggers smoke
+      grep -qE '^(palantir-mini/(hooks/|bridge/|\.codex-plugin/|\.codex-plugin/|\.mcp\.json$|package\.json$)|\.claude/plugins/palantir-mini$)'; then # compatibility install-target symlink also triggers smoke
      if ! claude plugin list 2>&1 | grep -A3 "palantir-mini@" | grep -q "Status: ✔ enabled"; then
        echo "[pm-ship] palantir-mini plugin failed to load after changes — abort ship"
        exit 1
@@ -600,7 +600,7 @@ git push -u origin <branch-name>
 
 **Subagent prompt:**
 
-> You are executing the /palantir-mini:pm-document-release workflow after a code push. Read the full skill file `${CLAUDE_PLUGIN_ROOT}/skills/pm-document-release/SKILL.md` and execute its complete workflow end-to-end, including CHANGELOG clobber protection, doc exclusions, and risky-change gates. Do NOT attempt to edit the PR body — no PR exists yet. Branch: `<branch>`, base: `<base>`.
+> You are executing the /palantir-mini:pm-document-release workflow after a code push. Read the full skill file `${PALANTIR_MINI_PLUGIN_ROOT}/skills/pm-document-release/SKILL.md` and execute its complete workflow end-to-end, including CHANGELOG clobber protection, doc exclusions, and risky-change gates. Do NOT attempt to edit the PR body — no PR exists yet. Branch: `<branch>`, base: `<base>`.
 >
 > After completing the workflow, output a single JSON object on the LAST LINE of your response (no other text after it):
 > `{"files_updated":["README.md","CLAUDE.md",...],"commit_sha":"abc1234","pushed":true,"documentation_section":"<markdown block for PR body's ## Documentation section>"}`

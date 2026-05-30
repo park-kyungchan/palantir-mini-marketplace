@@ -222,7 +222,7 @@ export default async function planTaskDagValidate(
       ``,
       `Canonical ownerAgent values:`,
       `  palantir-mini:hook-builder        (hooks/** monitors/** scripts/** bridge/handlers/**)`,
-      `  palantir-mini:plugin-maintainer   (package.json CHANGELOG.md .claude-plugin/**)`,
+      `  palantir-mini:plugin-maintainer   (package.json CHANGELOG.md .codex-plugin/**)`,
       `  palantir-mini:protocol-designer   (agents/** ~/.claude/rules/**)`,
       `  palantir-mini:project-implementer OR palantir-mini:implementer  (lib/** project source)`,
       `  task-owner                        (skills/** project-specific)`,

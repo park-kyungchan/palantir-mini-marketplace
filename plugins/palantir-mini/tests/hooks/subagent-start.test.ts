@@ -63,7 +63,7 @@ describe("agentMdCandidates", () => {
     const out = agentMdCandidates("foo", cwd);
     expect(out[0]).toBe(path.join(cwd, ".claude", "agents", "foo.md"));
     expect(out[1]).toContain(".claude/agents/foo.md");
-    // 3rd entry exists only when CLAUDE_PLUGIN_ROOT is set
+    // 3rd entry exists only when PALANTIR_MINI_PLUGIN_ROOT is set
     expect(out.length).toBeGreaterThanOrEqual(2);
   });
 });

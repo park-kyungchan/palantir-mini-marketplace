@@ -79,7 +79,7 @@ describe("agentMdCandidates", () => {
 
   beforeEach(() => {
     savedEnv.HOME              = process.env.HOME;
-    savedEnv.CLAUDE_PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT;
+    savedEnv.PALANTIR_MINI_PLUGIN_ROOT = process.env.PALANTIR_MINI_PLUGIN_ROOT;
   });
 
   afterEach(() => {
@@ -102,14 +102,14 @@ describe("agentMdCandidates", () => {
     expect(candidates[1]).toBe("/fake/home/.claude/agents/my-agent.md");
   });
 
-  test("third candidate uses CLAUDE_PLUGIN_ROOT when set", () => {
-    process.env.CLAUDE_PLUGIN_ROOT = "/plugin/root";
+  test("third candidate uses PALANTIR_MINI_PLUGIN_ROOT when set", () => {
+    process.env.PALANTIR_MINI_PLUGIN_ROOT = "/plugin/root";
     const candidates = agentMdCandidates("my-agent", "/cwd");
     expect(candidates[2]).toBe("/plugin/root/agents/my-agent.md");
   });
 
-  test("uses canonical palantir-mini root when CLAUDE_PLUGIN_ROOT is unset", () => {
-    delete process.env.CLAUDE_PLUGIN_ROOT;
+  test("uses canonical palantir-mini root when PALANTIR_MINI_PLUGIN_ROOT is unset", () => {
+    delete process.env.PALANTIR_MINI_PLUGIN_ROOT;
     const candidates = agentMdCandidates("my-agent", "/cwd");
     expect(candidates).toHaveLength(3);
     expect(candidates[2]).toBe(path.resolve(import.meta.dir, "../..", "agents", "my-agent.md"));

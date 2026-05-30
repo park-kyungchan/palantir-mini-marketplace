@@ -64,7 +64,7 @@ export function makePluginTree(
     fs.mkdirSync(sDir, { recursive: true });
   }
 
-  const pluginDir = path.join(root, ".claude-plugin");
+  const pluginDir = path.join(root, ".codex-plugin");
   fs.mkdirSync(pluginDir, { recursive: true });
   fs.writeFileSync(
     path.join(pluginDir, "plugin.json"),

@@ -114,7 +114,7 @@ export const RUNTIME_CAPABILITY_MATRIX: Record<RuntimeId, RuntimeCapabilityFacts
     fallbackFacts: [
       ...GEMINI_NATIVE_GAPS.map((event) => ({
         event,
-        fact: `Gemini CLI does not expose Claude/Codex ${event} lifecycle events under that name.`,
+        fact: `Gemini does not expose Codex ${event} lifecycle events under that name.`,
         fallback: "Use the palantir-mini Gemini extension adapter event map and record unsupported parity claims explicitly.",
       })),
     ],

@@ -33,7 +33,7 @@ Store the result and reference it as "the base branch" in prose, or as `<base>` 
 
 ## Step 2: Read the checklist
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/pm-review/checklist.md` (or the project's `.claude/skills/pm-review/checklist.md` if one exists).
+Read `${PALANTIR_MINI_PLUGIN_ROOT}/skills/pm-review/checklist.md` (or the project's `.claude/skills/pm-review/checklist.md` if one exists).
 
 **If the file cannot be read, STOP and report the error.** Do not proceed without the checklist. If no checklist exists yet, use the in-line categories below (SQL & Data Safety, Race Conditions & Concurrency, LLM Output Trust Boundary, Shell Injection, Enum & Value Completeness, Async/Sync Mixing, Column/Field Name Safety, LLM Prompt Issues, Type Coercion, View/Frontend, Time Window Safety, Completeness Gaps, Distribution & CI/CD).
 

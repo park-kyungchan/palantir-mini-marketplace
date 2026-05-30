@@ -17,11 +17,11 @@ describe("subagentStart hook", () => {
   beforeEach(() => {
     tmpRoot = makeTmpDir("hook");
     savedEnv.HOME                  = process.env.HOME;
-    savedEnv.CLAUDE_PLUGIN_ROOT     = process.env.CLAUDE_PLUGIN_ROOT;
+    savedEnv.PALANTIR_MINI_PLUGIN_ROOT     = process.env.PALANTIR_MINI_PLUGIN_ROOT;
     savedEnv.PALANTIR_MINI_EVENTS_FILE = process.env.PALANTIR_MINI_EVENTS_FILE;
     tmpHome = makeTmpDir("home-hook");
     process.env.HOME                  = tmpHome;
-    delete process.env.CLAUDE_PLUGIN_ROOT;
+    delete process.env.PALANTIR_MINI_PLUGIN_ROOT;
     const evDir = path.join(tmpRoot, ".palantir-mini", "session");
     fs.mkdirSync(evDir, { recursive: true });
     process.env.PALANTIR_MINI_EVENTS_FILE = path.join(evDir, "events.jsonl");

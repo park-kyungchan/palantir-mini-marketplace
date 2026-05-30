@@ -43,7 +43,7 @@
  *     support: adapter-native
  *     evidenceRefs:
  *       - bridge/handlers/pm-semantic-intent-gate.ts
- *       - docs/NATIVE_RUNTIME_GAPS.md
+ *       - docs/RUNTIME_LAYER_BOUNDARY.md
  *     fallbackObligations:
  *       - State prompt-front-door envelope dereference gaps instead of inventing approved refs.
  *     unsupportedSurfaceRefs:
@@ -150,6 +150,11 @@ import { draftDtcFromContextPlanV2 } from "../../lib/context-engineering/dtc-fro
 import {
   assertDtcApprovalCardTextBeforeDisplay,
 } from "../../lib/ontology-engineering-response-template";
+import { resolveSemanticConsistency } from "../../lib/semantic-consistency/resolver";
+import type {
+  SemanticConsistencyResolverInput,
+  SemanticConsistencyResolverOutput,
+} from "../../lib/semantic-consistency/types";
 
 export interface SemanticIntentGateInput {
   /** Absolute project path. Required for event routing. */
@@ -207,6 +212,12 @@ export interface SemanticIntentGateInput {
    * (9-step) and populates fdeFillResult on the result instead of fillResult.
    */
   readonly fillPolicy?: FillPolicy;
+  /**
+   * Optional deterministic semantic consistency resolver input. When provided,
+   * the handler resolves source-system terms before projecting Chatbot/Application
+   * State and returns the resolver run evidence without using an LLM.
+   */
+  readonly semanticConsistencyResolverInput?: SemanticConsistencyResolverInput;
 }
 
 export interface SemanticIntentFillResult {
@@ -304,6 +315,8 @@ export interface SemanticIntentGateResult {
    * Backward compat: absent fillPolicy or SIC-only fillPolicy → undefined.
    */
   dtcFillResult?: DtcSemanticIntentFillResult;
+  /** Deterministic resolver output for source-system term consistency, when requested. */
+  semanticConsistencyResult?: SemanticConsistencyResolverOutput;
 }
 
 export type PromptEnvelopeLookupSelectedBy =
@@ -1443,6 +1456,9 @@ export async function semanticIntentGate(
       ? applyPromptContinuityFailure(gate, continuity)
       : gate;
   const effectiveGate = applyFDEProvenanceFailure(continuityGate, input);
+  const semanticConsistencyResult = input.semanticConsistencyResolverInput
+    ? resolveSemanticConsistency(input.semanticConsistencyResolverInput)
+    : undefined;
   let persisted =
     continuity && !continuity.valid
       ? { envelope: prompt.envelope }
@@ -1470,6 +1486,7 @@ export async function semanticIntentGate(
     promptEnvelope: persisted.envelope,
     semanticIntentContract: input.semanticIntentContract ?? draftContracts?.semanticIntent,
     digitalTwinChangeContract: input.digitalTwinChangeContract ?? draftContracts?.digitalTwin,
+    semanticConsistencyResult,
   });
   const lineagePayload = promptLineagePayload(input, persisted);
 
@@ -1495,6 +1512,12 @@ export async function semanticIntentGate(
         layer0GuardViolationCount: layer0ClarificationGuards.violations.length,
         semanticConversationStateId: semanticConversationState.stateId,
         semanticConversationLifecycle: semanticConversationState.lifecycle,
+        semanticConsistencyResolverRunId: semanticConsistencyResult?.resolverRunId,
+        semanticConsistencyConflictCount: semanticConsistencyResult?.conflicts.length ?? 0,
+        semanticConsistencyPromotionReady:
+          semanticConsistencyResult
+            ? semanticConsistencyResult.unresolvedBlockingConflictRefs.length === 0
+            : undefined,
         ...lineagePayload,
       } as Record<string, unknown>,
       toolName: "pm_semantic_intent_gate",
@@ -1990,6 +2013,7 @@ export async function semanticIntentGate(
     ...(fillResult ? { fillResult } : {}),
     ...(fdeFillResult ? { fdeFillResult } : {}),
     ...(dtcFillResult ? { dtcFillResult } : {}),
+    ...(semanticConsistencyResult ? { semanticConsistencyResult } : {}),
   };
 }
 

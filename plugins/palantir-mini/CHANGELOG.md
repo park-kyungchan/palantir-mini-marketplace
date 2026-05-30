@@ -744,14 +744,14 @@ MINOR bump.
 
 ## v6.37.0 — 2026-05-13 (sprint-129 PR 6.2)
 
-**Additive MINOR — Codex hook adapter live-read alignment. NEW `scripts/sync-codex-adapter.ts` regenerates `~/.codex/hooks/palantir-mini-claude-hook-adapter.ts` from SSoT `hooks/hooks.json` with `--dry-run` + `--target` flags. NEW `docs/CODEX_HOOK_ADAPTER.md` documents adapter role, sync workflow, and forbidden-fork policy. `README.md` adds Codex Runtime Adapter section linking to the doc. Test `tests/scripts/sync-codex-adapter.test.ts` asserts dry-run output shape + AUTO-GENERATED header + hooks.json source reference. Manual edits to the adapter are forbidden per `.ssot-authority.json` (PR 6.1). Per canonical plan v2 §4 row 6.2.**
+**Additive MINOR — Codex hook adapter live-read alignment. NEW `scripts/sync-codex-adapter.ts` regenerates `~/.codex/hooks/palantir-mini-codex-hook-adapter.ts` from SSoT `hooks/hooks.json` with `--dry-run` + `--target` flags. NEW `docs/CODEX_HOOK_ADAPTER.md` documents adapter role, sync workflow, and forbidden-fork policy. `README.md` adds Codex Runtime Adapter section linking to the doc. Test `tests/scripts/sync-codex-adapter.test.ts` asserts dry-run output shape + AUTO-GENERATED header + hooks.json source reference. Manual edits to the adapter are forbidden per `.ssot-authority.json` (PR 6.1). Per canonical plan v2 §4 row 6.2.**
 
 ### Changes
 
-- **NEW** `scripts/sync-codex-adapter.ts`: Bun script that reads `hooks/hooks.json` (SSoT), generates an updated thin-shim adapter carrying `AUTO-GENERATED` + `DO NOT EDIT BY HAND` header, live-derives event allowlist from hooks.json, and delegates to `lib/codex/claude-hook-adapter.ts`. Supports `--dry-run` (stdout-only) and `--target <path>` override. Validates `.ssot-authority.json` existence (PR 6.1 precondition) + `hooks.json` structure before writing. Exits 0 on success; 1 on validation failure.
+- **NEW** `scripts/sync-codex-adapter.ts`: Bun script that reads `hooks/hooks.json` (SSoT), generates an updated thin-shim adapter carrying `AUTO-GENERATED` + `DO NOT EDIT BY HAND` header, live-derives event allowlist from hooks.json, and delegates to `lib/codex/codex-hook-adapter.ts`. Supports `--dry-run` (stdout-only) and `--target <path>` override. Validates `.ssot-authority.json` existence (PR 6.1 precondition) + `hooks.json` structure before writing. Exits 0 on success; 1 on validation failure.
 - **NEW** `docs/CODEX_HOOK_ADAPTER.md`: documents adapter architecture (thin shim → plugin lib → hooks.json), sync usage (`bun scripts/sync-codex-adapter.ts --dry-run | head -20`), when to re-run, and forbidden-fork policy verbatim from `.ssot-authority.json`.
 - **MODIFIED** `README.md`: new `## Codex Runtime Adapter` section immediately before `## Prompt-to-DTC Front Door`.
-- **NEW** `tests/scripts/sync-codex-adapter.test.ts`: 12 assertions — exits 0, stdout has AUTO-GENERATED + hooks.json reference + sync-codex-adapter.ts reference + DO NOT EDIT BY HAND + claude-hook-adapter.ts import + runCodexHookAdapterCli + shebang + palantir-mini authority + 6.2 canonical plan ref; stderr has [dry-run] note; preconditions for script file + hooks.json + .ssot-authority.json existence.
+- **NEW** `tests/scripts/sync-codex-adapter.test.ts`: 12 assertions — exits 0, stdout has AUTO-GENERATED + hooks.json reference + sync-codex-adapter.ts reference + DO NOT EDIT BY HAND + codex-hook-adapter.ts import + runCodexHookAdapterCli + shebang + palantir-mini authority + 6.2 canonical plan ref; stderr has [dry-run] note; preconditions for script file + hooks.json + .ssot-authority.json existence.
 - **BUMPED** `package.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`: 6.36.0 → 6.37.0.
 
 ---
@@ -1139,10 +1139,10 @@ Pure async composition function with per-sub-field graceful degradation. Public 
 | 1 | `officialResearchDocs` | `~/.claude/research/palantir-official` recursive `.md` scan, scope-filtered |
 | 2 | `projectDocs` | `<project>/BROWSE.md`, `<project>/INDEX.md`, `<project>/CLAUDE.md` existence |
 | 3 | `schemaPrimitives` | `~/.claude/schemas/ontology/primitives` recursive `.ts` scan, axis-filtered |
-| 4 | `pluginSourceFiles` | `${CLAUDE_PLUGIN_ROOT}/lib` recursive `.ts` scan, scope-filtered |
+| 4 | `pluginSourceFiles` | `${PALANTIR_MINI_PLUGIN_ROOT}/lib` recursive `.ts` scan, scope-filtered |
 | 5 | `rules` | `~/.claude/rules` `NN-*.md` ruleIds (mirrors PR 3.2 helper) |
-| 6 | `hooks` | `${CLAUDE_PLUGIN_ROOT}/hooks/hooks.json` event keys |
-| 7 | `skills` | `${CLAUDE_PLUGIN_ROOT}/skills` top-level dir names |
+| 6 | `hooks` | `${PALANTIR_MINI_PLUGIN_ROOT}/hooks/hooks.json` event keys |
+| 7 | `skills` | `${PALANTIR_MINI_PLUGIN_ROOT}/skills` top-level dir names |
 | 8 | `recentLineage` | `pmWorkflowLineageQuery` → T3+ event count over 7d window |
 | 9 | `valueGradeMetrics` | `pmValueGradeMetrics` → totalEvents + t2PlusRatio + t3CircuitInputs |
 | 10 | `impactGraphNeighborhood` | Thin REFERENCE to parent `impactContext` (does NOT duplicate); carries `axisRidCount` |
@@ -2172,7 +2172,7 @@ evidence into sequencer draft proposals and presenter-readiness governance.
 ### Verification
 
 - `bunx tsc --noEmit`
-- `bun test tests/lib/codex/claude-hook-adapter.test.ts tests/lib/runtime/capability-matrix.test.ts tests/lib/harness/active-contract.test.ts tests/bridge/handlers/pm-semantic-intent-gate.test.ts`
+- `bun test tests/lib/codex/codex-hook-adapter.test.ts tests/lib/runtime/capability-matrix.test.ts tests/lib/harness/active-contract.test.ts tests/bridge/handlers/pm-semantic-intent-gate.test.ts`
 
 ### Recovery
 
@@ -2235,7 +2235,7 @@ evidence into sequencer draft proposals and presenter-readiness governance.
 
 - `bunx tsc --noEmit`
 - `bun test tests/bridge/mcp-server-schema.test.ts tests/bridge/handlers/pm-plugin-self-check.test.ts tests/bridge/handlers/pm-plugin-self-check-primitive-seeds.test.ts`
-- `bun test tests/bridge/handlers/pm-plugin-self-check.test.ts tests/lib/hooks/timeout-policy.test.ts tests/lib/project-scope/loader.test.ts tests/lib/codex/claude-hook-adapter.test.ts`
+- `bun test tests/bridge/handlers/pm-plugin-self-check.test.ts tests/lib/hooks/timeout-policy.test.ts tests/lib/project-scope/loader.test.ts tests/lib/codex/codex-hook-adapter.test.ts`
 - `pm_plugin_self_check({ mode: "public-mcp" })`
 - `pm_plugin_self_check({ mode: "skills" })`
 - `pm_plugin_self_check({ mode: "hooks" })`
@@ -2324,7 +2324,7 @@ Known residual debt: broad `pm_plugin_self_check` still reports pre-existing sub
 - `prompt-front-door-capture` runs first on `UserPromptSubmit`, writes prompt envelopes/current pointers, and surfaces promptId/promptHash context for `pm_semantic_intent_gate`.
 - `pm_semantic_intent_gate` accepts prompt identity fields and persists prompt-local SemanticIntentContract / DigitalTwinChangeContract refs.
 - `prompt-dtc-enforcement-gate` covers mutating tool surfaces. Default mode remains `advisory` via `PALANTIR_MINI_PROMPT_DTC_GATE_MODE=advisory`.
-- `lib/codex/claude-hook-adapter.ts` provides reusable Codex hook parity for UserPromptSubmit additionalContext, PreToolUse deny output, Stop execution, and inspect output.
+- `lib/codex/codex-hook-adapter.ts` provides reusable Codex hook parity for UserPromptSubmit additionalContext, PreToolUse deny output, Stop execution, and inspect output.
 
 ### MODIFIED
 

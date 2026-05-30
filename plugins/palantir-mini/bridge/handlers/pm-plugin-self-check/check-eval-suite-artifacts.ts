@@ -41,6 +41,7 @@ const REQUIRED_SUITES_BY_SURFACE: Partial<Record<ReleaseChangedSurface, readonly
   harness: ["suite:release-gate-harness-evidence"],
   governance: ["suite:ontology-engineering-cross-runtime-enforcement"],
   runtime: ["suite:ontology-engineering-cross-runtime-enforcement"],
+  "semantic-consistency": ["suite:semantic-consistency-regression"],
 };
 
 const EVAL_ARTIFACT_DIRS = [

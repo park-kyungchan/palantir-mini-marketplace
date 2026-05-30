@@ -26,7 +26,7 @@ disable-model-invocation: false
 ## How to run
 
 ```bash
-bun run "${CLAUDE_PLUGIN_ROOT}/lib/validation/pipeline.ts" \
+bun run "${PALANTIR_MINI_PLUGIN_ROOT}/lib/validation/pipeline.ts" \
   --projectRoot "$(pwd)" \
   --schemaRoot  "$HOME/.claude/schemas/ontology"
 ```

@@ -8,6 +8,7 @@ import type { DtcWithFillFields } from "../semantic-intent/dtc-fill-sequence";
 import type { OntologyActivation } from "../context-engineering/ontology-activation";
 import type { Layer0IntentBridge } from "../context-engineering/intent-bridge";
 import type { PromptContractRefs, PromptEnvelope, PromptRuntime } from "../prompt-front-door";
+import type { SemanticConsistencyResolverOutput } from "../semantic-consistency/types";
 
 export const SEMANTIC_CONVERSATION_STATE_SCHEMA_VERSION =
   "palantir-mini/semantic-conversation-state/v1";
@@ -35,6 +36,17 @@ export interface SemanticConversationQuestion {
   readonly whatWillNotHappen: readonly string[];
   readonly answer?: string;
   readonly materiality: "blocking" | "important" | "non-blocking";
+}
+
+export interface SemanticConsistencyFacingState {
+  readonly resolverRunRef?: string;
+  readonly canonicalTermRefs: readonly string[];
+  readonly sourceTermRefs: readonly string[];
+  readonly approvedMappingRefs: readonly string[];
+  readonly unresolvedConflictRefs: readonly string[];
+  readonly nonApplicableEvidenceRefs: readonly string[];
+  readonly promotionReady: boolean;
+  readonly promotionBlockingReason?: string;
 }
 
 export interface SemanticConversationState {
@@ -86,6 +98,8 @@ export interface SemanticConversationState {
     }[];
     readonly capabilityRoutingReason: string;
   };
+
+  readonly semanticConsistencyFacing?: SemanticConsistencyFacingState;
 
   readonly contractFacing: {
     readonly semanticIntentContractRef?: string;
@@ -197,6 +211,7 @@ export interface BuildSemanticConversationStateInput {
   readonly promptEnvelope?: PromptEnvelope;
   readonly semanticIntentContract?: SemanticIntentContract;
   readonly digitalTwinChangeContract?: DigitalTwinChangeContract;
+  readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
 }
 
 function unique(values: readonly (string | undefined)[]): string[] {
@@ -273,6 +288,49 @@ function approvalRef(input: BuildSemanticConversationStateInput): PromptContract
   );
 }
 
+function semanticConsistencyFacing(
+  result: SemanticConsistencyResolverOutput | undefined,
+): SemanticConsistencyFacingState | undefined {
+  if (!result) return undefined;
+  const canonicalReadyMappings = result.mappings.filter(
+    (mapping) =>
+      Boolean(mapping.canonicalTermId) &&
+      mapping.mappingKind !== "ambiguous_conflict" &&
+      mapping.mappingKind !== "new_candidate" &&
+      mapping.mappingKind !== "rejected" &&
+      mapping.mappingKind !== "non_applicable",
+  );
+  const pendingMappings = result.mappings.filter(
+    (mapping) =>
+      mapping.mappingKind === "ambiguous_conflict" ||
+      mapping.mappingKind === "new_candidate" ||
+      mapping.mappingKind === "rejected",
+  );
+  const nonApplicableEvidenceRefs = result.mappings
+    .filter((mapping) => mapping.mappingKind === "non_applicable")
+    .flatMap((mapping) => mapping.evidenceRefs);
+  const promotionReady =
+    result.unresolvedBlockingConflictRefs.length === 0 && pendingMappings.length === 0;
+
+  return {
+    resolverRunRef: result.resolverRunId,
+    canonicalTermRefs: result.canonicalTermRefs,
+    sourceTermRefs: unique(result.mappings.map((mapping) => mapping.sourceTermId)),
+    approvedMappingRefs: canonicalReadyMappings.map((mapping) => mapping.mappingId),
+    unresolvedConflictRefs: result.unresolvedBlockingConflictRefs,
+    nonApplicableEvidenceRefs: unique(nonApplicableEvidenceRefs),
+    promotionReady,
+    ...(promotionReady
+      ? {}
+      : {
+          promotionBlockingReason:
+            result.unresolvedBlockingConflictRefs.length > 0
+              ? "Resolver has unresolved blocking semantic conflicts."
+              : "Resolver has candidate, rejected, or ambiguous mappings that need explicit approval.",
+        }),
+  };
+}
+
 export function buildSemanticConversationState(
   input: BuildSemanticConversationStateInput,
 ): SemanticConversationState {
@@ -281,6 +339,7 @@ export function buildSemanticConversationState(
   const activation = input.ontologyActivation;
   const lifecycle = deriveLifecycle(input);
   const approval = approvalRef(input);
+  const semanticFacing = semanticConsistencyFacing(input.semanticConsistencyResult);
   const dtcReady =
     input.gate.digitalTwin.valid &&
     Boolean(input.contractRefs?.digitalTwinChangeContractRef) &&
@@ -343,6 +402,7 @@ export function buildSemanticConversationState(
         input.capabilityRoutingReason ??
         "No generic capability router has selected capabilities for this phase.",
     },
+    semanticConsistencyFacing: semanticFacing,
     contractFacing: {
       semanticIntentContractRef:
         input.contractRefs?.semanticIntentContractRef ?? input.semanticIntentContract?.contractId,

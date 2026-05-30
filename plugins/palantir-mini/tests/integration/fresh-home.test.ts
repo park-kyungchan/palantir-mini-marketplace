@@ -285,8 +285,7 @@ describe("fresh-home bootstrap: plugin overlay substitutes for missing external 
 
       // Run bootstrap-home.sh; it should create the stub and exit 0.
       const scriptPath = path.join(
-        process.env.CLAUDE_PLUGIN_ROOT ??
-          path.join(HOME, ".claude", "plugins", "palantir-mini"),
+        resolvePalantirMiniRoot(),
         "scripts",
         "bootstrap-home.sh",
       );

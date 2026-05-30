@@ -225,12 +225,12 @@ const DOMAIN_MEMORY_LAYERS: Record<RecipeDomain, MemoryLayer[]> = {
 };
 
 const DOMAIN_OUT_OF_SCOPE: Record<RecipeDomain, string[]> = {
-  rule:              ["hooks/**", "bridge/handlers/**", "lib/**", ".claude-plugin/plugin.json"],
-  hook:              [".claude-plugin/plugin.json", "package.json", "agents/**", "skills/**"],
-  primitive:         ["hooks/**", "bridge/handlers/**", "agents/**", ".claude-plugin/plugin.json"],
+  rule:              ["hooks/**", "bridge/handlers/**", "lib/**", ".codex-plugin/plugin.json"],
+  hook:              [".codex-plugin/plugin.json", "package.json", "agents/**", "skills/**"],
+  primitive:         ["hooks/**", "bridge/handlers/**", "agents/**", ".codex-plugin/plugin.json"],
   research:          ["hooks/**", "bridge/handlers/**", "lib/**", "schemas/ontology/**"],
-  "agent-definition":["hooks/**", "bridge/handlers/**", ".claude-plugin/plugin.json", "package.json"],
-  "mass-edit":       [".claude-plugin/plugin.json", "package.json", ".claude/rules/**"],
+  "agent-definition":["hooks/**", "bridge/handlers/**", ".codex-plugin/plugin.json", "package.json"],
+  "mass-edit":       [".codex-plugin/plugin.json", "package.json"],
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -525,7 +525,7 @@ function buildDelegationExecutionPlan(input: {
     exclusiveWriteScopes,
     forbiddenScopes: input.forbiddenScope,
     runtimeGaps: [
-      "Recipe generation does not prove Claude/Codex native subagent execution parity.",
+      "Recipe generation does not prove Codex native subagent execution parity.",
     ],
   };
 }

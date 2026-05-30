@@ -28,8 +28,7 @@ Pre-assigned plugin version: 6.43.0. Use ONLY this version; do NOT compute next-
 
 Each subagent manually sets:
 - `package.json` → `"version": "6.43.0"`
-- `.claude-plugin/plugin.json` → `"version": "6.43.0"`
-- `.claude-plugin/marketplace.json` → all 3 occurrences of `"version": "6.43.0"`
+- `.codex-plugin/plugin.json` → `"version": "6.43.0"`
 - `CHANGELOG.md` → new `## v6.43.0 — YYYY-MM-DD` entry at top
 
 ## CHANGELOG conflict resolution recipe

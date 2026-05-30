@@ -16,7 +16,7 @@ import {
 } from "../../../lib/hooks/workflow-registry";
 
 describe("runtime-neutral hook workflow registry", () => {
-  test("Codex projection excludes Claude-only lifecycle mounts from the shared hook layer", () => {
+  test("Codex projection excludes non-Codex lifecycle mounts from the shared hook layer", () => {
     const projection = projectRuntimeHookMount("codex");
     expect(projection.mountAuthority).toBe("runtime-local");
     for (const event of CLAUDE_ONLY_HOOK_EVENTS) {
@@ -33,7 +33,7 @@ describe("runtime-neutral hook workflow registry", () => {
     expect(projection.supportedEvents).toContain("SubagentStop");
   });
 
-  test("Claude projection owns Claude-only task and teammate lifecycle mounts", () => {
+  test("Claude projection owns non-Codex task and teammate lifecycle mounts", () => {
     const projection = projectRuntimeHookMount("claude");
     for (const event of CLAUDE_ONLY_HOOK_EVENTS) {
       expect(projection.supportedEvents).toContain(event);

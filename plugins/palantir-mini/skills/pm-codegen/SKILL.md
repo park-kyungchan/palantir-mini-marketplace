@@ -35,7 +35,7 @@ Invoke the codegen-runner agent with:
 Or directly:
 
 ```bash
-bun run "${CLAUDE_PLUGIN_ROOT}/lib/codegen/descender-gen.ts" "<project>"
+bun run "${PALANTIR_MINI_PLUGIN_ROOT}/lib/codegen/descender-gen.ts" "<project>"
 ```
 
 ## Success criteria

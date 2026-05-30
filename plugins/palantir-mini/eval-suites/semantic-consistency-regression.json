@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "aip-evaluation.v1.37.0",
+  "suite": {
+    "suiteId": "suite:semantic-consistency-regression",
+    "name": "Semantic Consistency Regression Suite",
+    "target": {
+      "kind": "local-function",
+      "rid": "local-function:palantir-mini.resolveSemanticConsistency",
+      "versionRef": "semantic-consistency-v1"
+    },
+    "testCaseIds": [
+      "testcase:semantic-source-scoped-aliases",
+      "testcase:semantic-overloaded-term-conflict",
+      "testcase:semantic-non-applicable-evidence"
+    ],
+    "criteria": [
+      "criterion:deterministic-source-system-mapping",
+      "criterion:unresolved-conflicts-block-promotion",
+      "criterion:non-applicable-evidence-stays-explicit"
+    ],
+    "evaluatorPolicy": {
+      "allowedDomains": ["rule", "code", "governance"],
+      "requireHumanReviewForMutation": true,
+      "minimumPassingScore": 1,
+      "requiredMetrics": [
+        "deterministic_mapping_count",
+        "unresolved_blocking_conflict_count",
+        "non_applicable_mapping_count"
+      ]
+    }
+  },
+  "testCases": [
+    {
+      "testCaseId": "testcase:semantic-source-scoped-aliases",
+      "title": "Source-scoped aliases map the same source term to distinct canonical terms",
+      "input": {
+        "category": "source_scoped_alias"
+      },
+      "expectedBehavior": "CRM, billing, and support source terms named customer map deterministically to their approved canonical terms without LLM promotion.",
+      "tags": ["semantic-consistency", "deterministic", "source-system"]
+    },
+    {
+      "testCaseId": "testcase:semantic-overloaded-term-conflict",
+      "title": "Overloaded source terms produce an unresolved blocking conflict",
+      "input": {
+        "category": "ambiguous_conflict"
+      },
+      "expectedBehavior": "An overloaded customer alias with multiple candidate canonical terms produces an open blocking SemanticConflict before mutation or promotion.",
+      "tags": ["semantic-consistency", "conflict", "blocking"]
+    },
+    {
+      "testCaseId": "testcase:semantic-non-applicable-evidence",
+      "title": "Read-only or docs-only work records explicit non-applicable mappings",
+      "input": {
+        "category": "non_applicable"
+      },
+      "expectedBehavior": "Non-applicable semantic work produces non_applicable mappings with explicit evidence refs and zero unresolved blocking conflicts.",
+      "tags": ["semantic-consistency", "non-applicable", "evidence"]
+    }
+  ]
+}

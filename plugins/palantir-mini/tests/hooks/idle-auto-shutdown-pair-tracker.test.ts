@@ -35,7 +35,7 @@ describe("B-17 pair-tracker orphan recovery", () => {
       if (v === undefined) delete process.env[k];
       else process.env[k] = v;
     }
-    const dir = path.join("/tmp", "claude-hooks", sessionId);
+    const dir = path.join("/tmp", "palantir-mini-hooks", sessionId);
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
     const evtFile = savedEnv.PALANTIR_MINI_EVENTS_FILE;
     if (evtFile === undefined && process.env.PALANTIR_MINI_EVENTS_FILE) {

@@ -11,15 +11,13 @@ The Codex runtime integrates palantir-mini hooks through the plugin manifest:
 ```
 .codex-plugin/plugin.json
   -> hooks/codex-hooks.json
-  -> lib/codex/claude-hook-adapter.ts
+  -> lib/codex/codex-hook-adapter.ts
 ```
 
 `hooks/codex-hooks.json` MUST remain a delegation-only entrypoint registry. It
 uses only Codex-supported lifecycle events, regex-safe matchers, and commands
-that call `lib/codex/claude-hook-adapter.ts`. Durable shared hook intent is read from the canonical source root at
-`plugins/palantir-mini/hooks/hooks.json`. Claude-only task/team lifecycle
-mounts live in `plugins/palantir-mini/hooks/claude-hooks.json` and are not part
-of the Codex live-read source.
+that call `lib/codex/codex-hook-adapter.ts`. Durable hook intent is read from
+the canonical source root at `plugins/palantir-mini/hooks/hooks.json`.
 
 ## Adapter Architecture
 
@@ -27,17 +25,16 @@ of the Codex live-read source.
 Codex runtime
   → .codex-plugin/plugin.json
       → hooks/codex-hooks.json  (regex-safe Codex entrypoints)
-          → lib/codex/claude-hook-adapter.ts  (Codex adapter)
+          → lib/codex/codex-hook-adapter.ts  (Codex adapter)
               → hooks/hooks.json  (shared hook intent registry)
 ```
 
 The adapter performs a **live-read** of shared `hooks/hooks.json` at runtime —
 it does not hardcode source hook matchers or commands. Changes inside already-
-registered shared hook events are visible to Codex through the canonical source
-read path. Adding or removing Codex entrypoint events still requires updating
+registered hook events are visible to Codex through the canonical source read
+path. Adding or removing Codex entrypoint events still requires updating
 `hooks/codex-hooks.json` and restarting Codex so the runtime re-reads its
-session hook surface. Claude-only `TaskCreated`, `TaskCompleted`, and
-`TeammateIdle` registrations belong in `hooks/claude-hooks.json`.
+session hook surface.
 
 Codex `PermissionRequest` is a runtime wire event, not a separate palantir-mini
 policy family. When the adapter receives `PermissionRequest`, it looks up and
@@ -48,10 +45,10 @@ shared policy becomes a `PermissionRequest` deny decision. `--match
 PermissionRequest` reports this bridge explicitly with
 `policyEventName: "PreToolUse"`.
 
-The live-read claim is covered by `tests/lib/codex/claude-hook-adapter.test.ts`:
-the smoke test rewrites a temporary `hooks.json` between adapter calls and expects
-the second call to execute the updated hook command. This is adapter evidence only,
-not evidence that Claude-only lifecycle hooks fire natively in Codex.
+The live-read claim is covered by `tests/lib/codex/codex-hook-adapter.test.ts`:
+the smoke test rewrites a temporary `hooks.json` between adapter calls and
+expects the second call to execute the updated hook command. This is Codex
+adapter evidence only.
 
 ## Source Authority
 
@@ -61,7 +58,8 @@ agents, tests, and runtime manifests. Per `SSOT-AUTHORITY.md`:
 
 - **Forbidden**: Creating a parallel semantic source fork in `~/.codex/plugins/palantir-mini/`
   or any other runtime directory.
-- **Required**: All runtimes consume durable workflow semantics from `plugins/palantir-mini` through their native adapter/bridge.
+- **Required**: Codex consumes durable workflow semantics from
+  `plugins/palantir-mini` through the Codex-native adapter/bridge.
 
 The Codex entrypoint registry at `hooks/codex-hooks.json` is **not** a fork. It
 does not duplicate workflow policy. It only registers supported Codex events and
@@ -77,18 +75,6 @@ installed Codex plugin payload has been refreshed. Do not edit the fallback shim
 or `~/.codex` as part of a source-lane PR; regenerate it from the installed
 payload with this script.
 
-Codex fleet sync also runs this generator from:
-
-```bash
-bun run ~/.codex/scripts/sync-claude-palantir-mini.ts
-```
-
-That script is safe to run after source-root plugin updates; it refreshes the
-Codex marketplace/plugin mirrors, skill mirrors, hooks config, installed cache,
-and the generated fallback adapter from the active palantir-mini source path. If the
-script still names `~/.claude/plugins/palantir-mini`, treat that as runtime-
-sync migration debt rather than semantic authority.
-
 ### Usage
 
 ```bash
@@ -98,7 +84,7 @@ cd plugins/palantir-mini
 # Dry-run: preview generated content (no write)
 bun scripts/sync-codex-adapter.ts --dry-run
 
-# Live sync to default legacy fallback target (~/.codex/hooks/palantir-mini-claude-hook-adapter.ts)
+# Live sync to default legacy fallback target (~/.codex/hooks/palantir-mini-codex-hook-adapter.ts)
 bun scripts/sync-codex-adapter.ts
 
 # Override target path
@@ -130,13 +116,12 @@ Expected output starts with:
 Run the adapter smoke coverage when changing live-read behavior:
 
 ```bash
-bun test tests/lib/codex/claude-hook-adapter.test.ts
+bun test tests/lib/codex/codex-hook-adapter.test.ts
 ```
 
 ### When to Run
 
-Run `bun scripts/sync-codex-adapter.ts` directly, or run the fleet sync wrapper
-above, after:
+Run `bun scripts/sync-codex-adapter.ts` directly after:
 
 1. Adding or removing a hook event in `hooks.json` that the fallback shim must expose.
 2. Upgrading the plugin (MINOR/MAJOR version bump).
@@ -168,10 +153,6 @@ drift violation and keep the Codex registry as entrypoints only.
 - `.ssot-authority.json` — machine-readable SSoT marker (PR 6.1).
 - `SSOT-AUTHORITY.md` — human-readable SSoT policy companion (PR 6.1).
 - `plugins/palantir-mini/hooks/codex-hooks.json` — Codex regex-safe hook entrypoints.
-- `plugins/palantir-mini/lib/codex/claude-hook-adapter.ts` — Codex adapter owner.
-- `lib/runtime/capability-matrix.ts` — Codex vs Claude event capability map.
+- `plugins/palantir-mini/lib/codex/codex-hook-adapter.ts` — Codex adapter owner.
 - `plugins/palantir-mini/hooks/hooks.json` — the live shared SSoT hook intent registry.
-- `plugins/palantir-mini/hooks/claude-hooks.json` — Claude-only task/team lifecycle hook registry.
 - `~/.codex/config.toml` — Codex runtime configuration; plugin install points at `.codex-plugin/plugin.json`.
-- `~/.claude/rules/CONTEXT.md §13.5` — cross-runtime coexistence policy.
-- `~/.claude/rules/CONTEXT.md §15 Glossary` — harness taxonomy.

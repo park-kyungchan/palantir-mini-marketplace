@@ -58,15 +58,15 @@ describe("sync-codex-adapter.ts --dry-run", () => {
     expect(stdout).toContain("DO NOT EDIT BY HAND");
   });
 
-  it("stdout imports from claude-hook-adapter.ts (SSoT lib)", async () => {
+  it("stdout imports from codex-hook-adapter.ts (SSoT lib)", async () => {
     const { stdout } = await runScript(["--dry-run", "--target", "/tmp/fake-codex-adapter.ts"]);
-    expect(stdout).toContain("claude-hook-adapter.ts");
+    expect(stdout).toContain("codex-hook-adapter.ts");
     expect(stdout).toContain("runCodexHookAdapterCli");
   });
 
   it("stdout imports only the plugin-local Codex adapter lib", async () => {
     const { stdout } = await runScript(["--dry-run", "--target", "/tmp/fake-codex-adapter.ts"]);
-    expect(stdout).toContain("/lib/codex/claude-hook-adapter.ts");
+    expect(stdout).toContain("/lib/codex/codex-hook-adapter.ts");
     expect(stdout).not.toContain("~/.codex/lib/palantir-mini/native-hook-adapter.ts");
     expect(stdout).not.toContain("/.codex/lib/palantir-mini/native-hook-adapter.ts");
   });

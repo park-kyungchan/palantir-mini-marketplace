@@ -2,11 +2,11 @@
 /**
  * sync-codex-adapter.ts
  *
- * Regenerates ~/.codex/hooks/palantir-mini-claude-hook-adapter.ts from
+ * Regenerates ~/.codex/hooks/palantir-mini-codex-hook-adapter.ts from
  * the shared private marketplace plugin hook registry.
  *
  * The Codex-side adapter MUST be a thin shim delegating to the plugin
- * lib/codex/claude-hook-adapter.ts source. This script enforces that
+ * lib/codex/codex-hook-adapter.ts source. This script enforces that
  * contract and prevents the shim from drifting into a separate fork.
  *
  * Usage:
@@ -33,7 +33,7 @@ import path from "node:path";
 const PLUGIN_ROOT = path.resolve(import.meta.dir, "..");
 const HOME = process.env.HOME ?? "/home/palantirkc";
 
-const DEFAULT_TARGET = path.join(HOME, ".codex", "hooks", "palantir-mini-claude-hook-adapter.ts");
+const DEFAULT_TARGET = path.join(HOME, ".codex", "hooks", "palantir-mini-codex-hook-adapter.ts");
 const HOOKS_JSON_PATH = path.join(PLUGIN_ROOT, "hooks", "hooks.json");
 const SSOT_AUTHORITY_PATH = path.join(PLUGIN_ROOT, ".ssot-authority.json");
 
@@ -112,7 +112,7 @@ function generateAdapterContent(
  * Source authority: ${relativePluginRoot}
  *
  * Adapter logic lives in the versioned plugin source:
- *   ${relativePluginRoot}/lib/codex/claude-hook-adapter.ts
+ *   ${relativePluginRoot}/lib/codex/codex-hook-adapter.ts
  *
  * This file MUST remain a thin shim. Per .ssot-authority.json forbidden-fork policy,
  * runtime-local adapters are protocol consumers, not workflow authorities.
@@ -126,7 +126,7 @@ ${allowlistLines}
  *
  * Per canonical plan v2 §4 row 6.2 (sprint-129 PR 6.2; PHASE 6 PR 2/7).
  */
-import { runCodexHookAdapterCli } from "${pluginRoot}/lib/codex/claude-hook-adapter.ts";
+import { runCodexHookAdapterCli } from "${pluginRoot}/lib/codex/codex-hook-adapter.ts";
 
 process.stdout.write(await runCodexHookAdapterCli());
 `;

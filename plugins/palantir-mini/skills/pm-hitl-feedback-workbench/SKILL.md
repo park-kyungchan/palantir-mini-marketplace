@@ -90,7 +90,7 @@ Copy prompt:
 - Do not create HTML unless the user explicitly requested HTML or an
   interactive artifact.
 - Do not cite blocked sources as passing HTML evidence.
-- Do not claim Claude/Codex native parity unless verified.
+- Do not claim Codex native parity unless verified.
 - Do not use third-party mirrors for trq212 source evidence.
 - Do not add or remove tools mid-session to represent review stages.
 - Do not expose raw JSON as the primary user review surface.

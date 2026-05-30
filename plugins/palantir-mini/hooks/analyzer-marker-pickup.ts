@@ -2,7 +2,7 @@
 // Fires on: SessionStart matcher startup
 //
 // Per closing-tasks doc CT-3 (~/.claude/plans/2026-04-29-harness-base-mode-closing-tasks.md):
-// W3.0 trigger writes /tmp/claude-hooks/<sessionId>/analyzer-request-*.json markers
+// W3.0 trigger writes /tmp/palantir-mini-hooks/<sessionId>/analyzer-request-*.json markers
 // when grade_outcome_with_rubric returns fail-verdict at iteration ≥ 1. Hooks cannot
 // directly spawn agents (Plan agent §1) so previously the loop required Lead to
 // manually pick up the marker via /palantir-mini:pm-harness-sprint Phase 2 step 3.5.
@@ -47,9 +47,9 @@ interface MarkerEntry {
   markerPath:   string;
 }
 
-/** Resolve marker dir under /tmp/claude-hooks/<sessionId>/. */
+/** Resolve marker dir under /tmp/palantir-mini-hooks/<sessionId>/. */
 export function resolveMarkerDir(sessionId: string): string {
-  return path.join(os.tmpdir(), "claude-hooks", sessionId);
+  return path.join(os.tmpdir(), "palantir-mini-hooks", sessionId);
 }
 
 /** Scan marker dir for analyzer-request-*.json; return parsed entries (skips malformed). */

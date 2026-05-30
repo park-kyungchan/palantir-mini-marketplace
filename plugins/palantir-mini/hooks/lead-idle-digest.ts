@@ -6,7 +6,7 @@
 // 71.4% idle-notification saturation observed in phase-a3 (170/238 messages).
 //
 // Behavior:
-// - Every idle ping is appended to /tmp/claude-hooks/<sessionId>/idle-digest.jsonl.
+// - Every idle ping is appended to /tmp/palantir-mini-hooks/<sessionId>/idle-digest.jsonl.
 // - Returns {suppressNotification: true} for every individual ping.
 // - Every 5 minutes (tracked by last-flush timestamp), emits a consolidated
 //   inbox message to Lead summarizing pending idles since last flush.
@@ -42,7 +42,7 @@ function resolveSessionId(p: HookPayload): string {
 }
 
 function digestDir(sessionId: string): string {
-  return path.join("/tmp", "claude-hooks", sessionId);
+  return path.join("/tmp", "palantir-mini-hooks", sessionId);
 }
 
 function digestPath(sessionId: string): string {

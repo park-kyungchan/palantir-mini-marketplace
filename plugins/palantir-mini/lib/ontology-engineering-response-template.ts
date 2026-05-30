@@ -21,11 +21,11 @@ export const PALANTIR_MINI_WORKFLOW_RESPONSE_REQUIRED_FIELDS = [
 ] as const;
 
 export const PALANTIR_MINI_WORKFLOW_RESPONSE_GAP_REQUIREMENTS = [
-  "Claude hook native 여부",
-  "Codex runtime gap",
+  "Codex/Gemini runtime gap",
   "manual hook-intent mirroring",
   "MCP/tool availability",
-  "subagent/runtime parity",
+  "skill/extension availability",
+  "subagent/lifecycle evidence",
 ] as const;
 
 export const PALANTIR_MINI_WORKFLOW_RESPONSE_SSOT_REQUIREMENTS = [
@@ -72,9 +72,12 @@ const FORBIDDEN_RUNTIME_UI_MARKERS = [
 
 const FALSE_PARITY_CLAIM_MARKERS = [
   "claude/codex parity",
+  "claude/codex/gemini parity",
   "claude hook parity",
   "codex hook parity",
+  "gemini hook parity",
   "native hook parity",
+  "codex parity is complete",
 ] as const;
 
 const PARITY_LIMIT_MARKERS = [
@@ -270,9 +273,9 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
     "",
     "Durable subagent disclosure: state .md output status, paths or N/A reason, and Lead-capture/runtime gap before context compaction.",
     "",
-    `Runtime gap disclosure is mandatory: ${gapRequirements}. In Codex, Claude hooks are not proven native without smoke evidence; say manual hook-intent mirroring or manually mirrored when applicable. No Claude/Codex parity claim without evidence.`,
+    `Runtime gap disclosure is mandatory: ${gapRequirements}. In Codex, Claude hooks are not native unless smoke-proven; say manual hook-intent mirroring (manually mirrored). No parity claim without evidence.`,
     "",
-    `SSoT 판단 근거: include ${ssotRequirements}. Authority: research BROWSE/INDEX, palantir-official, plugin source. Chatbot Studio: application state, retrieval context, tools. plugin snapshot is not live official-doc currentness; generated mirrors are non-authority; cache/local loaders are consumer surfaces only.`,
+    `SSoT 판단 근거: include ${ssotRequirements}. Authority: research routers, palantir-official, plugin source. Chatbot Studio: app-state/retrieval/tools. plugin snapshot is not live official-doc currentness; generated mirrors are non-authority; cache/local loaders are consumer surfaces only.`,
     "",
     "Deterministic boundary: context-engineering-to-sic uses DATA/LOGIC/ACTION/GOVERNANCE. ontology-dtc-build T0..T6 requires ObjectType, LinkType, ActionType, Function, ApplicationState/Eval readiness, ready-for-DTC. Missing approval, mutationAuthorized=false, router mismatch, or blocking TurnCards blocks mutation.",
     "",
@@ -496,11 +499,13 @@ export function validatePalantirMiniWorkflowResponseTemplateText(
   const lower = text.toLowerCase();
   const missingGapRequirements =
     PALANTIR_MINI_WORKFLOW_RESPONSE_GAP_REQUIREMENTS.filter((requirement) => {
-      if (requirement === "Claude hook native 여부") {
-        return !text.includes("Claude hook") && !text.includes("Claude hooks");
-      }
-      if (requirement === "Codex runtime gap") {
-        return !(lower.includes("codex") && lower.includes("runtime gap"));
+      if (requirement === "Codex/Gemini runtime gap") {
+        return !(
+          lower.includes("claude") &&
+          lower.includes("codex") &&
+          lower.includes("gemini") &&
+          lower.includes("runtime gap")
+        );
       }
       if (requirement === "manual hook-intent mirroring") {
         return !lower.includes("manual") && !text.includes("수동");
@@ -508,7 +513,10 @@ export function validatePalantirMiniWorkflowResponseTemplateText(
       if (requirement === "MCP/tool availability") {
         return !lower.includes("mcp") && !lower.includes("tool");
       }
-      return !lower.includes("subagent") && !lower.includes("parity");
+      if (requirement === "skill/extension availability") {
+        return !lower.includes("skill") && !lower.includes("extension");
+      }
+      return !lower.includes("subagent") && !lower.includes("lifecycle");
     });
   const missingSsotRequirements =
     PALANTIR_MINI_WORKFLOW_RESPONSE_SSOT_REQUIREMENTS.filter((requirement) => {
