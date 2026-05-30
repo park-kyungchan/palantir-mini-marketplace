@@ -22,6 +22,8 @@ The canonical local source root is `/home/palantirkc/palantir-mini-marketplace/p
 
 `docs/RUNTIME_LAYER_BOUNDARY.md` is the mandatory operator checklist for palantir-mini self-improvement. It separates the LLM/provider layer, Codex-native runtime adapter layer, runtime-neutral local source checkout, upstream GitHub marketplace source, and installed cache payloads. A palantir-mini implementation plan must name those layers before editing.
 
+`docs/PALANTIR_MINI_USER_REQUIREMENT_PROMPT_TEMPLATE.md` is the sole pasteable first-prompt template for users who want an LLM to handle a request through palantir-mini without bypassing workflow classification, SSoT grounding, mutation authority checks, runtime-gap disclosure, and plain-language explanation. It also embeds the user-visible response requirements, so there is no separate answer-template document.
+
 ## Convex Cloud Deployment
 
 The Convex backend is authorized for Cloud cutover (user directive 2026-05-13). User-provisioned Dev deployment: `effervescent-meerkat-169`. Real deploy key lives in gitignored `convex/.env.cloud` (NEVER committed). Template: `convex/.env.cloud.example`. See `docs/CONVEX_CLOUD_CUTOVER.md` for the full decision record, R1/R2/R3 invariant preservation details, and switch instructions. Per canonical plan v2 §4 row 4.1a (sprint-100 PR 4.1a; PHASE 4 ENTRY).

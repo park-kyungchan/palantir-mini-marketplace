@@ -1,4 +1,4 @@
-// palantir-mini — pm_plugin_self_check workflow response template axis.
+// palantir-mini — pm_plugin_self_check workflow response requirements axis.
 
 import { validatePalantirMiniWorkflowResponseTemplateText } from "../../../lib/ontology-engineering-response-template";
 import type { PmPluginSelfCheckStatus } from "./types";
@@ -45,8 +45,8 @@ export function checkWorkflowResponseTemplate(): WorkflowResponseTemplateCheckRe
     status,
     details:
       status === "pass"
-        ? "Workflow response template validator accepts complete status blocks and rejects forbidden runtime UI markers."
-        : "Workflow response template validator did not enforce the mandatory response contract.",
+        ? "Workflow response requirements validator accepts complete status blocks and rejects forbidden runtime UI markers."
+        : "Workflow response requirements validator did not enforce the mandatory response contract.",
     completeSampleValid,
     forbiddenMarkerRejected,
   };

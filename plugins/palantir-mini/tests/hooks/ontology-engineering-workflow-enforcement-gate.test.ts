@@ -116,7 +116,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
     });
 
     expect(result.decision).toBe("continue");
-    expect(result.additionalContext).toContain("palantir-mini workflow response template");
+    expect(result.additionalContext).toContain("palantir-mini user requirement prompt response requirements");
     expect(result.additionalContext).toContain("현재 workflow phase");
     expect(result.additionalContext).toContain("선택된 palantir-mini workflow 또는 workflow gap");
     expect(result.additionalContext).toContain("Claude hooks");
@@ -154,7 +154,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
 
     expect(result.decision).toBe("continue");
     expect(result.additionalContext).toContain("mutationAuthorized=true");
-    expect(result.additionalContext).toContain("palantir-mini workflow response template");
+    expect(result.additionalContext).toContain("palantir-mini user requirement prompt response requirements");
     expect(result.additionalContext).toContain("Codex");
   });
 });
