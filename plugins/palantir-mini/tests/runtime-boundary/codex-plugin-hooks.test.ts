@@ -42,8 +42,12 @@ describe("Codex plugin hook entrypoints", () => {
   });
 
   test("Codex hook registry uses only regex-safe matchers and adapter commands", () => {
-    const doc = readJson<HooksDocument>(CODEX_HOOKS_PATH);
+    const doc = readJson<HooksDocument & { description?: string }>(CODEX_HOOKS_PATH);
     const events = Object.keys(doc.hooks ?? {}).sort();
+
+    expect(doc.description).toContain("entrypoints");
+    expect(doc.description).toContain("delegate");
+    expect(doc.description).toContain("live-reads hooks/hooks.json");
 
     expect(events).toEqual([
       "PermissionRequest",

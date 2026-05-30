@@ -22,7 +22,7 @@ export const PALANTIR_MINI_WORKFLOW_RESPONSE_REQUIRED_FIELDS = [
 
 export const PALANTIR_MINI_WORKFLOW_RESPONSE_GAP_REQUIREMENTS = [
   "Codex/Gemini runtime gap",
-  "manual hook-intent mirroring",
+  "hook-intent source/automation disclosure",
   "MCP/tool availability",
   "skill/extension availability",
   "subagent/lifecycle evidence",
@@ -273,9 +273,9 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
     "",
     "Durable subagent disclosure: state .md output status, paths or N/A reason, and Lead-capture/runtime gap before context compaction.",
     "",
-    `Runtime gap disclosure is mandatory: ${gapRequirements}. In Codex, Claude hooks are not native unless smoke-proven; say manual hook-intent mirroring (manually mirrored). No parity claim without evidence.`,
+    `Runtime gap disclosure: ${gapRequirements}. Hook intent belongs to plugin layer; Codex says automatic adapter live-read only with smoke evidence, otherwise runtime gap/manual preservation. No parity for Claude hooks/runtime gaps without evidence.`,
     "",
-    `SSoT 판단 근거: include ${ssotRequirements}. Authority: research routers, palantir-official, plugin source. Chatbot Studio: app-state/retrieval/tools. plugin snapshot is not live official-doc currentness; generated mirrors are non-authority; cache/local loaders are consumer surfaces only.`,
+    `SSoT 판단 근거: include ${ssotRequirements}. Authority: research routers, palantir-official, plugin source. plugin snapshot != live official-doc currentness; generated mirrors are non-authority; cache/local loaders are consumer surfaces only.`,
     "",
     "Deterministic boundary: context-engineering-to-sic uses DATA/LOGIC/ACTION/GOVERNANCE. ontology-dtc-build T0..T6 requires ObjectType, LinkType, ActionType, Function, ApplicationState/Eval readiness, ready-for-DTC. Missing approval, mutationAuthorized=false, router mismatch, or blocking TurnCards blocks mutation.",
     "",
@@ -507,8 +507,18 @@ export function validatePalantirMiniWorkflowResponseTemplateText(
           lower.includes("runtime gap")
         );
       }
-      if (requirement === "manual hook-intent mirroring") {
-        return !lower.includes("manual") && !text.includes("수동");
+      if (requirement === "hook-intent source/automation disclosure") {
+        const mentionsHookIntent =
+          lower.includes("hook-intent") || lower.includes("hook intent") || text.includes("hook intent");
+        const mentionsPluginAuthority =
+          (lower.includes("plugin") || lower.includes("플러그인")) &&
+          (lower.includes("hooks.json") || lower.includes("ssot") || lower.includes("source") ||
+            text.includes("SSoT") || text.includes("소스"));
+        const mentionsRuntimeHandling =
+          lower.includes("adapter") || lower.includes("automatic") || lower.includes("auto") ||
+          lower.includes("smoke evidence") || lower.includes("manual") ||
+          text.includes("자동") || text.includes("수동");
+        return !(mentionsHookIntent && mentionsPluginAuthority && mentionsRuntimeHandling);
       }
       if (requirement === "MCP/tool availability") {
         return !lower.includes("mcp") && !lower.includes("tool");

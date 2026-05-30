@@ -20,7 +20,7 @@ export function checkWorkflowResponseTemplate(): WorkflowResponseTemplateCheckRe
     "mutationAuthorized 여부: false",
     "다음에 허용된 action: read-only validation",
     "durable subagent .md output 상태: N/A - self-check sample does not spawn subagents.",
-    "native/runtime gap 여부: Codex/Gemini runtime gap은 runtime-native smoke evidence 없이는 parity로 주장하지 않습니다. 필요한 경우 manual hook-intent mirroring으로 처리합니다. MCP/tool availability, skill/extension availability, subagent/lifecycle evidence를 함께 보고합니다.",
+    "native/runtime gap 여부: Codex/Gemini runtime gap은 runtime-native smoke evidence 없이는 parity로 주장하지 않습니다. hook-intent source는 plugin hooks.json SSoT이고 Codex는 adapter automatic live-read로 반영합니다. MCP/tool availability, skill/extension availability, subagent/lifecycle evidence를 함께 보고합니다.",
     "SSoT 판단 근거:",
     "- source/ref: plugin source, ~/.claude/research/BROWSE.md, ~/.claude/research/INDEX.md, ~/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
     "  provenance/currentness: research router BROWSE.md/INDEX.md plus palantir-official plugin snapshot; live official-doc currentness not checked. plugin source is authority and generated mirrors are non-authority.",

@@ -50,6 +50,13 @@ the smoke test rewrites a temporary `hooks.json` between adapter calls and
 expects the second call to execute the updated hook command. This is Codex
 adapter evidence only.
 
+User-visible workflow responses should mirror that boundary. In Codex, hook
+intent is plugin-layer policy read from `hooks/hooks.json`; the Codex adapter
+automates live-read for supported lifecycle events when the smoke evidence
+applies. For unsupported lifecycle events or runtimes without adapter evidence,
+responses must state the runtime gap and the manually preserved policy boundary
+instead of claiming native parity.
+
 ## Source Authority
 
 `plugins/palantir-mini/` is the canonical source of truth for
