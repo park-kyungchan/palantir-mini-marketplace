@@ -99,7 +99,9 @@ Replace this block with my actual request. Include:
 Required response behavior:
 - Start by stating the selected workflow or workflow/runtime gap.
 - State the runtime boundary: which LLM runtime is active and which plugin
-  surfaces are native, unavailable, or manually mirrored.
+  surfaces are native, adapter-native, unavailable, or manually preserved with
+  an explicit runtime gap. Hook intent belongs to the plugin layer; runtime
+  adapters may automate it only when runtime-native smoke evidence exists.
 - State mutation authority: true or false, with the evidence.
 - Include these visible status fields when palantir-mini workflow control is active:
   현재 workflow phase; 선택된 palantir-mini workflow 또는 workflow gap; FDE session ref;

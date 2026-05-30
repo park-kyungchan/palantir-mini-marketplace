@@ -43,6 +43,8 @@ modify schemas, add MCP handlers, or tighten hooks.
 3. Apply the HTML request gate:
    - if the user explicitly requested HTML, check source readiness and choose a
      pattern from the taxonomy;
+   - if the user provided pre-session context, the Lead specializes the
+     selected template from that context before presenting the HTML artifact;
    - if HTML was not explicit, use the review card or text response;
    - if source evidence is blocked, return a blocked report instead of HTML.
 4. Create a review artifact before mutation when user confirmation is needed.
@@ -89,6 +91,9 @@ Copy prompt:
 - Do not treat a generated artifact as approval by itself.
 - Do not create HTML unless the user explicitly requested HTML or an
   interactive artifact.
+- Do not auto-run the HTML path for every FDE session. The optional HTML path is
+  user-requested-only, and Lead-authored context insertion is review material,
+  not SIC/DTC approval.
 - Do not cite blocked sources as passing HTML evidence.
 - Do not claim Codex native parity unless verified.
 - Do not use third-party mirrors for trq212 source evidence.

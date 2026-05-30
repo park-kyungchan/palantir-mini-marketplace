@@ -60,7 +60,7 @@ describe("pm_workflow_response_validate", () => {
       "mutationAuthorized 여부: false",
       "다음에 허용된 action: do-not-route",
       "durable subagent .md output 상태: N/A - subagent not used",
-      "native/runtime gap 여부: Codex/Gemini runtime gap handled by manual hook-intent mirroring. MCP/tool availability, skill/extension availability, and subagent/lifecycle evidence are stated.",
+      "native/runtime gap 여부: Codex/Gemini runtime gap은 runtime-native smoke evidence 없이는 parity로 주장하지 않습니다. hook-intent source는 plugin hooks.json SSoT이고 Codex는 adapter automatic live-read로 반영합니다. MCP/tool availability, skill/extension availability, and subagent/lifecycle evidence are stated.",
       "SSoT 판단 근거:",
       "- source/ref: /home/palantirkc/.claude/research/BROWSE.md and /home/palantirkc/.claude/research/INDEX.md",
       "  provenance/currentness: palantir-official plugin source; generated mirrors are non-authority.",

@@ -55,7 +55,8 @@ describe("palantir-mini workflow response requirements", () => {
       expect(context).toContain(field);
     }
     expect(context).toContain("Codex/Gemini runtime gap");
-    expect(context).toContain("manually mirrored");
+    expect(context).toContain("automatic adapter live-read");
+    expect(context).toContain("Hook intent belongs to plugin layer");
     expect(context).toContain("runtime-native question UI");
     expect(context).toContain("MCP/tool availability");
     expect(context).toContain("skill/extension availability");
@@ -111,7 +112,7 @@ describe("palantir-mini workflow response requirements", () => {
       "mutationAuthorized 여부: true",
       "다음에 허용된 action: route-with-approved-contracts",
       "durable subagent .md output 상태: N/A - 이 단위 테스트 응답은 subagent를 사용하지 않았습니다.",
-      "native/runtime gap 여부: Codex/Gemini runtime gap은 runtime-native smoke evidence 없이는 parity로 주장하지 않습니다. 필요한 경우 manual hook-intent mirroring으로 처리합니다. MCP/tool availability, skill/extension availability, subagent/lifecycle evidence를 함께 보고합니다.",
+      "native/runtime gap 여부: Codex/Gemini runtime gap은 runtime-native smoke evidence 없이는 parity로 주장하지 않습니다. hook-intent source는 plugin hooks.json SSoT이고 Codex는 adapter automatic live-read로 반영합니다. MCP/tool availability, skill/extension availability, subagent/lifecycle evidence를 함께 보고합니다.",
       "SSoT 판단 근거:",
       "- source/ref: /home/palantirkc/.claude/research/BROWSE.md, /home/palantirkc/.claude/research/INDEX.md, /home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
       "  provenance/currentness: research router BROWSE.md/INDEX.md와 palantir-official plugin snapshot 기준이며 live official-doc currentness는 별도 확인이 필요합니다. plugin source가 workflow authority이고 generated mirrors are non-authority입니다.",
@@ -208,7 +209,7 @@ describe("palantir-mini workflow response requirements", () => {
       "open TurnCardDecisionSpec 목록: semantic-intent.confirm-operational-meaning",
       "다음에 허용된 action: do-not-route",
       "durable subagent .md output 상태: N/A - subagent not used",
-      "native/runtime gap 여부: Codex/Gemini runtime gap handled by manual hook-intent mirroring. MCP/tool availability, skill/extension availability, and subagent/lifecycle evidence are stated.",
+      "native/runtime gap 여부: Codex/Gemini runtime gap handled by plugin hooks.json hook-intent source plus Codex adapter automatic live-read when smoke evidence exists. MCP/tool availability, skill/extension availability, and subagent/lifecycle evidence are stated.",
       "SSoT 판단 근거: source/ref .claude/research/BROWSE.md and .claude/research/INDEX.md. provenance/currentness palantir-official plugin source, generated mirrors are non-authority. used-for judgment: Palantir AIP Architecture, Palantir AIP Chatbot Studio application state, Chatbot Studio retrieval context, Chatbot Studio tools, AI FDE, Ontology, Context Engineering. confidence/limit: validator evidence only.",
       "what this request means: validate a DTC approval card.",
       "why this source is trusted: plugin source.",
