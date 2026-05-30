@@ -18,6 +18,7 @@ import type {
   OntologyEngineeringRef,
   ValidationPackRef,
 } from "#schemas/ontology/primitives/ontology-engineering-ref";
+import { semanticConsistencyGateMode } from "../semantic-consistency/policy";
 
 export const ONTOLOGY_DTC_BUILD_POLICY = "ontology-dtc-build" as const;
 
@@ -28,6 +29,7 @@ export interface OntologyDtcBuildReadiness {
   readonly functionRefs: readonly string[];
   readonly applicationStateRefs: readonly string[];
   readonly evaluationRefs: readonly string[];
+  readonly semanticTermRefs: readonly string[];
   readonly nonApplicablePrimitiveKinds?: readonly string[];
   readonly nonApplicableEvidenceRefs?: readonly string[];
   readonly readinessVerdict: "draft" | "ready-for-dtc";
@@ -128,7 +130,7 @@ export function advanceOntologyDTCBuildSequence(
   turnIndex: number,
   userInput?: string,
   agentAutoFill?: Partial<DigitalTwinChangeContract>,
-): DtcAdvanceResult {
+): DtcAdvanceResult & { readonly dtcDraft: OntologyDtcBuildContract } {
   if (turnIndex < 0 || turnIndex >= ONTOLOGY_DTC_BUILD_SEQUENCE.length) {
     throw new RangeError(
       `advanceOntologyDTCBuildSequence: turnIndex must be 0-${ONTOLOGY_DTC_BUILD_SEQUENCE.length - 1}, got ${turnIndex}`,
@@ -151,6 +153,7 @@ export function advanceOntologyDTCBuildSequence(
   const t3 = turnIndex === 3 ? typedRefTurn("Function", existingRefs, existingReadiness, userInput, "functionRefs") : {};
   const t4 = turnIndex === 4 ? applicationStateTurn(contract, existingReadiness, userInput) : {};
   const t5 = turnIndex === 5 ? evaluationTurn(contract, existingReadiness, existingEvalRefs, userInput, agentAutoFill) : {};
+  const semanticTermPatch = semanticConsistencyTurn(existingReadiness, userInput);
   const t6 = turnIndex === 6
     ? {
         verdict: "dtc-filled" as const,
@@ -162,6 +165,7 @@ export function advanceOntologyDTCBuildSequence(
           ...readinessFrom(t3),
           ...readinessFrom(t4),
           ...readinessFrom(t5),
+          ...readinessFrom(semanticTermPatch),
           readinessVerdict: "ready-for-dtc" as const,
         },
       }
@@ -174,6 +178,7 @@ export function advanceOntologyDTCBuildSequence(
     ...readinessFrom(t3),
     ...readinessFrom(t4),
     ...readinessFrom(t5),
+    ...readinessFrom(semanticTermPatch),
     ...readinessFrom(t6),
   };
   const touchedOntologyRefs = dedupeRefs([
@@ -196,6 +201,7 @@ export function advanceOntologyDTCBuildSequence(
     ...refsFrom(t3),
     ...evalRefsFrom(t5),
   ].map((ref) => ref.rid ?? JSON.stringify(ref));
+  capturedRefs.push(...semanticRefsFrom(semanticTermPatch));
   const step: DtcFillStep = {
     step: descriptor.step,
     question: descriptor.question,
@@ -296,6 +302,19 @@ export function ontologyDtcBuildReadinessIssues(
         "ontology-dtc-build requires at least one requiredEvaluationRef or explicit non-applicable evidence",
     });
   }
+  const semanticMode = semanticConsistencyGateMode();
+  if (
+    semanticMode !== "off" &&
+    (!readiness?.semanticTermRefs || readiness.semanticTermRefs.length === 0) &&
+    !hasNonApplicableEvidence(readiness, "SemanticConsistency")
+  ) {
+    issues.push({
+      field: "ontologyDtcBuildReadiness.semanticTermRefs",
+      message:
+        "ontology-dtc-build requires semantic term/mapping/resolver refs or explicit SemanticConsistency non-applicable evidence",
+      severity: semanticMode === "blocking" ? "blocking" : "advisory",
+    });
+  }
   return issues;
 }
 
@@ -374,6 +393,24 @@ function evaluationTurn(
   };
 }
 
+function semanticConsistencyTurn(
+  readiness: OntologyDtcBuildReadiness,
+  userInput: string | undefined,
+) {
+  const refs = csv(userInput ?? "").filter((entry) => isSemanticConsistencyRef(entry));
+  if (refs.length === 0) return {};
+  return {
+    ontologyDtcBuildReadiness: {
+      ...readiness,
+      semanticTermRefs: mergeUnique(readiness.semanticTermRefs, refs),
+    },
+  };
+}
+
+function isSemanticConsistencyRef(value: string): boolean {
+  return /^(term|mapping|alias|source-term|semantic-conflict|semantic-resolver-run):/.test(value);
+}
+
 function parseRefs(input: string, defaultKind: string): OntologyEngineeringRef[] {
   return csv(input).map((entry) => {
     if (entry.includes(":")) {
@@ -403,6 +440,11 @@ function evalRefsFrom(value: unknown): ValidationPackRef[] {
   return [...((value as { requiredEvaluationRefs?: ValidationPackRef[] }).requiredEvaluationRefs ?? [])];
 }
 
+function semanticRefsFrom(value: unknown): string[] {
+  if (!value || typeof value !== "object") return [];
+  return [...((value as { ontologyDtcBuildReadiness?: Partial<OntologyDtcBuildReadiness> }).ontologyDtcBuildReadiness?.semanticTermRefs ?? [])];
+}
+
 function readinessFrom(value: unknown): Partial<OntologyDtcBuildReadiness> {
   if (!value || typeof value !== "object") return {};
   return (value as { ontologyDtcBuildReadiness?: Partial<OntologyDtcBuildReadiness> }).ontologyDtcBuildReadiness ?? {};
@@ -429,6 +471,7 @@ function emptyReadiness(): OntologyDtcBuildReadiness {
     functionRefs: [],
     applicationStateRefs: [],
     evaluationRefs: [],
+    semanticTermRefs: [],
     readinessVerdict: "draft",
   };
 }

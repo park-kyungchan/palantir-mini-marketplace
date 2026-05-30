@@ -76,7 +76,7 @@ palantirSurface:
     codex:
       support: manual
       evidenceRefs:
-        - docs/NATIVE_RUNTIME_GAPS.md
+        - docs/RUNTIME_LAYER_BOUNDARY.md
       fallbackObligations:
         - Preserve plugin-owned delegation recipe and output contract in Codex-native subagent prompts.
         - Do not claim SubagentStart or SubagentStop parity without smoke evidence.

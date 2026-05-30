@@ -310,7 +310,7 @@ export const WORKFLOW_STEP_POLICY_REGISTRY: readonly WorkflowStepPolicy[] = [
     policyId: "hook-step:posttool-manifest-validation",
     hookPolicyId: "hook-policy:post-tool-lineage",
     event: "PostToolUse",
-    matcher: "**/.claude-plugin/plugin.json|**/hooks.json",
+    matcher: "**/.codex-plugin/plugin.json|**/hooks.json",
     purpose: "Validate plugin manifest and hook registration drift after manifest edits.",
   },
   {

@@ -97,7 +97,7 @@ afterEach(() => {
   else delete process.env.PALANTIR_MINI_HARNESS_BYPASS;
   if (TMP && fs.existsSync(TMP)) fs.rmSync(TMP, { recursive: true, force: true });
   // Clean marker dir from analyzer-trigger scenarios
-  const markerSession = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+  const markerSession = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
   if (fs.existsSync(markerSession)) fs.rmSync(markerSession, { recursive: true, force: true });
 });
 
@@ -276,7 +276,7 @@ describe("CT-1 Block 2 — analyzer trigger → injector chain", () => {
 
     const markerPath = path.join(
       os.tmpdir(),
-      "claude-hooks",
+      "palantir-mini-hooks",
       SESSION_ID,
       "analyzer-request-1-1-test-rubric.json",
     );

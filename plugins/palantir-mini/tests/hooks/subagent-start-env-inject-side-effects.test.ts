@@ -22,10 +22,10 @@ describe("readAgentMd", () => {
   beforeEach(() => {
     tmpRoot = makeTmpDir("read");
     savedEnv.HOME              = process.env.HOME;
-    savedEnv.CLAUDE_PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT;
+    savedEnv.PALANTIR_MINI_PLUGIN_ROOT = process.env.PALANTIR_MINI_PLUGIN_ROOT;
     tmpHome = makeTmpDir("home");
     process.env.HOME              = tmpHome;
-    delete process.env.CLAUDE_PLUGIN_ROOT;
+    delete process.env.PALANTIR_MINI_PLUGIN_ROOT;
   });
 
   afterEach(() => {
@@ -77,10 +77,10 @@ describe("injectEnvFromAgentMd", () => {
   beforeEach(() => {
     tmpRoot = makeTmpDir("inject");
     savedEnv.HOME              = process.env.HOME;
-    savedEnv.CLAUDE_PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT;
+    savedEnv.PALANTIR_MINI_PLUGIN_ROOT = process.env.PALANTIR_MINI_PLUGIN_ROOT;
     tmpHome = makeTmpDir("home-inj");
     process.env.HOME              = tmpHome;
-    delete process.env.CLAUDE_PLUGIN_ROOT;
+    delete process.env.PALANTIR_MINI_PLUGIN_ROOT;
     for (const k of injectedKeys) {
       savedEnv[k] = process.env[k];
       delete process.env[k];

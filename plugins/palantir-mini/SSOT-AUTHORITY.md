@@ -1,14 +1,15 @@
 # Plugin Workflow Authority — SSoT Marker
 
-The canonical palantir-mini source root is the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. It owns workflow semantics, MCP handler source, hook intent, skills, agents, tests, and installable plugin manifests.
+The canonical palantir-mini source root on this machine is `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/`. Its upstream provenance is the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. The local source root owns workflow semantics, MCP handler source, hook intent, skills, agents, tests, and installable plugin manifests.
 
-Runtime plugin caches are install targets. They must not become semantic forks. Runtime-neutral ownership is described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`. Runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong in the owning runtime homes such as `~/.codex/**`, `~/.claude/**`, and `~/.gemini/**`.
+Runtime plugin caches are install targets. They must not become semantic forks. Runtime-neutral ownership is described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`. Current local install support is Codex-only; runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong under `~/.codex/**`.
 
 ## Machine-Readable Marker
 
 `.ssot-authority.json` (sibling file) is the machine-readable authority marker. During this relocation slice it may still contain compatibility-path fields; release validation must treat those fields as migration debt until the source-authority marker is updated in its own approved slice. It encodes:
 
-- `authority`: the canonical source path.
+- `authority`: the canonical runtime-neutral local source path.
+- `upstreamAuthority`: the private GitHub marketplace remote provenance.
 - `consumerRuntimes`: how each runtime consumes this source.
 - `forbiddenForks`: explicit rules against creating per-runtime source forks.
 - `lastVerifiedSha`: git SHA at the time of last authority verification.
@@ -17,22 +18,20 @@ Runtime plugin caches are install targets. They must not become semantic forks. 
 
 | Runtime | Consumption method |
 |---------|-------------------|
-| `claude-code-cli` | Native plugin loader reads `palantir-mini@palantir-mini-marketplace` from the private GitHub marketplace. |
 | `codex-cli` | Codex plugin marketplace reads `palantir-mini@palantir-mini-marketplace` from the private GitHub marketplace; Codex protocol ownership stays under `~/.codex/**`. |
-| `gemini-cli` | Private Gemini extension `park-kyungchan/palantir-mini-gemini-extension` installs an extension-local plugin payload. |
-| `cursor` | Not yet bridged. Future adapter should point to `bridge/mcp-server.ts`. |
 
 ## Invariant
 
-> All runtimes consume palantir-mini workflow semantics from the private marketplace payload; no per-runtime semantic source forks should be created. Runtime-native wrappers are authority for provider protocol details, but not for durable palantir-mini workflow semantics.
+> Codex consumes palantir-mini workflow semantics from the private marketplace payload; no runtime-home semantic source forks should be created. Runtime-native wrappers are authority for provider protocol details, but not for durable palantir-mini workflow semantics.
 
 ## What Is and Is Not an Authority
 
 | Artifact | Authority? | Notes |
 |----------|-----------|-------|
-| `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/` | YES — canonical source root | Owns workflow semantics, MCP handler source, hook intent, source skills/agents, tests, and runtime manifests. |
+| `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/` | YES — canonical local source root | Owns workflow semantics, MCP handler source, hook intent, source skills/agents, tests, and runtime manifests. |
+| `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/` | YES — upstream provenance | Remote source used after PR merge and runtime marketplace refresh; not a runtime-home cache. |
 | `/home/palantirkc/.palantir-mini/core/` | YES — runtime-neutral boundary | Owns runtime-neutral workflow/control-plane boundary contracts and sentinel policy; it is not the full plugin root. |
-| `~/.claude/plugins/cache/**`, `~/.codex/plugins/cache/**`, `~/.gemini/extensions/palantir-mini/**` | NO — runtime install payloads | May load the plugin for a runtime, but must not carry independent workflow semantics. |
+| `~/.codex/plugins/cache/**` | NO — runtime install payload | May load the plugin for Codex, but must not carry independent workflow semantics. |
 | `plugins/palantir-mini/bridge/mcp-server.ts` | YES — bridge surface | The MCP server implementation that runtime wrappers should launch. |
 | `~/.codex/` | YES — Codex-native runtime overlay | Owns Codex hooks, memory, config, reload docs, and protocol adapter entrypoints. Must NOT contain a fork of workflow semantics. |
 | `managed-settings.d/*.json` (per project) | NO — RBAC fragment | Grants/denies MCP tool access per project; not source authority. |
@@ -72,7 +71,7 @@ Authority split:
 
 ## Cross-References
 
-- `CONTEXT.md §13.5` — Cross-runtime coexistence map (Claude/Codex/Gemini).
+- `CONTEXT.md §13.5` — Cross-runtime coexistence map (Codex/Gemini).
 - `rule 07` (plugins-and-mcp) — Plugin manifest authority + MCP server registration.
 - `rule 27` (cross-runtime-substrate) — Cross-runtime `events.jsonl` append protocol.
 - `~/.claude/rules/CORE.md` — Active rule invariants.
@@ -80,6 +79,8 @@ Authority split:
 ## Version History
 
 - v1.5.0 (2026-05-25): Relocated canonical source authority to the private GitHub marketplace and demoted runtime caches to install payloads.
+- v1.6.1 (2026-05-30): Removed active Claude/Gemini install/package surfaces from this checkout; kept Codex marketplace installation as the only current local install path.
+- v1.6.0 (2026-05-30): Relocated the local implementation checkout to `/home/palantirkc/palantir-mini-marketplace` and demoted runtime-home marketplace checkouts to removable consumers.
 - v1.4.0 (2026-05-24): Relocated canonical source authority to `plugins/palantir-mini`; demoted `~/.claude/plugins/palantir-mini` to Claude-native install/compatibility target.
 - v1.1.0 (2026-05-21): Clarified Codex local-marketplace MCP consumption and generated hook adapter path after v6.78.0 bridge/runtime verification.
 - v1.2.0 (2026-05-22): Added runtime-neutral core boundary and marked runtime-native protocol ownership as `~/.codex/**` / `~/.claude/**` overlay responsibility.

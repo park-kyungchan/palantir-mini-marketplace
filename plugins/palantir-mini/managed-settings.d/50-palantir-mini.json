@@ -30,9 +30,9 @@
       "Bash(mv ~/.claude/**)",
       "Bash(cp ~/.claude/**)",
       "Bash(mkdir -p ~/.claude/**)",
-      "Bash(bun run ${CLAUDE_PLUGIN_ROOT}/scripts/*)",
-      "Bash(bun run ${CLAUDE_PLUGIN_ROOT}/lib/rbac/l2-check.ts *)",
-      "Bash(bun run ${CLAUDE_PLUGIN_ROOT}/lib/rbac/l3-check.ts *)",
+      "Bash(bun run ${PALANTIR_MINI_PLUGIN_ROOT}/scripts/*)",
+      "Bash(bun run ${PALANTIR_MINI_PLUGIN_ROOT}/lib/rbac/l2-check.ts *)",
+      "Bash(bun run ${PALANTIR_MINI_PLUGIN_ROOT}/lib/rbac/l3-check.ts *)",
       "Bash(bun test *)",
       "Bash(bunx tsc *)",
       "mcp__palantir-mini__emit_event",
@@ -71,25 +71,25 @@
         "description": "L2: CapabilityToken gate for ship-merge — requires valid token with ship-merge scope",
         "rule": "mcp__palantir-mini__commit_edits",
         "condition": "action == 'ship-merge'",
-        "preflightScript": "bun run ${CLAUDE_PLUGIN_ROOT}/lib/rbac/l2-check.ts ${CAPABILITY_TOKEN} ship-merge"
+        "preflightScript": "bun run ${PALANTIR_MINI_PLUGIN_ROOT}/lib/rbac/l2-check.ts ${CAPABILITY_TOKEN} ship-merge"
       },
       {
         "description": "L2: CapabilityToken gate for schema-write — requires valid token with schema-write scope",
         "rule": "Write(~/.claude/schemas/**)",
         "condition": "action == 'schema-write'",
-        "preflightScript": "bun run ${CLAUDE_PLUGIN_ROOT}/lib/rbac/l2-check.ts ${CAPABILITY_TOKEN} schema-write"
+        "preflightScript": "bun run ${PALANTIR_MINI_PLUGIN_ROOT}/lib/rbac/l2-check.ts ${CAPABILITY_TOKEN} schema-write"
       },
       {
         "description": "L2: CapabilityToken gate for ontology-register — requires valid token with ontology-register scope",
         "rule": "Write(./ontology/**)",
         "condition": "action == 'ontology-register'",
-        "preflightScript": "bun run ${CLAUDE_PLUGIN_ROOT}/lib/rbac/l2-check.ts ${CAPABILITY_TOKEN} ontology-register"
+        "preflightScript": "bun run ${PALANTIR_MINI_PLUGIN_ROOT}/lib/rbac/l2-check.ts ${CAPABILITY_TOKEN} ontology-register"
       },
       {
         "description": "L3: MarkingDeclaration sensitivity gate for cell/column reads — blocks restricted/confidential access without clearance",
         "rule": "mcp__palantir-mini__get_ontology",
         "condition": "domain == 'security'",
-        "preflightScript": "bun run ${CLAUDE_PLUGIN_ROOT}/lib/rbac/l3-check.ts ${COLUMN_OR_CELL} ${SESSION_CLEARANCE:-internal}"
+        "preflightScript": "bun run ${PALANTIR_MINI_PLUGIN_ROOT}/lib/rbac/l3-check.ts ${COLUMN_OR_CELL} ${SESSION_CLEARANCE:-internal}"
       }
     ],
     "deny": [

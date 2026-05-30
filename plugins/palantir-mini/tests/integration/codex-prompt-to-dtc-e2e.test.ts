@@ -7,7 +7,7 @@ import { routeIntent } from "../../bridge/handlers/pm-intent-router";
 import {
   extractPromptFrontDoorIdentityContext,
   runCodexHookAdapter,
-} from "../../lib/codex/claude-hook-adapter";
+} from "../../lib/codex/codex-hook-adapter";
 import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
@@ -40,7 +40,7 @@ function semanticContract(): SemanticIntentContract {
     approvedNouns: ["PromptEnvelope", "SemanticIntentContract", "DigitalTwinChangeContract"],
     approvedVerbs: ["capture", "persist", "route"],
     affectedSurfaces: [
-      ".claude/plugins/palantir-mini/lib/codex/claude-hook-adapter.ts",
+      ".claude/plugins/palantir-mini/lib/codex/codex-hook-adapter.ts",
       ".claude/plugins/palantir-mini/bridge/handlers/pm-intent-router.ts",
       ".claude/plugins/palantir-mini/tests/integration/codex-prompt-to-dtc-e2e.test.ts",
     ],
@@ -49,6 +49,9 @@ function semanticContract(): SemanticIntentContract {
     downstreamAllowed: ["Persist prompt-local contracts and route from refs."],
     downstreamForbidden: ["Do not mutate runtime gate defaults."],
     clarificationQuestions: [],
+    approvedCanonicalTermRefs: ["term:codex-prompt-dtc-e2e"],
+    approvedTermMappingRefs: ["mapping:codex-prompt-dtc-e2e"],
+    semanticConsistencyResultRef: "semantic-resolver-run:codex-prompt-dtc-e2e",
     approvalRef: "user:approved:codex-e2e",
   };
 }
@@ -59,7 +62,7 @@ function digitalTwinContract(): DigitalTwinChangeContract {
     status: "approved",
     semanticIntentContractRef: "semantic-intent:approved:codex-e2e",
     affectedSurfaces: [
-      ".claude/plugins/palantir-mini/lib/codex/claude-hook-adapter.ts",
+      ".claude/plugins/palantir-mini/lib/codex/codex-hook-adapter.ts",
       ".claude/plugins/palantir-mini/bridge/handlers/pm-intent-router.ts",
       ".claude/plugins/palantir-mini/tests/integration/codex-prompt-to-dtc-e2e.test.ts",
     ],
@@ -71,6 +74,8 @@ function digitalTwinContract(): DigitalTwinChangeContract {
     toolSurfaceReadiness:
       "Codex adapter UserPromptSubmit output supplies fields exposed by MCP schemas.",
     evaluationPlan: "Run Codex adapter, semantic gate, router, schema, and Prompt-to-DTC tests.",
+    fillPolicy: "ontology-dtc-build",
+    semanticConsistencyRefs: ["semantic-resolver-run:codex-prompt-dtc-e2e"],
     touchedOntologyRefs: [{
       kind: "ObjectType",
       rid: "ontology://palantir-mini/object/PromptEnvelope",
@@ -87,6 +92,24 @@ function digitalTwinContract(): DigitalTwinChangeContract {
       sourcePath: "tests/integration/codex-prompt-to-dtc-e2e.test.ts",
       confidence: "exact",
     }],
+    ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
+      step: index + 1,
+      question: `T${index}`,
+      filledAt: "2026-05-30T00:00:00.000Z",
+      source: "agent" as const,
+    })),
+    ontologyDtcBuildReadiness: {
+      objectTypeRefs: ["ontology://palantir-mini/object/PromptEnvelope"],
+      linkTypeRefs: [],
+      actionTypeRefs: [],
+      functionRefs: [],
+      applicationStateRefs: ["ApplicationState:codex-prompt-front-door"],
+      evaluationRefs: ["project://palantir-mini/validation-pack/codex-prompt-to-dtc-e2e"],
+      semanticTermRefs: ["semantic-resolver-run:codex-prompt-dtc-e2e"],
+      nonApplicablePrimitiveKinds: ["LinkType", "ActionType", "Function"],
+      nonApplicableEvidenceRefs: ["test://codex-prompt-dtc-e2e-non-applicable"],
+      readinessVerdict: "ready-for-dtc",
+    },
     requiredUserDecisions: [{
       decisionId: "decision-codex-e2e-contract-boundary",
       domain: "TECHNOLOGY",
@@ -166,7 +189,7 @@ describe("Codex Prompt-to-DTC E2E", () => {
       project,
       rawIntent: prompt,
       scopePaths: [
-        ".claude/plugins/palantir-mini/lib/codex/claude-hook-adapter.ts",
+        ".claude/plugins/palantir-mini/lib/codex/codex-hook-adapter.ts",
         ".claude/plugins/palantir-mini/bridge/handlers/pm-intent-router.ts",
         ".claude/plugins/palantir-mini/tests/integration/codex-prompt-to-dtc-e2e.test.ts",
       ],
@@ -189,7 +212,7 @@ describe("Codex Prompt-to-DTC E2E", () => {
       project,
       intent: prompt,
       scopePaths: [
-        ".claude/plugins/palantir-mini/lib/codex/claude-hook-adapter.ts",
+        ".claude/plugins/palantir-mini/lib/codex/codex-hook-adapter.ts",
         ".claude/plugins/palantir-mini/bridge/handlers/pm-intent-router.ts",
         ".claude/plugins/palantir-mini/tests/integration/codex-prompt-to-dtc-e2e.test.ts",
       ],

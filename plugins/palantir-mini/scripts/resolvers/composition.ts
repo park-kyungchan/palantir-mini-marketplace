@@ -30,7 +30,7 @@ export function generateInvokeSkill(_ctx: TemplateContext, args?: string[]): str
 
   const allSkips = [...DEFAULT_SKIPS, ...extraSkips];
 
-  return `Invoke the \`/palantir-mini:${skillName}\` skill (read its \`SKILL.md\` via the Read tool at \`\${CLAUDE_PLUGIN_ROOT}/skills/${skillName}/SKILL.md\`).
+  return `Invoke the \`/palantir-mini:${skillName}\` skill (read its \`SKILL.md\` via the Read tool at \`\${PALANTIR_MINI_PLUGIN_ROOT}/skills/${skillName}/SKILL.md\`).
 
 **If unreadable:** skip with "Could not load /palantir-mini:${skillName} — skipping." and continue.
 

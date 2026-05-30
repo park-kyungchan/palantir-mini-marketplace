@@ -50,8 +50,7 @@ export const AGENT_OWNERSHIP_TABLE: Record<AgentName, readonly string[]> = {
   "mc-implementer": [],
   "ontology-steward": [],
   "plugin-maintainer": [
-    ".claude-plugin/plugin.json",
-    ".claude-plugin/marketplace.json",
+    ".codex-plugin/plugin.json",
     "package.json",
     "README.md",
     "CHANGELOG.md",

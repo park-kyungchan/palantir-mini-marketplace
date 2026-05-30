@@ -43,7 +43,7 @@
  *     support: adapter-native
  *     evidenceRefs:
  *       - hooks/codex-hooks.json
- *       - lib/codex/claude-hook-adapter.ts
+ *       - lib/codex/codex-hook-adapter.ts
  *     fallbackObligations:
  *       - Treat PromptEnvelope and UniversalOntologyEntry as retrieval/warning evidence, not mutation authority.
  *     unsupportedSurfaceRefs:

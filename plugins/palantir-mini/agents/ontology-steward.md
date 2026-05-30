@@ -55,7 +55,7 @@ palantirSurface:
     codex:
       support: manual
       evidenceRefs:
-        - docs/NATIVE_RUNTIME_GAPS.md
+        - docs/RUNTIME_LAYER_BOUNDARY.md
       fallbackObligations:
         - Require approved SIC/DTC refs before any ontology or shared-core mutation.
         - Preserve output contract manually when Codex lacks native agent hook parity.

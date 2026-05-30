@@ -124,7 +124,7 @@ function loadVisitedDomains(cwd: string): Set<string> {
 /** Strike file lives in OS tmp so it survives context compaction but not reboots. */
 function strikesFilePath(sessionId: string | undefined): string {
   const sessionSuffix = sessionId ? `-${sessionId.slice(0, 12)}` : "";
-  return path.join(os.tmpdir(), `claude-hooks${sessionSuffix}-${STRIKES_FNAME}`);
+  return path.join(os.tmpdir(), `palantir-mini-hooks${sessionSuffix}-${STRIKES_FNAME}`);
 }
 
 function loadStrikes(sessionId: string | undefined): number {

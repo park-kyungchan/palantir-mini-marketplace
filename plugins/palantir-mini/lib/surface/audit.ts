@@ -168,7 +168,7 @@ function classifySurfaceInventory(pluginRoot: string, filePath: string): Surface
   if (rel.startsWith("hooks/")) {
     const registry = rel === "hooks/hooks.json" ||
       rel === "hooks/codex-hooks.json" ||
-      rel === "hooks/claude-hooks.json";
+      rel === "hooks/hooks.json";
     return {
       contractRequired: registry,
       requirementReason: registry

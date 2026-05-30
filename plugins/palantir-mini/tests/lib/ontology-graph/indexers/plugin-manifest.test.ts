@@ -44,7 +44,7 @@ afterAll(async () => {
 // ─── Test 1: Headline fixture-tree walk ───────────────────────────────────────
 //
 // Create:
-//   projectRoot/.claude/plugins/test-plugin/.claude-plugin/plugin.json
+//   projectRoot/.claude/plugins/test-plugin/.codex-plugin/plugin.json
 //     (containing mcpServers: { "test-server": { type: "stdio", command: "node" } })
 //   projectRoot/.claude/plugins/test-plugin/hooks/hooks.json
 //     (containing { "PreToolUse": [{ matcher: "Edit", hooks: [{ type: "command", command: "echo test" }] }] })
@@ -65,14 +65,14 @@ describe("indexPluginManifestAndHooks", () => {
 
       const projectRoot = path.join(tmpDir, "projectRoot");
 
-      // .claude-plugin/plugin.json with one mcpServers entry
+      // .codex-plugin/plugin.json with one mcpServers entry
       await writeFile(
         path.join(
           projectRoot,
           ".claude",
           "plugins",
           "test-plugin",
-          ".claude-plugin",
+          ".codex-plugin",
           "plugin.json",
         ),
         JSON.stringify({
@@ -205,7 +205,7 @@ describe("indexPluginManifestAndHooks", () => {
   //
   // Reuse the fixture from test 1 AND also write .codex-plugin/plugin.json.
   // Call with excludeGlobs: ["**/.codex-plugin/**", "**/test-plugin/**"].
-  // Assert: no nodes for test-plugin manifests (both .claude-plugin and .codex-plugin skipped).
+  // Assert: no nodes for test-plugin manifests (both .codex-plugin and .codex-plugin skipped).
 
   test(
     "respects excludeGlobs to skip a plugin directory + .codex-plugin auto-regen mirror",
@@ -215,14 +215,14 @@ describe("indexPluginManifestAndHooks", () => {
 
       const projectRoot = path.join(tmpDir, "projectRoot");
 
-      // .claude-plugin/plugin.json (should be excluded via **/test-plugin/**)
+      // .codex-plugin/plugin.json (should be excluded via **/test-plugin/**)
       await writeFile(
         path.join(
           projectRoot,
           ".claude",
           "plugins",
           "test-plugin",
-          ".claude-plugin",
+          ".codex-plugin",
           "plugin.json",
         ),
         JSON.stringify({
@@ -276,7 +276,7 @@ describe("indexPluginManifestAndHooks", () => {
         ".claude",
         "plugins",
         "test-plugin",
-        ".claude-plugin",
+        ".codex-plugin",
         "plugin.json",
       );
       const testPluginCodexPluginPath = path.join(

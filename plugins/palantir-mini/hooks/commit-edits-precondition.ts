@@ -599,7 +599,7 @@ export default async function commitEditsPrecondition(payload: unknown): Promise
  * v3.12.0 B2: file-edit branch for Edit|Write|MultiEdit tools.
  * - Extracts file_path from tool_input.
  * - Walks up to find tracked palantir-mini project; if none → continue.
- * - If file is inside ~/.claude/ or ~/.codex/ (Claude/Codex runtime overlays)
+ * - If file is inside ~/.claude/ or ~/.codex/ (Codex runtime overlays)
  *   → continue regardless of ambient palantir-mini ancestor.
  * - Else require harness dir + bound contract (no dry-run check; that's commit_edits-only).
  *
@@ -658,7 +658,7 @@ async function handleFileEditBranch(
   // Path-based exemption AFTER project resolution: ~/.claude/ and ~/.codex/ are
   // runtime overlay namespaces — even if an ambient palantir-mini ancestor exists
   // (e.g. user's home repo with .palantir-mini), edits to overlay files are
-  // always exempt. This preserves Claude/Codex hook + skill + memory authoring.
+  // always exempt. This preserves Codex hook + skill + memory authoring.
   const overlayExempt = [
     home + "/.claude/",
     home + "/.codex/",

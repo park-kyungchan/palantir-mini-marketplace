@@ -8,7 +8,7 @@
  * Target: ~5-10ms inside an MCP session, ~20-50ms here (invoked as Bash).
  *
  * Usage (from SKILL templates):
- *   bun run "${CLAUDE_PLUGIN_ROOT}/scripts/preamble-invoke.ts" <skill-name>
+ *   bun run "${PALANTIR_MINI_PLUGIN_ROOT}/scripts/preamble-invoke.ts" <skill-name>
  *
  * Behavior:
  *   - Calls the same default export that bridge/handlers/pm-preamble.ts exposes.

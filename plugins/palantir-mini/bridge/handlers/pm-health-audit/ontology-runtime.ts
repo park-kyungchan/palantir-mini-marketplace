@@ -443,7 +443,7 @@ function validateRuntimeHookSplit(): OntologyRuntimeHealthSignal[] {
     signals.push(signal(
       "runtime-hook-split-drift",
       "lib/hooks/workflow-registry.ts",
-      "Claude-only task and teammate lifecycle events must not project into Codex hook mounts",
+      "non-Codex task and teammate lifecycle events must not project into Codex hook mounts",
       leakedClaudeOnly.join(", "),
       "fail",
     ));
@@ -452,7 +452,7 @@ function validateRuntimeHookSplit(): OntologyRuntimeHealthSignal[] {
     signals.push(signal(
       "runtime-hook-split-drift",
       "lib/hooks/workflow-registry.ts",
-      "Codex unsupported Claude-only lifecycle events must remain explicit",
+      "Codex unsupported non-Codex lifecycle events must remain explicit",
       missingUnsupported.join(", "),
       "fail",
     ));

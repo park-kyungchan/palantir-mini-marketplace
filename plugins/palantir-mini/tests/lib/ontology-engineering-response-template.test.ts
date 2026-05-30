@@ -54,12 +54,12 @@ describe("palantir-mini workflow response template", () => {
     for (const field of ONTOLOGY_ENGINEERING_RESPONSE_REQUIRED_FIELDS) {
       expect(context).toContain(field);
     }
-    expect(context).toContain("Claude hooks");
-    expect(context).toContain("Codex");
+    expect(context).toContain("Codex/Gemini runtime gap");
     expect(context).toContain("manually mirrored");
     expect(context).toContain("runtime-native question UI");
     expect(context).toContain("MCP/tool availability");
-    expect(context).toContain("subagent/runtime parity");
+    expect(context).toContain("skill/extension availability");
+    expect(context).toContain("subagent/lifecycle evidence");
   });
 
   test("builds mandatory context with SSoT decision-basis disclosure", () => {
@@ -111,7 +111,7 @@ describe("palantir-mini workflow response template", () => {
       "mutationAuthorized 여부: true",
       "다음에 허용된 action: route-with-approved-contracts",
       "durable subagent .md output 상태: N/A - 이 단위 테스트 응답은 subagent를 사용하지 않았습니다.",
-      "native/runtime gap 여부: Claude hook native 여부는 Codex에서 증명되지 않았고 Codex runtime gap은 manual hook-intent mirroring으로 처리합니다. MCP/tool availability와 subagent/runtime parity도 확인합니다.",
+      "native/runtime gap 여부: Codex/Gemini runtime gap은 runtime-native smoke evidence 없이는 parity로 주장하지 않습니다. 필요한 경우 manual hook-intent mirroring으로 처리합니다. MCP/tool availability, skill/extension availability, subagent/lifecycle evidence를 함께 보고합니다.",
       "SSoT 판단 근거:",
       "- source/ref: /home/palantirkc/.claude/research/BROWSE.md, /home/palantirkc/.claude/research/INDEX.md, /home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
       "  provenance/currentness: research router BROWSE.md/INDEX.md와 palantir-official plugin snapshot 기준이며 live official-doc currentness는 별도 확인이 필요합니다. plugin source가 workflow authority이고 generated mirrors are non-authority입니다.",
@@ -122,7 +122,7 @@ describe("palantir-mini workflow response template", () => {
       "why this source is trusted: plugin source가 권위 경로이므로 신뢰합니다.",
       "what I am allowed to do now: 승인된 단일 문서/helper 범위만 수정할 수 있습니다.",
       "what needs user approval: 범위를 넓히려면 추가 approval이 필요합니다.",
-      "what gap or uncertainty remains: Codex runtime gap은 남아 있습니다.",
+      "what gap or uncertainty remains: Codex/Gemini runtime gap은 native smoke evidence 전까지 남아 있습니다.",
     ].join("\n");
 
     expect(validateOntologyEngineeringResponseTemplateText(complete).valid).toBe(true);
@@ -146,7 +146,7 @@ describe("palantir-mini workflow response template", () => {
       "open TurnCardDecisionSpec 목록: none",
       "mutationAuthorized 여부: true",
       "다음에 허용된 action: route-with-approved-contracts",
-      "native/runtime gap 여부: Claude hooks are native. MCP/tool availability and subagent/runtime parity confirmed.",
+      "native/runtime gap 여부: Claude hooks are native. MCP/tool availability, skill/extension availability, and subagent/lifecycle evidence confirmed.",
       "SSoT 판단 근거:",
       "- source/ref: plugin source",
       "  provenance/currentness: plugin snapshot. plugin source is authority and generated mirrors are non-authority.",
@@ -158,14 +158,14 @@ describe("palantir-mini workflow response template", () => {
       "what needs user approval: mutation approval.",
       "what gap or uncertainty remains: none.",
       ["runtime-native", "question", "UI"].join(" "),
-      "Claude/Codex parity is complete.",
+      "Codex parity is complete.",
     ].join("\n");
 
     const result = validatePalantirMiniWorkflowResponseTemplateText(forbiddenText);
     expect(result.valid).toBe(false);
     expect(result.forbiddenRuntimeUiMarkers.length).toBeGreaterThan(0);
     const parityOnly = validatePalantirMiniWorkflowResponseTemplateText(
-      "Claude/Codex parity is complete.",
+      "Codex parity is complete.",
     );
     expect(parityOnly.falseParityClaimMarkers.length).toBeGreaterThan(0);
   });
@@ -208,7 +208,7 @@ describe("palantir-mini workflow response template", () => {
       "open TurnCardDecisionSpec 목록: semantic-intent.confirm-operational-meaning",
       "다음에 허용된 action: do-not-route",
       "durable subagent .md output 상태: N/A - subagent not used",
-      "native/runtime gap 여부: Claude hook native 여부 not proven; Codex runtime gap handled by manual hook-intent mirroring. MCP/tool availability and subagent/runtime parity are stated.",
+      "native/runtime gap 여부: Codex/Gemini runtime gap handled by manual hook-intent mirroring. MCP/tool availability, skill/extension availability, and subagent/lifecycle evidence are stated.",
       "SSoT 판단 근거: source/ref .claude/research/BROWSE.md and .claude/research/INDEX.md. provenance/currentness palantir-official plugin source, generated mirrors are non-authority. used-for judgment: Palantir AIP Architecture, Palantir AIP Chatbot Studio application state, Chatbot Studio retrieval context, Chatbot Studio tools, AI FDE, Ontology, Context Engineering. confidence/limit: validator evidence only.",
       "what this request means: validate a DTC approval card.",
       "why this source is trusted: plugin source.",

@@ -192,19 +192,19 @@ describe("retired agents in plugin dir", () => {
   }
 
   test("checkDeprecationGate blocks pm-implementer via real plugin agents dir", () => {
-    // Use the real plugin root so readAgentMd resolves via CLAUDE_PLUGIN_ROOT
+    // Use the real plugin root so readAgentMd resolves via PALANTIR_MINI_PLUGIN_ROOT
     const pluginRoot = path.resolve(__dirname, "../../..");
-    const origPluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
-    process.env.CLAUDE_PLUGIN_ROOT = pluginRoot;
+    const origPluginRoot = process.env.PALANTIR_MINI_PLUGIN_ROOT;
+    process.env.PALANTIR_MINI_PLUGIN_ROOT = pluginRoot;
     try {
       // Use a cwd that has no local .claude/agents/ (so it falls through to plugin dir)
       const result = checkDeprecationGate("pm-implementer", os.tmpdir());
       expect(result.blocked).toBe(true);
     } finally {
       if (origPluginRoot === undefined) {
-        delete process.env.CLAUDE_PLUGIN_ROOT;
+        delete process.env.PALANTIR_MINI_PLUGIN_ROOT;
       } else {
-        process.env.CLAUDE_PLUGIN_ROOT = origPluginRoot;
+        process.env.PALANTIR_MINI_PLUGIN_ROOT = origPluginRoot;
       }
     }
   });

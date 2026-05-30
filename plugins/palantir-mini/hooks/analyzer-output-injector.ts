@@ -7,7 +7,7 @@
 // synthesis before the next iteration starts.
 //
 // v3.11.0 W3.1d (CT-3 lifecycle closure): after successful lead-guidance.md
-// write, deletes matching /tmp/claude-hooks/<sessionId>/analyzer-request-<sprint>-<iter>-*.json
+// write, deletes matching /tmp/palantir-mini-hooks/<sessionId>/analyzer-request-<sprint>-<iter>-*.json
 // markers so analyzer-marker-pickup SessionStart hook doesn't re-surface them.
 //
 // Design (per Plan agent §7 — NEW canonical path, NOT spec.md mutation):
@@ -117,7 +117,7 @@ export function parseSprintNumber(sprintDir: string): number {
 
 /**
  * Cleanup consumed markers (CT-3 W3.1d lifecycle closure).
- * Deletes /tmp/claude-hooks/<sessionId>/analyzer-request-<sprintNumber>-<iteration>-*.json
+ * Deletes /tmp/palantir-mini-hooks/<sessionId>/analyzer-request-<sprintNumber>-<iteration>-*.json
  * after lead-guidance.md is written. Best-effort: missing dir/file is fine.
  * Returns number of markers actually deleted.
  */
@@ -127,7 +127,7 @@ export function cleanupConsumedMarkers(
   iteration: number,
 ): number {
   if (!sessionId || !Number.isFinite(sprintNumber) || !Number.isFinite(iteration)) return 0;
-  const markerDir = path.join(os.tmpdir(), "claude-hooks", sessionId);
+  const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", sessionId);
   if (!fs.existsSync(markerDir)) return 0;
   let files: string[];
   try {

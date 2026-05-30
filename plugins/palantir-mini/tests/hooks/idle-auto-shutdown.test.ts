@@ -35,7 +35,7 @@ describe("idle state persistence helpers", () => {
       if (v === undefined) delete process.env[k];
       else process.env[k] = v;
     }
-    const dir = path.join("/tmp", "claude-hooks", sessionId);
+    const dir = path.join("/tmp", "palantir-mini-hooks", sessionId);
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
   });
 
@@ -83,7 +83,7 @@ describe("idleAutoShutdown hook", () => {
       if (v === undefined) delete process.env[k];
       else process.env[k] = v;
     }
-    const dir = path.join("/tmp", "claude-hooks", sessionId);
+    const dir = path.join("/tmp", "palantir-mini-hooks", sessionId);
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
     const evtFile = process.env.PALANTIR_MINI_EVENTS_FILE;
     if (evtFile) {

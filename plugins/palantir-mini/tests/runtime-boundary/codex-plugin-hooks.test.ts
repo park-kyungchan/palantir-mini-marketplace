@@ -4,10 +4,8 @@ import { join } from "node:path";
 
 const PLUGIN_ROOT = join(import.meta.dir, "../..");
 const CODEX_PLUGIN_MANIFEST = join(PLUGIN_ROOT, ".codex-plugin", "plugin.json");
-const CLAUDE_PLUGIN_MANIFEST = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
 const CODEX_HOOKS_PATH = join(PLUGIN_ROOT, "hooks", "codex-hooks.json");
 const SHARED_HOOKS_PATH = join(PLUGIN_ROOT, "hooks", "hooks.json");
-const CLAUDE_HOOKS_PATH = join(PLUGIN_ROOT, "hooks", "claude-hooks.json");
 const TSCONFIG_PATH = join(PLUGIN_ROOT, "tsconfig.json");
 const CLAUDE_ONLY_EVENTS = ["TaskCreated", "TaskCompleted", "TeammateIdle"] as const;
 
@@ -73,7 +71,7 @@ describe("Codex plugin hook entrypoints", () => {
     for (const hook of commandHooks(doc)) {
       expect(hook.type).toBe("command");
       expect(hook.async).toBeUndefined();
-      expect(hook.command).toContain("lib/codex/claude-hook-adapter.ts");
+      expect(hook.command).toContain("lib/codex/codex-hook-adapter.ts");
     }
   });
 
@@ -91,19 +89,11 @@ describe("Codex plugin hook entrypoints", () => {
 });
 
 describe("runtime-specific hook registries", () => {
-  test("shared hook registry excludes Claude-only task and teammate lifecycle events", () => {
+  test("shared hook registry excludes inactive Claude task and teammate lifecycle events", () => {
     const shared = readJson<HooksDocument>(SHARED_HOOKS_PATH);
-    const claude = readJson<HooksDocument>(CLAUDE_HOOKS_PATH);
 
     for (const eventName of CLAUDE_ONLY_EVENTS) {
       expect(shared.hooks?.[eventName]).toBeUndefined();
-      expect(claude.hooks?.[eventName]).toBeDefined();
     }
-  });
-
-  test("Claude manifest points at the Claude-specific hook registry", () => {
-    const manifest = readJson<{ hooks?: string }>(CLAUDE_PLUGIN_MANIFEST);
-
-    expect(manifest.hooks).toBe("${CLAUDE_PLUGIN_ROOT}/hooks/claude-hooks.json");
   });
 });

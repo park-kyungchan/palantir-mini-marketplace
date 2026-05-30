@@ -3,10 +3,10 @@
 // Decomposed in v3.7.0 A.1: paths/state/policy helpers extracted to ./session-duration-alarm/*.
 //
 // Behavior:
-// - At SessionStart: writes {sessionStartedAt: ISO} to /tmp/claude-hooks/<sessionId>/session-alarm.json.
+// - At SessionStart: writes {sessionStartedAt: ISO} to /tmp/palantir-mini-hooks/<sessionId>/session-alarm.json.
 // - At each UserPromptSubmit: reads events.jsonl 'when' of first event as session anchor;
 //   falls back to session-alarm.json startedAt.
-// - 3h elapsed → broadcast to /tmp/claude-hooks/<sessionId>/lead-broadcasts.jsonl + warning context.
+// - 3h elapsed → broadcast to /tmp/palantir-mini-hooks/<sessionId>/lead-broadcasts.jsonl + warning context.
 // - 4h elapsed → exit-2 on any Agent-related tool call (blocks new spawns).
 //   Respects CLAUDE_CODE_SESSION_DURATION_LIMIT_SEC override.
 //

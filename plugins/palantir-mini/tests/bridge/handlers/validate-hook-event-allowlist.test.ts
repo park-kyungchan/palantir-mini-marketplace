@@ -12,15 +12,15 @@ const tmpDirs: string[] = [];
 
 /**
  * Creates the layout the handler expects:
- *   <root>/.claude-plugin/plugin.json (manifest)
+ *   <root>/.codex-plugin/plugin.json (manifest)
  *   <root>/hooks/hooks.json (hook definitions)
  */
 function makeTmpPluginRoot(hooks: Record<string, unknown>): { root: string; manifest: string } {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-validate-events-"));
   tmpDirs.push(root);
-  fs.mkdirSync(path.join(root, ".claude-plugin"), { recursive: true });
+  fs.mkdirSync(path.join(root, ".codex-plugin"), { recursive: true });
   fs.mkdirSync(path.join(root, "hooks"), { recursive: true });
-  const manifest = path.join(root, ".claude-plugin", "plugin.json");
+  const manifest = path.join(root, ".codex-plugin", "plugin.json");
   fs.writeFileSync(manifest, JSON.stringify({ name: "test-plugin", version: "0.0.0" }));
   fs.writeFileSync(path.join(root, "hooks", "hooks.json"), JSON.stringify({ hooks }, null, 2));
   return { root, manifest };
@@ -44,8 +44,8 @@ describe("validateHookEventAllowlist", () => {
   test("missing hooks.json returns empty result (no throw)", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-validate-events-no-hooks-"));
     tmpDirs.push(root);
-    fs.mkdirSync(path.join(root, ".claude-plugin"), { recursive: true });
-    const manifest = path.join(root, ".claude-plugin", "plugin.json");
+    fs.mkdirSync(path.join(root, ".codex-plugin"), { recursive: true });
+    const manifest = path.join(root, ".codex-plugin", "plugin.json");
     fs.writeFileSync(manifest, JSON.stringify({ name: "x" }));
     const result = await validateHookEventAllowlist({ pluginManifestPath: manifest });
     expect(result.invalidEvents).toEqual([]);
@@ -191,9 +191,9 @@ describe("validateHookEventAllowlist", () => {
   test("malformed hooks.json treated as empty (no throw)", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-validate-events-malformed-"));
     tmpDirs.push(root);
-    fs.mkdirSync(path.join(root, ".claude-plugin"), { recursive: true });
+    fs.mkdirSync(path.join(root, ".codex-plugin"), { recursive: true });
     fs.mkdirSync(path.join(root, "hooks"), { recursive: true });
-    const manifest = path.join(root, ".claude-plugin", "plugin.json");
+    const manifest = path.join(root, ".codex-plugin", "plugin.json");
     fs.writeFileSync(manifest, JSON.stringify({ name: "x" }));
     fs.writeFileSync(path.join(root, "hooks", "hooks.json"), "{not-json}");
     const result = await validateHookEventAllowlist({ pluginManifestPath: manifest });

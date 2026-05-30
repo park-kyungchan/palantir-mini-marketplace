@@ -2,8 +2,8 @@
 // Tests for loadCapabilityRegistry in lib/capability-registry/index.ts
 //
 // Strategy:
-//   - Use real plugin root (CLAUDE_PLUGIN_ROOT or default) — bun module cache
-//     means CLAUDE_PLUGIN_ROOT env changes don't affect re-imported modules.
+//   - Use real plugin root (PALANTIR_MINI_PLUGIN_ROOT or default) — bun module cache
+//     means PALANTIR_MINI_PLUGIN_ROOT env changes don't affect re-imported modules.
 //   - Use a synthetic temp project for project-sourced categories (skills, agents
 //     come from the real plugin root; project-actions/knownIssues from tmp).
 //   - The real plugin root has many skills (≥1) and agents (≥1), so we assert
@@ -23,7 +23,7 @@ const REAL_PLUGIN_ROOT =
   process.env["PALANTIR_MINI_ROOT"] ??
   process.env["PALANTIR_MINI_PLUGIN_ROOT"] ??
   process.env["PLUGIN_ROOT"] ??
-  process.env["CLAUDE_PLUGIN_ROOT"] ??
+  process.env["PALANTIR_MINI_PLUGIN_ROOT"] ??
   path.resolve(import.meta.dir, "../../..");
 
 // ─── Setup / teardown ─────────────────────────────────────────────────────────

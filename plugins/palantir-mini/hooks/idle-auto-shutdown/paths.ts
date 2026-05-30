@@ -10,7 +10,7 @@ export function resolveSessionId(p: HookPayload): string {
 }
 
 export function idleStateDir(sessionId: string): string {
-  return path.join("/tmp", "claude-hooks", sessionId);
+  return path.join("/tmp", "palantir-mini-hooks", sessionId);
 }
 
 export function idleStatePath(sessionId: string): string {

@@ -119,7 +119,7 @@ mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract({
       title: "Ontology no-drift",
       rubricDomain: "rule",
       weightInRubric: 0.3,
-      validationExpression: "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" detect-doc-drift",
+      validationExpression: "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" detect-doc-drift",
       passFailLogic: { threshold: 1, scale: "pass-fail" },
       appliesToDomain: "ontology"
     },
@@ -128,7 +128,7 @@ mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract({
       title: "Rule-conformance",
       rubricDomain: "rule",
       weightInRubric: 0.3,
-      validationExpression: "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" pm-rule-audit",
+      validationExpression: "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" pm-rule-audit",
       passFailLogic: { threshold: 1, scale: "pass-fail" },
       appliesToDomain: "any"
     }

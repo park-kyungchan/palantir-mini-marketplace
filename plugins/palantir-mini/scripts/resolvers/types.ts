@@ -1,5 +1,5 @@
 // Single-host (Claude) slim of gstack resolver types.
-// Per rule 04 runtime boundary: Claude-only; no multi-host adapter.
+// Per rule 04 runtime boundary: non-Codex; no multi-host adapter.
 
 export type Host = "claude";
 

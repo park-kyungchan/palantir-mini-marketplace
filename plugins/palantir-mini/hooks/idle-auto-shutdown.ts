@@ -2,7 +2,7 @@
 // TeammateIdle blocking hook: persistent idle state + CC v2.1.112 JSON shutdown + B-17 orphan recovery.
 // Decomposed in v3.7.0 A.1: state/paths/pair-tracker helpers extracted to ./idle-auto-shutdown/*.
 //
-// Phase A-4: tracks per-teammate idleCount in /tmp/claude-hooks/<sessionId>/idle-state.json.
+// Phase A-4: tracks per-teammate idleCount in /tmp/palantir-mini-hooks/<sessionId>/idle-state.json.
 // When idleCount >= 3 AND no available unblocked claimable tasks exist,
 // returns {continue: false, stopReason: "..."} to trigger JSON shutdown.
 //

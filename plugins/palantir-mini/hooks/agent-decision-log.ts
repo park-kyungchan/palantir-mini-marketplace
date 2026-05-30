@@ -25,7 +25,7 @@
 //     - agentName matches /^lead-/ OR is "claude-code"
 //   Non-Lead agents emitting emit_event are kept (e.g. researcher logging a finding).
 //   A recursion_filter_applied counter is maintained in a 1h sliding window
-//   at /tmp/claude-hooks/<sessionId>/recursion-filter-counts.json.
+//   at /tmp/palantir-mini-hooks/<sessionId>/recursion-filter-counts.json.
 //
 // Invocation: bun run hooks/agent-decision-log.ts pre|post
 // (Hook is run directly as a Bun script, not via scripts/run.ts, because it
@@ -108,7 +108,7 @@ const FILTER_WINDOW_MS = 60 * 60 * 1000;
 
 /** Bucket file path for the 1h sliding window counter. */
 function filterCountPath(sessionId: string): string {
-  const dir = path.join("/tmp", "claude-hooks", sessionId);
+  const dir = path.join("/tmp", "palantir-mini-hooks", sessionId);
   try { fs.mkdirSync(dir, { recursive: true }); } catch { /* best-effort */ }
   return path.join(dir, "recursion-filter-counts.json");
 }

@@ -1,5 +1,5 @@
 // palantir-mini v1.3 — manifest-validate hook handler
-// Fires on: PostToolUse matcher **/.claude-plugin/plugin.json|**/hooks.json
+// Fires on: PostToolUse matcher **/.codex-plugin/plugin.json|**/hooks.json
 //
 // Phase A-3 A4.4: validates hook event allowlist after plugin manifest edits.
 // Invokes validate_hook_event_allowlist({pluginManifestPath}).
@@ -75,7 +75,7 @@ export default async function manifestValidate(payload: unknown): Promise<{
     pluginManifestPath = path.resolve(
       path.dirname(editedFile),
       "..",
-      ".claude-plugin",
+      ".codex-plugin",
       "plugin.json",
     );
   }

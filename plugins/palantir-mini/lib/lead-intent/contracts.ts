@@ -12,6 +12,8 @@ import { resolveOntologyRefs } from "./ontology-ref-resolver";
 import { projectScopePolicyForLaneIds } from "./project-scope-policy";
 import { contextEngineeringSicReadinessIssues } from "../semantic-intent/context-engineering-sic-fill-sequence";
 import { ontologyDtcBuildReadinessIssues } from "../semantic-intent/ontology-dtc-build-sequence";
+import { semanticConsistencyGateMode } from "../semantic-consistency/policy";
+import type { SemanticConsistencyResolverOutput } from "../semantic-consistency/types";
 import type {
   ActionTypeRef,
   BranchPolicyRef,
@@ -107,7 +109,7 @@ export interface SemanticClarificationQuestion {
   ambiguityType: SemanticClarificationAmbiguityType;
   materiality: ClarificationMateriality;
   /**
-   * Runtime-neutral decision contract. Claude/Codex render this as ordinary
+   * Runtime-neutral decision contract. Codex render this as ordinary
    * assistant text and record the user's answer as a UserDecisionRecord.
    */
   decisionSpec: TurnCardDecisionSpec;
@@ -144,6 +146,9 @@ export interface SemanticIntentContract {
   approvedLinkTypeRefs?: LinkTypeRef[];
   approvedSurfaceRefs?: ProjectSurfaceRef[];
   approvedLaneRefs?: ProjectLaneRef[];
+  approvedCanonicalTermRefs?: string[];
+  approvedTermMappingRefs?: string[];
+  semanticConsistencyResultRef?: string;
   permissionsAndProposal: string;
   acceptedRisks: string[];
   downstreamAllowed: string[];
@@ -211,6 +216,10 @@ export interface DigitalTwinChangeContract {
   requiredEvaluationRefs?: ValidationPackRef[];
   requiredBranchPolicyRef?: BranchPolicyRef;
   requiredPermissionPolicyRef?: PermissionPolicyRef;
+  fillPolicy?: string;
+  ontologyDtcBuildSequence?: readonly unknown[];
+  ontologyDtcBuildReadiness?: Record<string, unknown>;
+  semanticConsistencyRefs?: string[];
   risks: DigitalTwinRiskRecord[];
   requiredUserDecisions?: DigitalTwinRequiredUserDecision[];
   approvalRef?: ApprovalRef;
@@ -236,6 +245,7 @@ export interface ContractBindingRefContext {
   semanticIntentContractRef?: string;
   digitalTwinChangeContractRef?: string;
   workContractRef?: string;
+  semanticConsistencyResultRef?: string;
 }
 
 export interface RouterBinding {
@@ -266,12 +276,14 @@ export interface WorkContract {
   forbiddenActions: string[];
   touchedOntologyRefs?: OntologyEngineeringRef[];
   requiredEvaluationRefs?: ValidationPackRef[];
+  semanticConsistencyResultRef?: string;
   routerBinding?: RouterBinding;
 }
 
 export interface WorkContractValidationContext extends ContractBindingRefContext {
   semanticIntentContract?: SemanticIntentContract;
   digitalTwinChangeContract?: DigitalTwinChangeContract;
+  semanticConsistencyResult?: SemanticConsistencyResolverOutput;
 }
 
 export interface LeadIntentGateInput {
@@ -281,13 +293,16 @@ export interface LeadIntentGateInput {
   projectRoot?: string;
   semanticIntentContractRef?: string;
   digitalTwinChangeContractRef?: string;
+  semanticConsistencyResultRef?: string;
   semanticIntentContract?: SemanticIntentContract;
   digitalTwinChangeContract?: DigitalTwinChangeContract;
+  semanticConsistencyResult?: SemanticConsistencyResolverOutput;
 }
 
 export interface ContractValidationIssue {
   field: string;
   message: string;
+  severity?: "blocking" | "advisory";
 }
 
 export interface ContractValidationResult {
@@ -328,6 +343,7 @@ export interface ContractRoutingProjection {
   contractRefs: {
     semanticIntent?: string;
     digitalTwin?: string;
+    semanticConsistency?: string;
   };
   typedRefResolution?: OntologyRefResolutionResult;
   projectScopePolicy?: ProjectScopePolicyProjection;
@@ -473,6 +489,47 @@ function validateStringArrayElements(
       message: `${field} entries must be non-empty strings`,
     });
   });
+}
+
+function contractValidationResult(
+  issues: ContractValidationIssue[],
+): ContractValidationResult {
+  return {
+    valid: !issues.some((issue) => issue.severity !== "advisory"),
+    issues,
+  };
+}
+
+function semanticConsistencyIssueSeverity(): "blocking" | "advisory" | undefined {
+  const mode = semanticConsistencyGateMode();
+  if (mode === "off") return undefined;
+  return mode === "blocking" ? "blocking" : "advisory";
+}
+
+function semanticConsistencyRefsForContracts(input: {
+  readonly semanticIntentContract?: SemanticIntentContract;
+  readonly digitalTwinChangeContract?: DigitalTwinChangeContract;
+  readonly semanticConsistencyResultRef?: string;
+  readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+}): string[] {
+  return uniqueNonEmpty([
+    input.semanticConsistencyResultRef,
+    input.semanticConsistencyResult?.resolverRunId,
+    input.semanticIntentContract?.semanticConsistencyResultRef,
+    ...(input.semanticIntentContract?.approvedCanonicalTermRefs ?? []),
+    ...(input.semanticIntentContract?.approvedTermMappingRefs ?? []),
+    ...(input.digitalTwinChangeContract?.semanticConsistencyRefs ?? []),
+  ]);
+}
+
+function pushSemanticConsistencyIssue(
+  issues: ContractValidationIssue[],
+  field: string,
+  message: string,
+): void {
+  const severity = semanticConsistencyIssueSeverity();
+  if (!severity) return;
+  issues.push({ field, message, severity });
 }
 
 export function isReadOnlyIntent(intent: string): boolean {
@@ -784,8 +841,20 @@ export function validateSemanticIntentContract(
       message: `${openBlocking.length} blocking clarification question(s) remain open`,
     });
   }
+  if (
+    ((contract.approvedNouns?.length ?? 0) > 0 || (contract.approvedVerbs?.length ?? 0) > 0) &&
+    (contract.approvedCanonicalTermRefs?.length ?? 0) === 0 &&
+    (contract.approvedTermMappingRefs?.length ?? 0) === 0 &&
+    !contract.semanticConsistencyResultRef
+  ) {
+    pushSemanticConsistencyIssue(
+      issues,
+      "semanticConsistencyResultRef",
+      "approved nouns/verbs should include deterministic SemanticConsistencyResolver evidence before promotion",
+    );
+  }
   issues.push(...contextEngineeringSicReadinessIssues(contract));
-  return { valid: issues.length === 0, issues };
+  return contractValidationResult(issues);
 }
 
 export function validateDigitalTwinChangeContract(
@@ -847,6 +916,13 @@ export function validateDigitalTwinChangeContract(
           "ontology-affecting DTC requires at least one requiredEvaluationRef (ValidationPackRef)",
       });
     }
+  }
+  if (ontologyAffecting && (contract.semanticConsistencyRefs?.length ?? 0) === 0) {
+    pushSemanticConsistencyIssue(
+      issues,
+      "semanticConsistencyRefs",
+      "ontology-affecting DTC should reference deterministic semantic consistency evidence or explicit non-applicable evidence",
+    );
   }
   if (contract.structuredBoundary) {
     issues.push(
@@ -932,7 +1008,7 @@ export function validateDigitalTwinChangeContract(
     }
   }
   issues.push(...ontologyDtcBuildReadinessIssues(contract, { requirePolicy: ontologyAffecting }));
-  return { valid: issues.length === 0, issues };
+  return contractValidationResult(issues);
 }
 
 function validateRequiredString(
@@ -950,11 +1026,12 @@ function pushPrefixedIssues(
   prefix: string,
   result: ContractValidationResult,
 ): void {
-  if (result.valid) return;
+  if (result.issues.length === 0) return;
   for (const issue of result.issues) {
     issues.push({
       field: `${prefix}.${issue.field}`,
       message: issue.message,
+      ...(issue.severity ? { severity: issue.severity } : {}),
     });
   }
 }
@@ -1061,7 +1138,7 @@ export function validateRouterBinding(
   if (binding.source === "delegation-recipe" || binding.delegationMode === "delegated") {
     validateRequiredString(issues, "delegationRecipeRef", binding.delegationRecipeRef);
   }
-  return { valid: issues.length === 0, issues };
+  return contractValidationResult(issues);
 }
 
 export function validateWorkContract(
@@ -1215,7 +1292,7 @@ export function validateWorkContract(
     );
   }
 
-  return { valid: issues.length === 0, issues };
+  return contractValidationResult(issues);
 }
 
 export function deriveWorkContractFromContracts(input: {

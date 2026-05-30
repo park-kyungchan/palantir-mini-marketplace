@@ -3,7 +3,10 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, test } from "bun:test";
-import { collectChangedFiles } from "../../../lib/harness/release-evidence";
+import {
+  classifyReleaseChangedSurfaces,
+  collectChangedFiles,
+} from "../../../lib/harness/release-evidence";
 
 function git(project: string, args: string[]): string {
   return execFileSync("git", ["-C", project, ...args], {
@@ -51,5 +54,15 @@ describe("release evidence changed-file collection", () => {
     fs.appendFileSync(path.join(project, "palantir-mini", "agents", "agent.md"), "changed\n");
 
     expect(collectChangedFiles(project)).toContain("palantir-mini/agents/agent.md");
+  });
+
+  test("classifies semantic consistency source changes as release-gated surface", () => {
+    const surfaces = classifyReleaseChangedSurfaces([
+      ".claude/plugins/palantir-mini/lib/semantic-consistency/resolver.ts",
+    ]);
+
+    expect(surfaces.map((surface) => surface.surface)).toContain("semantic-consistency");
+    expect(surfaces.map((surface) => surface.surface)).toContain("contract");
+    expect(surfaces.map((surface) => surface.surface)).toContain("governance");
   });
 });

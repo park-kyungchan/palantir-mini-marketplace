@@ -116,7 +116,7 @@ function nextSessionId(): string {
 function cleanStrikes(sessionId: string): void {
   const p = path.join(
     os.tmpdir(),
-    `claude-hooks-${sessionId.slice(0, 12)}-ontology-engineering-turn-fan-out-strikes.json`,
+    `palantir-mini-hooks-${sessionId.slice(0, 12)}-ontology-engineering-turn-fan-out-strikes.json`,
   );
   try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch { /* best-effort */ }
 }

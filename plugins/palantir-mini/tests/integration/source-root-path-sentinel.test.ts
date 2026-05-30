@@ -3,31 +3,20 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 const PLUGIN_ROOT = path.resolve(import.meta.dir, "../..");
+const LOCAL_PLUGIN_SOURCE = "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini";
 const PRIVATE_MARKETPLACE_REPO = "park-kyungchan/palantir-mini-marketplace";
 const PRIVATE_MARKETPLACE_SOURCE = `github:${PRIVATE_MARKETPLACE_REPO}:plugins/palantir-mini`;
-const OLD_CLAUDE_PLUGIN_PATH = ".claude/plugins/palantir-mini";
 const REMOVED_LOCAL_MARKERS = [
-  "/home/palantirkc/palantir-mini",
+  "/home/palantirkc/palantir-mini/",
   "~/palantir-mini",
   "\"./palantir-mini\"",
-  "source\": \"local\"",
 ];
 
 const ACTIVE_RUNTIME_FILES = [
   "/home/palantirkc/AGENTS.md",
-  "/home/palantirkc/CLAUDE.md",
-  "/home/palantirkc/GEMINI.md",
   "/home/palantirkc/.codex/AGENTS.md",
   "/home/palantirkc/.codex/config.toml",
   "/home/palantirkc/.codex/hooks.json",
-  "/home/palantirkc/.codex/scripts/sync-claude-palantir-mini.ts",
-  "/home/palantirkc/.claude/rules/CONTEXT.md",
-  "/home/palantirkc/.claude/hooks/BROWSE.md",
-  "/home/palantirkc/.claude/settings.json",
-  "/home/palantirkc/.claude/settings.local.json",
-  "/home/palantirkc/.claude/plugins/known_marketplaces.json",
-  "/home/palantirkc/.gemini/GEMINI.md",
-  "/home/palantirkc/.gemini/trustedFolders.json",
   path.join(PLUGIN_ROOT, "agents/hook-builder.md"),
   path.join(PLUGIN_ROOT, "agents/plugin-maintainer.md"),
   path.join(PLUGIN_ROOT, "runtime-overlay/rules/07-plugins-and-mcp.md"),
@@ -45,9 +34,6 @@ const ACTIVE_RUNTIME_FILES = [
   path.join(PLUGIN_ROOT, "lib/agents/inventory.ts"),
   path.join(PLUGIN_ROOT, "lib/config/root.ts"),
   path.join(PLUGIN_ROOT, "scripts/cross-project-audit.ts"),
-  path.join(PLUGIN_ROOT, ".gemini-extension/plugin/.mcp.json"),
-  path.join(PLUGIN_ROOT, ".gemini-extension/plugin/.ssot-authority.json"),
-  path.join(PLUGIN_ROOT, ".gemini-extension/plugin/lib/config/root.ts"),
 ];
 
 function readFile(filePath: string): string {
@@ -57,15 +43,6 @@ function readFile(filePath: string): string {
 function readLines(filePath: string): string[] {
   return readFile(filePath).split("\n");
 }
-
-const GEMINI_MIRRORED_PAYLOAD_FILES = [
-  "SSOT-AUTHORITY.md",
-  "docs/CODEX_HOOK_ADAPTER.md",
-  "hooks/codex-hooks.json",
-  "scripts/log.ts",
-  "scripts/sync-codex-adapter.ts",
-  "scripts/sync-gemini-extension.ts",
-] as const;
 
 describe("source-root path sentinel", () => {
   test("active runtime loaders use the private marketplace source, not the removed local source tree", () => {
@@ -82,10 +59,8 @@ describe("source-root path sentinel", () => {
     expect(codexPluginConfig.mcpServers).toBe("./.mcp.json");
 
     const ssotMarker = JSON.parse(readFile(path.join(PLUGIN_ROOT, ".ssot-authority.json")));
-    expect(ssotMarker.authority).toBe(PRIVATE_MARKETPLACE_SOURCE);
-
-    expect(readFile("/home/palantirkc/.claude/settings.json")).toContain(PRIVATE_MARKETPLACE_REPO);
-    expect(readFile("/home/palantirkc/.claude/plugins/known_marketplaces.json")).toContain(PRIVATE_MARKETPLACE_REPO);
+    expect(ssotMarker.authority).toBe(LOCAL_PLUGIN_SOURCE);
+    expect(ssotMarker.upstreamAuthority).toBe(PRIVATE_MARKETPLACE_SOURCE);
 
     expect(fs.existsSync("/home/palantirkc/.agents/plugins/marketplace.json")).toBe(false);
 
@@ -97,41 +72,10 @@ describe("source-root path sentinel", () => {
     }
   });
 
-  test("Gemini extension payload declares Gemini runtime explicitly", () => {
-    const geminiMcpConfig = JSON.parse(readFile(path.join(PLUGIN_ROOT, ".gemini-extension/plugin/.mcp.json")));
-    expect(geminiMcpConfig.mcpServers["palantir-mini"].cwd).toBe(".");
-    expect(geminiMcpConfig.mcpServers["palantir-mini"].args).toEqual(["run", "./bridge/mcp-server.ts"]);
-    expect(geminiMcpConfig.mcpServers["palantir-mini"].env.PALANTIR_MINI_HOST_RUNTIME).toBe("gemini");
-  });
-
-  test("Gemini extension runtime payload keeps source-authority docs and adapter scripts in sync", () => {
-    for (const relativePath of GEMINI_MIRRORED_PAYLOAD_FILES) {
-      const sourcePath = path.join(PLUGIN_ROOT, relativePath);
-      const mirrorPath = path.join(PLUGIN_ROOT, ".gemini-extension/plugin", relativePath);
-      expect(fs.existsSync(sourcePath), `${sourcePath} should exist`).toBe(true);
-      expect(fs.existsSync(mirrorPath), `${mirrorPath} should exist`).toBe(true);
-      expect(readFile(mirrorPath)).toBe(readFile(sourcePath));
-    }
-  });
-
-  test("old Claude plugin path is mentioned only as compatibility, never authority", () => {
-    const compatibilityTerms = [
-      "compatibility",
-      "install target",
-      "not semantic authority",
-      "not semantic source",
-      "temporary",
-    ];
-
-    for (const filePath of ACTIVE_RUNTIME_FILES) {
-      const lines = readLines(filePath);
-      lines.forEach((line, index) => {
-        if (!line.includes(OLD_CLAUDE_PLUGIN_PATH)) return;
-        expect(
-          compatibilityTerms.some((term) => line.toLowerCase().includes(term)),
-          `${filePath}:${index + 1} must describe ${OLD_CLAUDE_PLUGIN_PATH} as compatibility only`,
-        ).toBe(true);
-      });
-    }
+  test("Claude and Gemini package surfaces are absent from the Codex-only checkout", () => {
+    expect(fs.existsSync(path.join(PLUGIN_ROOT, ".claude-plugin"))).toBe(false);
+    expect(fs.existsSync(path.join(PLUGIN_ROOT, ".gemini-extension"))).toBe(false);
+    expect(fs.existsSync(path.join(PLUGIN_ROOT, "lib/gemini"))).toBe(false);
+    expect(fs.existsSync(path.join(PLUGIN_ROOT, "hooks/claude-hooks.json"))).toBe(false);
   });
 });

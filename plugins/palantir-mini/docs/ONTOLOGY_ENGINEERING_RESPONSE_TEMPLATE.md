@@ -55,11 +55,11 @@ Use exact contract/tool/file names when those names are the authority.
 
 Every reply must state the current hook/runtime truth plainly:
 
-- Whether Claude hooks are native in the current runtime.
-- Whether Codex is only manually mirroring Claude hook intent.
+- Whether Claude, Codex, Gemini, or another runtime owns the current native hook surface.
+- Whether the current runtime is only manually mirroring another runtime's hook intent.
 - Whether any hook claim is backed by native smoke evidence.
-- Whether MCP, memory, skills, subagents, or managed settings are unavailable
-  or only partially visible in the current runtime.
+- Whether MCP, memory, skills/extensions, subagents, managed settings, policies,
+  or lifecycle events are unavailable or only partially visible in the current runtime.
 
 For Codex, the default disclosure is:
 
@@ -69,8 +69,9 @@ palantir-mini hook intent unless a Codex-native smoke test proves that hook
 surface for this turn.
 ```
 
-Do not claim Claude/Codex hook, MCP, memory, skill, subagent, or managed-setting
-parity without runtime-native evidence.
+Do not claim Codex/Gemini hook, MCP, memory, skill/extension,
+subagent, managed-setting, policy, or lifecycle parity without runtime-native
+evidence.
 
 ## Durable Subagent Output
 

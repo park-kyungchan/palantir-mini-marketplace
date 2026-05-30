@@ -6,7 +6,7 @@ import manifestValidate from "../../hooks/manifest-validate";
 
 describe("manifestValidate", () => {
   test("returns continue for valid plugin.json path (all events valid)", async () => {
-    const pluginJson = "/home/palantirkc/.claude/plugins/palantir-mini/.claude-plugin/plugin.json";
+    const pluginJson = "/home/palantirkc/.claude/plugins/palantir-mini/.codex-plugin/plugin.json";
     const result = await manifestValidate({
       tool_input: { file_path: pluginJson },
       cwd: "/tmp",

@@ -14,7 +14,6 @@ describe("resolvePalantirMiniRoot", () => {
       PALANTIR_MINI_ROOT: "/tmp/pm-root",
       PALANTIR_MINI_PLUGIN_ROOT: "/tmp/pm-plugin-root",
       PLUGIN_ROOT: "/tmp/plugin-root",
-      CLAUDE_PLUGIN_ROOT: "/tmp/claude-plugin-root",
     });
 
     expect(root).toBe("/tmp/pm-root");
@@ -25,22 +24,20 @@ describe("resolvePalantirMiniRoot", () => {
       resolvePalantirMiniRoot({
         PALANTIR_MINI_PLUGIN_ROOT: "/tmp/pm-plugin-root",
         PLUGIN_ROOT: "/tmp/plugin-root",
-        CLAUDE_PLUGIN_ROOT: "/tmp/claude-plugin-root",
       }),
     ).toBe("/tmp/pm-plugin-root");
 
     expect(
       resolvePalantirMiniRoot({
         PLUGIN_ROOT: "/tmp/plugin-root",
-        CLAUDE_PLUGIN_ROOT: "/tmp/claude-plugin-root",
       }),
     ).toBe("/tmp/plugin-root");
 
     expect(
       resolvePalantirMiniRoot({
-        CLAUDE_PLUGIN_ROOT: "/tmp/claude-plugin-root",
+        PALANTIR_MINI_PLUGIN_ROOT: "/tmp/pm-plugin-root",
       }),
-    ).toBe("/tmp/claude-plugin-root");
+    ).toBe("/tmp/pm-plugin-root");
   });
 
   test("uses the package-relative palantir-mini source root when env is absent", () => {

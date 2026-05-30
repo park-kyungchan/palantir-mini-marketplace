@@ -82,7 +82,7 @@ const DISCOVERY_TOOL_NAMES = new Set([
   "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router",
   "mcp__plugin_palantir-mini_palantir-mini__pm_semantic_intent_gate",
   // Codex palantir-mini MCP namespace aliases. These are evidence-name aliases
-  // only; they do not imply native Claude/Codex hook parity.
+  // only; they do not imply native Codex hook parity.
   "mcp__palantir_mini__impact_query",
   "mcp__palantir_mini__ontology_context_query",
   "mcp__palantir_mini__get_ontology",

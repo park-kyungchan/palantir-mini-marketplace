@@ -10,6 +10,8 @@ export interface ChatbotStudioRetrievalContext {
   readonly ontologyRefs: readonly string[];
   readonly skillRefs: readonly string[];
   readonly sourceRefs: readonly string[];
+  readonly canonicalTermRefs?: readonly string[];
+  readonly semanticConflictRefs?: readonly string[];
   /**
    * Document IDs included via document context retrieval (PR-12, opt-in).
    * Populated when `ontology_context_query` was called with
@@ -36,6 +38,7 @@ export function buildRetrievalContextFromConversation(
     ...conversation.skillFacing.candidateSkillRefs.map((skill) => skill.skillId),
     ...conversation.skillFacing.selectedSkillRefs.map((skill) => skill.skillId),
   ];
+  const semantic = conversation.semanticConsistencyFacing;
 
   return {
     schemaVersion: CHATBOT_STUDIO_RETRIEVAL_CONTEXT_SCHEMA_VERSION,
@@ -45,6 +48,12 @@ export function buildRetrievalContextFromConversation(
       `Lifecycle: ${conversation.lifecycle}`,
       `DTC ready: ${conversation.contractFacing.dtcReady ? "yes" : "no"}`,
       `Unresolved questions: ${conversation.userFacing.unresolvedQuestions.length}`,
+      semantic
+        ? `Canonical semantic terms: ${semantic.canonicalTermRefs.length}`
+        : "Canonical semantic terms: not evaluated",
+      semantic
+        ? `Unresolved semantic conflicts: ${semantic.unresolvedConflictRefs.length}`
+        : "Unresolved semantic conflicts: not evaluated",
       `Direct impact: ${(conversation.impactFacing?.directSurfaceRefs ?? []).join(", ") || "none"}`,
       `Known issues: ${(conversation.issueFacing?.knownIssueIds ?? []).join(", ") || "none"}`,
       `Validation: ${(
@@ -59,6 +68,13 @@ export function buildRetrievalContextFromConversation(
       conversation.ontologyContextRef,
       conversation.contractFacing.semanticIntentContractRef,
       conversation.contractFacing.digitalTwinChangeContractRef,
+      semantic?.resolverRunRef,
     ].filter((ref): ref is string => typeof ref === "string" && ref.length > 0),
+    ...(semantic
+      ? {
+          canonicalTermRefs: semantic.canonicalTermRefs,
+          semanticConflictRefs: semantic.unresolvedConflictRefs,
+        }
+      : {}),
   };
 }

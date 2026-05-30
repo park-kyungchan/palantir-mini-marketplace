@@ -398,7 +398,7 @@ function runtimeProjection(input: {
       support: input.geminiSupport ?? "adapter-native",
       evidenceRefs: ["runtime:gemini-palantir-mini-extension"],
       fallbackObligations: input.geminiFallbackObligations ?? [
-        "Use .gemini-extension hooks/policies/MCP and record unsupported Claude/Codex lifecycle parity gaps.",
+        "Use Gemini extension hooks/policies/MCP and record unsupported Codex lifecycle parity gaps.",
       ],
       unsupportedSurfaceRefs: input.unsupportedGeminiSurfaceRefs ?? [
         "gemini:claude-codex-hook-event-name-parity",
@@ -815,8 +815,8 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
       }),
     ],
     aipSurfaceRefs: [
-      aipRef("runtime-projection", ["docs/NATIVE_RUNTIME_GAPS.md"]),
-      aipRef("evals-observability", ["tests/cross-runtime/claude-codex-parity-smoke.test.ts"]),
+      aipRef("runtime-projection", ["docs/RUNTIME_LAYER_BOUNDARY.md"]),
+      aipRef("evals-observability", ["tests/runtime-boundary/codex-plugin-hooks.test.ts"]),
     ],
     requiredContracts: CONTRACT_REQUIREMENTS.workContract,
     enforcement: enforcement({
@@ -832,9 +832,9 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
     }),
     runtimeProjection: runtimeProjection({
       codexSupport: "adapter-native",
-      codexFallbackObligations: ["State native gaps before claiming Claude/Codex parity."],
+      codexFallbackObligations: ["State native gaps before claiming Codex parity."],
       unsupportedCodexSurfaceRefs: ["codex:full-thread-hook-lifecycle"],
-      smokeEvidenceRefs: ["tests/cross-runtime/claude-codex-parity-smoke.test.ts"],
+      smokeEvidenceRefs: ["tests/runtime-boundary/codex-plugin-hooks.test.ts"],
     }),
     complexE2EScenarios: [
       complexE2EScenario({
@@ -849,7 +849,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         aipSurfaceRefs: ["runtime-projection", "evals-observability"],
         runtimeRefs: ["claude", "codex"],
         validationRefs: ["tests/runtime-boundary/runtime-boundary.test.ts"],
-        evidenceRefs: ["tests/cross-runtime/claude-codex-parity-smoke.test.ts"],
+        evidenceRefs: ["tests/runtime-boundary/codex-plugin-hooks.test.ts"],
       }),
     ],
   }),

@@ -35,6 +35,7 @@ const SEMANTIC_INTENT_GATE_PUBLIC_FIELDS = [
   "turn",
   "turnUserInput",
   "fillPolicy",
+  "semanticConsistencyResolverInput",
 ] as const satisfies readonly (keyof SemanticIntentGateInput)[];
 
 const INTENT_ROUTER_PUBLIC_FIELDS = [
@@ -203,6 +204,7 @@ describe("mcp-server prompt identity schemas", () => {
     expect(props.digitalTwinChangeContractRef?.type).toBe("string");
     expect(props.semanticIntentContract?.type).toBe("object");
     expect(props.digitalTwinChangeContract?.type).toBe("object");
+    expect(props.semanticConsistencyResolverInput?.type).toBe("object");
     expect(props.fillPolicy?.enum).toEqual([
       "default-8-turn",
       "fde-ontology-build",

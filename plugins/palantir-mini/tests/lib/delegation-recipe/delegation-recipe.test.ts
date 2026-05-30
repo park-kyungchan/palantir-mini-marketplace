@@ -48,7 +48,7 @@ describe("buildRecipe — 5 representative delegation cases", () => {
     expect(r.mcpTools).toContain("compute_edits_dry_run");
     expect(r.sprintArgs.mode).toBe("quick");
     // hook-builder out-of-scope must include plugin.json and agents/**
-    expect(r.outOfScope).toContain(".claude-plugin/plugin.json");
+    expect(r.outOfScope).toContain(".codex-plugin/plugin.json");
     expect(r.outOfScope.some((p) => p.includes("agents"))).toBe(true);
   });
 

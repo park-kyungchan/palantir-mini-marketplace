@@ -38,7 +38,7 @@ afterEach(() => {
   } else {
     delete process.env.PALANTIR_MINI_SESSION_ID;
   }
-  const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+  const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
   if (fs.existsSync(markerDir)) {
     fs.rmSync(markerDir, { recursive: true, force: true });
   }
@@ -54,7 +54,7 @@ function writeMarker(
   rubric: string,
   extra: Record<string, unknown> = {},
 ): string {
-  const dir = path.join(os.tmpdir(), "claude-hooks", sessionId);
+  const dir = path.join(os.tmpdir(), "palantir-mini-hooks", sessionId);
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `analyzer-request-${sprint}-${iter}-${rubric}.json`);
   const body = {
@@ -130,7 +130,7 @@ describe("analyzer-marker-pickup hook", () => {
   });
 
   test("malformed JSON marker is skipped silently", async () => {
-    const dir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const dir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "analyzer-request-bad.json"), "not valid json {{{", "utf8");
     writeMarker(SESSION_ID, 1, 1, "ok");
@@ -144,7 +144,7 @@ describe("analyzer-marker-pickup hook", () => {
   });
 
   test("marker with missing required fields is skipped", async () => {
-    const dir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const dir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, "analyzer-request-incomplete.json"),
@@ -174,7 +174,7 @@ describe("analyzer-marker-pickup hook", () => {
 describe("analyzer-marker-pickup helpers", () => {
   test("resolveMarkerDir returns expected path", () => {
     const sid = "abc123";
-    expect(resolveMarkerDir(sid)).toBe(path.join(os.tmpdir(), "claude-hooks", sid));
+    expect(resolveMarkerDir(sid)).toBe(path.join(os.tmpdir(), "palantir-mini-hooks", sid));
   });
 
   test("scanMarkers returns [] for nonexistent dir", () => {

@@ -1,7 +1,7 @@
 {
   "name": "palantir-mini",
   "version": "6.79.0",
-  "description": "Ontology-first control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and cross-runtime Codex/Claude bridge sync.",
+  "description": "Ontology-first Codex control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and runtime-boundary docs.",
   "author": {
     "name": "palantirKC"
   },
@@ -27,8 +27,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Palantir Mini",
-    "shortDescription": "Ontology-first control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and cross-r...",
-    "longDescription": "Ontology-first control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and cross-runtime Codex/Claude bridge sync.",
+    "shortDescription": "Ontology-first Codex control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, and validation.",
+    "longDescription": "Ontology-first Codex control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and runtime-boundary docs.",
     "developerName": "palantirKC",
     "category": "Coding",
     "capabilities": [

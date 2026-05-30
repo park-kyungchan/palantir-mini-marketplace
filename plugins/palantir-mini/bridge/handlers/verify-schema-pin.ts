@@ -7,7 +7,7 @@
 // v2.1.2 change (A1 fix — PR #?): `INSTALLED_SCHEMA_VERSION` + `PLUGIN_COMPATIBLE_SCHEMA_RANGE`
 // no longer hardcoded. They resolve dynamically from the on-disk
 // `@palantirKC/claude-schemas/package.json` version + the plugin's
-// `.claude-plugin/plugin.json` `compatibleSchemaVersions` range. Prior
+// `.codex-plugin/plugin.json` `compatibleSchemaVersions` range. Prior
 // versions hardcoded `^1.12.0` / `"1.12.0"` which diverged from the actual
 // v1.17.0 / ">=1.15.0 <2.0.0" state for 4+ schema bumps.
 
@@ -147,12 +147,12 @@ export function resolveInstalledSchemaVersion(): string {
 }
 
 /**
- * Resolve plugin's compatibleSchemaVersions range from plugin.json.
+ * Resolve plugin's compatibleSchemaVersions range from the Codex plugin manifest.
  * Fallback returns FALLBACK_PLUGIN_RANGE.
  */
 export function resolvePluginCompatibleRange(): string {
   try {
-    const pluginJsonPath = path.resolve(__dirname, "../..", ".claude-plugin", "plugin.json");
+    const pluginJsonPath = path.resolve(__dirname, "../..", ".codex-plugin", "plugin.json");
     if (fs.existsSync(pluginJsonPath)) {
       const pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, "utf8")) as Record<string, unknown>;
       const range = pluginJson.compatibleSchemaVersions;

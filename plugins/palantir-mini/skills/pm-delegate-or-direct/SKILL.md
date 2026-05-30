@@ -111,7 +111,7 @@ Expected output:
 - `decision`: `"delegate-to-hook-builder"`
 - `agent`: `"hook-builder"`, `agentModel`: `"sonnet"`
 - `mcpTools`: `["apply_edit_function", "commit_edits", "compute_edits_dry_run", "emit_event"]`
-- `outOfScope` includes `".claude-plugin/plugin.json"`, `"agents/**"`
+- `outOfScope` includes `".codex-plugin/plugin.json"`, `"agents/**"`
 
 ### 3. New schemas primitive → ontology-steward (opus)
 

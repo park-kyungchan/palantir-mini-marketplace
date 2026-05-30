@@ -29,8 +29,8 @@ afterEach(() => {
   } else {
     delete process.env.PALANTIR_MINI_EVENTS_FILE;
   }
-  // Clean up any test-created markers under /tmp/claude-hooks/<SESSION_ID>/
-  const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+  // Clean up any test-created markers under /tmp/palantir-mini-hooks/<SESSION_ID>/
+  const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
   if (fs.existsSync(markerDir)) {
     fs.rmSync(markerDir, { recursive: true, force: true });
   }
@@ -61,7 +61,7 @@ describe("harness-analyzer-trigger hook", () => {
     expect(result.decision).toBe("continue");
     expect(result.message).toContain("verdict=pass");
     // No marker written
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     expect(fs.existsSync(markerDir)).toBe(false);
   });
 
@@ -91,7 +91,7 @@ describe("harness-analyzer-trigger hook", () => {
     expect(result.additionalContext).toContain("Sprint 7 iteration 2");
 
     // Marker file exists with expected payload
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     const expectedPath = path.join(markerDir, "analyzer-request-7-2-rubric-A.json");
     expect(fs.existsSync(expectedPath)).toBe(true);
     const marker = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
@@ -145,7 +145,7 @@ describe("harness-analyzer-trigger hook", () => {
       },
     });
     expect(result.message).toContain("queued");
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     const marker = JSON.parse(fs.readFileSync(path.join(markerDir, "analyzer-request-2-1-r2.json"), "utf8"));
     expect(marker.failedCount).toBe(2);
   });
@@ -188,7 +188,7 @@ describe("harness-analyzer-trigger hook", () => {
     expect(result.message).toContain("queued");
 
     // Marker file written
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     const expectedPath = path.join(markerDir, "analyzer-request-11-2-rubric-W2A1.json");
     expect(fs.existsSync(expectedPath)).toBe(true);
     const marker = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
@@ -233,7 +233,7 @@ describe("harness-analyzer-trigger hook", () => {
     expect(result.message).toContain("verdict=pass");
 
     // No marker written
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     expect(fs.existsSync(markerDir)).toBe(false);
 
     // No phase_completed event for harness-analyzer-fire-pending
@@ -272,7 +272,7 @@ describe("harness-analyzer-trigger hook", () => {
     expect(result.decision).toBe("continue");
     expect(result.message).toContain("queued");
 
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     const expectedPath = path.join(markerDir, "analyzer-request-20-1-rubric-W2A1-explicit.json");
     expect(fs.existsSync(expectedPath)).toBe(true);
     const marker = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
@@ -306,7 +306,7 @@ describe("harness-analyzer-trigger hook", () => {
     expect(result.decision).toBe("continue");
     expect(result.message).toContain("queued");
 
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     const expectedPath = path.join(markerDir, "analyzer-request-21-2-rubric-W2A1-fallback.json");
     expect(fs.existsSync(expectedPath)).toBe(true);
     const marker = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
@@ -338,7 +338,7 @@ describe("harness-analyzer-trigger hook", () => {
     });
     expect(result.message).toContain("queued");
 
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     const marker = JSON.parse(
       fs.readFileSync(path.join(markerDir, "analyzer-request-22-1-rubric-no-ids.json"), "utf8"),
     );
@@ -359,7 +359,7 @@ describe("harness-analyzer-trigger hook", () => {
       tool_response: { failedCriteria: 1 },
     });
     expect(result.message).toContain("queued");
-    const markerDir = path.join(os.tmpdir(), "claude-hooks", SESSION_ID);
+    const markerDir = path.join(os.tmpdir(), "palantir-mini-hooks", SESSION_ID);
     // Slashes/colons replaced with _ in key
     const files = fs.readdirSync(markerDir);
     expect(files.some((f) => f.includes("rubric_with_weird_chars"))).toBe(true);

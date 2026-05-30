@@ -12,11 +12,11 @@
 //   3. Skip iteration < 1
 //   4. Idempotency key = `<sprintNumber>-<iteration>-<rubricId>` —
 //      file-existence check makes re-fires no-op
-//   5. Write request marker /tmp/claude-hooks/<sessionId>/analyzer-request-<key>.json
+//   5. Write request marker /tmp/palantir-mini-hooks/<sessionId>/analyzer-request-<key>.json
 //   6. Emit phase_completed phaseTag="harness-analyzer-fire-pending"
 //   7. Lead reads marker on next turn → spawns harness-analyzer via skill or Agent()
 //
-// Marker GC: SessionStart cleans /tmp/claude-hooks/<sessionId>/ — request lives
+// Marker GC: SessionStart cleans /tmp/palantir-mini-hooks/<sessionId>/ — request lives
 // only as long as the session. Acceptable for an advisory trigger.
 //
 // Authority: ~/.claude/rules/16-3-agent-harness.md §Loop (post-W3.2 v3.2.0)
@@ -60,9 +60,9 @@ interface HookResult {
   additionalContext?: string;
 }
 
-/** Resolve marker dir under /tmp/claude-hooks/<sessionId>/. Idempotent mkdir. */
+/** Resolve marker dir under /tmp/palantir-mini-hooks/<sessionId>/. Idempotent mkdir. */
 function ensureMarkerDir(sessionId: string): string {
-  const dir = path.join(os.tmpdir(), "claude-hooks", sessionId);
+  const dir = path.join(os.tmpdir(), "palantir-mini-hooks", sessionId);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }

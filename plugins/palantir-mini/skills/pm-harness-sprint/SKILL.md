@@ -77,7 +77,7 @@ Per iteration (1..contract.iterationLimit):
      - `abort` (or analyzer confidence=low) → state = `aborted`, exit loop with reason "analyzer-recommended-abort". Skip step 4's normal close path; surface analysis-NNN.md to user.
    - This automation replaces the prior pattern of Lead manually re-specing between iterations, closing the AI FDE eval-driven loop step 6 (synthesize failure mode → refine prompt) without per-iteration human intervention.
 3.6. **cross-session pickup** (v3.11.0 W3.1d — CT-3 lifecycle closure)
-   - If Lead's session ended mid-loop (e.g. `/clear` after step 3 verdict but before step 3.5 spawn), the W3.0 trigger hook left a marker at `/tmp/claude-hooks/<sessionId>/analyzer-request-<sprint>-<iter>-<rubricId>.json`.
+   - If Lead's session ended mid-loop (e.g. `/clear` after step 3 verdict but before step 3.5 spawn), the W3.0 trigger hook left a marker at `/tmp/palantir-mini-hooks/<sessionId>/analyzer-request-<sprint>-<iter>-<rubricId>.json`.
    - Next session's `analyzer-marker-pickup` SessionStart hook scans the dir + emits `phase_completed phaseTag="harness-analyzer-pickup-pending"` advisory event with the markers in `additionalContext`.
    - Lead reads that context at session-start + invokes `/palantir-mini:pm-harness-analyze <N> <iter>` for each surfaced marker, picking up where the prior session left off.
    - `analyzer-output-injector` SubagentStop hook deletes consumed markers automatically.

@@ -123,6 +123,30 @@ export function buildApplicationStateFromConversation(
         updateMode: "deterministic",
       },
       {
+        variableId: "semantic.canonicalTermCount",
+        visibleToModel: true,
+        value: conversation.semanticConsistencyFacing?.canonicalTermRefs.length ?? 0,
+        updateMode: "deterministic",
+      },
+      {
+        variableId: "semantic.unresolvedSemanticConflictCount",
+        visibleToModel: true,
+        value: conversation.semanticConsistencyFacing?.unresolvedConflictRefs.length ?? 0,
+        updateMode: "deterministic",
+      },
+      {
+        variableId: "semantic.canonicalTermRefs",
+        visibleToModel: false,
+        value: conversation.semanticConsistencyFacing?.canonicalTermRefs ?? [],
+        updateMode: "deterministic",
+      },
+      {
+        variableId: "semantic.resolverRunRef",
+        visibleToModel: false,
+        value: conversation.semanticConsistencyFacing?.resolverRunRef ?? null,
+        updateMode: "deterministic",
+      },
+      {
         variableId: "semantic.impact.directSurfaces",
         visibleToModel: true,
         value: conversation.impactFacing?.directSurfaceRefs ?? [],

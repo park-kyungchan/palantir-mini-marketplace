@@ -1,29 +1,16 @@
 {
   "kind": "palantir-mini-workflow-authority",
-  "version": "1.5.0",
-  "asOf": "2026-05-25",
-  "authority": "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini",
+  "version": "1.6.0",
+  "asOf": "2026-05-30",
+  "authority": "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini",
+  "upstreamAuthority": "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini",
   "runtimeBoundaryAuthority": "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
-  "runtimeBoundaryAuthorityScope": "Runtime-neutral boundary contract only; canonical plugin workflow source remains the private marketplace payload.",
-  "claudeCompatibilityInstallPath": "~/.claude/plugins/cache/palantir-mini-marketplace/palantir-mini/<version>/",
+  "runtimeBoundaryAuthorityScope": "Runtime-neutral boundary contract only; canonical plugin workflow source remains the runtime-neutral local checkout backed by the private marketplace remote.",
   "codexInstallPath": "~/.codex/plugins/cache/palantir-mini-marketplace/palantir-mini/<version>/",
-  "geminiInstallPath": "~/.gemini/extensions/palantir-mini/",
   "consumerRuntimes": [
     {
-      "runtime": "claude-code-cli",
-      "consumesVia": "native-plugin-loader plus Claude-native runtime overlay under ~/.claude/**"
-    },
-    {
       "runtime": "codex-cli",
-      "consumesVia": "private GitHub marketplace palantir-mini@palantir-mini-marketplace; Codex protocol ownership stays under ~/.codex/**"
-    },
-    {
-      "runtime": "gemini-cli",
-      "consumesVia": "private Gemini extension park-kyungchan/palantir-mini-gemini-extension"
-    },
-    {
-      "runtime": "cursor",
-      "consumesVia": "not-yet-bridged"
+      "consumesVia": "Codex marketplace registration for /home/palantirkc/palantir-mini-marketplace during local development or palantir-mini@palantir-mini-marketplace after merge; Codex protocol ownership stays under ~/.codex/**"
     }
   ],
   "forbiddenForks": [

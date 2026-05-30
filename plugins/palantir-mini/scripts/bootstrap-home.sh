@@ -6,7 +6,7 @@
 # confirm the environment is ready before starting a session.
 #
 # Checks performed:
-#   1. Plugin manifest      (.claude-plugin/plugin.json)
+#   1. Plugin manifest      (.codex-plugin/plugin.json)
 #   2. Hooks registry       (hooks/hooks.json)
 #   3. MCP server source    (bridge/mcp-server.ts)
 #   4. Overlay rules CORE   (runtime-overlay/rules/CORE.md)
@@ -24,10 +24,10 @@
 set -eu
 
 # ── Resolve plugin root ───────────────────────────────────────────────────────
-# Prefer CLAUDE_PLUGIN_ROOT env (set by Claude Code at runtime); fall back to
-# the directory containing this script's parent.
-if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
-  PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT}"
+# Prefer PALANTIR_MINI_PLUGIN_ROOT env; fall back to the directory containing
+# this script's parent.
+if [ -n "${PALANTIR_MINI_PLUGIN_ROOT:-}" ]; then
+  PLUGIN_ROOT="${PALANTIR_MINI_PLUGIN_ROOT}"
 else
   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
   PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -60,8 +60,8 @@ printf "home dir:    %s\n\n" "${HOME_DIR}"
 
 # ── Check 1: Plugin manifest ──────────────────────────────────────────────────
 check_required \
-  "Plugin manifest (.claude-plugin/plugin.json)" \
-  "${PLUGIN_ROOT}/.claude-plugin/plugin.json"
+  "Plugin manifest (.codex-plugin/plugin.json)" \
+  "${PLUGIN_ROOT}/.codex-plugin/plugin.json"
 
 # ── Check 2: Hooks registry ───────────────────────────────────────────────────
 check_required \

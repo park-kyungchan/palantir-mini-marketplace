@@ -1,7 +1,7 @@
 /**
  * palantir-mini v1.36 / sprint-027 / W2.4 — Canonical skill slug registry.
  *
- * Derived dynamically from `${CLAUDE_PLUGIN_ROOT}/skills/` filesystem at module
+ * Derived dynamically from `${PALANTIR_MINI_PLUGIN_ROOT}/skills/` filesystem at module
  * load time. Used by `scripts/log.ts:emit()` to validate
  * `SkillStartedEnvelope.payload.skillName` against the canonical 47-slug set.
  *

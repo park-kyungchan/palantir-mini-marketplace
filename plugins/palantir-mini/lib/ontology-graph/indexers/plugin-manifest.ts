@@ -5,14 +5,14 @@
  * @stable
  *
  * Authority chain:
- *   ~/.claude/plugins/<plugin-id>/.claude-plugin/plugin.json (sources walked)
+ *   ~/.claude/plugins/<plugin-id>/.codex-plugin/plugin.json (sources walked)
  *   ~/.claude/plugins/<plugin-id>/hooks/hooks.json            (sources walked)
  *     → lib/ontology-graph/types.ts (NodeRecord, EdgeRecord, NodeRid, EdgeRid)
  *     → lib/ontology-graph/store.ts (OntologyGraphStore consumer — NOT called here)
  *     → this file (pure fragment producer; no live store mutation)
  *     → PR 2.7+ orchestration layer (loads fragments into a live store)
  *
- * D/L/A domain: DATA — walks filesystem .claude-plugin/plugin.json + hooks/hooks.json
+ * D/L/A domain: DATA — walks filesystem .codex-plugin/plugin.json + hooks/hooks.json
  * files and emits a flat { nodes, edges } fragment. No event emission, no store
  * mutation, no Convex.
  *
@@ -25,11 +25,11 @@
  * refreshed, local interfaces become drop-in compatible.
  *
  * Walk targets:
- *   - {projectRoot}/palantir-mini/.claude-plugin/plugin.json                  (known-path anchor)
- *   - {projectRoot}/.claude/plugins/palantir-mini/.claude-plugin/plugin.json  (Claude compatibility anchor)
- *   - {projectRoot}/.claude/plugins/palantir-browse/.claude-plugin/plugin.json (known-path anchor)
+ *   - {projectRoot}/palantir-mini/.codex-plugin/plugin.json                  (known-path anchor)
+ *   - {projectRoot}/.claude/plugins/palantir-mini/.codex-plugin/plugin.json  (Claude compatibility anchor)
+ *   - {projectRoot}/.claude/plugins/palantir-browse/.codex-plugin/plugin.json (known-path anchor)
  *   - {projectRoot}/.claude/plugins/palantir-mini/hooks/hooks.json             (Claude compatibility anchor)
- *   - {projectRoot}/.claude/plugins/STAR/.claude-plugin/plugin.json            (glob extension)
+ *   - {projectRoot}/.claude/plugins/STAR/.codex-plugin/plugin.json            (glob extension)
  *   - {projectRoot}/.claude/plugins/STAR/hooks/hooks.json                      (glob extension)
  *
  * Excluded:
@@ -37,7 +37,7 @@
  *   - GLOB:node_modules, GLOB:.git, GLOB:worktrees, etc.
  *
  * Node kinds emitted:
- *   - "RuntimeEntrypoint"  (one per .claude-plugin/plugin.json)
+ *   - "RuntimeEntrypoint"  (one per .codex-plugin/plugin.json)
  *   - "McpHandler"         (one per mcpServers entry in plugin.json)
  *   - "Hook"               (one per hook command entry in hooks.json)
  *
@@ -63,7 +63,7 @@ import type { NodeRecord, EdgeRecord, NodeRid, EdgeRid } from "../types";
  */
 interface RuntimeEntrypointPayload {
   readonly projectRoot: string;
-  /** Absolute path to the .claude-plugin/plugin.json file. */
+  /** Absolute path to the .codex-plugin/plugin.json file. */
   readonly filePath: string;
   /** ISO timestamp of last indexing (injectable for test determinism). */
   readonly lastIndexed: string;
@@ -204,8 +204,8 @@ type HooksJsonShape = Record<string, HooksGroupEntry[] | HookEntry[]>;
 // ─── File collection helpers ──────────────────────────────────────────────────
 
 /**
- * Collects all .claude-plugin/plugin.json paths one level below a base directory.
- * Pattern: {baseDir}/STAR/.claude-plugin/plugin.json
+ * Collects all .codex-plugin/plugin.json paths one level below a base directory.
+ * Pattern: {baseDir}/STAR/.codex-plugin/plugin.json
  * Returns empty array when the base directory does not exist.
  */
 async function collectPluginJsonsInBase(
@@ -227,7 +227,7 @@ async function collectPluginJsonsInBase(
     const pluginDir = path.join(baseDir, entry.name);
     if (matchesAnyGlob(pluginDir, excludeGlobs)) continue;
 
-    const candidatePluginJson = path.join(pluginDir, ".claude-plugin", "plugin.json");
+    const candidatePluginJson = path.join(pluginDir, ".codex-plugin", "plugin.json");
     if (matchesAnyGlob(candidatePluginJson, excludeGlobs)) continue;
 
     try {
@@ -280,7 +280,7 @@ async function collectHooksJsonsInBase(
 // ─── Main indexer function ────────────────────────────────────────────────────
 
 /**
- * Walk .claude-plugin/plugin.json + hooks/hooks.json files and produce
+ * Walk .codex-plugin/plugin.json + hooks/hooks.json files and produce
  * a flat { nodes, edges } fragment consumable by OntologyGraphStore.
  *
  * Does NOT call store.addNode / store.addEdge — fragment emission only.
@@ -310,7 +310,6 @@ export async function indexPluginManifestAndHooks(
     "**/worktrees/**",
     "**/runtime-overlay/**",
     "**/.archived/**",
-    "**/.codex-plugin/**",
     "**/cache/**",
     "**/marketplaces/**",
   ];
@@ -322,9 +321,9 @@ export async function indexPluginManifestAndHooks(
 
   // Known single-file paths (always-included root anchors)
   const knownPluginJsonPaths: string[] = [
-    path.join(palantirMiniRoot, ".claude-plugin", "plugin.json"),
-    path.join(pluginsBaseDir, "palantir-mini", ".claude-plugin", "plugin.json"),
-    path.join(pluginsBaseDir, "palantir-browse", ".claude-plugin", "plugin.json"),
+    path.join(palantirMiniRoot, ".codex-plugin", "plugin.json"),
+    path.join(pluginsBaseDir, "palantir-mini", ".codex-plugin", "plugin.json"),
+    path.join(pluginsBaseDir, "palantir-browse", ".codex-plugin", "plugin.json"),
   ];
   const knownHooksJsonPaths: string[] = [
     path.join(palantirMiniRoot, "hooks", "hooks.json"),
@@ -399,7 +398,7 @@ export async function indexPluginManifestAndHooks(
     nodes.push(entrypointNode);
 
     // Derive plugin directory for co-location lookups
-    // plugin.json lives at <pluginDir>/.claude-plugin/plugin.json → pluginDir = two levels up
+    // plugin.json lives at <pluginDir>/.codex-plugin/plugin.json → pluginDir = two levels up
     const pluginDir = path.dirname(path.dirname(pluginJsonPath));
     pluginDirToEntrypointRid.set(pluginDir, entrypointRid);
 
