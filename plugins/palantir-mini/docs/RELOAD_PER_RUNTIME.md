@@ -75,6 +75,17 @@ scripts/sync-codex-adapter.ts` regenerates the Codex fallback adapter/shim for
 local development. The active Codex session still needs plugin reinstall plus
 process restart to observe runtime-surface changes.
 
+`lib/codex/palantir-mini-activation-policy.ts` is source-owned adapter policy,
+not a Codex hook discovery switch. It can make an already-started palantir-mini
+adapter path return silently without shared hook execution, prompt-front-door
+writes, additional context, or palantir-mini event emission. It cannot prevent
+Codex from calling a loaded hook entrypoint. For true no-call sessions, use
+Codex-owned config/profile/plugin controls before startup, then verify the
+active surface with `/debug-config`, `/plugins`, and `/hooks` after restarting.
+This is especially important when the user's opt-out instruction exists only in
+the original prompt: prompt-less mounted events cannot reconstruct that
+instruction after `UserPromptSubmit` remains unmounted.
+
 ## Safe To Skip
 
 - Read-only documentation edits.
@@ -86,7 +97,8 @@ process restart to observe runtime-surface changes.
 
 1. **Editing installed cache payloads** — never edit `~/.codex/plugins/cache/**` as semantic source. Edit `/home/palantirkc/palantir-mini-marketplace` and reinstall.
 2. **Expecting hot reload** — Codex must be restarted after plugin, MCP, hook, or skill changes.
-3. **Recreating runtime-owned source checkouts** — do not use `~/.codex/.tmp/marketplaces/palantir-mini-marketplace` as the working source. The working source is `/home/palantirkc/palantir-mini-marketplace`.
+3. **Confusing silent bypass with no-call** — a silent adapter response reduces side effects after the hook starts; disabling hook/plugin loading in Codex config is the no-call mechanism.
+4. **Recreating runtime-owned source checkouts** — do not use `~/.codex/.tmp/marketplaces/palantir-mini-marketplace` as the working source. The working source is `/home/palantirkc/palantir-mini-marketplace`.
 
 ## Cross-References
 

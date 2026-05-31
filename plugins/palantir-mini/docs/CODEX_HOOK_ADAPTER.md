@@ -58,6 +58,41 @@ the smoke test rewrites a temporary `hooks.json` between adapter calls and
 expects the second call to execute the updated hook command. This is Codex
 adapter evidence only.
 
+## Activation Policy
+
+Codex plugin availability is not the same as palantir-mini workflow authority.
+When Codex has already loaded a palantir-mini plugin hook, the adapter applies
+`lib/codex/palantir-mini-activation-policy.ts` before running shared hook
+intent. The policy is opt-in for palantir-mini semantics and returns a silent
+empty response for explicit user opt-out prompts, `/home/palantirkc/meta-harness`
+work, repo-local `AGENTS.md` instructions that explicitly make palantir-mini
+opt-in only, and ordinary non-palantir turns. Silent bypass means no shared hook
+run, no prompt-front-door write, no additional context injection, and no
+palantir-mini event emission from that adapter path.
+
+Silent bypass is intentionally not documented as a Codex no-call guarantee. If
+Codex has loaded the hook entrypoint and the lifecycle event matches, the
+adapter process has already started. A true no-call state must be created in
+Codex-owned configuration before hook discovery/loading, for example by
+disabling hooks, disabling plugin hooks, or disabling the plugin in a dedicated
+profile/session. Codex official docs describe plugin-bundled hooks as lifecycle
+hooks loaded from an enabled plugin, with manifest `hooks` overriding the
+default `hooks/hooks.json` path. The Codex config reference documents
+user-level config, trusted project-scoped `.codex/config.toml`, profiles, and
+the `[features].hooks` lifecycle-hook switch. Use those Codex-owned surfaces for
+runtime no-call policy; keep palantir-mini source policy scoped to deterministic
+silent behavior after the adapter starts.
+
+The current checked-in Codex registry does not mount `UserPromptSubmit`, so a
+later mounted event such as `PermissionRequest`, `PostToolUse`, `Stop`, or
+`SubagentStop` may not include the user's original prompt text. In that
+prompt-less path the adapter cannot infer a prior "do not use palantir-mini"
+instruction. Durable opt-out across those prompt-less mounted events therefore
+requires a Codex no-call profile/config, repo-local opt-in-only `AGENTS.md`
+policy, or direct payload evidence such as `payload.prompt`/prompt-front-door
+state. palantir-mini source work and palantir-mini MCP tool calls remain active
+unless one of those explicit opt-out inputs is present.
+
 User-visible workflow responses should mirror that boundary. In Codex, hook
 intent is plugin-layer policy read from `hooks/hooks.json`; the Codex adapter
 automates live-read for supported lifecycle events when the smoke evidence

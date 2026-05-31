@@ -75,6 +75,26 @@ protocol shape, reload requirements, and unsupported gaps, but it cannot approve
 SemanticIntentContracts, DigitalTwinChangeContracts, WorkContracts, release
 gates, or ontology mutations.
 
+## Availability vs Activation
+
+Codex may have the palantir-mini plugin installed and enabled while a given turn
+is still outside palantir-mini scope. Runtime availability, plugin identity, and
+hook visibility are metadata. palantir-mini semantic authority activates only
+from explicit palantir-mini scope, palantir-mini source work, protected work in a
+tracked palantir-mini project, or a palantir-mini MCP tool invocation. Explicit
+user opt-out, meta-harness work, repo-local `AGENTS.md` opt-in-only policy, and
+ordinary non-palantir turns must not be promoted into palantir-mini workflow
+authority by the adapter.
+
+The source adapter can silently bypass side effects after Codex starts a loaded
+hook command. A true no-call state belongs to Codex-owned configuration before
+startup, such as a profile or plugin-hook/plugin disable setting, and must be
+verified in the active runtime surface after restart.
+When a mounted Codex event does not carry the original user prompt and
+`UserPromptSubmit` is unmounted, the adapter cannot use prompt-only opt-out text
+as durable evidence for that later event. Use Codex no-call config or repo-local
+opt-in-only policy for that boundary.
+
 ## Required Mental Model
 
 ```text

@@ -60,6 +60,7 @@ import {
 import { palantirMiniMcpToolAliasesFor } from "../hooks/tool-classifier";
 import { resolvePalantirMiniRoot } from "../config/root";
 import { detectPalantirMiniPluginOptOut } from "../ontology-engineering-response-template";
+import { decideCodexPalantirMiniActivation } from "./palantir-mini-activation-policy";
 import {
   PROMPT_RUNTIMES,
   PromptFrontDoorStore,
@@ -1218,6 +1219,7 @@ export async function runCodexHookAdapter(
   options: CodexAdapterOptions = {},
 ): Promise<CodexAdapterRunResult> {
   const doc = loadHooks(options);
+  const resolved = resolveOptions(options);
   const directBypass = directPromptPluginOptOut(inputPayload);
   if (eventName && runtimeHasSchemaOnlyEvent("codex", eventName)) {
     await emitCodexAdapterCapabilityMismatch(eventName, inputPayload, options);
@@ -1243,6 +1245,27 @@ export async function runCodexHookAdapter(
   const policyEventName = policyEventNameFor(eventName);
   const payload = deepCloneObject(inputPayload);
   payload.hook_event_name = policyEventName;
+
+  const toolInput = asObject(payload.tool_input);
+  const activationDecision = decideCodexPalantirMiniActivation({
+    eventName,
+    policyEventName,
+    cwd: typeof payload.cwd === "string" ? payload.cwd : resolved.cwd,
+    pluginRoot: resolved.pluginRoot,
+    hooksJsonPath: resolved.hooksJsonPath,
+    toolName: typeof payload.tool_name === "string" ? payload.tool_name : undefined,
+    toolInput,
+    prompt: typeof payload.prompt === "string" ? payload.prompt : undefined,
+    env: resolved.env,
+  });
+
+  if (activationDecision.mode === "silent-bypass") {
+    return {
+      response: {},
+      matchedHooks: [],
+      runs: [],
+    };
+  }
 
   const storedBypass =
     directBypass || eventName === "UserPromptSubmit" ? undefined : await currentPromptFrontDoorOptOut(payload, options);

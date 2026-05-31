@@ -7,6 +7,7 @@
     ".codex-plugin/plugin.json",
     "hooks/codex-hooks.json",
     "lib/codex/codex-hook-adapter.ts",
+    "lib/codex/palantir-mini-activation-policy.ts",
     "tests/runtime-boundary/codex-plugin-hooks.test.ts"
   ],
   "unsupportedSurfaceRefs": [
@@ -17,7 +18,8 @@
     "codex:gemini-extension-parity"
   ],
   "smokeEvidenceRefs": [
-    "tests/runtime-boundary/codex-plugin-hooks.test.ts"
+    "tests/runtime-boundary/codex-plugin-hooks.test.ts",
+    "tests/lib/codex/palantir-mini-activation-policy.test.ts"
   ],
   "lastVerified": "2026-05-31"
 }
