@@ -149,6 +149,56 @@ const TOOLS: ToolSpec[] = [
     },
   },
   {
+    name: "pm_pre_mutation_governance",
+    description:
+      "Compute-only pre-mutation governance gate for protected mutation authorization. " +
+      "Returns a deterministic GovernanceDecisionV2 with stable reason codes and " +
+      "does not commit edits, emit lineage events, or mutate project state.",
+    inputSchema: {
+      type: "object",
+      required: ["toolName"],
+      anyOf: [
+        { required: ["project"] },
+        { required: ["projectRoot"] },
+      ],
+      properties: {
+        project: { type: "string", description: "Absolute project root." },
+        projectRoot: { type: "string", description: "Alias for project." },
+        promptId: { type: "string" },
+        promptHash: { type: "string" },
+        toolName: { type: "string", description: "Runtime tool name being evaluated." },
+        toolInput: { type: "object", additionalProperties: true },
+        targetFiles: { type: "array", items: { type: "string" } },
+        resolvedTargetFiles: { type: "array", items: { type: "string" } },
+        semanticIntentContractRef: { type: "string" },
+        digitalTwinChangeContractRef: { type: "string" },
+        workContractRef: { type: "string" },
+        semanticIntentContract: { type: "object", additionalProperties: true },
+        digitalTwinChangeContract: { type: "object", additionalProperties: true },
+        semanticConsistencyResultRef: { type: "string" },
+        semanticConsistencyResult: { type: "object", additionalProperties: true },
+        projectScope: { type: "object", additionalProperties: true },
+        mode: { type: "string", enum: ["advisory", "blocking"], default: "blocking" },
+        dtcFill: {
+          type: "object",
+          properties: {
+            complete: { type: "boolean" },
+            status: { type: "string" },
+            currentTurn: { type: "number" },
+            requiredTurns: { type: "number" },
+            evidenceRefs: { type: "array", items: { type: "string" } },
+          },
+          additionalProperties: false,
+        },
+        callerAllowed: { type: "boolean" },
+        runtimeAllowed: { type: "boolean" },
+        freeTextAuthorization: { type: "string" },
+        explanation: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "apply_edit_function",
     description:
       "Execute a Tier-2 edit function and return OntologyEdit[] WITHOUT committing. " +
@@ -772,6 +822,7 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
     "pm_rule_audit",
   ],
   "hook-validation": [
+    "pm_pre_mutation_governance",
     "validate_managed_settings_fragments",
   ],
 };
@@ -783,6 +834,7 @@ const HANDLER_MODULES: Record<string, string> = {
   ontology_schema_get:                 "./handlers/ontology-schema-get",
   impact_query:                        "./handlers/impact-query",
   pre_edit_impact:                     "./handlers/pre-edit-impact",
+  pm_pre_mutation_governance:           "./handlers/pm-pre-mutation-governance",
   apply_edit_function:                 "./handlers/apply-edit-function",
   compute_edits_dry_run:               "./handlers/compute_edits_dry_run",
   pm_ontology_engineering_workflow:     "./handlers/pm-ontology-engineering-workflow",

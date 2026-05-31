@@ -16,6 +16,7 @@ export type PalantirMiniToolOperation =
   | "ontology_schema_get"
   | "pm_health_audit"
   | "pm_intent_router"
+  | "pm_pre_mutation_governance"
   | "pm_rule"
   | "pm_semantic_intent_gate"
   | "pm_substrate_query"
@@ -56,6 +57,7 @@ const READ_ONLY_OPERATIONS = new Set<PalantirMiniToolOperation>([
   "ontology_schema_get",
   "pm_health_audit",
   "pm_rule",
+  "pm_pre_mutation_governance",
   "pm_semantic_intent_gate",
   "pm_substrate_query",
   "pre_edit_impact",
@@ -150,6 +152,7 @@ export function operationFromToolName(normalizedName: string): PalantirMiniToolO
   if (normalizedName.includes("ontology_schema_get")) return "ontology_schema_get";
   if (normalizedName.includes("pm_health_audit")) return "pm_health_audit";
   if (normalizedName.includes("pm_intent_router")) return "pm_intent_router";
+  if (normalizedName.includes("pm_pre_mutation_governance")) return "pm_pre_mutation_governance";
   if (normalizedName.includes("pm_rule")) return "pm_rule";
   if (normalizedName.includes("pm_semantic_intent_gate")) return "pm_semantic_intent_gate";
   if (normalizedName.includes("pm_substrate_query")) return "pm_substrate_query";

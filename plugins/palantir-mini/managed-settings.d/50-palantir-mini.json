@@ -41,6 +41,7 @@
       "mcp__palantir-mini__ontology_schema_get",
       "mcp__palantir-mini__impact_query",
       "mcp__palantir-mini__pre_edit_impact",
+      "mcp__palantir-mini__pm_pre_mutation_governance",
       "mcp__palantir-mini__apply_edit_function",
       "mcp__palantir-mini__compute_edits_dry_run",
       "mcp__palantir-mini__commit_edits",
