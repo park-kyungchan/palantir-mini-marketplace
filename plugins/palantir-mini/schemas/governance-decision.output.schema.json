@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-mini.local/schemas/governance-decision.output.schema.json",
+  "title": "GovernanceDecisionV2 output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "decision",
+    "allowed",
+    "reasonCode",
+    "ruleApplied",
+    "humanReason",
+    "toolName",
+    "targetFiles",
+    "refs",
+    "matchedSurfaces",
+    "missingApprovals",
+    "requiredNextActions",
+    "evidenceRefs",
+    "computeOnly"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "palantir-mini/governance-decision/v2"
+    },
+    "decisionId": {
+      "type": "string",
+      "pattern": "^pre-mutation-governance-v2:[a-f0-9]{24}$"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["allow", "advisory", "deny"]
+    },
+    "allowed": {
+      "type": "boolean"
+    },
+    "reasonCode": {
+      "type": "string",
+      "enum": [
+        "read_only_allow",
+        "protected_mutation_allowed",
+        "protected_mutation_generated_file",
+        "protected_mutation_missing_dtc",
+        "protected_mutation_dtc_fill_incomplete",
+        "protected_mutation_semantic_consistency_blocking",
+        "protected_mutation_surface_mismatch",
+        "protected_mutation_policy_advisory",
+        "protected_mutation_policy_denied"
+      ]
+    },
+    "ruleApplied": {
+      "type": "string"
+    },
+    "humanReason": {
+      "type": "string"
+    },
+    "toolName": {
+      "type": "string"
+    },
+    "targetFiles": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "promptId": { "type": "string" },
+        "promptHash": { "type": "string" },
+        "semanticIntentContractRef": { "type": "string" },
+        "digitalTwinChangeContractRef": { "type": "string" },
+        "workContractRef": { "type": "string" },
+        "semanticConsistencyResultRef": { "type": "string" }
+      }
+    },
+    "matchedSurfaces": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "missingApprovals": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "requiredNextActions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "computeOnly": {
+      "const": true
+    }
+  }
+}

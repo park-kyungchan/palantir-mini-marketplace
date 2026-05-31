@@ -191,6 +191,17 @@ export const MCP_TOOL_CAPABILITIES: readonly McpToolCapability[] = [
     externalEgress: false,
     classifierProjection: explicit("pre_edit_impact"),
   }),
+  capability("pm_pre_mutation_governance", {
+    domain: "GOVERNANCE",
+    effects: ["compute", "evaluate"],
+    mutationKind: "none",
+    requiresDtcApproval: false,
+    requiresSprintContract: false,
+    dataAction: "read-project-state",
+    releaseDeploy: false,
+    externalEgress: false,
+    classifierProjection: explicit("pm_pre_mutation_governance"),
+  }),
   capability("apply_edit_function", {
     domain: "ACTION",
     effects: ["propose-edit"],
