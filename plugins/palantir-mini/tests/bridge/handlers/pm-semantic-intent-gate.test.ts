@@ -22,10 +22,17 @@ import {
   type SicWithFillFields,
 } from "../../../lib/semantic-intent/fill-sequence";
 import { validateDtcApprovalCardText } from "../../../lib/ontology-engineering-response-template";
-import { crmBillingSupportCustomerFixture } from "../../../lib/semantic-consistency/fixtures";
+import {
+  crmBillingSupportCustomerFixture,
+  overloadedCustomerFixture,
+} from "../../../lib/semantic-consistency/fixtures";
+import { resolveSemanticConsistency } from "../../../lib/semantic-consistency/resolver";
 
 const tmpDirs: string[] = [];
 const savedEnv: Record<string, string | undefined> = {};
+const approvedSemanticConsistencyResult = resolveSemanticConsistency(
+  crmBillingSupportCustomerFixture(),
+);
 
 function makeTmpProject(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-semantic-intent-gate-"));
@@ -76,6 +83,11 @@ function approvedSemantic(overrides: Partial<SemanticIntentContract> = {}): Sema
       ".claude/plugins/palantir-mini/lib/prompt-front-door/store.ts",
       ".claude/plugins/palantir-mini/bridge/handlers/pm-semantic-intent-gate.ts",
     ],
+    approvedCanonicalTermRefs: [...approvedSemanticConsistencyResult.canonicalTermRefs],
+    approvedTermMappingRefs: approvedSemanticConsistencyResult.mappings.map(
+      (mapping) => mapping.mappingId,
+    ),
+    semanticConsistencyResultRef: approvedSemanticConsistencyResult.resolverRunId,
     permissionsAndProposal: "Approved for Wave 3 plugin-local persistence only.",
     acceptedRisks: [],
     downstreamAllowed: ["Persist approved contract records."],
@@ -114,6 +126,7 @@ function approvedDigitalTwin(
     requiredEvaluationRefs: [
       { kind: "ValidationPack", rid: "validation-pack:prompt-front-door" } as never,
     ],
+    semanticConsistencyRefs: [approvedSemanticConsistencyResult.resolverRunId],
     fillPolicy: "ontology-dtc-build",
     ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
       step: index + 1,
@@ -711,6 +724,7 @@ describe("pm_semantic_intent_gate", () => {
       runtime: envelope.runtime,
       semanticIntentContract: approvedSemantic(),
       digitalTwinChangeContract: approvedDigitalTwin(),
+      semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
     });
     const saved = await store.readEnvelope(envelope.sessionId, envelope.promptId);
 
@@ -751,6 +765,7 @@ describe("pm_semantic_intent_gate", () => {
       complexityHint: "cross-cutting",
       semanticIntentContract: approvedSemantic(),
       digitalTwinChangeContract: approvedDigitalTwin(),
+      semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
     });
 
     expect(blocked.status).toBe("contract_required");
@@ -765,6 +780,7 @@ describe("pm_semantic_intent_gate", () => {
       semanticIntentContract: approvedSemantic(),
       digitalTwinChangeContract: approvedDigitalTwin(),
       fdeOntologyEngineeringSessionRef: "fde-ontology-engineering://session/test",
+      semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
     });
 
     expect(allowed.status).toBe("pass");
@@ -962,6 +978,7 @@ describe("pm_semantic_intent_gate", () => {
       digitalTwinChangeContract: approvedDigitalTwin(undefined, {
         approvalRef: digitalTwinApprovalRef,
       }),
+      semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
     });
     const saved = await store.readEnvelope(envelope.sessionId, envelope.promptId);
 
@@ -1046,6 +1063,51 @@ describe("pm_semantic_intent_gate semantic consistency projection", () => {
     );
     expect(event?.payload?.semanticConsistencyConflictCount).toBe(0);
     expect(event?.payload?.semanticConsistencyPromotionReady).toBe(true);
+  });
+
+  test("blocks approved ontology-affecting contracts when deterministic resolver output is absent", async () => {
+    const project = makeTmpProject();
+    const result = await semanticIntentGate({
+      project,
+      rawIntent: "Implement ontology-affecting semantic consistency promotion.",
+      scopePaths: ["ontology/object-types/customer.ts", "bridge/handlers/pm-semantic-intent-gate.ts"],
+      complexityHint: "multi-file",
+      semanticIntentContract: approvedSemantic(),
+      digitalTwinChangeContract: approvedDigitalTwin(),
+    });
+
+    expect(result.status).toBe("blocked_for_clarification");
+    expect(result.allowsRouting).toBe(false);
+    expect(result.gate.semanticIntent.issues.map((issue) => issue.message)).toContain(
+      "SEMANTIC_CONSISTENCY_RESULT_MISSING: ontology-affecting promotion requires deterministic SemanticConsistencyResolver output",
+    );
+    expect(result.promptEnvelope?.state).not.toBe("digital_twin_approved");
+  });
+
+  test("blocks approved ontology-affecting contracts when resolver conflicts remain open", async () => {
+    const project = makeTmpProject();
+    const result = await semanticIntentGate({
+      project,
+      rawIntent: "Implement ontology-affecting semantic consistency promotion.",
+      scopePaths: ["ontology/object-types/customer.ts", "bridge/handlers/pm-semantic-intent-gate.ts"],
+      complexityHint: "multi-file",
+      semanticIntentContract: approvedSemantic({
+        semanticConsistencyResultRef: resolveSemanticConsistency(overloadedCustomerFixture()).resolverRunId,
+      }),
+      digitalTwinChangeContract: approvedDigitalTwin(undefined, {
+        semanticConsistencyRefs: [
+          resolveSemanticConsistency(overloadedCustomerFixture()).resolverRunId,
+        ],
+      }),
+      semanticConsistencyResolverInput: overloadedCustomerFixture(),
+    });
+
+    expect(result.status).toBe("blocked_for_clarification");
+    expect(result.allowsRouting).toBe(false);
+    expect(result.gate.semanticIntent.issues.map((issue) => issue.message).join("\n")).toContain(
+      "SEMANTIC_CONSISTENCY_UNRESOLVED_BLOCKING_CONFLICT",
+    );
+    expect(result.semanticConsistencyResult?.unresolvedBlockingConflictRefs.length).toBe(1);
   });
 });
 

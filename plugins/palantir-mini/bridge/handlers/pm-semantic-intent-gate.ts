@@ -71,6 +71,7 @@ import {
   draftDigitalTwinChangeContract,
   draftSemanticIntentContract,
   hasApprovalRef,
+  requiresContractApproval,
   validateDigitalTwinChangeContract,
   validateSemanticIntentContract,
 } from "../../lib/lead-intent/contracts";
@@ -150,6 +151,7 @@ import { draftDtcFromContextPlanV2 } from "../../lib/context-engineering/dtc-fro
 import {
   assertDtcApprovalCardTextBeforeDisplay,
 } from "../../lib/ontology-engineering-response-template";
+import { assessSemanticConsistencyPromotionGate } from "../../lib/semantic-consistency/promotion-gate";
 import { resolveSemanticConsistency } from "../../lib/semantic-consistency/resolver";
 import type {
   SemanticConsistencyResolverInput,
@@ -1086,12 +1088,30 @@ function advanceToApprovedState(
   refs: PromptContractRefs,
   semanticContract?: SemanticIntentContract,
   digitalTwinContract?: DigitalTwinChangeContract,
+  options: {
+    readonly ontologyAffecting: boolean;
+    readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+  } = { ontologyAffecting: false },
 ): PromptEnvelope {
   const semanticValid = semanticContract
-    ? validateSemanticIntentContract(semanticContract).valid
+    ? validateSemanticIntentContract(semanticContract).valid &&
+      semanticConsistencyPromotionAllowed({
+        subject: "semantic-intent-contract",
+        ontologyAffecting: options.ontologyAffecting,
+        semanticConsistencyResult: options.semanticConsistencyResult,
+        attachedResolverRunRefs: semanticContract.semanticConsistencyResultRef
+          ? [semanticContract.semanticConsistencyResultRef]
+          : [],
+      })
     : false;
   const digitalTwinValid = digitalTwinContract
-    ? validateDigitalTwinChangeContract(digitalTwinContract).valid
+    ? validateDigitalTwinChangeContract(digitalTwinContract).valid &&
+      semanticConsistencyPromotionAllowed({
+        subject: "digital-twin-change-contract",
+        ontologyAffecting: options.ontologyAffecting,
+        semanticConsistencyResult: options.semanticConsistencyResult,
+        attachedResolverRunRefs: digitalTwinContract.semanticConsistencyRefs,
+      })
     : false;
   let next = advanceToSemanticDraft(envelope, refs);
 
@@ -1144,6 +1164,15 @@ function advanceToApprovedState(
   return next;
 }
 
+function semanticConsistencyPromotionAllowed(input: {
+  readonly subject: "semantic-intent-contract" | "digital-twin-change-contract";
+  readonly ontologyAffecting: boolean;
+  readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+  readonly attachedResolverRunRefs?: readonly string[];
+}): boolean {
+  return assessSemanticConsistencyPromotionGate(input).promotionAllowed;
+}
+
 async function persistPromptContracts(
   input: SemanticIntentGateInput,
   prompt: {
@@ -1152,6 +1181,7 @@ async function persistPromptContracts(
     continuity?: ContractValidationResult;
   },
   draftContracts: SemanticIntentGateResult["draftContracts"],
+  semanticConsistencyResult?: SemanticConsistencyResolverOutput,
 ): Promise<{ envelope?: PromptEnvelope; contractRefs?: PromptContractRefs }> {
   if (input.draftMode === "never" || !prompt.envelope || prompt.continuity?.valid === false) {
     return { envelope: prompt.envelope };
@@ -1198,6 +1228,14 @@ async function persistPromptContracts(
           refs,
           input.semanticIntentContract,
           input.digitalTwinChangeContract,
+          {
+            ontologyAffecting: requiresContractApproval({
+              intent: input.rawIntent,
+              scopePaths: input.scopePaths,
+              complexityHint: input.complexityHint,
+            }),
+            semanticConsistencyResult,
+          },
         )
       : advanceToSemanticDraft(prompt.envelope, refs, {
           interactionMode: input.interactionMode,
@@ -1402,6 +1440,9 @@ export async function semanticIntentGate(
     throw new Error("pm_semantic_intent_gate: `rawIntent` is required");
   }
 
+  const semanticConsistencyResult = input.semanticConsistencyResolverInput
+    ? resolveSemanticConsistency(input.semanticConsistencyResolverInput)
+    : undefined;
   const gate = assessContractGate({
     intent: input.rawIntent,
     scopePaths: Array.isArray(input.scopePaths) ? input.scopePaths : [],
@@ -1410,6 +1451,7 @@ export async function semanticIntentGate(
     digitalTwinChangeContractRef: input.digitalTwinChangeContractRef,
     semanticIntentContract: input.semanticIntentContract,
     digitalTwinChangeContract: input.digitalTwinChangeContract,
+    semanticConsistencyResult,
   });
   // PR-13 reservation: pin application state at Layer0IntentBridge build start so that
   // downstream tool calls read loop-start values, not in-flight updates. Full integration
@@ -1456,17 +1498,26 @@ export async function semanticIntentGate(
       ? applyPromptContinuityFailure(gate, continuity)
       : gate;
   const effectiveGate = applyFDEProvenanceFailure(continuityGate, input);
-  const semanticConsistencyResult = input.semanticConsistencyResolverInput
-    ? resolveSemanticConsistency(input.semanticConsistencyResolverInput)
-    : undefined;
   let persisted =
     continuity && !continuity.valid
       ? { envelope: prompt.envelope }
-      : await persistPromptContracts(input, prompt, draftContracts);
+      : await persistPromptContracts(input, prompt, draftContracts, semanticConsistencyResult);
   let ontologyActivation: OntologyActivation | undefined;
   if (
     isApprovedSemanticIntentContract(input.semanticIntentContract) &&
-    validateSemanticIntentContract(input.semanticIntentContract).valid
+    validateSemanticIntentContract(input.semanticIntentContract).valid &&
+    semanticConsistencyPromotionAllowed({
+      subject: "semantic-intent-contract",
+      ontologyAffecting: requiresContractApproval({
+        intent: input.rawIntent,
+        scopePaths: input.scopePaths,
+        complexityHint: input.complexityHint,
+      }),
+      semanticConsistencyResult,
+      attachedResolverRunRefs: input.semanticIntentContract.semanticConsistencyResultRef
+        ? [input.semanticIntentContract.semanticConsistencyResultRef]
+        : [],
+    })
   ) {
     try {
       ontologyActivation = deriveOntologyActivation(input.semanticIntentContract);

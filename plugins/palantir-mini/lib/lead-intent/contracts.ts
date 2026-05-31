@@ -13,6 +13,7 @@ import { projectScopePolicyForLaneIds } from "./project-scope-policy";
 import { contextEngineeringSicReadinessIssues } from "../semantic-intent/context-engineering-sic-fill-sequence";
 import { ontologyDtcBuildReadinessIssues } from "../semantic-intent/ontology-dtc-build-sequence";
 import { semanticConsistencyGateMode } from "../semantic-consistency/policy";
+import { assessSemanticConsistencyPromotionGate } from "../semantic-consistency/promotion-gate";
 import type { SemanticConsistencyResolverOutput } from "../semantic-consistency/types";
 import type {
   ActionTypeRef,
@@ -510,14 +511,10 @@ function semanticConsistencyRefsForContracts(input: {
   readonly semanticIntentContract?: SemanticIntentContract;
   readonly digitalTwinChangeContract?: DigitalTwinChangeContract;
   readonly semanticConsistencyResultRef?: string;
-  readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
 }): string[] {
   return uniqueNonEmpty([
     input.semanticConsistencyResultRef,
-    input.semanticConsistencyResult?.resolverRunId,
     input.semanticIntentContract?.semanticConsistencyResultRef,
-    ...(input.semanticIntentContract?.approvedCanonicalTermRefs ?? []),
-    ...(input.semanticIntentContract?.approvedTermMappingRefs ?? []),
     ...(input.digitalTwinChangeContract?.semanticConsistencyRefs ?? []),
   ]);
 }
@@ -530,6 +527,31 @@ function pushSemanticConsistencyIssue(
   const severity = semanticConsistencyIssueSeverity();
   if (!severity) return;
   issues.push({ field, message, severity });
+}
+
+function semanticConsistencyPromotionIssuesForContracts(input: {
+  readonly ontologyAffecting: boolean;
+  readonly semanticIntentContract?: SemanticIntentContract;
+  readonly digitalTwinChangeContract?: DigitalTwinChangeContract;
+  readonly semanticConsistencyResultRef?: string;
+  readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+}): ContractValidationIssue[] {
+  const gate = assessSemanticConsistencyPromotionGate({
+    subject: "sic-dtc-pair",
+    ontologyAffecting: input.ontologyAffecting,
+    semanticConsistencyResult: input.semanticConsistencyResult,
+    attachedResolverRunRefs: semanticConsistencyRefsForContracts(input),
+  });
+  return gate.findings
+    .filter((issue) => issue.blocking)
+    .map((issue) => ({
+      field:
+        issue.field === "attachedResolverRunRefs"
+          ? "semanticConsistencyResultRef"
+          : issue.field,
+      message: `${issue.code}: ${issue.message}`,
+      severity: "blocking" as const,
+    }));
 }
 
 export function isReadOnlyIntent(intent: string): boolean {
@@ -1310,6 +1332,10 @@ export function deriveWorkContractFromContracts(input: {
     input.digitalTwinChangeContractRef ?? input.digitalTwinChangeContract.contractId;
   const semanticResult = validateSemanticIntentContract(input.semanticIntentContract);
   const digitalTwinResult = validateDigitalTwinChangeContract(input.digitalTwinChangeContract);
+  const semanticConsistencyResultRef = semanticConsistencyRefsForContracts({
+    semanticIntentContract: input.semanticIntentContract,
+    digitalTwinChangeContract: input.digitalTwinChangeContract,
+  }).find((ref) => ref.startsWith("semantic-resolver-run:"));
   return {
     contractId:
       input.contractId ??
@@ -1336,6 +1362,7 @@ export function deriveWorkContractFromContracts(input: {
     forbiddenActions: [...input.semanticIntentContract.downstreamForbidden],
     touchedOntologyRefs: input.digitalTwinChangeContract.touchedOntologyRefs,
     requiredEvaluationRefs: input.digitalTwinChangeContract.requiredEvaluationRefs,
+    ...(semanticConsistencyResultRef ? { semanticConsistencyResultRef } : {}),
     ...(input.routerBinding ? { routerBinding: input.routerBinding } : {}),
   };
 }
@@ -1378,7 +1405,14 @@ export function projectRoutingFromContracts(
   if (semantic && digitalTwin) {
     const semanticResult = validateSemanticIntentContract(semantic);
     const digitalTwinResult = validateDigitalTwinChangeContract(digitalTwin);
-    if (semanticResult.valid && digitalTwinResult.valid) {
+    const promotionIssues = semanticConsistencyPromotionIssuesForContracts({
+      ontologyAffecting: requiresContractApproval(input),
+      semanticIntentContract: semantic,
+      digitalTwinChangeContract: digitalTwin,
+      semanticConsistencyResultRef: input.semanticConsistencyResultRef,
+      semanticConsistencyResult: input.semanticConsistencyResult,
+    });
+    if (semanticResult.valid && digitalTwinResult.valid && promotionIssues.length === 0) {
       const typedRefResolution = resolveOntologyRefs({
         semanticIntentContract: semantic,
         digitalTwinChangeContract: digitalTwin,
@@ -1470,16 +1504,39 @@ export function projectRoutingFromContracts(
 export function assessContractGate(input: LeadIntentGateInput): ContractGateResult {
   const approvalRequired = requiresContractApproval(input);
   const questions = approvalRequired ? createSemanticClarificationQuestions(input) : [];
-  const semanticIntent = input.semanticIntentContract
+  let semanticIntent = input.semanticIntentContract
     ? validateSemanticIntentContract(input.semanticIntentContract)
     : input.semanticIntentContractRef
       ? unresolvedRefIssue("semanticIntentContractRef")
       : { valid: false, issues: [] };
-  const digitalTwin = input.digitalTwinChangeContract
+  let digitalTwin = input.digitalTwinChangeContract
     ? validateDigitalTwinChangeContract(input.digitalTwinChangeContract)
     : input.digitalTwinChangeContractRef
       ? unresolvedRefIssue("digitalTwinChangeContractRef")
       : { valid: false, issues: [] };
+
+  if (approvalRequired && input.semanticIntentContract && input.digitalTwinChangeContract) {
+    const promotionIssues = semanticConsistencyPromotionIssuesForContracts({
+      ontologyAffecting: true,
+      semanticIntentContract: input.semanticIntentContract,
+      digitalTwinChangeContract: input.digitalTwinChangeContract,
+      semanticConsistencyResultRef: input.semanticConsistencyResultRef,
+      semanticConsistencyResult: input.semanticConsistencyResult,
+    });
+    if (promotionIssues.length > 0) {
+      semanticIntent = contractValidationResult([
+        ...semanticIntent.issues,
+        ...promotionIssues,
+      ]);
+      digitalTwin = contractValidationResult([
+        ...digitalTwin.issues,
+        ...promotionIssues.map((issue) => ({
+          ...issue,
+          field: `semanticConsistencyPromotion.${issue.field}`,
+        })),
+      ]);
+    }
+  }
 
   if (!approvalRequired) {
     return {
