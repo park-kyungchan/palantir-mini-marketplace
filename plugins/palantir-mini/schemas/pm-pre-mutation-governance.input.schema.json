@@ -7,18 +7,6 @@
   "required": [
     "toolName"
   ],
-  "anyOf": [
-    {
-      "required": [
-        "project"
-      ]
-    },
-    {
-      "required": [
-        "projectRoot"
-      ]
-    }
-  ],
   "properties": {
     "schemaVersion": {
       "const": "palantir-mini/pre-mutation-governance/v2"
