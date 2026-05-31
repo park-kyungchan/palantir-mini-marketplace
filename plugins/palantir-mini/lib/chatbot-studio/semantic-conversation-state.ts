@@ -12,6 +12,25 @@ import type { SemanticConsistencyResolverOutput } from "../semantic-consistency/
 
 export const SEMANTIC_CONVERSATION_STATE_SCHEMA_VERSION =
   "palantir-mini/semantic-conversation-state/v1";
+export const LLM_CONTROL_STATE_PROJECTION_SCHEMA_VERSION =
+  "palantir-mini/llm-control-state-projection/v1";
+
+export type LLMControlReasonCode =
+  | "semantic_conversation_state_only"
+  | "plugin_derived_readiness"
+  | "prompt_front_door_approval_ref"
+  | "llm_authority_write_denied";
+
+export interface LLMControlFacingState {
+  readonly schemaVersion: typeof LLM_CONTROL_STATE_PROJECTION_SCHEMA_VERSION;
+  readonly sourceStateId: string;
+  readonly stateSource: "SemanticConversationState";
+  readonly writableByModel: false;
+  readonly readinessWritableByModel: false;
+  readonly approvalWritableByModel: false;
+  readonly prohibitedWriteFields: readonly string[];
+  readonly reasonCodes: readonly LLMControlReasonCode[];
+}
 
 export interface SkillOntologyRef {
   readonly skillId: string;
@@ -100,6 +119,7 @@ export interface SemanticConversationState {
   };
 
   readonly semanticConsistencyFacing?: SemanticConsistencyFacingState;
+  readonly llmControlFacing: LLMControlFacingState;
 
   readonly contractFacing: {
     readonly semanticIntentContractRef?: string;
@@ -331,6 +351,31 @@ function semanticConsistencyFacing(
   };
 }
 
+export function buildLLMControlFacingState(stateId: string): LLMControlFacingState {
+  return {
+    schemaVersion: LLM_CONTROL_STATE_PROJECTION_SCHEMA_VERSION,
+    sourceStateId: stateId,
+    stateSource: "SemanticConversationState",
+    writableByModel: false,
+    readinessWritableByModel: false,
+    approvalWritableByModel: false,
+    prohibitedWriteFields: [
+      "lifecycle",
+      "contractFacing.dtcReady",
+      "contractFacing.approvalRef",
+      "contractFacing.semanticIntentContractRef",
+      "contractFacing.digitalTwinChangeContractRef",
+      "semanticConsistencyFacing.promotionReady",
+    ],
+    reasonCodes: [
+      "semantic_conversation_state_only",
+      "plugin_derived_readiness",
+      "prompt_front_door_approval_ref",
+      "llm_authority_write_denied",
+    ],
+  };
+}
+
 export function buildSemanticConversationState(
   input: BuildSemanticConversationStateInput,
 ): SemanticConversationState {
@@ -344,9 +389,10 @@ export function buildSemanticConversationState(
     input.gate.digitalTwin.valid &&
     Boolean(input.contractRefs?.digitalTwinChangeContractRef) &&
     Boolean(approval);
+  const stateId = buildStateId(input);
 
   return {
-    stateId: buildStateId(input),
+    stateId,
     schemaVersion: SEMANTIC_CONVERSATION_STATE_SCHEMA_VERSION,
     universalEntryRef: input.universalEntryRef,
     ontologyContextRef: input.ontologyContextRef,
@@ -403,6 +449,7 @@ export function buildSemanticConversationState(
         "No generic capability router has selected capabilities for this phase.",
     },
     semanticConsistencyFacing: semanticFacing,
+    llmControlFacing: buildLLMControlFacingState(stateId),
     contractFacing: {
       semanticIntentContractRef:
         input.contractRefs?.semanticIntentContractRef ?? input.semanticIntentContract?.contractId,

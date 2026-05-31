@@ -4,7 +4,10 @@
 //
 // Plan: ~/.claude/plans/foamy-giggling-kettle.md lines 867-901.
 
-import type { SemanticConversationState } from "./semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "./semantic-conversation-state";
 
 export const CHATBOT_STUDIO_APPLICATION_STATE_SCHEMA_VERSION =
   "palantir-mini/chatbot-studio-application-state/v1";
@@ -12,6 +15,9 @@ export const CHATBOT_STUDIO_APPLICATION_STATE_SCHEMA_VERSION =
 export interface ChatbotStudioApplicationVariable {
   readonly variableId: string;
   readonly visibleToModel: boolean;
+  readonly writableByModel: false;
+  readonly sourceStateId: string;
+  readonly sourceStateKind: "SemanticConversationState";
   readonly value: unknown;
   readonly updateMode: "deterministic";
 }
@@ -26,7 +32,6 @@ export interface ChatbotStudioApplicationState {
 
 export type ApplicationStateUpdatePolicy =
   | "deterministic-tool"
-  | "deterministic-llm"
   | "citation";
 
 export interface ApplicationStateVariable {
@@ -94,78 +99,91 @@ export function readVariableForLoop(
 export function buildApplicationStateFromConversation(
   conversation: SemanticConversationState,
 ): ChatbotStudioApplicationState {
+  const llmControl = conversation.llmControlFacing ??
+    buildLLMControlFacingState(conversation.stateId);
+  const fromConversation = (
+    variable: Omit<
+      ChatbotStudioApplicationVariable,
+      "writableByModel" | "sourceStateId" | "sourceStateKind" | "updateMode"
+    >,
+  ): ChatbotStudioApplicationVariable => ({
+    ...variable,
+    writableByModel: false,
+    sourceStateId: conversation.stateId,
+    sourceStateKind: "SemanticConversationState",
+    updateMode: "deterministic",
+  });
   return {
     schemaVersion: CHATBOT_STUDIO_APPLICATION_STATE_SCHEMA_VERSION,
     conversationStateId: conversation.stateId,
     variables: [
-      {
+      fromConversation({
         variableId: "semantic.lifecycle",
         visibleToModel: true,
         value: conversation.lifecycle,
-        updateMode: "deterministic",
-      },
-      {
-        variableId: "semantic.approval.dtcReady",
-        visibleToModel: true,
+      }),
+      fromConversation({
+        variableId: "semantic.control.dtcReady",
+        visibleToModel: false,
         value: conversation.contractFacing.dtcReady,
-        updateMode: "deterministic",
-      },
-      {
+      }),
+      fromConversation({
+        variableId: "semantic.control.writableByModel",
+        visibleToModel: true,
+        value: llmControl.writableByModel,
+      }),
+      fromConversation({
+        variableId: "semantic.control.prohibitedWriteFields",
+        visibleToModel: false,
+        value: llmControl.prohibitedWriteFields,
+      }),
+      fromConversation({
         variableId: "semantic.project.root",
         visibleToModel: false,
         value: conversation.projectFacing.projectRoot,
-        updateMode: "deterministic",
-      },
-      {
+      }),
+      fromConversation({
         variableId: "semantic.unresolvedQuestionCount",
         visibleToModel: true,
         value: conversation.userFacing.unresolvedQuestions.length,
-        updateMode: "deterministic",
-      },
-      {
+      }),
+      fromConversation({
         variableId: "semantic.canonicalTermCount",
         visibleToModel: true,
         value: conversation.semanticConsistencyFacing?.canonicalTermRefs.length ?? 0,
-        updateMode: "deterministic",
-      },
-      {
+      }),
+      fromConversation({
         variableId: "semantic.unresolvedSemanticConflictCount",
         visibleToModel: true,
         value: conversation.semanticConsistencyFacing?.unresolvedConflictRefs.length ?? 0,
-        updateMode: "deterministic",
-      },
-      {
+      }),
+      fromConversation({
         variableId: "semantic.canonicalTermRefs",
         visibleToModel: false,
         value: conversation.semanticConsistencyFacing?.canonicalTermRefs ?? [],
-        updateMode: "deterministic",
-      },
-      {
+      }),
+      fromConversation({
         variableId: "semantic.resolverRunRef",
         visibleToModel: false,
         value: conversation.semanticConsistencyFacing?.resolverRunRef ?? null,
-        updateMode: "deterministic",
-      },
-      {
+      }),
+      fromConversation({
         variableId: "semantic.impact.directSurfaces",
         visibleToModel: true,
         value: conversation.impactFacing?.directSurfaceRefs ?? [],
-        updateMode: "deterministic",
-      },
-      {
+      }),
+      fromConversation({
         variableId: "semantic.issues.knownIssueIds",
         visibleToModel: true,
         value: conversation.issueFacing?.knownIssueIds ?? [],
-        updateMode: "deterministic",
-      },
-      {
+      }),
+      fromConversation({
         variableId: "semantic.validation.requiredPacks",
         visibleToModel: true,
         value:
           conversation.validationFacing?.requiredValidationPacks ??
           conversation.projectFacing.requiredValidationPacks,
-        updateMode: "deterministic",
-      },
+      }),
     ],
   };
 }

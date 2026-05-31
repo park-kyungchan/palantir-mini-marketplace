@@ -64,6 +64,11 @@ Before implementation, do this:
    - ~/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md
    - ~/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md
    - ~/.claude/research/palantir-official/foundry/chatbot-studio/tools.md
+   Treat `SemanticConversationState` as the only LLM-facing control state.
+   `ApplicationState` and `RetrievalContext` are read-only projections from it,
+   not authority to write readiness or approval fields. The LLM may summarize
+   `lifecycle`, `contractFacing.dtcReady`, and approval refs, but it must not
+   author or promote those values.
 4. If the task is long-running, multi-step, release-oriented, or likely to cross
    context compaction, create or update a durable goal first when the runtime
    exposes a Goal API. The goal must include exact source paths, plan paths,
