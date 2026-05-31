@@ -1,6 +1,7 @@
 ---
 name: pm-value-audit
 category: delete-candidate
+surfaceStatus: deprecated-candidate
 description: "Substrate health dashboard for rule 26 valuable-data."
 allowed-tools: mcp__palantir-mini__pm_value_grade_metrics
 effort: high

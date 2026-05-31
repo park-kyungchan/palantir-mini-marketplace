@@ -1,6 +1,7 @@
 ---
 name: pm-rule-audit
 category: codex-audit
+surfaceStatus: public-core
 description: "Codex default rule audit entrypoint; delegates to the canonical palantir-mini skill."
 allowed-tools: mcp__palantir-mini__pm_rule_audit mcp__palantir-mini__pm_rule_query
 effort: medium

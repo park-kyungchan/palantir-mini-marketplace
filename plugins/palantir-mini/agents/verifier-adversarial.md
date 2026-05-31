@@ -1,5 +1,6 @@
 ---
 name: verifier-adversarial
+surfaceStatus: public-core
 description: >
   Adversarial verification specialist — the "red team" lens. Examines outputs
   for safety risks, edge cases, and invalid assumptions. Actively tries to

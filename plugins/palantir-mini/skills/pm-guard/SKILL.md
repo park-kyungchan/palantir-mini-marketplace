@@ -1,6 +1,7 @@
 ---
 name: pm-guard
 category: core-workflow
+surfaceStatus: public-core
 description: "Full safety mode — destructive command warnings + directory-scoped edits. Combines..."
 allowed-tools: Read Write Edit Grep Glob Bash
 effort: medium

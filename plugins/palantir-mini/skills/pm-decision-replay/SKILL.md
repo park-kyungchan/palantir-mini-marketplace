@@ -1,6 +1,7 @@
 ---
 name: pm-decision-replay
 category: maintenance
+surfaceStatus: public-core
 description: "BackProp circuit replay — folds T3+ events only (T2+ optional via flag) for..."
 allowed-tools: mcp__palantir-mini__pm_event_query_by_grade mcp__palantir-mini__replay_lineage
 effort: low

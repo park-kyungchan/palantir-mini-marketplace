@@ -10,6 +10,16 @@ const CODEX_RUNTIME_EVIDENCE_PATH = join(PLUGIN_ROOT, "contracts", "runtime-evid
 const TSCONFIG_PATH = join(PLUGIN_ROOT, "tsconfig.json");
 const CLAUDE_ONLY_EVENTS = ["TaskCreated", "TaskCompleted", "TeammateIdle"] as const;
 const UNMOUNTED_CODEX_EVENTS = ["PreToolUse", "SessionStart", "UserPromptSubmit"] as const;
+const SURFACE_STATUS_VALUES = [
+  "public-core",
+  "protected-default-off",
+  "dev-only",
+  "docs-only",
+  "internal",
+  "deprecated-candidate",
+  "archived",
+] as const;
+const SURFACE_STATUS_VALUE_SET = new Set<string>(SURFACE_STATUS_VALUES);
 
 type HookConfig = {
   type?: string;
@@ -19,10 +29,12 @@ type HookConfig = {
 
 type HookGroup = {
   matcher?: string;
+  surfaceStatus?: string;
   hooks?: HookConfig[];
 };
 
 type HooksDocument = {
+  surfaceStatusSchemaVersion?: string;
   hooks?: Record<string, HookGroup[]>;
 };
 
@@ -52,6 +64,7 @@ describe("Codex plugin hook entrypoints", () => {
     expect(doc.description).toContain("live-reads hooks/hooks.json");
     expect(doc.description).toContain("PreToolUse is intentionally not registered");
     expect(doc.description).toContain("SessionStart and UserPromptSubmit are intentionally not registered");
+    expect(doc.surfaceStatusSchemaVersion).toBe("palantir-mini/surface-status/v1");
 
     expect(events).toEqual([
       "PermissionRequest",
@@ -70,6 +83,7 @@ describe("Codex plugin hook entrypoints", () => {
         if (matcher && matcher !== "*") {
           expect(() => new RegExp(matcher)).not.toThrow();
         }
+        expect(SURFACE_STATUS_VALUE_SET.has(group.surfaceStatus ?? "")).toBe(true);
       }
     }
 

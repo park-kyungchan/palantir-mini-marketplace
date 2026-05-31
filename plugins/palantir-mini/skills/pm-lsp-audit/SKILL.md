@@ -1,6 +1,7 @@
 ---
 name: pm-lsp-audit
 category: maintenance
+surfaceStatus: public-core
 description: "Comprehensive codebase audit using LSP-powered TypeScript code analysis. Finds dead..."
 argument-hint: "[--scope home|project|all]"
 context: standard

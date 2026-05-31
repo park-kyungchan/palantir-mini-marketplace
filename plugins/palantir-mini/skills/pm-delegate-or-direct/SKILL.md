@@ -1,6 +1,7 @@
 ---
 name: pm-delegate-or-direct
 category: deprecated
+surfaceStatus: deprecated-candidate
 deprecated: true
 supersededBy: pm_intent_router
 description: "Deprecated compatibility wrapper. Use pm_intent_router for Lead routing and..."

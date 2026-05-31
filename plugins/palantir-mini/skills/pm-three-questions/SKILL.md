@@ -1,6 +1,7 @@
 ---
 name: pm-three-questions
 category: research
+surfaceStatus: public-core
 description: "Run AIP \"no-slop zone\" Three Questions audit (Q1 Trust / Q2 Scope / Q3 Refine) over..."
 allowed-tools: mcp__palantir-mini__pm_value_grade_metrics mcp__palantir-mini__replay_lineage mcp__palantir-mini__pm_outcome_pair_audit mcp__palantir-mini__pm_event_query_by_grade mcp__palantir-mini__emit_event Read Bash
 effort: high

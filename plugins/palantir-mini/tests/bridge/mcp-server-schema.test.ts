@@ -1,5 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { handleRequest, TOOLS } from "../../bridge/mcp-server";
+import {
+  DEFAULT_MCP_TOOL_SURFACE_PROFILE,
+  INTERNAL_TELEMETRY_MCP_TOOL_NAMES,
+  MCP_TOOL_SURFACE_PROFILE_ENV,
+  PROTECTED_ACTION_MCP_TOOL_NAMES,
+  STUDIO_CORE_MCP_TOOL_NAMES,
+} from "../../lib/capability-registry/mcp-tool-capability";
 import { PROMPT_RUNTIMES } from "../../lib/prompt-front-door";
 import type { IntentRouterInput } from "../../bridge/handlers/pm-intent-router";
 import type { OntologyContextQueryInput } from "../../bridge/handlers/ontology-context-query";
@@ -143,6 +150,10 @@ const ontologyContextQueryInputFieldsAreCovered: Record<MissingOntologyContextQu
 const ontologyEngineeringWorkflowInputFieldsAreCovered: Record<MissingOntologyEngineeringWorkflowPublicField, never> = {};
 const eventsLogRotateInputFieldsAreCovered: Record<MissingEventsLogRotatePublicField, never> = {};
 
+afterEach(() => {
+  delete process.env[MCP_TOOL_SURFACE_PROFILE_ENV];
+});
+
 function toolSchema(name: string): JsonSchemaObject {
   const tool = TOOLS.find((entry) => entry.name === name);
   expect(tool).toBeDefined();
@@ -277,7 +288,7 @@ describe("mcp-server prompt identity schemas", () => {
 });
 
 describe("mcp-server ToolSpec metadata", () => {
-  test("all public tools carry internal metadata but tools/list exposes MCP public shape only", async () => {
+  test("all public tools carry internal metadata and tools/list exposes additive surface metadata", async () => {
     for (const tool of TOOLS) {
       expect(tool.audience).toBe("public");
       expect(tool.lifecycle).toBeTruthy();
@@ -285,6 +296,8 @@ describe("mcp-server ToolSpec metadata", () => {
       expect(tool.category).toBeTruthy();
       expect(tool.ownerModule).toContain("bridge/handlers/");
       expect(tool.stableSince).toMatch(/^v\d+\.\d+\.\d+$/);
+      expect(tool.surface).toBeDefined();
+      expect(tool.surface?.profiles).toContain("dev-full");
       if (tool.lifecycle !== "public") {
         expect(tool.replacedBy).toBeTruthy();
       }
@@ -299,12 +312,157 @@ describe("mcp-server ToolSpec metadata", () => {
       ? response.result as { tools: Array<Record<string, unknown>> }
       : null;
     expect(result).not.toBe(null);
-    expect(result!.tools.length).toBe(TOOLS.length);
+    expect(result!.tools.length).toBe(STUDIO_CORE_MCP_TOOL_NAMES.length);
     expect(Object.keys(result!.tools[0]!).sort()).toEqual([
       "description",
       "inputSchema",
+      "metadata",
       "name",
     ]);
+
+    const metadata = result!.tools[0]!.metadata as {
+      "palantir-mini"?: {
+        activeProfile?: string;
+        defaultProfile?: string;
+        surface?: { status?: string; profiles?: string[] };
+      };
+    };
+    expect(metadata["palantir-mini"]?.activeProfile).toBe(DEFAULT_MCP_TOOL_SURFACE_PROFILE);
+    expect(metadata["palantir-mini"]?.defaultProfile).toBe(DEFAULT_MCP_TOOL_SURFACE_PROFILE);
+    expect(metadata["palantir-mini"]?.surface?.profiles).toContain("dev-full");
+  });
+
+  test("default MCP profile is studio-core", async () => {
+    const response = await handleRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
+    const result = response && "result" in response
+      ? response.result as { defaultProfile: string; profile: string; tools: Array<{ name: string }> }
+      : null;
+
+    expect(result).not.toBe(null);
+    expect(result!.defaultProfile).toBe("studio-core");
+    expect(result!.profile).toBe("studio-core");
+    expect(result!.tools.map((tool) => tool.name).sort()).toEqual(
+      [...STUDIO_CORE_MCP_TOOL_NAMES].sort(),
+    );
+  });
+
+  test("unknown MCP profile values fall back deterministically to studio-core", async () => {
+    process.env[MCP_TOOL_SURFACE_PROFILE_ENV] = "surprise-profile";
+    const response = await handleRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
+    const result = response && "result" in response
+      ? response.result as { profile: string; tools: Array<{ name: string }> }
+      : null;
+
+    expect(result).not.toBe(null);
+    expect(result!.profile).toBe("studio-core");
+    expect(result!.tools.map((tool) => tool.name).sort()).toEqual(
+      [...STUDIO_CORE_MCP_TOOL_NAMES].sort(),
+    );
+  });
+
+  test("studio-core tools/list hides protected and dev-only tools", async () => {
+    process.env[MCP_TOOL_SURFACE_PROFILE_ENV] = "studio-core";
+    const response = await handleRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
+    const result = response && "result" in response
+      ? response.result as { profile: string; tools: Array<{ name: string }> }
+      : null;
+    const names = result!.tools.map((tool) => tool.name).sort();
+
+    expect(result?.profile).toBe("studio-core");
+    expect(names).toEqual([...STUDIO_CORE_MCP_TOOL_NAMES].sort());
+    expect(names).not.toContain("apply_edit_function");
+    expect(names).not.toContain("commit_edits");
+    expect(names).not.toContain("emit_event");
+    expect(names).not.toContain("pm_plugin_self_check");
+  });
+
+  test("tools/call rejects hidden protected tools under studio-core", async () => {
+    process.env[MCP_TOOL_SURFACE_PROFILE_ENV] = "studio-core";
+    const response = await handleRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: {
+        name: "commit_edits",
+        arguments: {},
+      },
+    });
+
+    expect(response).not.toBe(null);
+    expect("error" in response!).toBe(true);
+    if (response && "error" in response) {
+      expect(response.error.code).toBe(-32602);
+      expect(response.error.message).toContain("not visible in MCP profile `studio-core`");
+      expect(response.error.data).toMatchObject({
+        profile: "studio-core",
+        defaultProfile: "studio-core",
+        toolName: "commit_edits",
+      });
+    }
+  });
+
+  test("protected-actions profile includes protected mutation tools and studio-core", async () => {
+    process.env[MCP_TOOL_SURFACE_PROFILE_ENV] = "protected-actions";
+    const response = await handleRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
+    const result = response && "result" in response
+      ? response.result as { profile: string; tools: Array<{ name: string }> }
+      : null;
+    const names = new Set(result!.tools.map((tool) => tool.name));
+
+    expect(result?.profile).toBe("protected-actions");
+    expect(result!.tools.length).toBe(
+      STUDIO_CORE_MCP_TOOL_NAMES.length + PROTECTED_ACTION_MCP_TOOL_NAMES.length,
+    );
+    for (const toolName of STUDIO_CORE_MCP_TOOL_NAMES) {
+      expect(names.has(toolName)).toBe(true);
+    }
+    for (const toolName of PROTECTED_ACTION_MCP_TOOL_NAMES) {
+      expect(names.has(toolName)).toBe(true);
+    }
+    expect(names.has("pm_plugin_self_check")).toBe(false);
+    expect(names.has("emit_event")).toBe(false);
+  });
+
+  test("internal-telemetry profile includes telemetry tools and studio-core", async () => {
+    process.env[MCP_TOOL_SURFACE_PROFILE_ENV] = "internal-telemetry";
+    const response = await handleRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
+    const result = response && "result" in response
+      ? response.result as { profile: string; tools: Array<{ name: string }> }
+      : null;
+    const names = new Set(result!.tools.map((tool) => tool.name));
+
+    expect(result?.profile).toBe("internal-telemetry");
+    expect(result!.tools.length).toBe(
+      STUDIO_CORE_MCP_TOOL_NAMES.length + INTERNAL_TELEMETRY_MCP_TOOL_NAMES.length,
+    );
+    for (const toolName of STUDIO_CORE_MCP_TOOL_NAMES) {
+      expect(names.has(toolName)).toBe(true);
+    }
+    for (const toolName of INTERNAL_TELEMETRY_MCP_TOOL_NAMES) {
+      expect(names.has(toolName)).toBe(true);
+    }
+    expect(names.has("pm_plugin_self_check")).toBe(false);
+    expect(names.has("commit_edits")).toBe(false);
   });
 
   test("pm_plugin_self_check schema exposes mode discriminator", () => {

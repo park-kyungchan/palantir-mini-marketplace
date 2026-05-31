@@ -1,6 +1,7 @@
 ---
 name: pm-cold-start-orchestrate
 category: core-workflow
+surfaceStatus: public-core
 description: "Auto-fired at SessionStart (via cold-start-browse-index-loader hook) — deep-injects..."
 allowed-tools: mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event Read Bash
 effort: high

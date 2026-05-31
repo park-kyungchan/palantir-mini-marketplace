@@ -1,6 +1,7 @@
 ---
 name: pm-orchestrate
 category: core-workflow
+surfaceStatus: public-core
 description: "Ontology-Driven work orchestration for complex multi-step tasks. Enforces a 6-phase..."
 argument-hint: "task description"
 context: standard

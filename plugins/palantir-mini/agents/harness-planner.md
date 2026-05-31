@@ -1,5 +1,6 @@
 ---
 name: harness-planner
+surfaceStatus: public-core
 description: Product spec author for harness sprints; writes spec.md and eval-rubric.md without implementing.
 model: opus
 tools:

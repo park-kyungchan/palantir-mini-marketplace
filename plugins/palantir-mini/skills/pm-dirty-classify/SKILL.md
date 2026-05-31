@@ -1,6 +1,7 @@
 ---
 name: pm-dirty-classify
 category: maintenance
+surfaceStatus: public-core
 description: "Manual triage of working-tree dirt via 4-axis classifier (auto-regen /..."
 costClass: free
 effort: small

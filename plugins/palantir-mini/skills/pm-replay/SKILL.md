@@ -1,6 +1,7 @@
 ---
 name: pm-replay
 category: maintenance
+surfaceStatus: public-core
 description: "Deterministic BackwardProp replay of events.jsonl filtered by 5-dim Decision Lineage..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage mcp__palantir-mini__pm_event_query_by_grade
 effort: low

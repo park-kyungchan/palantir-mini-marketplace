@@ -1,6 +1,7 @@
 ---
 name: pm-portable-bundle
 category: maintenance
+surfaceStatus: public-core
 description: "Export the canonical palantir-mini source payload to a tarball at..."
 disable-model-invocation: true
 allowed-tools: Read Bash(tar*) Bash(gzip*) Bash(sha256sum*) Bash(jq*) Bash(mkdir*) Bash(du*) mcp__plugin_palantir-mini_palantir-mini__emit_event

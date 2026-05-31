@@ -1,6 +1,7 @@
 ---
 name: pm-intent-to-ontology
 category: core-workflow
+surfaceStatus: public-core
 description: "1-call wrapper for the 6-step Intent-to-Ontology Protocol (sprint-063 W2.C..."
 trigger: 'When Lead receives a complex task touching ≥2 files OR new feature OR architectural change. User invocations: "/palantir-mini:pm-intent-to-ontology", "intent to ontology", "Steps 1-5 batch".'
 memory_layers: [procedural, semantic]

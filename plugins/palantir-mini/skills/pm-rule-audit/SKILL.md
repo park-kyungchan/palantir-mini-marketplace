@@ -1,6 +1,7 @@
 ---
 name: pm-rule-audit
 category: maintenance
+surfaceStatus: public-core
 description: "Comprehensive rules/ health check via palantir-mini MCP. Detects T1/T2 bottleneck..."
 allowed-tools: mcp__palantir-mini__pm_rule_audit mcp__palantir-mini__pm_rule_query
 effort: low

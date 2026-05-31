@@ -11,7 +11,8 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PermissionRequest"
           }
-        ]
+        ],
+        "surfaceStatus": "public-core"
       }
     ],
     "PostToolUse": [
@@ -24,7 +25,8 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PostToolUse"
           }
-        ]
+        ],
+        "surfaceStatus": "public-core"
       }
     ],
     "PreCompact": [
@@ -36,7 +38,8 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PreCompact"
           }
-        ]
+        ],
+        "surfaceStatus": "public-core"
       }
     ],
     "PostCompact": [
@@ -48,7 +51,8 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PostCompact"
           }
-        ]
+        ],
+        "surfaceStatus": "public-core"
       }
     ],
     "SubagentStart": [
@@ -61,7 +65,8 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: SubagentStart"
           }
-        ]
+        ],
+        "surfaceStatus": "public-core"
       }
     ],
     "SubagentStop": [
@@ -74,7 +79,8 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: SubagentStop"
           }
-        ]
+        ],
+        "surfaceStatus": "public-core"
       }
     ],
     "Stop": [
@@ -86,8 +92,10 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: Stop"
           }
-        ]
+        ],
+        "surfaceStatus": "public-core"
       }
     ]
-  }
+  },
+  "surfaceStatusSchemaVersion": "palantir-mini/surface-status/v1"
 }

@@ -1,6 +1,7 @@
 ---
 name: pm-ontology-engineering-lead
 category: core-workflow
+surfaceStatus: public-core
 description: "Docs-only Lead workflow for session-first ontology engineering."
 allowed-tools: mcp__palantir-mini__ontology_context_query mcp__palantir-mini__pm_semantic_intent_gate mcp__palantir-mini__pm_intent_router mcp__palantir-mini__emit_event Read
 effort: medium

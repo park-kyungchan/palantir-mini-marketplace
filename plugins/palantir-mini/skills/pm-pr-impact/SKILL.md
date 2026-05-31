@@ -1,6 +1,7 @@
 ---
 name: pm-pr-impact
 category: maintenance
+surfaceStatus: public-core
 description: "PR-scoped impact analysis — diffs current branch vs base, computes downstream blast..."
 effort: low
 disable-model-invocation: false

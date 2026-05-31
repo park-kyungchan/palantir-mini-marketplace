@@ -1,5 +1,6 @@
 ---
 name: protocol-designer
+surfaceStatus: public-core
 description: >
   Claude-local rule authoring specialist. Writes ~/.claude/rules/* markdown with
   correct cross-references, terse tone, and Claude-overlay scope. Use for

@@ -1,6 +1,7 @@
 ---
 name: pm-blueprint
 category: research
+surfaceStatus: public-core
 description: "Generate a TechBlueprint for a new architecture question using the kosmos 7-agent..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage
 effort: medium

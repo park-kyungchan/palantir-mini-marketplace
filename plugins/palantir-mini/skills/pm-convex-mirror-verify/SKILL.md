@@ -1,6 +1,7 @@
 ---
 name: pm-convex-mirror-verify
 category: substrate-query
+surfaceStatus: public-core
 description: "Audit local events.jsonl vs Convex Cloud decisionEvents table parity. Reads last N..."
 allowed-tools: Read Bash
 effort: low

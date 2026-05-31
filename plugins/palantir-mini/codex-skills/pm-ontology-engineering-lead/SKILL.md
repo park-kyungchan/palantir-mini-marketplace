@@ -1,6 +1,7 @@
 ---
 name: pm-ontology-engineering-lead
 category: codex-core
+surfaceStatus: public-core
 description: "Codex default FDE ontology lead entrypoint; delegates to the canonical skill."
 allowed-tools: mcp__palantir-mini__pm_ontology_engineering_workflow mcp__palantir-mini__ontology_context_query
 effort: high

@@ -1,6 +1,7 @@
 ---
 name: pm-hitl-feedback-workbench
 category: core-workflow
+surfaceStatus: public-core
 description: "Use the generic HITL Lead Feedback Workbench to create user-review artifacts for any..."
 allowed-tools: Read
 effort: low

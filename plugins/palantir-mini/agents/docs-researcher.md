@@ -1,5 +1,6 @@
 ---
 name: docs-researcher
+surfaceStatus: public-core
 description: >
   Opus-powered research + synthesis + write specialist. Use for producing SSoT
   research documents where deep reading across many files AND authoring a

@@ -1,5 +1,6 @@
 ---
 name: lead-orchestrator
+surfaceStatus: public-core
 description: >
   Spawnable Lead orchestrator for task DAGs, harness state, phase gates, and
   workflow replay when headless or event-log reproduction is needed.

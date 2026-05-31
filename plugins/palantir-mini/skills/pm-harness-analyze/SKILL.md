@@ -1,6 +1,7 @@
 ---
 name: pm-harness-analyze
 category: maintenance
+surfaceStatus: public-core
 description: "Spawn the harness-analyzer agent for a failed sprint iteration. Reads..."
 allowed-tools: Agent mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 argument-hint: "<sprint-number> <iteration-number>   (the failed iteration to analyze)"

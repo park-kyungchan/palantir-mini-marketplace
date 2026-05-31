@@ -1,5 +1,6 @@
 ---
 name: verifier-correctness
+surfaceStatus: public-core
 description: >
   Verification specialist for correctness, completeness, and consistency.
   Use after teammates produce outputs to verify: does it do what was asked?

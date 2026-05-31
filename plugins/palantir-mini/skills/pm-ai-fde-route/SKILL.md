@@ -1,6 +1,7 @@
 ---
 name: pm-ai-fde-route
 category: core-workflow
+surfaceStatus: public-core
 description: "Route a user prompt to the appropriate AI FDE mode (8 canonical modes) + suggest..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__research_context_select Read Bash
 effort: medium

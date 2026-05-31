@@ -1,6 +1,7 @@
 ---
 name: pm-lineage
 category: maintenance
+surfaceStatus: public-core
 description: "Cross-project workflow lineage query — joins events.jsonl across registered +..."
 allowed-tools:
   - mcp__plugin_palantir-mini_palantir-mini__pm_workflow_lineage_query

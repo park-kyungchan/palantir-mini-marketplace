@@ -1,6 +1,7 @@
 ---
 name: pm-fde-naming-audit
 category: fde-workflow
+surfaceStatus: public-core
 description: "Run a read-only FDE naming audit against the current project — scans markdown,..."
 allowed-tools: Read Write mcp__palantir-mini__emit_event
 effort: medium

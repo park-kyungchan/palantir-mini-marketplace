@@ -1,6 +1,7 @@
 ---
 name: pm-mcp-reload
 category: maintenance
+surfaceStatus: public-core
 description: "Guide the user through MCP server module reload after a bridge handler edit —..."
 allowed-tools: mcp__palantir-mini__emit_event Read Bash
 effort: medium

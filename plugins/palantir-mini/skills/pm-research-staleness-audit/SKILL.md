@@ -1,6 +1,7 @@
 ---
 name: pm-research-staleness-audit
 category: research
+surfaceStatus: public-core
 description: "Audit research-library MANIFEST.json files for stale entries against their expected..."
 allowed-tools: mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event Read Bash
 effort: low

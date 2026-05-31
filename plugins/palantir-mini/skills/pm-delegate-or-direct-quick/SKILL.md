@@ -1,6 +1,7 @@
 ---
 name: pm-delegate-or-direct-quick
 category: deprecated
+surfaceStatus: deprecated-candidate
 deprecated: true
 supersededBy: pm_intent_router
 description: "Deprecated compatibility shortcut. Use pm_intent_router with an intent and inferred..."

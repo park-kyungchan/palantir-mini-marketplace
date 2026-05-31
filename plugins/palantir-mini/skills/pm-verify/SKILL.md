@@ -1,6 +1,7 @@
 ---
 name: pm-verify
 category: core-workflow
+surfaceStatus: public-core
 description: "Run the palantir-mini validation pipeline against a project — executes Design +..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage
 effort: high

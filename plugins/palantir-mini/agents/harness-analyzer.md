@@ -1,5 +1,6 @@
 ---
 name: harness-analyzer
+surfaceStatus: public-core
 description: Failure synthesis specialist for failed harness iterations; writes analysis-NNN.md and recommends continue, patch-spec, or abort.
 model: opus
 tools:

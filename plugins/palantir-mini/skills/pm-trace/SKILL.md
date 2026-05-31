@@ -1,6 +1,7 @@
 ---
 name: pm-trace
 category: substrate-query
+surfaceStatus: public-core
 description: "Render a single OntologyWorkflowTrace's lifecycle from its persisted snapshot +..."
 allowed-tools: mcp__palantir-mini__replay_lineage mcp__palantir-mini__pm_workflow_lineage_query
 effort: low

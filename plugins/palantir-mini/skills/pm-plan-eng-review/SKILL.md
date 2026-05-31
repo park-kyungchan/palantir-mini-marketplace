@@ -1,6 +1,7 @@
 ---
 name: pm-plan-eng-review
 category: research
+surfaceStatus: public-core
 description: "Eng manager-mode plan review. Locks in execution — architecture, data flow, diagrams..."
 allowed-tools: Bash Read Write Edit Grep Glob WebSearch mcp__palantir-mini__pm_preamble mcp__palantir-mini__impact_query mcp__palantir-mini__emit_event
 effort: high
