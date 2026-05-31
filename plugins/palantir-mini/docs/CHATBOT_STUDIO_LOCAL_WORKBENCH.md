@@ -12,6 +12,25 @@ is source documentation only; it does not claim active runtime support.
 - Records session and trace evidence in a local JSONL ledger.
 - Source-complete is not active-runtime-complete.
 
+## Semantic Boundary
+
+The local workbench must keep two related layers separate:
+
+- Context Engineering layer: `DATA`, `LOGIC`, `ACTION`, `GOVERNANCE`,
+  `SECURITY`, `EVAL`, and `RUNTIME` describe how the local workbench gathers
+  context, exposes tools, evaluates output, records approval boundaries, and
+  reports runtime gaps.
+- Ontology modeling layer: `ObjectType`, `LinkType`, `ActionType`, `Function`,
+  `Interface`, `ObjectView`, `ObjectSet`, branch/proposal, and ontology-edit
+  concepts describe semantic domain modeling and governed mutation surfaces.
+
+These layers are related but not interchangeable. A Chatbot Studio action tool
+is not an Ontology `ActionType`; application state and retrieval context are not
+Ontology primitive declarations; provider/runtime identity is metadata, not
+authority. Semantic implementation claims must cite local Palantir research SSoT
+under `/home/palantirkc/.claude/research/palantir-official/` before they are
+promoted into contracts, schemas, docs, or handler descriptions.
+
 ## Callable Shape
 
 Input:
@@ -30,6 +49,11 @@ Output:
 - `traceRefs` lists trace evidence refs.
 - `plannedToolSurfaceRefs`, `blockedActionSurfaceRefs`, `runtimeGaps`, and
   `publishAnalogue` provide debug visibility.
+- `declaration.semanticBoundary` lists source-grounded Context Engineering and
+  Ontology modeling refs plus non-interchangeability warnings.
+- `declaration.retrievalContext.ontologyPrimitiveRefs` is the typed primitive
+  bucket. `contextEngineeringRefs`, `issueRefs`, and `validationRefs` must not
+  be treated as Ontology primitive refs.
 
 ## Ledger Boundary
 
@@ -42,5 +66,14 @@ authority. It must not write `~/.codex/plugins/cache/**` or any runtime payload.
 The publish analogue may record local publish intent for review. It must not
 publish to Foundry, AIP Studio APIs, Marketplace distribution, or a running
 runtime plugin payload.
+
+## No-Reference / No-Confusion Gate
+
+Regression tests must fail when generated workbench output or local tool
+descriptions collapse Context Engineering labels into Ontology primitive names,
+claim Foundry parity, or omit local Palantir research SSoT references for
+semantic boundary claims. Public Codex MCP input schemas remain flat; conditional
+requirements stay in handlers and tests, not in public `anyOf`, `oneOf`,
+`allOf`, or `not` schema composition.
 
 Fixture: `tests/evals/chatbot-studio-local-workbench-regression.json`.

@@ -10,7 +10,16 @@ export interface ChatbotStudioRetrievalContext {
   readonly schemaVersion: typeof CHATBOT_STUDIO_RETRIEVAL_CONTEXT_SCHEMA_VERSION;
   readonly conversationStateId: string;
   readonly retrievedPrompt: string;
+  /**
+   * Backward-compatible alias for `ontologyPrimitiveRefs`.
+   * Context surfaces, issue ids, validation packs, and runtime refs must not
+   * be serialized here.
+   */
   readonly ontologyRefs: readonly string[];
+  readonly ontologyPrimitiveRefs: readonly string[];
+  readonly contextEngineeringRefs: readonly string[];
+  readonly issueRefs: readonly string[];
+  readonly validationRefs: readonly string[];
   readonly skillRefs: readonly string[];
   readonly sourceRefs: readonly string[];
   readonly canonicalTermRefs?: readonly string[];
@@ -24,19 +33,62 @@ export interface ChatbotStudioRetrievalContext {
   readonly documentRefs?: readonly string[];
 }
 
+const ONTOLOGY_PRIMITIVE_REF_PREFIXES = [
+  "ObjectType:",
+  "LinkType:",
+  "ActionType:",
+  "Function:",
+  "Interface:",
+  "ObjectView:",
+  "ObjectSet:",
+  "Branch:",
+  "Proposal:",
+  "OntologyEdit:",
+  "ontology:ObjectType:",
+  "ontology:LinkType:",
+  "ontology:ActionType:",
+  "ontology:Function:",
+  "ontology:Interface:",
+  "ontology:ObjectView:",
+  "ontology:ObjectSet:",
+  "ontology:Branch:",
+  "ontology:Proposal:",
+  "ontology:OntologyEdit:",
+] as const;
+
+function unique(values: readonly (string | undefined)[]): string[] {
+  return Array.from(new Set(values.filter((value): value is string =>
+    typeof value === "string" && value.length > 0
+  )));
+}
+
+function isOntologyPrimitiveRef(ref: string): boolean {
+  return ONTOLOGY_PRIMITIVE_REF_PREFIXES.some((prefix) => ref.startsWith(prefix));
+}
+
 export function buildRetrievalContextFromConversation(
   conversation: SemanticConversationState,
 ): ChatbotStudioRetrievalContext {
-  const ontologyRefs = [
+  const primitiveCandidates = [
     ...conversation.ontologyFacing.activatedObjectRefs,
     ...conversation.ontologyFacing.activatedActionRefs,
     ...conversation.ontologyFacing.activatedSurfaceRefs,
     ...conversation.ontologyFacing.activatedLaneRefs,
+  ];
+  const ontologyPrimitiveRefs = unique(primitiveCandidates.filter(isOntologyPrimitiveRef));
+  const contextEngineeringRefs = unique([
+    ...conversation.ontologyFacing.activatedObjectRefs.filter((ref) => !isOntologyPrimitiveRef(ref)),
+    ...conversation.ontologyFacing.activatedActionRefs.filter((ref) => !isOntologyPrimitiveRef(ref)),
+    ...conversation.ontologyFacing.activatedSurfaceRefs.filter((ref) => !isOntologyPrimitiveRef(ref)),
+    ...conversation.ontologyFacing.activatedLaneRefs.filter((ref) => !isOntologyPrimitiveRef(ref)),
     ...(conversation.impactFacing?.directSurfaceRefs ?? []),
     ...(conversation.impactFacing?.downstreamSurfaceRefs ?? []),
-    ...(conversation.issueFacing?.knownIssueIds ?? []),
-    ...(conversation.validationFacing?.requiredValidationPacks ?? []),
-  ];
+  ]);
+  const issueRefs = unique(conversation.issueFacing?.knownIssueIds ?? []);
+  const validationRefs = unique(
+    conversation.validationFacing?.requiredValidationPacks ??
+      conversation.projectFacing.requiredValidationPacks,
+  );
   const skillRefs = [
     ...conversation.skillFacing.candidateSkillRefs.map((skill) => skill.skillId),
     ...conversation.skillFacing.selectedSkillRefs.map((skill) => skill.skillId),
@@ -66,14 +118,18 @@ export function buildRetrievalContextFromConversation(
       semantic
         ? `Unresolved semantic conflicts: ${semantic.unresolvedConflictRefs.length}`
         : "Unresolved semantic conflicts: not evaluated",
+      "Semantic boundary: Context Engineering refs are not Ontology primitive declarations or mutation authority.",
+      `Ontology primitive refs: ${ontologyPrimitiveRefs.join(", ") || "none"}`,
+      `Context Engineering refs: ${contextEngineeringRefs.join(", ") || "none"}`,
       `Direct impact: ${(conversation.impactFacing?.directSurfaceRefs ?? []).join(", ") || "none"}`,
-      `Known issues: ${(conversation.issueFacing?.knownIssueIds ?? []).join(", ") || "none"}`,
-      `Validation: ${(
-        conversation.validationFacing?.requiredValidationPacks ??
-        conversation.projectFacing.requiredValidationPacks
-      ).join(", ") || "none"}`,
+      `Known issues: ${issueRefs.join(", ") || "none"}`,
+      `Validation: ${validationRefs.join(", ") || "none"}`,
     ].join("\n"),
-    ontologyRefs,
+    ontologyRefs: ontologyPrimitiveRefs,
+    ontologyPrimitiveRefs,
+    contextEngineeringRefs,
+    issueRefs,
+    validationRefs,
     skillRefs: Array.from(new Set(skillRefs)),
     sourceRefs: [
       conversation.universalEntryRef,

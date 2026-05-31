@@ -31,6 +31,7 @@
     "testCaseIds": [
       "testcase:chatbot-local-application-state",
       "testcase:chatbot-local-retrieval-context",
+      "testcase:chatbot-local-semantic-boundary",
       "testcase:chatbot-local-tool-planning",
       "testcase:chatbot-local-action-approval-boundary",
       "testcase:chatbot-local-eval-traceability",
@@ -41,6 +42,7 @@
       "requiredMetrics": [
         "application_state_variable_count",
         "retrieval_source_ref_count",
+        "semantic_boundary_source_ref_count",
         "tool_surface_count",
         "approval_required_action_count",
         "eval_trace_ref_count",
@@ -218,14 +220,30 @@
     "retrievalContext": {
       "schemaVersion": "palantir-mini/chatbot-studio-retrieval-context/v1",
       "conversationStateId": "semantic-conversation:chatbot-studio-local-pr6",
-      "retrievedPrompt": "Local Chatbot Studio data core fixture. Use application state, retrieval context, and approval boundaries as metadata only.",
+      "retrievedPrompt": "Local Chatbot Studio data core fixture. Use application state, retrieval context, and approval boundaries as metadata only. Semantic boundary: Context Engineering refs are not Ontology primitive declarations or mutation authority.",
       "ontologyRefs": [
+        "ObjectType:ChatbotStudioDeclaration",
+        "LinkType:chatbot-studio-records-session"
+      ],
+      "ontologyPrimitiveRefs": [
+        "ObjectType:ChatbotStudioDeclaration",
+        "LinkType:chatbot-studio-records-session"
+      ],
+      "contextEngineeringRefs": [
         "ChatbotStudioDeclaration",
         "ChatbotStudioSessionState",
         "ChatbotStudioExchangeState",
         "ChatbotToolSurface",
         "ChatbotActionSurface",
-        "ChatbotEvalSurface"
+        "ChatbotEvalSurface",
+        "DATA",
+        "ACTION"
+      ],
+      "issueRefs": [],
+      "validationRefs": [
+        "chatbot-studio-local-core",
+        "runtime-projection-contracts",
+        "action-approval-boundary"
       ],
       "skillRefs": [],
       "sourceRefs": [
@@ -243,6 +261,97 @@
       "semanticConflictRefs": [],
       "documentRefs": [
         "schemas/chatbot-studio-local-core.schema.json"
+      ]
+    },
+    "semanticBoundary": {
+      "schemaVersion": "palantir-mini/chatbot-studio-semantic-boundary/v1",
+      "localAnalogueOnly": true,
+      "foundryParityClaimed": false,
+      "providerIdentityAuthority": "metadata-only",
+      "mutationAuthority": "approved-dtc-only",
+      "sourceAuthorityRefs": [
+        "/home/palantirkc/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
+        "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
+        "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md",
+        "/home/palantirkc/.claude/research/palantir-official/foundry/ontology/core-concepts.md",
+        "/home/palantirkc/.claude/research/palantir-official/foundry/object-link-types/object-types-overview.md",
+        "/home/palantirkc/.claude/research/palantir-official/foundry/action-types/overview.md"
+      ],
+      "contextEngineeringRefs": [
+        {
+          "refId": "semantic-boundary:context-engineering:DATA",
+          "layer": "context-engineering",
+          "kind": "DATA",
+          "title": "Application state and retrieval context data selection.",
+          "sourceAuthorityRefs": [
+            "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
+            "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md"
+          ],
+          "localAnalogueStatus": "context-state",
+          "doesNotProve": [
+            "DATA is not an Ontology primitive declaration.",
+            "DATA does not authorize local or Foundry ontology mutation."
+          ]
+        },
+        {
+          "refId": "semantic-boundary:context-engineering:ACTION",
+          "layer": "context-engineering",
+          "kind": "ACTION",
+          "title": "Local Chatbot Studio tool/action surface.",
+          "sourceAuthorityRefs": [
+            "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/tools.md"
+          ],
+          "localAnalogueStatus": "context-state",
+          "doesNotProve": [
+            "ACTION is not an Ontology ActionType declaration.",
+            "ACTION does not authorize local or Foundry ontology mutation."
+          ]
+        }
+      ],
+      "ontologyPrimitiveRefs": [
+        {
+          "refId": "semantic-boundary:ontology-modeling:ObjectType",
+          "layer": "ontology-modeling",
+          "kind": "ObjectType",
+          "title": "Ontology object type modeling concept.",
+          "sourceAuthorityRefs": [
+            "/home/palantirkc/.claude/research/palantir-official/foundry/object-link-types/object-types-overview.md"
+          ],
+          "localAnalogueStatus": "ontology-modeling-concept",
+          "doesNotProve": [
+            "ObjectType grounding does not make the local workbench a Foundry SaaS runtime.",
+            "ObjectType grounding does not bypass SIC/DTC approval."
+          ]
+        },
+        {
+          "refId": "semantic-boundary:ontology-modeling:ActionType",
+          "layer": "ontology-modeling",
+          "kind": "ActionType",
+          "title": "Ontology action type and governed edit surface.",
+          "sourceAuthorityRefs": [
+            "/home/palantirkc/.claude/research/palantir-official/foundry/action-types/overview.md"
+          ],
+          "localAnalogueStatus": "ontology-modeling-concept",
+          "doesNotProve": [
+            "ActionType grounding does not make a Chatbot Studio action tool an Ontology edit.",
+            "ActionType grounding does not bypass SIC/DTC approval."
+          ]
+        }
+      ],
+      "nonInterchangeabilityWarnings": [
+        "Context Engineering DATA/LOGIC/ACTION/GOVERNANCE/SECURITY/EVAL/RUNTIME surfaces are not ObjectType/LinkType/ActionType/Function/Interface declarations.",
+        "A Chatbot Studio action tool is not an Ontology ActionType unless an approved, Palantir-grounded primitive ref says so.",
+        "Provider/runtime identity is metadata only; it does not create semantic authority or mutation authority."
+      ],
+      "noReferenceNoConfusionRules": [
+        "Semantic implementation claims must cite local Palantir research SSoT under /home/palantirkc/.claude/research/palantir-official/.",
+        "Generated docs, tool descriptions, and workbench output must not collapse Context Engineering layer names into Ontology primitive names.",
+        "Public Codex MCP input schemas must stay flat and avoid anyOf/oneOf/allOf/not composition keywords."
+      ],
+      "doesNotProve": [
+        "Does not prove active runtime completion.",
+        "Does not prove Foundry SaaS parity.",
+        "Does not authorize protected mutation without approved DTC evidence."
       ]
     },
     "toolSurfaces": [
@@ -324,6 +433,7 @@
         "traceabilityRefs": [
           "testcase:chatbot-local-application-state",
           "testcase:chatbot-local-retrieval-context",
+          "testcase:chatbot-local-semantic-boundary",
           "testcase:chatbot-local-tool-planning",
           "testcase:chatbot-local-action-approval-boundary",
           "testcase:chatbot-local-eval-traceability",
@@ -332,6 +442,7 @@
         "requiredMetrics": [
           "application_state_variable_count",
           "retrieval_source_ref_count",
+          "semantic_boundary_source_ref_count",
           "tool_surface_count",
           "approval_required_action_count",
           "eval_trace_ref_count",
@@ -352,6 +463,8 @@
         "claude_gemini_runtime_gap",
         "application_state_required_fields",
         "retrieval_context_required_fields",
+        "semantic_boundary_required_fields",
+        "no_reference_no_confusion",
         "tool_action_eval_surface_required_fields",
         "forbid_foundry_parity_claims"
       ],
@@ -365,7 +478,8 @@
       "evidenceRequirements": [
         "Every runtime projection must reference a PR5 runtime-adapter contract.",
         "Claude and Gemini projections must remain unsupported/runtime_gap.",
-        "Action surfaces must declare the approval boundary before any mutation authority."
+        "Action surfaces must declare the approval boundary before any mutation authority.",
+        "Semantic boundary claims must reference local Palantir research SSoT."
       ]
     },
     "sessions": [
@@ -436,6 +550,25 @@
       }
     },
     {
+      "testCaseId": "testcase:chatbot-local-semantic-boundary",
+      "title": "Semantic boundary separates Context Engineering layers from Ontology primitives",
+      "category": "semantic_boundary",
+      "fixtureRefs": [
+        "fixtureDeclaration.semanticBoundary",
+        "fixtureDeclaration.retrievalContext"
+      ],
+      "assertions": [
+        "semanticBoundary.sourceAuthorityRefs includes local palantir-official research refs",
+        "nonInterchangeabilityWarnings mention Context Engineering, ObjectType, and ActionType",
+        "retrievalContext.validationRefs are not serialized under ontologyPrimitiveRefs",
+        "providerIdentityAuthority is metadata-only"
+      ],
+      "expectedMetrics": {
+        "semantic_boundary_source_ref_count": 6,
+        "foundry_parity_claim_count": 0
+      }
+    },
+    {
       "testCaseId": "testcase:chatbot-local-tool-planning",
       "title": "Tool surfaces separate read-only retrieval, planning, and deterministic validation",
       "category": "tool_planning",
@@ -483,8 +616,8 @@
         "resultPolicy is metadata-only"
       ],
       "expectedMetrics": {
-        "eval_trace_ref_count": 6,
-        "required_metric_count": 6
+        "eval_trace_ref_count": 7,
+        "required_metric_count": 7
       }
     },
     {
