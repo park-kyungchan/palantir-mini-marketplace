@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "palantir-mini/hooks/governance-hook.output/v1",
+  "title": "palantir-mini governance hook output",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "message": { "type": "string" },
+    "reason": { "type": "string" },
+    "decision": { "enum": ["block", "continue"] },
+    "additionalContext": { "type": "string" },
+    "permissionDecision": { "enum": ["deny", "allow"] },
+    "hookSpecificOutput": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "hookEventName": { "type": "string" },
+        "permissionDecision": { "enum": ["deny", "allow"] },
+        "permissionDecisionReason": { "type": "string" },
+        "additionalContext": { "type": "string" }
+      }
+    }
+  }
+}

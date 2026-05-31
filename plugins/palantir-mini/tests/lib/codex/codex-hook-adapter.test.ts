@@ -30,6 +30,8 @@ function makePlugin(hooks: HooksDocument, env: Record<string, string | undefined
       "}",
       "if (mode === 'user-context') {",
       "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: `gate ${payload.prompt}` } }));",
+      "} else if (mode === 'invalid-output') {",
+      "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'maybe' } }));",
       "} else if (mode === 'duplicate-context-a') {",
       "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'shared context' } }));",
       "} else if (mode === 'duplicate-context-b') {",
@@ -365,6 +367,84 @@ describe("Codex hook adapter", () => {
           .permissionDecisionReason,
       ),
     ).toContain("timed out");
+  });
+
+  test("PreToolUse failureMode fail-closed denies on governance output schema mismatch", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "Edit",
+            hooks: [
+              {
+                type: "command",
+                command: command("invalid-output"),
+                timeout: 3,
+                permissionDecision: "defer",
+                failureMode: "fail-closed",
+                outputSchemaRef: "schemas/hooks/governance-hook.output.schema.json",
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await runCodexHookAdapter(
+      "PreToolUse",
+      { cwd: root, tool_name: "Edit", tool_input: { file_path: "src/a.ts" } },
+      options,
+    );
+
+    expect(result.response.hookSpecificOutput).toMatchObject({
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+    });
+    expect(
+      String(
+        (result.response.hookSpecificOutput as { permissionDecisionReason?: string })
+          .permissionDecisionReason,
+      ),
+    ).toContain("schema mismatch");
+  });
+
+  test("PreToolUse failureMode fail-closed denies on input schema mismatch", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "*",
+            hooks: [
+              {
+                type: "command",
+                command: command("capture"),
+                timeout: 3,
+                permissionDecision: "defer",
+                failureMode: "fail-closed",
+                inputSchemaRef: "schemas/hooks/pretooluse.input.schema.json",
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await runCodexHookAdapter(
+      "PreToolUse",
+      { cwd: root, tool_input: { file_path: "src/a.ts" } },
+      options,
+    );
+
+    expect(result.response.hookSpecificOutput).toMatchObject({
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+    });
+    expect(
+      String(
+        (result.response.hookSpecificOutput as { permissionDecisionReason?: string })
+          .permissionDecisionReason,
+      ),
+    ).toContain("tool_name must be a non-empty string");
   });
 
   test("PreToolUse adapter CLI fails closed on invalid stdin JSON", async () => {

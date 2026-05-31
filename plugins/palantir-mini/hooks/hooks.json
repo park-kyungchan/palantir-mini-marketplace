@@ -52,6 +52,8 @@
             "timeout": 150,
             "permissionDecision": "defer",
             "failureMode": "fail-closed",
+            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
+            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
             "statusMessage": "Prompt-DTC gate (default advisory; blocking only via PALANTIR_MINI_PROMPT_DTC_GATE_MODE)…"
           },
           {
@@ -91,6 +93,8 @@
             "timeout": 25,
             "permissionDecision": "defer",
             "failureMode": "fail-closed",
+            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
+            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
             "statusMessage": "MCP-first gate (rule 12 v3.10.0 §MCP-First protocol; BLOCKING sprint-062 W3-α)…"
           },
           {
@@ -145,6 +149,8 @@
             "timeout": 75,
             "permissionDecision": "defer",
             "failureMode": "fail-closed",
+            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
+            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
             "statusMessage": "commit-edits governance gate (PR-11 policy compiler + PR-13 merge)…"
           }
         ]
@@ -205,6 +211,8 @@
             "timeout": 150,
             "permissionDecision": "defer",
             "failureMode": "fail-closed",
+            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
+            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
             "statusMessage": "Prompt-DTC gate for ontology/action routing tools (default advisory)…"
           }
         ]
@@ -219,6 +227,8 @@
             "timeout": 150,
             "permissionDecision": "defer",
             "failureMode": "fail-closed",
+            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
+            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
             "statusMessage": "Prompt-DTC gate for Agent dispatch (default advisory)…"
           },
           {
@@ -261,6 +271,8 @@
             "timeout": 150,
             "permissionDecision": "defer",
             "failureMode": "fail-closed",
+            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
+            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
             "statusMessage": "Prompt-DTC gate for mutating Bash (default advisory)…"
           },
           {
