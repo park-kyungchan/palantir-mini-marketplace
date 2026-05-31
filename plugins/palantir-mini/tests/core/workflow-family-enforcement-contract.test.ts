@@ -116,24 +116,24 @@ describe("neutral workflow family contract surface", () => {
       },
       runtimeProjection: {
         claude: {
-          support: "native",
-          evidenceRefs: ["runtime-evidence:claude"],
-          fallbackObligations: [],
-          unsupportedSurfaceRefs: [],
+          support: "unsupported",
+          evidenceRefs: [],
+          fallbackObligations: ["No Claude palantir-mini package is active."],
+          unsupportedSurfaceRefs: ["claude:palantir-mini-runtime-package-absent"],
           smokeEvidenceRefs: [],
         },
         codex: {
           support: "adapter-native",
-          evidenceRefs: ["runtime-evidence:codex"],
+          evidenceRefs: ["contracts/runtime-evidence/codex.json"],
           fallbackObligations: ["record unsupported lifecycle gaps"],
           unsupportedSurfaceRefs: ["runtime-lifecycle:task-agent-events"],
           smokeEvidenceRefs: [],
         },
         gemini: {
-          support: "adapter-native",
-          evidenceRefs: ["runtime-evidence:gemini"],
-          fallbackObligations: ["use Gemini extension adapter and record event-name gaps"],
-          unsupportedSurfaceRefs: ["runtime-lifecycle:claude-codex-event-name-parity"],
+          support: "unsupported",
+          evidenceRefs: [],
+          fallbackObligations: ["No Gemini palantir-mini extension is active."],
+          unsupportedSurfaceRefs: ["gemini:palantir-mini-runtime-package-absent"],
           smokeEvidenceRefs: [],
         },
       },
@@ -146,7 +146,7 @@ describe("neutral workflow family contract surface", () => {
           coveredPhaseIds: ["prompt-entry"],
           requiredContractRefs: ["SemanticIntentContract", "RouterBinding"],
           aipSurfaceRefs: ["security-governance"],
-          runtimeRefs: ["claude", "codex", "gemini"],
+          runtimeRefs: ["codex"],
           validationRefs: ["tests/core/workflow-family-enforcement-contract.test.ts"],
           evidenceRefs: ["core/contracts/workflow-family-enforcement.ts"],
           ratchet: "required-complex-e2e-scenario",
@@ -172,7 +172,7 @@ describe("neutral workflow family contract surface", () => {
       agentId: "agent:neutral-contract-worker",
       workflowFamily: "runtimeAdapterAndParity",
       phaseRefs: ["contract-authoring"],
-      runtimeRoles: { codex: "implementation-worker", gemini: "implementation-worker" },
+      runtimeRoles: { codex: "implementation-worker" },
       mutationCapability: "proposal-only",
       requiredContracts: workflowContract.requiredContracts,
       retrievalContextRefs: [],
@@ -281,8 +281,9 @@ describe("neutral workflow family contract surface", () => {
       expect(scenario.coveredPhaseIds.length).toBeGreaterThanOrEqual(2);
       expect(scenario.validationRefs.length).toBeGreaterThan(0);
       expect(scenario.evidenceRefs.length).toBeGreaterThan(0);
-      expect(scenario.runtimeRefs).toContain("claude");
       expect(scenario.runtimeRefs).toContain("codex");
+      expect(scenario.runtimeRefs).not.toContain("claude");
+      expect(scenario.runtimeRefs).not.toContain("gemini");
 
       for (const coveredPhaseId of scenario.coveredPhaseIds) {
         expect(phaseIds.has(coveredPhaseId)).toBe(true);
@@ -298,5 +299,23 @@ describe("neutral workflow family contract surface", () => {
     expect(
       listWorkflowFamiliesMissingComplexE2EScenarioDeclarations(missingScenarioFixture),
     ).toEqual(["ontologyEngineering"]);
+  });
+
+  test("does not publish unsupported Claude or Gemini runtime support defaults", () => {
+    for (const contract of WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_INVENTORY) {
+      expect(contract.runtimeProjection.claude.support).toBe("unsupported");
+      expect(contract.runtimeProjection.claude.evidenceRefs).toEqual([]);
+      expect(contract.runtimeProjection.claude.unsupportedSurfaceRefs.length).toBeGreaterThan(0);
+
+      expect(contract.runtimeProjection.gemini.support).toBe("unsupported");
+      expect(contract.runtimeProjection.gemini.evidenceRefs).toEqual([]);
+      expect(contract.runtimeProjection.gemini.unsupportedSurfaceRefs.length).toBeGreaterThan(0);
+
+      if (contract.runtimeProjection.codex.support !== "unsupported") {
+        expect(contract.runtimeProjection.codex.evidenceRefs).toContain(
+          "contracts/runtime-evidence/codex.json",
+        );
+      }
+    }
   });
 });

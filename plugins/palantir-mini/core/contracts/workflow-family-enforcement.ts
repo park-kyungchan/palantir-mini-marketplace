@@ -374,36 +374,33 @@ function runtimeProjection(input: {
   readonly codexSupport: RuntimeSupportDeclaration;
   readonly codexFallbackObligations: readonly string[];
   readonly unsupportedCodexSurfaceRefs?: readonly string[];
-  readonly geminiSupport?: RuntimeSupportDeclaration;
-  readonly geminiFallbackObligations?: readonly string[];
-  readonly unsupportedGeminiSurfaceRefs?: readonly string[];
   readonly smokeEvidenceRefs?: readonly string[];
 }): RuntimeProjectionSet {
   return {
     claude: {
-      support: "native",
-      evidenceRefs: ["runtime:claude-native-plugin"],
-      fallbackObligations: [],
-      unsupportedSurfaceRefs: [],
-      smokeEvidenceRefs: input.smokeEvidenceRefs ?? [],
+      support: "unsupported",
+      evidenceRefs: [],
+      fallbackObligations: [
+        "No Claude palantir-mini install, package, hook, or MCP surface is active in this checkout.",
+      ],
+      unsupportedSurfaceRefs: ["claude:palantir-mini-runtime-package-absent"],
+      smokeEvidenceRefs: [],
     },
     codex: {
       support: input.codexSupport,
-      evidenceRefs: ["runtime:codex-palantir-mini-adapter"],
+      evidenceRefs: ["contracts/runtime-evidence/codex.json"],
       fallbackObligations: input.codexFallbackObligations,
       unsupportedSurfaceRefs: input.unsupportedCodexSurfaceRefs ?? [],
       smokeEvidenceRefs: input.smokeEvidenceRefs ?? [],
     },
     gemini: {
-      support: input.geminiSupport ?? "adapter-native",
-      evidenceRefs: ["runtime:gemini-palantir-mini-extension"],
-      fallbackObligations: input.geminiFallbackObligations ?? [
-        "Use Gemini extension hooks/policies/MCP and record unsupported Codex lifecycle parity gaps.",
+      support: "unsupported",
+      evidenceRefs: [],
+      fallbackObligations: [
+        "No Gemini palantir-mini extension, package, hook, or MCP surface is active in this checkout.",
       ],
-      unsupportedSurfaceRefs: input.unsupportedGeminiSurfaceRefs ?? [
-        "gemini:claude-codex-hook-event-name-parity",
-      ],
-      smokeEvidenceRefs: input.smokeEvidenceRefs ?? [],
+      unsupportedSurfaceRefs: ["gemini:palantir-mini-runtime-package-absent"],
+      smokeEvidenceRefs: [],
     },
   };
 }
@@ -413,7 +410,9 @@ function complexE2EScenario(
 ): ComplexE2EScenarioDeclaration {
   return {
     ...input,
-    runtimeRefs: Array.from(new Set([...input.runtimeRefs, "gemini"])) as RuntimeId[],
+    runtimeRefs: Array.from(
+      new Set(input.runtimeRefs.filter((runtime) => runtime === "codex")),
+    ) as RuntimeId[],
     complexity: "complex",
     ratchet: "required-complex-e2e-scenario",
   };
