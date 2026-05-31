@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Palantir Mini on Codex - 비개발자 시나리오 아틀라스</title>
+  <meta name="description" content="Codex 런타임에서 palantir-mini plugin이 사용자 프롬프트부터 검증과 릴리스까지 어떻게 움직이는지 비개발자 관점에서 설명한 인터랙티브 문서">
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --paper: #f7f4ec;
+      --paper-strong: #fffdf6;
+      --ink: #11161d;
+      --muted: #5b6671;
+      --line: #d8d0c2;
+      --dark: #11161d;
+      --dark-soft: #1c2530;
+      --blue: #0f6fff;
+      --red: #ef5a46;
+      --green: #4b9b55;
+      --yellow: #c18b1d;
+      --violet: #6957d9;
+      --radius: 8px;
+      --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, Consolas, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--paper);
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(17, 22, 29, 0.04) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(17, 22, 29, 0.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 48px 48px;
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.62;
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; text-underline-offset: 4px; }
+    button { font: inherit; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 64px;
+      padding: 12px 28px;
+      color: var(--paper-strong);
+      background: rgba(17, 22, 29, 0.92);
+      border-bottom: 1px solid rgba(247, 244, 236, 0.16);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 780;
+      white-space: nowrap;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      color: var(--dark);
+      background: var(--paper-strong);
+      border: 2px solid var(--blue);
+      border-radius: 50%;
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .topbar nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .topbar a {
+      min-height: 34px;
+      padding: 6px 10px;
+      color: rgba(247, 244, 236, 0.84);
+      border: 1px solid transparent;
+      border-radius: 999px;
+      text-decoration: none;
+    }
+
+    .topbar a:hover,
+    .topbar a:focus-visible {
+      color: var(--paper-strong);
+      border-color: rgba(247, 244, 236, 0.34);
+      outline: none;
+    }
+
+    .hero {
+      position: relative;
+      min-height: calc(92svh - 64px);
+      overflow: hidden;
+      color: var(--paper-strong);
+      background: var(--dark);
+      isolation: isolate;
+    }
+
+    #runtimeCanvas {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      width: 100%;
+      height: 100%;
+      background: #101419;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(90deg, rgba(17, 22, 29, 0.95), rgba(17, 22, 29, 0.68) 48%, rgba(17, 22, 29, 0.28)),
+        linear-gradient(0deg, rgba(17, 22, 29, 0.94), transparent 36%);
+    }
+
+    .hero-inner,
+    .section,
+    .journey-grid,
+    .footer-note {
+      width: min(1180px, calc(100% - 48px));
+      margin: 0 auto;
+    }
+
+    .hero-inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(330px, 0.58fr);
+      gap: 44px;
+      align-items: end;
+      min-height: calc(92svh - 64px);
+      padding: 48px 0 22px;
+    }
+
+    .eyebrow,
+    .kicker {
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      margin-bottom: 18px;
+      padding: 4px 10px;
+      color: var(--paper-strong);
+      border: 1px solid rgba(247, 244, 236, 0.32);
+      border-radius: 999px;
+      background: rgba(247, 244, 236, 0.08);
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      max-width: 780px;
+      margin-bottom: 18px;
+      font-size: 64px;
+      line-height: 0.96;
+      font-weight: 850;
+      letter-spacing: 0;
+      word-break: keep-all;
+    }
+
+    .hero-copy {
+      max-width: 650px;
+      margin-bottom: 22px;
+      color: rgba(247, 244, 236, 0.82);
+      font-size: 18px;
+      line-height: 1.72;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 16px;
+      color: var(--paper-strong);
+      border: 1px solid rgba(247, 244, 236, 0.38);
+      border-radius: 999px;
+      text-decoration: none;
+      transition: transform 160ms ease, border-color 160ms ease;
+    }
+
+    .action.primary {
+      color: var(--dark);
+      background: var(--paper-strong);
+      border-color: var(--paper-strong);
+    }
+
+    .action:hover,
+    .action:focus-visible {
+      transform: translateY(-2px);
+      border-color: var(--blue);
+      outline: none;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      max-width: 740px;
+      border: 1px solid rgba(247, 244, 236, 0.18);
+      background: rgba(247, 244, 236, 0.12);
+    }
+
+    .metrics div {
+      min-height: 78px;
+      padding: 14px 16px;
+      background: rgba(17, 22, 29, 0.68);
+    }
+
+    .metric-number {
+      display: block;
+      margin-bottom: 6px;
+      font-family: var(--mono);
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .metric-label {
+      display: block;
+      color: rgba(247, 244, 236, 0.72);
+      font-size: 13px;
+      line-height: 1.42;
+    }
+
+    .run-panel {
+      align-self: center;
+      border: 1px solid rgba(247, 244, 236, 0.22);
+      background: rgba(247, 244, 236, 0.08);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(12px);
+    }
+
+    .run-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(247, 244, 236, 0.18);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .pulse {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1800ms ease-out infinite;
+    }
+
+    .run-step {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 12px;
+      min-height: 82px;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(247, 244, 236, 0.12);
+      background: rgba(17, 22, 29, 0.74);
+    }
+
+    .run-step:last-child { border-bottom: 0; }
+
+    .run-step b {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(247, 244, 236, 0.3);
+      border-radius: 50%;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .run-step strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--paper-strong);
+      line-height: 1.35;
+    }
+
+    .run-step span {
+      color: rgba(247, 244, 236, 0.68);
+      font-size: 14px;
+      line-height: 1.46;
+    }
+
+    .section {
+      padding: 92px 0;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(280px, 0.46fr);
+      gap: 48px;
+      align-items: end;
+      margin-bottom: 38px;
+    }
+
+    h2 {
+      margin-bottom: 0;
+      font-size: 46px;
+      line-height: 1.05;
+      font-weight: 820;
+      letter-spacing: 0;
+      word-break: keep-all;
+    }
+
+    .deck {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .principles,
+    .state-wall {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      border: 1px solid var(--line);
+      background: var(--line);
+    }
+
+    .principles article,
+    .state-wall div {
+      min-height: 218px;
+      padding: 24px;
+      background: var(--paper-strong);
+    }
+
+    .principles h3,
+    .state-wall strong {
+      display: block;
+      margin: 8px 0 10px;
+      font-size: 22px;
+      line-height: 1.18;
+    }
+
+    .principles p,
+    .state-wall p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .journey-band {
+      background: var(--paper-strong);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .journey-grid {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
+    }
+
+    .journey-sticky {
+      position: sticky;
+      top: 84px;
+      align-self: start;
+      padding: 70px 42px 70px 0;
+    }
+
+    .journey-track {
+      border-left: 1px solid var(--line);
+    }
+
+    .journey-item {
+      display: grid;
+      grid-template-columns: 90px minmax(0, 1fr);
+      gap: 28px;
+      min-height: 166px;
+      padding: 30px 0 30px 42px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .journey-item:hover { background: rgba(15, 111, 255, 0.05); }
+    .journey-index { color: var(--blue); font-family: var(--mono); font-size: 15px; }
+    .journey-item h3 { margin-bottom: 8px; font-size: 24px; line-height: 1.18; }
+    .journey-item p { max-width: 680px; margin-bottom: 0; color: var(--muted); }
+
+    .atlas {
+      display: grid;
+      grid-template-columns: minmax(252px, 0.34fr) minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .tabs {
+      position: sticky;
+      top: 86px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .tab {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 54px;
+      padding: 8px 10px;
+      color: var(--ink);
+      text-align: left;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .tab:hover,
+    .tab:focus-visible {
+      transform: translateX(4px);
+      border-color: var(--blue);
+      outline: none;
+    }
+
+    .tab[aria-selected="true"] {
+      color: var(--paper-strong);
+      background: var(--dark);
+      border-color: var(--dark);
+    }
+
+    .tab-number {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .tab-label {
+      overflow-wrap: anywhere;
+      font-size: 13px;
+      font-weight: 720;
+      line-height: 1.22;
+    }
+
+    .stage {
+      min-height: 690px;
+      color: var(--paper-strong);
+      background: var(--dark);
+      border: 1px solid rgba(17, 22, 29, 0.16);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 18px 50px rgba(17, 22, 29, 0.18);
+    }
+
+    .scenario-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(230px, 0.34fr);
+      gap: 24px;
+      padding: 34px;
+      border-bottom: 1px solid rgba(247, 244, 236, 0.14);
+      background:
+        linear-gradient(135deg, rgba(15, 111, 255, 0.28), transparent 34%),
+        linear-gradient(45deg, rgba(239, 90, 70, 0.22), transparent 44%),
+        var(--dark-soft);
+    }
+
+    .scenario-head h3 {
+      margin-bottom: 14px;
+      font-size: 40px;
+      line-height: 1.06;
+      letter-spacing: 0;
+    }
+
+    .scenario-summary {
+      max-width: 700px;
+      margin-bottom: 0;
+      color: rgba(247, 244, 236, 0.76);
+    }
+
+    .scenario-meta {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .scenario-meta span,
+    .evidence span {
+      display: block;
+      padding: 8px 9px;
+      color: rgba(247, 244, 236, 0.8);
+      border: 1px solid rgba(247, 244, 236, 0.18);
+      border-radius: var(--radius);
+      overflow-wrap: anywhere;
+    }
+
+    .scenario-body {
+      display: grid;
+      grid-template-columns: minmax(0, 0.48fr) minmax(0, 0.52fr);
+    }
+
+    .prompt-box,
+    .flow-box {
+      padding: 30px;
+    }
+
+    .prompt-box { border-right: 1px solid rgba(247, 244, 236, 0.14); }
+
+    .prompt-box h4,
+    .flow-box h4,
+    .guard h4 {
+      margin: 0 0 12px;
+      color: rgba(247, 244, 236, 0.66);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .prompt-text {
+      margin-bottom: 24px;
+      padding-left: 18px;
+      color: var(--paper-strong);
+      border-left: 3px solid var(--blue);
+      font-size: 20px;
+      line-height: 1.62;
+    }
+
+    .guard {
+      padding-top: 20px;
+      border-top: 1px solid rgba(247, 244, 236, 0.14);
+    }
+
+    .guard p {
+      margin-bottom: 0;
+      color: rgba(247, 244, 236, 0.74);
+    }
+
+    .flow-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .flow-list li {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      min-height: 58px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(247, 244, 236, 0.12);
+    }
+
+    .flow-list li:last-child { border-bottom: 0; }
+
+    .flow-list b {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      color: var(--dark);
+      background: var(--paper-strong);
+      border-radius: 50%;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .flow-list span { color: rgba(247, 244, 236, 0.82); }
+
+    .evidence {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 22px 30px 30px;
+      border-top: 1px solid rgba(247, 244, 236, 0.14);
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .state-wall {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .state-wall code,
+    .source-ledger code {
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .source-ledger {
+      color: var(--paper-strong);
+      background: var(--dark);
+    }
+
+    .source-ledger h2 { color: var(--paper-strong); }
+    .source-ledger .deck,
+    .source-ledger li { color: rgba(247, 244, 236, 0.72); }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 1px;
+      margin-top: 34px;
+      background: rgba(247, 244, 236, 0.16);
+      border: 1px solid rgba(247, 244, 236, 0.16);
+    }
+
+    .source-grid section {
+      padding: 26px;
+      background: rgba(17, 22, 29, 0.76);
+    }
+
+    .source-grid h3 { margin-bottom: 12px; font-size: 21px; }
+    .source-grid ul { display: grid; gap: 10px; margin: 0; padding-left: 18px; }
+    .source-grid a { color: var(--paper-strong); }
+
+    .footer-note {
+      padding: 24px 0 42px;
+      color: rgba(247, 244, 236, 0.58);
+      font-size: 13px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 520ms ease, transform 520ms ease;
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(75, 155, 85, 0.7); }
+      80% { box-shadow: 0 0 0 14px rgba(75, 155, 85, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(75, 155, 85, 0); }
+    }
+
+    @media (max-width: 980px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .topbar nav { justify-content: flex-start; }
+      .hero-inner,
+      .section-head,
+      .journey-grid,
+      .atlas,
+      .scenario-head,
+      .scenario-body,
+      .source-grid { grid-template-columns: 1fr; }
+      .hero-inner { min-height: auto; padding-top: 74px; }
+      h1 { font-size: 54px; }
+      .tabs,
+      .journey-sticky { position: static; }
+      .journey-sticky { padding-right: 0; padding-bottom: 30px; }
+      .journey-track,
+      .prompt-box { border-left: 0; border-right: 0; }
+      .journey-item { grid-template-columns: 64px minmax(0, 1fr); padding-left: 0; }
+      .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .principles,
+      .state-wall { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      body { font-size: 15px; }
+      .topbar,
+      .hero-inner,
+      .section,
+      .journey-grid,
+      .footer-note { width: calc(100% - 28px); }
+      .topbar { width: 100%; padding: 12px 14px; }
+      .brand { white-space: normal; }
+      #runtimeCanvas { opacity: 0.34; }
+      .hero { min-height: auto; }
+      h1 { font-size: 42px; }
+      h2 { font-size: 34px; }
+      .metrics,
+      .principles,
+      .state-wall,
+      .tabs { grid-template-columns: 1fr; }
+      .run-step,
+      .journey-item { grid-template-columns: 1fr; }
+      .scenario-head,
+      .prompt-box,
+      .flow-box,
+      .evidence { padding: 22px; }
+      .scenario-head h3 { font-size: 30px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 1ms !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">PM</span><span>Palantir Mini on Codex</span></div>
+    <nav aria-label="문서 탐색">
+      <a href="#journey">프롬프트 흐름</a>
+      <a href="#atlas">시나리오</a>
+      <a href="#runtime">Codex 역할</a>
+      <a href="#sources">출처</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <canvas id="runtimeCanvas" aria-hidden="true"></canvas>
+      <div class="hero-inner">
+        <div>
+          <p class="eyebrow">active runtime: Codex · plugin source: palantir-mini-marketplace</p>
+          <h1 id="hero-title">사용자 한 문장이 운영 흐름이 되는 순간</h1>
+          <p class="hero-copy">Codex에서 palantir-mini plugin은 프롬프트를 바로 코드로 바꾸기 전에 의미, 권한, 영향, 검증, 릴리스 증거를 차례대로 묶습니다. 비개발자에게는 “AI가 마음대로 고치는 도구”가 아니라 “작업 경계를 확인하고 기록하며 실행하는 안내 레일”에 가깝습니다.</p>
+          <div class="actions">
+            <a class="action primary" href="#atlas">시나리오 보기</a>
+            <a class="action" href="#journey">흐름 먼저 보기</a>
+          </div>
+          <div class="metrics" aria-label="핵심 수치">
+            <div><span class="metric-number">10</span><span class="metric-label">workflowFamily 기준으로 나뉘는 복잡 작업 경로</span></div>
+            <div><span class="metric-number">30</span><span class="metric-label">Codex 세션에서 노출된 palantir-mini MCP 도구</span></div>
+            <div><span class="metric-number">0</span><span class="metric-label">이 문서는 docs-only 산출물이라 ontology mutation 승인이 필요 없음</span></div>
+          </div>
+        </div>
+        <aside class="run-panel" aria-label="실행 흐름 요약">
+          <div class="run-head"><span>prompt-to-release path</span><span class="pulse" aria-hidden="true"></span></div>
+          <div class="run-step"><b>01</b><div><strong>Prompt Front Door</strong><span>요청에 promptId와 promptHash를 붙여 출발점을 잃지 않습니다.</span></div></div>
+          <div class="run-step"><b>02</b><div><strong>Semantic Gate</strong><span>실제 의미나 권한을 바꾸는 일인지 먼저 판단합니다.</span></div></div>
+          <div class="run-step"><b>03</b><div><strong>Router + Hooks</strong><span>허용 도구, 차단 조건, 기록할 증거를 고릅니다.</span></div></div>
+          <div class="run-step"><b>04</b><div><strong>Validation + PR</strong><span>테스트, self-check, PR, merge 기록으로 결과를 닫습니다.</span></div></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section reveal" id="overview" aria-labelledby="overview-title">
+      <div class="section-head">
+        <div>
+          <p class="kicker">비개발자 관점의 한 줄 정의</p>
+          <h2 id="overview-title">palantir-mini는 Codex에게 “작업을 끝까지 책임지는 절차”를 입혀준다</h2>
+        </div>
+        <p class="deck">Codex는 실제 파일을 읽고 고치고 테스트할 수 있는 런타임입니다. palantir-mini plugin은 그 힘에 작업 경계, hook 정책, MCP 도구, lineage 기록, release gate를 붙여서 “빠른 수정”을 “검증 가능한 운영 흐름”으로 바꿉니다.</p>
+      </div>
+      <div class="principles" aria-label="Codex 런타임에서 palantir-mini가 맡는 네 가지 역할">
+        <article><p class="kicker">01 · 의미</p><h3>요청을 바로 구현하지 않는다</h3><p>SIC/DTC가 필요한지 판단하고, 승인되지 않은 운영 의미는 추측으로 바꾸지 않습니다.</p></article>
+        <article><p class="kicker">02 · 실행</p><h3>Codex-native 도구로 움직인다</h3><p>MCP, hook, subagent, shell, git 같은 Codex 표면을 씁니다. 다른 런타임 기능을 자동 상속한다고 말하지 않습니다.</p></article>
+        <article><p class="kicker">03 · 보호</p><h3>편집 전 영향도를 묻는다</h3><p>PreToolUse와 pre_edit_impact가 파일 영향, DTC 정책, write scope를 확인합니다.</p></article>
+        <article><p class="kicker">04 · 증거</p><h3>끝난 뒤 검증을 남긴다</h3><p>테스트, PR, merge SHA, CI gap, reload 필요 여부가 함께 남습니다.</p></article>
+      </div>
+    </section>
+
+    <section class="journey-band" id="journey" aria-labelledby="journey-title">
+      <div class="journey-grid">
+        <div class="journey-sticky">
+          <p class="kicker">사용자 프롬프트부터 끝까지</p>
+          <h2 id="journey-title">Codex 세션 안에서 벌어지는 7단계</h2>
+          <p class="deck">사용자는 그냥 부탁하지만, 내부에서는 “요청-의미-경계-실행-검증-릴리스-학습”이 차례로 움직입니다.</p>
+        </div>
+        <div class="journey-track">
+          <article class="journey-item reveal"><span class="journey-index">Step 01</span><div><h3>사용자 프롬프트가 들어온다</h3><p>promptId, promptHash, sessionId가 붙어 결과가 어디서 시작했는지 추적할 수 있습니다.</p></div></article>
+          <article class="journey-item reveal"><span class="journey-index">Step 02</span><div><h3>의미와 변경 경계를 확인한다</h3><p>문서 산출물처럼 위험이 낮으면 not_required로 통과하고, 운영 의미 변경이면 승인 경계를 요구합니다.</p></div></article>
+          <article class="journey-item reveal"><span class="journey-index">Step 03</span><div><h3>읽을 자료와 영향 범위를 좁힌다</h3><p>local source, BROWSE/INDEX, ontology_context_query, 웹 리서치를 서로 다른 권위로 분리합니다.</p></div></article>
+          <article class="journey-item reveal"><span class="journey-index">Step 04</span><div><h3>복잡하면 subagent에게 나눈다</h3><p>Lead는 직접 구현하고, 시나리오/런타임 사실/UX 검토처럼 충돌 없는 레인을 읽기 전용 subagent에게 맡깁니다.</p></div></article>
+          <article class="journey-item reveal"><span class="journey-index">Step 05</span><div><h3>파일 편집 전 hook이 정책을 적용한다</h3><p>이 HTML도 생성 전 pre_edit_impact를 거쳤고, generated 파일과 plugin cache는 금지 범위로 유지했습니다.</p></div></article>
+          <article class="journey-item reveal"><span class="journey-index">Step 06</span><div><h3>검증과 릴리스 증거를 붙인다</h3><p>테스트 통과, CI 계정 상태 gap, PR 본문, merge commit을 서로 섞지 않고 기록합니다.</p></div></article>
+          <article class="journey-item reveal"><span class="journey-index">Step 07</span><div><h3>다음 세션이 재생할 수 있게 남긴다</h3><p>중요한 결정은 events, lineage, replay, self-check로 이어져 다음 Codex 세션이 이어받을 수 있습니다.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="atlas" aria-labelledby="atlas-title">
+      <div class="section-head reveal">
+        <div>
+          <p class="kicker">workflowFamily 시나리오 아틀라스</p>
+          <h2 id="atlas-title">복잡한 요청이 어떤 길로 처리되는지 눌러서 보기</h2>
+        </div>
+        <p class="deck">각 시나리오는 “비개발자가 실제로 물어볼 법한 요청”을 기준으로 만들었습니다. 버튼을 선택하면 해당 workflowFamily에서 Codex와 palantir-mini가 무엇을 확인하고 실행하는지 바뀝니다.</p>
+      </div>
+      <div class="atlas">
+        <div class="tabs" id="scenarioTabs" role="tablist" aria-label="workflowFamily 선택"></div>
+        <article class="stage reveal" id="scenarioStage" aria-live="polite"></article>
+      </div>
+    </section>
+
+    <section class="section reveal" id="runtime" aria-labelledby="runtime-title">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Codex active runtime에서 중요한 상태 신호</p>
+          <h2 id="runtime-title">“무엇을 할 수 있는가”와 “무엇을 주장하면 안 되는가”</h2>
+        </div>
+        <p class="deck">palantir-mini는 Codex의 실제 능력과 다른 런타임의 능력을 섞지 않습니다. 설치된 plugin payload, 로컬 source checkout, Codex cache, Claude/Gemini 미설치 상태를 분리해서 봅니다.</p>
+      </div>
+      <div class="state-wall">
+        <div><code>source SSoT</code><strong>수정해야 할 곳</strong><p><code>/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/</code>가 의미 변경의 기준입니다.</p></div>
+        <div><code>runtime consumer</code><strong>편집하면 안 되는 곳</strong><p><code>~/.codex/plugins/cache/**</code>는 설치된 소비자 payload입니다. 소스처럼 패치하지 않습니다.</p></div>
+        <div><code>hooks</code><strong>정책은 자동 또는 수동으로 적용</strong><p>Codex hook이 있으면 실행하고, native parity가 없으면 정책 의도와 gap을 명시합니다.</p></div>
+        <div><code>MCP tools</code><strong>도구 호출도 검증 대상</strong><p>semantic gate, intent router, ontology context, pre-edit impact 같은 도구가 작업 레일을 만듭니다.</p></div>
+        <div><code>subagents</code><strong>분업은 범위 계약으로 시작</strong><p>읽기 전용 verifier와 구현 worker를 구분하고, write scope가 겹치면 병렬화하지 않습니다.</p></div>
+        <div><code>reload</code><strong>문서만 바꾸면 재시작 불필요</strong><p>MCP, hook, skill, manifest 변경은 Codex 재시작이 필요하지만 이 HTML 문서는 runtime reload가 필요 없습니다.</p></div>
+      </div>
+    </section>
+
+    <section class="source-ledger" id="sources" aria-labelledby="sources-title">
+      <div class="section">
+        <div class="section-head reveal">
+          <div>
+            <p class="kicker">출처와 검증 노트</p>
+            <h2 id="sources-title">이 문서가 기대고 있는 근거</h2>
+          </div>
+          <p class="deck">디자인 방향은 2026년 웹/UX 리서치의 공통 흐름을 반영했습니다. 구현 내용은 로컬 palantir-mini source와 PR-6까지 병합된 workflowFamily 계약을 기준으로 했습니다.</p>
+        </div>
+        <div class="source-grid">
+          <section>
+            <h3>로컬 authority</h3>
+            <ul>
+              <li><code>core/contracts/workflow-family-enforcement.ts</code> - workflowFamily, phase, runtime projection, complex E2E scenario 기준</li>
+              <li><code>.codex-plugin/plugin.json</code> - Codex plugin manifest와 hook/MCP/skill 등록 표면</li>
+              <li><code>hooks/hooks.json</code> - PreToolUse, PostToolUse, UserPromptSubmit, SubagentStart/Stop hook intent registry</li>
+              <li><code>docs/RELOAD_PER_RUNTIME.md</code> - source/cache/runtime reload 경계</li>
+            </ul>
+          </section>
+          <section>
+            <h3>웹 리서치 적용점</h3>
+            <ul>
+              <li><a href="https://www.corgenx.com/blog/ui-ux-trends-2026">CorgenX UI/UX Trends 2026</a> - 사용자 통제감, 투명성, micro-interaction을 디자인 원칙으로 반영</li>
+              <li><a href="https://midrocket.com/en/guides/ui-design-trends-2026/">Midrocket UI Design Trends 2026</a> - kinetic typography, 3D/공간감, AI-driven interface 흐름을 canvas와 경로 시각화로 반영</li>
+              <li><a href="https://www.uxdesigninstitute.com/blog/the-top-ux-design-trends-in-2026/">UX Design Institute 2026 UX Trends</a> - multimodal interface, minimalism, micro-interaction을 정보 구조에 반영</li>
+              <li><a href="https://www.creativebloq.com/design/graphic-design/texture-warmth-and-tactile-rebellion-the-big-graphic-design-trends-for-2026">Creative Bloq Graphic Design Trends 2026</a> - 과도한 AI 매끈함 대신 인간적 질감과 물성감을 배경 격자와 구획에 반영</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+      <p class="footer-note">생성일: 2026-05-31 · 산출물: docs/codex-runtime-workflow-family-scenarios.html · 문서 변경만 포함하므로 Codex plugin reload는 필요하지 않습니다.</p>
+    </section>
+  </main>
+
+  <script>
+    const scenarios = [
+      {
+        family: "ontologyEngineering",
+        title: "온톨로지 변경 전에 의미 경계부터 잠그기",
+        prompt: "학생 평가 흐름에 새 승인 단계를 추가하고, 관련 스키마와 워크플로까지 맞춰줘.",
+        summary: "실제 운영 의미가 바뀌는 요청입니다. Codex는 바로 파일을 고치지 않고, 어떤 대상과 행동이 바뀌는지 확인한 뒤 승인된 DTC 경계를 요구합니다.",
+        support: "manual",
+        phases: "context-load -> dtc-authoring",
+        steps: ["요청이 ontology 의미 변경인지 확인합니다.", "ontology_context_query로 관련 맥락을 읽습니다.", "pm_semantic_intent_gate가 SIC/DTC 필요성을 판단합니다.", "승인된 DTC 없이는 변경을 막습니다.", "승인 뒤에만 구현 또는 제안으로 넘어갑니다."],
+        guard: "승인되지 않은 의미 추론으로 commit_edits나 generated 파일 직접 수정을 시작하면 안 됩니다.",
+        evidence: ["ontology_context_query", "pm_semantic_intent_gate", "DTC approval"]
+      },
+      {
+        family: "semanticIntentAndRouting",
+        title: "애매한 요청을 안전한 라우팅 결정으로 바꾸기",
+        prompt: "이 기능 전체를 더 똑똑하게 고쳐줘. 필요하면 에이전트도 써.",
+        summary: "겉보기에는 간단해도 의미와 실행 범위가 모호합니다. palantir-mini는 prompt identity를 보존하고 계약 또는 not_required 판정 뒤에 라우팅합니다.",
+        support: "adapter-native",
+        phases: "prompt-contract -> router-dispatch",
+        steps: ["promptId와 promptHash를 보존합니다.", "의미 계약이 필요한지 판정합니다.", "승인된 계약 또는 not_required verdict를 확인합니다.", "pm_intent_router가 lead-direct, delegation, contract_required 중 하나를 고릅니다.", "선택된 경로와 금지된 경로를 남깁니다."],
+        guard: "승인 전 pm_intent_router 우회 라우팅은 금지됩니다.",
+        evidence: ["promptId", "promptHash", "RouterBinding"]
+      },
+      {
+        family: "researchAndContextEngineering",
+        title: "필요한 자료만 골라 최신성 경고까지 붙이기",
+        prompt: "이 설계가 Palantir AIP 방식과 맞는지 근거까지 확인해서 정리해줘.",
+        summary: "최신성이나 외부 근거가 필요한 일은 기억만으로 처리하지 않습니다. 최소 읽기 세트, 출처, 신선도 경고를 분리합니다.",
+        support: "manual",
+        phases: "source-selection -> retrieval-pack",
+        steps: ["필요한 증거 범위를 좁힙니다.", "BROWSE.md, INDEX.md, 연구 라우터 후보를 봅니다.", "research_context_select나 ontology_context_query로 최소 읽기 세트를 만듭니다.", "출처와 최신성 경고를 context capsule처럼 묶습니다.", "구현이나 문서는 그 출처만 인용합니다."],
+        guard: "오래된 자료나 임의 검색 결과를 현재 권위처럼 쓰면 안 됩니다.",
+        evidence: ["BROWSE.md", "INDEX.md", "source refs"]
+      },
+      {
+        family: "leadOrchestrationAndDelegation",
+        title: "큰 작업을 안전한 작업자 지시서로 쪼개기",
+        prompt: "이 PR 준비를 끝까지 해줘. 분석, 구현, 검증을 병렬로 돌려도 돼.",
+        summary: "Lead는 즉시 해야 할 일과 병렬 가능한 일을 분리합니다. subagent에게는 역할, source, 범위, 금지 경로, 검증, 출력 계약을 줍니다.",
+        support: "manual",
+        phases: "dispatch-analysis -> handoff-contract",
+        steps: ["작업 복잡도와 범위를 판정합니다.", "pm_intent_router와 pm_lead_brief로 실행 모드를 고릅니다.", "worker별 쓰기 범위와 금지 범위를 분리합니다.", "각 worker에게 검증 명령과 출력 계약을 줍니다.", "Lead가 결과를 통합하고 충돌을 좁게 해결합니다."],
+        guard: "두 worker가 같은 파일을 동시에 수정하게 하면 안 됩니다.",
+        evidence: ["spawn_agent", "write-scope disjointness", "output contract"]
+      },
+      {
+        family: "hookAndPolicyEnforcement",
+        title: "위험한 도구 실행을 사전에 막고 사후 기록하기",
+        prompt: "승인 절차는 나중에 보고 일단 핵심 파일을 바로 바꿔줘.",
+        summary: "도구 실행 전 PreToolUse가 승인 계약과 scope를 확인합니다. Codex native hook parity가 부족해도 정책 의도는 수동으로 지킵니다.",
+        support: "adapter-native",
+        phases: "pretool-gate -> posttool-audit",
+        steps: ["도구 실행 전 변경 위험을 봅니다.", "PreToolUse 정책이 승인 계약과 scope를 확인합니다.", "부족하면 실행을 막거나 gap을 기록합니다.", "허용된 실행 뒤 PostToolUse가 결과를 감사합니다.", "필요하면 emit_event로 추적 기록을 남깁니다."],
+        guard: "Codex native hook parity가 없을 때도 정책 의도는 무시하지 않습니다.",
+        evidence: ["PreToolUse", "pre-edit-impact-mcp-first", "emit_event"]
+      },
+      {
+        family: "runtimeAdapterAndParity",
+        title: "Codex 지원 범위와 못 하는 일을 같이 선언하기",
+        prompt: "Claude에서 되던 palantir-mini 훅을 Codex도 완전히 똑같이 지원한다고 문서화해줘.",
+        summary: "palantir-mini는 provider 이름을 의미로 취급하지 않습니다. Codex에서 된 것, adapter-native인 것, manual인 것, unsupported인 것을 증거로 분리합니다.",
+        support: "adapter-native",
+        phases: "capability-declare -> smoke-evidence",
+        steps: ["runtime support claim을 감지합니다.", "RuntimeAdapterProjection으로 지원/미지원 표면을 나눕니다.", "unsupported parity claim을 차단합니다.", "smoke test나 명시적 gap을 연결합니다.", "증거 있는 parity만 문서나 PR에 남깁니다."],
+        guard: "Claude hook lifecycle과 Codex adapter 동작을 증거 없이 동일하다고 주장하면 안 됩니다.",
+        evidence: ["runtime evidence", "codex-hook-adapter", "smoke test"]
+      },
+      {
+        family: "validationEvalAndHarness",
+        title: "변경 표면에 맞는 검증만 골라 실행하기",
+        prompt: "이번 수정이 전체 플러그인을 깨뜨리지 않는지 확인하고, 필요한 테스트도 추천해줘.",
+        summary: "targeted validation과 broad validation을 구분합니다. 바뀐 표면이 문서라면 HTML 구조와 브라우저 렌더링을 우선 확인합니다.",
+        support: "native",
+        phases: "ratchet-plan -> execution",
+        steps: ["바뀐 behavior와 surface를 정리합니다.", "ratchet plan이 필요한 검증 묶음을 고릅니다.", "targeted test 또는 eval suite를 실행합니다.", "실패가 broad suite 문제인지 변경 문제인지 분리합니다.", "검증 결과를 변경 근거에 연결합니다."],
+        guard: "관련 없는 테스트 통과만으로 완료 처리하거나 broad-suite 실패를 뭉개면 안 됩니다.",
+        evidence: ["targeted test", "eval suite", "Playwright smoke"]
+      },
+      {
+        family: "releaseAndShipping",
+        title: "좁은 범위만 PR로 닫기",
+        prompt: "수정 끝났으면 커밋, 푸시, PR, 머지까지 해줘. 다른 dirt는 건드리지 마.",
+        summary: "릴리스는 코드 변경이 아니라 증거 묶음입니다. path scope, PR 본문, 로컬 검증, CI gap, merge commit이 함께 닫힙니다.",
+        support: "native",
+        phases: "preflight -> pr-closeout",
+        steps: ["git status와 path scope를 확인합니다.", "release gate와 제외 범위를 정리합니다.", "관련 파일만 staging합니다.", "PR 본문에 why, scope, verification, recovery를 채웁니다.", "merge 상태와 cleanup 증거를 남깁니다."],
+        guard: "main 직접 push나 unrelated dirt 포함 staging은 금지됩니다.",
+        evidence: ["git status", "PR body", "merge commit"]
+      },
+      {
+        family: "lineageReplayAndLearning",
+        title: "작업 결과를 나중에 재생 가능한 학습 기록으로 남기기",
+        prompt: "이번 실패 원인과 고친 과정을 다음 세션이 바로 이어받게 기록해줘.",
+        summary: "중요한 결정과 검증 결과는 append-only event, value grade, replay 가능한 lineage로 남깁니다.",
+        support: "adapter-native",
+        phases: "event-capture -> replay-query",
+        steps: ["결정, 도구 실행, 검증 결과를 이벤트 후보로 봅니다.", "value grade와 5차원 lineage를 붙입니다.", "직접 파일 수정 대신 emit_event를 사용합니다.", "replay query가 before/after와 outcome pair를 연결합니다.", "다음 개선 대상이 추적 가능해집니다."],
+        guard: "events.jsonl을 수동으로 다시 쓰면 안 됩니다.",
+        evidence: ["emit_event", "value grade", "replay query"]
+      },
+      {
+        family: "applicationAndChatbotAuthoring",
+        title: "앱/챗봇 상태를 먼저 설계하고 검증하기",
+        prompt: "학생용 대화형 학습 도우미 화면을 만들고, 커리큘럼 맥락도 연결해줘.",
+        summary: "챗봇과 앱은 backend만의 일이 아닙니다. 사용자-visible 상태, retrieval context, eval suite를 함께 봅니다.",
+        support: "manual",
+        phases: "application-state-design -> authoring-validation",
+        steps: ["앱 상태, 사용자-visible 상태, retrieval context를 분리합니다.", "ApplicationVariableContract와 RetrievalContextContract를 잡습니다.", "챗봇/교육 authoring 출력을 만듭니다.", "eval suite나 validation pack으로 동작을 확인합니다.", "Codex UI parity가 없으면 수동 검증과 gap을 명시합니다."],
+        guard: "앱 상태 권위가 불명확한 채 챗봇 답변이나 교육 흐름을 생성하면 안 됩니다.",
+        evidence: ["ApplicationVariableContract", "RetrievalContextContract", "authoring eval"]
+      }
+    ];
+
+    const tabs = document.getElementById("scenarioTabs");
+    const stage = document.getElementById("scenarioStage");
+
+    function renderTabs(activeIndex) {
+      tabs.innerHTML = scenarios.map((scenario, index) => `
+        <button class="tab" type="button" role="tab" aria-selected="${index === activeIndex}" aria-controls="scenarioStage" data-index="${index}">
+          <span class="tab-number">${String(index + 1).padStart(2, "0")}</span>
+          <span class="tab-label">${scenario.family}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderScenario(index) {
+      const scenario = scenarios[index];
+      stage.innerHTML = `
+        <div class="scenario-head">
+          <div>
+            <p class="eyebrow">${scenario.family}</p>
+            <h3>${scenario.title}</h3>
+            <p class="scenario-summary">${scenario.summary}</p>
+          </div>
+          <div class="scenario-meta" aria-label="시나리오 메타데이터">
+            <span>Codex support: ${scenario.support}</span>
+            <span>Phases: ${scenario.phases}</span>
+            <span>Runtime: Codex active</span>
+          </div>
+        </div>
+        <div class="scenario-body">
+          <div class="prompt-box">
+            <h4>사용자 프롬프트 예시</h4>
+            <p class="prompt-text">“${scenario.prompt}”</p>
+            <div class="guard">
+              <h4>가드레일</h4>
+              <p>${scenario.guard}</p>
+            </div>
+          </div>
+          <div class="flow-box">
+            <h4>end-to-end로 벌어지는 일</h4>
+            <ol class="flow-list">
+              ${scenario.steps.map((step, stepIndex) => `<li><b>${stepIndex + 1}</b><span>${step}</span></li>`).join("")}
+            </ol>
+          </div>
+        </div>
+        <div class="evidence" aria-label="관련 증거">
+          ${scenario.evidence.map((item) => `<span>${item}</span>`).join("")}
+        </div>
+      `;
+      renderTabs(index);
+    }
+
+    tabs.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-index]");
+      if (!button) return;
+      renderScenario(Number(button.dataset.index));
+    });
+
+    renderScenario(0);
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add("is-visible");
+      });
+    }, { threshold: 0.14 });
+    document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+
+    const canvas = document.getElementById("runtimeCanvas");
+    const ctx = canvas.getContext("2d");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const labels = ["Prompt", "Gate", "Router", "Hook", "Agent", "Test", "PR", "Replay"];
+    let nodes = [];
+    let frame = 0;
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const scale = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.floor(rect.width * scale));
+      canvas.height = Math.max(1, Math.floor(rect.height * scale));
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      nodes = labels.map((label, index) => ({
+        label,
+        x: rect.width * (0.54 + 0.36 * Math.cos((index / labels.length) * Math.PI * 2)),
+        y: rect.height * (0.48 + 0.31 * Math.sin((index / labels.length) * Math.PI * 2)),
+        r: index % 3 === 0 ? 34 : 26,
+        color: ["#0f6fff", "#ef5a46", "#4b9b55", "#c18b1d", "#6957d9"][index % 5]
+      }));
+      drawCanvas();
+    }
+
+    function drawCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.fillStyle = "#101419";
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.strokeStyle = "rgba(247,244,236,0.08)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < rect.width; x += 56) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, rect.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < rect.height; y += 56) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(rect.width, y);
+        ctx.stroke();
+      }
+      nodes.forEach((node, index) => {
+        const next = nodes[(index + 1) % nodes.length];
+        ctx.strokeStyle = "rgba(247,244,236,0.22)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(node.x, node.y);
+        ctx.lineTo(next.x, next.y);
+        ctx.stroke();
+      });
+      nodes.forEach((node, index) => {
+        const drift = reduced ? 0 : Math.sin(frame / 38 + index) * 7;
+        ctx.beginPath();
+        ctx.fillStyle = node.color;
+        ctx.globalAlpha = 0.9;
+        ctx.arc(node.x, node.y + drift, node.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "#fffdf6";
+        ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(node.label, node.x, node.y + drift);
+      });
+      if (!reduced) {
+        frame += 1;
+        requestAnimationFrame(drawCanvas);
+      }
+    }
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+  </script>
+</body>
+</html>
