@@ -5,6 +5,11 @@ that invokes it. In this checkout the only active install target is Codex. Claud
 and Gemini packaging/install surfaces have been removed locally and can be added
 later through their own marketplace paths.
 
+The machine-readable source for this boundary is
+`contracts/layer-boundary.contract.json`, validated by
+`schemas/layer-boundary.schema.json` and
+`scripts/verify-layer-boundary.ts`.
+
 ## Source Of Truth
 
 - Runtime-neutral local source checkout: `/home/palantirkc/palantir-mini-marketplace`
@@ -16,6 +21,24 @@ later through their own marketplace paths.
 Any implementation plan for palantir-mini self-improvement must name the source
 repo, branch, remote, plugin source root, and Codex install/cache path before
 editing.
+
+## LayerBoundaryV1 Roles
+
+`LayerBoundaryV1` separates six roles:
+
+| Role | Authority | Protected mutation authority |
+|---|---|---|
+| `llm-provider` | metadata-only | none |
+| `runtime-adapter` | runtime-owned | none |
+| `plugin-source` | source-of-truth | deterministic source authority |
+| `project-state` | state evidence | append-only evidence, not approval |
+| `runtime-cache` | installed payload | install refresh only |
+| `marketplace-root` | repository root | deterministic release authority |
+
+Protected mutation is denied by default unless deterministic evidence is
+complete. Free text, advisory review cards, provider identity, runtime cache
+presence, and prompt-front-door ref strings without approved bodies are
+non-authorizing inputs.
 
 ## Native Runtime Consumer
 
@@ -55,3 +78,16 @@ Before editing palantir-mini itself, write down:
 
 If a plan does not separate those items, stop and fix the plan before
 implementation.
+
+## Verification
+
+Run the layer-boundary verifier before release:
+
+```bash
+bun run scripts/verify-layer-boundary.ts
+```
+
+The verifier emits JSON with `valid`, `issues`, `contractPath`, `schemaPath`, and
+`checkedRoles`. Blocking reason codes are stable `LAYER_BOUNDARY_*` values and
+deny protected mutation when contract, schema, provider, runtime cache, advisory
+input, or deterministic evidence checks fail.

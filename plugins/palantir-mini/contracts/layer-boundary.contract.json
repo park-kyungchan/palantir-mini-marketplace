@@ -1,0 +1,238 @@
+{
+  "schemaVersion": "palantir-mini/layer-boundary-contract/v1",
+  "contractId": "layer-boundary-v1",
+  "sourceAuthority": {
+    "canonicalMarketplaceRoot": "/home/palantirkc/palantir-mini-marketplace",
+    "canonicalPluginSource": "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini",
+    "upstreamMarketplaceSource": "https://github.com/park-kyungchan/palantir-mini-marketplace",
+    "upstreamPluginSource": "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini",
+    "codexRuntimeCache": "~/.codex/plugins/cache/palantir-mini-marketplace/**",
+    "runtimeBoundaryContract": "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
+    "releasePath": "branch -> pull request -> merge to main -> Codex marketplace refresh/install"
+  },
+  "llmProvider": {
+    "role": "llm-provider",
+    "authority": "metadata-only",
+    "mutationAuthority": "none",
+    "mayAuthorizeProtectedMutation": false,
+    "deterministicForGate": false,
+    "ownedPaths": [],
+    "readOnlyPaths": [],
+    "forbiddenPaths": [],
+    "allowedActions": [
+      "produce-token-output",
+      "request-human-approval",
+      "invoke-runtime-tools"
+    ],
+    "forbiddenActions": [
+      "act-as-semantic-authority",
+      "authorize-protected-mutation",
+      "rewrite-layer-boundary"
+    ],
+    "notes": "Provider identity is runtime metadata and never a SemanticIntentContract, DigitalTwinChangeContract, or WorkContract authority."
+  },
+  "runtimeAdapter": {
+    "role": "runtime-adapter",
+    "authority": "runtime-owned",
+    "mutationAuthority": "runtime-owned-state",
+    "mayAuthorizeProtectedMutation": false,
+    "deterministicForGate": false,
+    "ownedPaths": [
+      "~/.codex/config.toml",
+      "~/.codex/hooks.json",
+      "~/.codex/memories/**"
+    ],
+    "readOnlyPaths": [
+      "hooks/codex-hooks.json",
+      "hooks/hooks.json",
+      "lib/codex/**"
+    ],
+    "forbiddenPaths": [
+      "contracts/layer-boundary.contract.json",
+      "schemas/layer-boundary.schema.json"
+    ],
+    "allowedActions": [
+      "adapt-hook-invocation",
+      "surface-native-runtime-gaps",
+      "read-plugin-intent"
+    ],
+    "forbiddenActions": [
+      "treat-native-gap-as-approval",
+      "edit-plugin-source-from-cache",
+      "bypass-contract-gate"
+    ],
+    "notes": "Codex adapter behavior can expose or enforce plugin intent, but it cannot replace approved contract evidence."
+  },
+  "pluginSource": {
+    "role": "plugin-source",
+    "authority": "source-of-truth",
+    "mutationAuthority": "source-authority",
+    "mayAuthorizeProtectedMutation": true,
+    "deterministicForGate": true,
+    "ownedPaths": [
+      "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/**"
+    ],
+    "readOnlyPaths": [
+      "~/.codex/plugins/cache/palantir-mini-marketplace/**"
+    ],
+    "forbiddenPaths": [
+      "~/.codex/plugins/cache/palantir-mini-marketplace/**"
+    ],
+    "allowedActions": [
+      "define-contracts",
+      "implement-handlers",
+      "run-validation",
+      "prepare-release"
+    ],
+    "forbiddenActions": [
+      "patch-installed-cache",
+      "invent-approval-from-free-text",
+      "skip-verifier"
+    ],
+    "notes": "Implementation work belongs in the private marketplace source checkout, not installed runtime payloads."
+  },
+  "projectState": {
+    "role": "project-state",
+    "authority": "state-evidence",
+    "mutationAuthority": "append-only",
+    "mayAuthorizeProtectedMutation": false,
+    "deterministicForGate": true,
+    "ownedPaths": [
+      "<project>/.palantir-mini/session/events.jsonl",
+      "<project>/.palantir-mini/session/context-capsules/**"
+    ],
+    "readOnlyPaths": [
+      "<project>/.palantir-mini/session/**"
+    ],
+    "forbiddenPaths": [
+      "<project>/.palantir-mini/session/events.jsonl"
+    ],
+    "allowedActions": [
+      "append-lineage-event",
+      "read-context-capsule",
+      "report-dirty-state"
+    ],
+    "forbiddenActions": [
+      "hand-rewrite-session-artifact",
+      "treat-session-dirt-as-source-authority",
+      "promote-advisory-card-to-approval"
+    ],
+    "notes": "Session state is audit evidence. It is not a writable source contract and must not be hand-rewritten."
+  },
+  "runtimeCache": {
+    "role": "runtime-cache",
+    "authority": "installed-payload",
+    "mutationAuthority": "install-refresh-only",
+    "mayAuthorizeProtectedMutation": false,
+    "deterministicForGate": false,
+    "ownedPaths": [
+      "~/.codex/plugins/cache/palantir-mini-marketplace/**"
+    ],
+    "readOnlyPaths": [
+      "~/.codex/plugins/cache/palantir-mini-marketplace/**"
+    ],
+    "forbiddenPaths": [
+      "~/.codex/plugins/cache/palantir-mini-marketplace/**"
+    ],
+    "allowedActions": [
+      "inspect-installed-behavior",
+      "refresh-from-merged-source"
+    ],
+    "forbiddenActions": [
+      "edit-as-semantic-authority",
+      "commit-cache-diff",
+      "override-source-contract"
+    ],
+    "notes": "Installed cache payloads are consumers only and refresh from the marketplace source after merge."
+  },
+  "marketplaceRoot": {
+    "role": "marketplace-root",
+    "authority": "repository-root",
+    "mutationAuthority": "source-authority",
+    "mayAuthorizeProtectedMutation": true,
+    "deterministicForGate": true,
+    "ownedPaths": [
+      "/home/palantirkc/palantir-mini-marketplace/**"
+    ],
+    "readOnlyPaths": [
+      "/home/palantirkc/palantir-mini-marketplace/.git/**"
+    ],
+    "forbiddenPaths": [
+      "/home/palantirkc/palantir-mini-marketplace/.palantir-mini/session/**"
+    ],
+    "allowedActions": [
+      "branch",
+      "commit",
+      "open-pull-request",
+      "merge-pull-request"
+    ],
+    "forbiddenActions": [
+      "push-directly-to-main",
+      "rewrite-session-history",
+      "treat-runtime-home-as-source"
+    ],
+    "notes": "The marketplace root owns Git release flow; plugin semantics still live under plugins/palantir-mini."
+  },
+  "protectedMutationPolicy": {
+    "defaultDecision": "deny",
+    "requiredEvidence": [
+      "approved-semantic-intent-contract",
+      "approved-digital-twin-change-contract",
+      "layer-boundary-verifier-valid",
+      "targeted-tests-passing"
+    ],
+    "nonAuthorizingInputs": [
+      "free-text-prompt",
+      "advisory-review-card",
+      "llm-provider-identity",
+      "runtime-cache-presence",
+      "prompt-front-door-ref-string-without-approved-body"
+    ],
+    "blockingReasonCodes": [
+      "LAYER_BOUNDARY_UNKNOWN_ROLE",
+      "LAYER_BOUNDARY_SCHEMA_INVALID",
+      "LAYER_BOUNDARY_CACHE_AUTHORITY",
+      "LAYER_BOUNDARY_PROVIDER_AUTHORITY",
+      "LAYER_BOUNDARY_ADVISORY_AUTHORITY",
+      "LAYER_BOUNDARY_MISSING_EVIDENCE"
+    ]
+  },
+  "reasonCodes": [
+    {
+      "code": "LAYER_BOUNDARY_UNKNOWN_ROLE",
+      "severity": "block",
+      "deniesProtectedMutation": true,
+      "message": "Layer role must be one of the versioned LayerBoundaryV1 roles."
+    },
+    {
+      "code": "LAYER_BOUNDARY_SCHEMA_INVALID",
+      "severity": "block",
+      "deniesProtectedMutation": true,
+      "message": "Layer boundary contract or schema is missing required deterministic fields."
+    },
+    {
+      "code": "LAYER_BOUNDARY_CACHE_AUTHORITY",
+      "severity": "block",
+      "deniesProtectedMutation": true,
+      "message": "Runtime cache paths cannot authorize or host semantic source edits."
+    },
+    {
+      "code": "LAYER_BOUNDARY_PROVIDER_AUTHORITY",
+      "severity": "block",
+      "deniesProtectedMutation": true,
+      "message": "LLM provider identity cannot authorize protected mutation."
+    },
+    {
+      "code": "LAYER_BOUNDARY_ADVISORY_AUTHORITY",
+      "severity": "block",
+      "deniesProtectedMutation": true,
+      "message": "Free text, advisory cards, or unresolved refs cannot become approval authority."
+    },
+    {
+      "code": "LAYER_BOUNDARY_MISSING_EVIDENCE",
+      "severity": "block",
+      "deniesProtectedMutation": true,
+      "message": "Protected mutation requires complete deterministic contract and validation evidence."
+    }
+  ]
+}
