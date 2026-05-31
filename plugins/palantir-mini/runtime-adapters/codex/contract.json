@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "palantir-mini/runtime-adapter-contract/v1",
+  "runtime": "codex",
+  "support": "adapter-native",
+  "providerIdentityAuthority": "metadata-only",
+  "sourceAuthority": "plugins/palantir-mini",
+  "packageSurface": "codex-plugin",
+  "manifestRefs": [
+    ".codex-plugin/plugin.json",
+    ".mcp.json",
+    "codex-skills/README.md"
+  ],
+  "hookRegistryRefs": [
+    "hooks/codex-hooks.json",
+    "hooks/hooks.json"
+  ],
+  "adapterRefs": [
+    "lib/codex/codex-hook-adapter.ts"
+  ],
+  "mcpProfileRefs": [
+    ".mcp.json",
+    "lib/capability-registry/mcp-tool-capability.ts"
+  ],
+  "skillSurfaceRefs": [
+    ".codex-plugin/plugin.json",
+    "codex-skills/README.md",
+    "tests/integration/codex-skill-surface.test.ts"
+  ],
+  "mountedHookEvents": [
+    "PermissionRequest",
+    "PostToolUse",
+    "PreCompact",
+    "PostCompact",
+    "SubagentStart",
+    "SubagentStop",
+    "Stop"
+  ],
+  "unmountedHookEvents": [
+    "PreToolUse",
+    "SessionStart",
+    "UserPromptSubmit"
+  ],
+  "unsupportedSurfaceRefs": [
+    "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
+    "codex:hook-event:SessionStart:unmounted",
+    "codex:hook-event:UserPromptSubmit:unmounted",
+    "codex:claude-task-lifecycle-event-parity",
+    "codex:gemini-extension-parity"
+  ],
+  "runtimeGapRefs": [
+    "codex:source-complete-is-not-active-runtime-complete",
+    "codex:requires-plugin-reinstall-reload-and-process-restart",
+    "codex:mounted-hook-manifest-smoke-required"
+  ],
+  "fallbackObligations": [
+    "A source plan or source merge is not live Codex behavior until the plugin payload is reinstalled/reloaded and Codex is restarted.",
+    "Mounted hook, MCP profile, and skill surface claims require smoke evidence from the installed runtime payload.",
+    "Provider identity remains metadata and must not authorize approvals or mutations."
+  ],
+  "smokeEvidenceRefs": [
+    "tests/runtime-boundary/codex-plugin-hooks.test.ts",
+    "tests/integration/codex-skill-surface.test.ts"
+  ],
+  "reloadEvidenceRefs": [
+    "docs/RELOAD_PER_RUNTIME.md",
+    "docs/CODEX_HOOK_ADAPTER.md"
+  ],
+  "lastVerified": "2026-05-31",
+  "unsupportedParityClaimsForbidden": true
+}

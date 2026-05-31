@@ -49,7 +49,7 @@ export interface EventEnvelopeBase {
    * fields per rule 26 §Axis D1; LLMI-02 provider-neutral runtime contract).
    */
   byWhom: {
-    identity:   "claude-code" | "codex" | "gemini" | "user" | "monitor" | "test-agent";
+    identity:   "claude-code" | "codex" | "gemini" | "user" | "monitor" | "test-agent" | "unknown";
     agentName?: string;
     teamName?:  string;
     /** v1.35.0+ Normalized model name (e.g. "claude-opus-4-7", "gpt-5.4"). */

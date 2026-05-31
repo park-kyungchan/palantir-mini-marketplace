@@ -95,6 +95,13 @@ function makeSurface(localResearchPath = makeOfficialResearchPath()): AipFdeLoca
         unsupportedSurfaceRefs: [],
         smokeEvidenceRefs: [],
       },
+      gemini: {
+        support: "unsupported",
+        evidenceRefs: [],
+        fallbackObligations: ["Gemini remains runtime_gap until native evidence exists."],
+        unsupportedSurfaceRefs: ["gemini:runtime-gap-unsupported"],
+        smokeEvidenceRefs: [],
+      },
     },
     outputStateRefs: ["semanticIntentContractRef"],
     validationRefs: ["tests/bridge/handlers/pm-semantic-intent-gate.test.ts"],

@@ -48,14 +48,20 @@ export function compareRuntimeDecisionParity(input: {
   readonly neutral: RuntimeDecision;
   readonly claude: RuntimeDecision;
   readonly codex: RuntimeDecision;
+  readonly gemini?: RuntimeDecision;
 }): RuntimeDecisionParityResult {
   const differences: RuntimeDecisionParityDifference[] = [];
   for (const field of COMPARED_FIELDS) {
     const neutral = valueFor(input.neutral, field);
     const claude = valueFor(input.claude, field);
     const codex = valueFor(input.codex, field);
-    if (stable(neutral) !== stable(claude) || stable(neutral) !== stable(codex)) {
-      differences.push({ field, neutral, claude, codex });
+    const gemini = input.gemini ? valueFor(input.gemini, field) : undefined;
+    if (
+      stable(neutral) !== stable(claude) ||
+      stable(neutral) !== stable(codex) ||
+      (input.gemini ? stable(neutral) !== stable(gemini) : false)
+    ) {
+      differences.push(input.gemini ? { field, neutral, claude, codex, gemini } : { field, neutral, claude, codex });
     }
   }
   return {

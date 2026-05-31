@@ -8,6 +8,7 @@ export interface PmRuntimeDecisionParityArgs {
   readonly neutral: RuntimeDecision;
   readonly claude: RuntimeDecision;
   readonly codex: RuntimeDecision;
+  readonly gemini?: RuntimeDecision;
 }
 
 export async function pmRuntimeDecisionParity(

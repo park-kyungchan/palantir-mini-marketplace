@@ -14,6 +14,21 @@
 - Installed payloads such as `~/.codex/plugins/cache/**` are runtime consumers and must not be edited as semantic authority.
 - Claude/Gemini runtime install paths are not active in this checkout.
 
+## PR5 Runtime Adapter Contract Scope
+
+PR5 per-runtime source contracts live at
+`runtime-adapters/codex/contract.json`,
+`runtime-adapters/claude/contract.json`, and
+`runtime-adapters/gemini/contract.json`. Those paths are source contracts, not
+runtime reload commands or proof of native support.
+
+Codex is the only active package/install target. Source-complete is not
+active-runtime-complete: Codex observes runtime-surface changes only after
+marketplace refresh or reinstall, process restart, and targeted smoke evidence.
+Claude and Gemini remain contract-only `runtime_gap` / unsupported surfaces until
+native package/install surfaces and smoke evidence exist. Do not add Claude or
+Gemini reload command sections without that evidence.
+
 ## What triggers a reload requirement
 
 A reload is needed whenever Codex's in-memory plugin surface diverges from the

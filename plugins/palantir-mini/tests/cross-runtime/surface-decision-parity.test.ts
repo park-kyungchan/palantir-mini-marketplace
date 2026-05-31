@@ -36,6 +36,11 @@ describe("surface decision parity", () => {
         runtime: "codex",
         unsupportedSurfaceRefs: ["codex:subagent-stop"],
       },
+      gemini: {
+        ...NEUTRAL_DECISION,
+        runtime: "gemini",
+        unsupportedSurfaceRefs: ["gemini:runtime-gap-unsupported"],
+      },
     });
 
     expect(result.status).toBe("pass");
@@ -48,9 +53,24 @@ describe("surface decision parity", () => {
       neutral: NEUTRAL_DECISION,
       claude: { ...NEUTRAL_DECISION, runtime: "claude" },
       codex: { ...NEUTRAL_DECISION, runtime: "codex", decision: "allow" },
+      gemini: { ...NEUTRAL_DECISION, runtime: "gemini" },
     });
 
     expect(result.status).toBe("fail");
     expect(result.differences.map((diff) => diff.field)).toContain("decision");
+  });
+
+  test("fails when Gemini changes semantic authorization", () => {
+    const result = compareRuntimeDecisionParity({
+      neutral: NEUTRAL_DECISION,
+      claude: { ...NEUTRAL_DECISION, runtime: "claude" },
+      codex: { ...NEUTRAL_DECISION, runtime: "codex" },
+      gemini: { ...NEUTRAL_DECISION, runtime: "gemini", decision: "deny" },
+    });
+
+    expect(result.status).toBe("fail");
+    expect(result.differences).toContainEqual(
+      expect.objectContaining({ field: "decision", gemini: "deny" }),
+    );
   });
 });
