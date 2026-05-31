@@ -10,6 +10,9 @@
     "tests/runtime-boundary/codex-plugin-hooks.test.ts"
   ],
   "unsupportedSurfaceRefs": [
+    "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
+    "codex:hook-event:SessionStart:unmounted",
+    "codex:hook-event:UserPromptSubmit:unmounted",
     "codex:claude-task-lifecycle-event-parity",
     "codex:gemini-extension-parity"
   ],

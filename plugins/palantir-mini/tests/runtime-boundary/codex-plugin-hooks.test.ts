@@ -6,8 +6,10 @@ const PLUGIN_ROOT = join(import.meta.dir, "../..");
 const CODEX_PLUGIN_MANIFEST = join(PLUGIN_ROOT, ".codex-plugin", "plugin.json");
 const CODEX_HOOKS_PATH = join(PLUGIN_ROOT, "hooks", "codex-hooks.json");
 const SHARED_HOOKS_PATH = join(PLUGIN_ROOT, "hooks", "hooks.json");
+const CODEX_RUNTIME_EVIDENCE_PATH = join(PLUGIN_ROOT, "contracts", "runtime-evidence", "codex.json");
 const TSCONFIG_PATH = join(PLUGIN_ROOT, "tsconfig.json");
 const CLAUDE_ONLY_EVENTS = ["TaskCreated", "TaskCompleted", "TeammateIdle"] as const;
+const UNMOUNTED_CODEX_EVENTS = ["PreToolUse", "SessionStart", "UserPromptSubmit"] as const;
 
 type HookConfig = {
   type?: string;
@@ -92,6 +94,25 @@ describe("Codex plugin hook entrypoints", () => {
 });
 
 describe("runtime-specific hook registries", () => {
+  test("Codex runtime evidence records intentionally unmounted lifecycle events", () => {
+    const doc = readJson<HooksDocument>(CODEX_HOOKS_PATH);
+    const evidence = readJson<{
+      unsupportedSurfaceRefs?: string[];
+    }>(CODEX_RUNTIME_EVIDENCE_PATH);
+
+    for (const eventName of UNMOUNTED_CODEX_EVENTS) {
+      expect(doc.hooks?.[eventName]).toBeUndefined();
+    }
+
+    expect(evidence.unsupportedSurfaceRefs).toEqual(
+      expect.arrayContaining([
+        "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
+        "codex:hook-event:SessionStart:unmounted",
+        "codex:hook-event:UserPromptSubmit:unmounted",
+      ]),
+    );
+  });
+
   test("shared hook registry excludes inactive Claude task and teammate lifecycle events", () => {
     const shared = readJson<HooksDocument>(SHARED_HOOKS_PATH);
 
