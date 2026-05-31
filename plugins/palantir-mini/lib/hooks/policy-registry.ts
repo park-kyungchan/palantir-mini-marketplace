@@ -153,7 +153,11 @@ export const HOOK_POLICY_REGISTRY: readonly HookPolicy[] = [
     purpose: "Run deterministic session start and closeout governance.",
     runtimeSupport: [
       { runtime: "claude", support: "native", evidence: "Claude session lifecycle hook events." },
-      { runtime: "codex", support: "native", evidence: "Codex SessionStart and Stop hook adapter events." },
+      {
+        runtime: "codex",
+        support: "manual",
+        evidence: "Codex Stop remains mounted through hooks/codex-hooks.json; SessionStart is intentionally unmounted.",
+      },
     ],
   },
   {
@@ -175,7 +179,11 @@ export const HOOK_POLICY_REGISTRY: readonly HookPolicy[] = [
     purpose: "Capture prompt identity before SIC/DTC routing and downstream advisory checks.",
     runtimeSupport: [
       { runtime: "claude", support: "native", evidence: "Claude UserPromptSubmit hook event." },
-      { runtime: "codex", support: "native", evidence: "Codex UserPromptSubmit hook adapter event." },
+      {
+        runtime: "codex",
+        support: "unsupported",
+        evidence: "Codex UserPromptSubmit is intentionally not mounted in hooks/codex-hooks.json.",
+      },
     ],
   },
 ];

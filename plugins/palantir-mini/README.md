@@ -36,8 +36,11 @@ The Convex backend is authorized for Cloud cutover (user directive 2026-05-13). 
 
 Codex loads palantir-mini hook entrypoints from `.codex-plugin/plugin.json` →
 `hooks/codex-hooks.json`. That file is intentionally small: it uses only
-Codex-supported events, regex-safe matchers, and adapter commands. The adapter
-then reads `hooks/hooks.json` as the canonical workflow-intent registry.
+mounted Codex events, regex-safe matchers, and adapter commands. It
+intentionally does not register `SessionStart` or `UserPromptSubmit`, so Codex
+sessions do not receive palantir-mini startup or prompt-submit context injection
+by default. The adapter reads `hooks/hooks.json` only for Codex events that are
+mounted in `hooks/codex-hooks.json`.
 Runtime fallback wiring may also exist under `~/.codex/hooks.json`, but it must
 remain a thin consumer of the plugin payload.
 
@@ -67,10 +70,18 @@ install and trust state still belong to the owning runtime.
 
 ## Prompt-to-DTC Front Door
 
-Canonical prompt/DTC proof is:
+The prompt/DTC front-door implementation remains available for explicit
+palantir-mini workflows, direct tests, and compatibility checks. It is not
+registered as a Codex `UserPromptSubmit` hook, and the active shared
+`hooks/hooks.json` registry also carries no `UserPromptSubmit` group. Ordinary
+Codex prompts are therefore not captured automatically and no context capsule is
+persisted just because a user submitted a prompt.
 
-1. `prompt-front-door-capture` runs first on `UserPromptSubmit` and writes the
-   prompt envelope/current pointer under
+When a user explicitly opts into palantir-mini workflow handling, canonical
+prompt/DTC proof is built by explicit workflow invocation:
+
+1. The prompt-front-door capture implementation can write a prompt
+   envelope/current pointer under
    `<project>/.palantir-mini/session/prompt-front-door/`.
 2. For ontology-affecting work, the Lead continues the
    `FDEOntologyEngineeringSession` so user meaning is surfaced turn-by-turn
@@ -86,10 +97,10 @@ Canonical prompt/DTC proof is:
    not mutation authority.
 6. `pm_intent_router` consumes approved prompt-local `SemanticIntentContract`
    and `DigitalTwinChangeContract` refs, preserving prompt hash continuity.
-7. Prompt-DTC PreToolUse enforcement is controlled by
-   `PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off|advisory|selective-blocking|scoped-blocking|blocking`.
-   The fleet default is managed by policy; promoting Codex to full blocking
-   remains intentionally deferred until sustained smoke evidence supports it.
+7. Prompt-DTC gate implementation remains available as an explicit opt-in
+   compatibility/test surface, but the active `hooks/hooks.json` registry does
+   not attach it to PreToolUse. `PALANTIR_MINI_PROMPT_DTC_GATE_MODE` only affects
+   direct hook invocation or a future explicit re-registration.
 
 v5.1.0 adds a human-collaborative authoring layer on top of this proof path:
 non-programmer users review plain-language cards, answer bounded clarifying
@@ -132,7 +143,7 @@ ontology-affecting prompts receive a contract-required fail-closed response.
 
 - `PALANTIR_MINI_DTC_EVAL_REFS_BYPASS=1` — skip typed-ref validation gate in bridge-sig-gate / validator. Emits `dtc_eval_refs_bypass_invoked`.
 - `PALANTIR_MINI_ROUTER_FAIL_CLOSED_BYPASS=1` — skip router fail-closed path; router uses legacy routing basis. Emits `router_fail_closed_bypass_invoked`.
-- `PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off|advisory|selective-blocking|blocking` — controls enforcement level of `prompt-dtc-enforcement-gate` hook. Default during shakedown: `selective-blocking`. Set `off` to fully disable.
+- `PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off|advisory|selective-blocking|scoped-blocking|blocking` — controls `prompt-dtc-enforcement-gate` only when that hook is invoked directly or explicitly re-registered. The active `hooks/hooks.json` registry does not attach Prompt-DTC to PreToolUse.
 
 ## FDE Ontology Engineering Session
 
@@ -160,8 +171,9 @@ Legacy hooks such as `complex-task-detector`,
 `user-prompt-overlay-advisory`, `user-prompt-ontology-intent-extract`,
 `lead-model-availability-check`, `pre-delegation-check`,
 `lead-direct-edit-watch`, and `lead-git-operation-watch` remain useful
-downstream governance/advisory hooks. They are not prompt-front-door proof and
-must not be treated as DTC approval.
+direct compatibility and test helpers. They are not active Codex
+`SessionStart`/`UserPromptSubmit` registrations, are not prompt-front-door proof,
+and must not be treated as DTC approval.
 
 ## Release-checked surface
 

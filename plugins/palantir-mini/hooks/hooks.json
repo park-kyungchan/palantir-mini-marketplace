@@ -48,16 +48,6 @@
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-dtc-enforcement-gate",
-            "timeout": 150,
-            "permissionDecision": "defer",
-            "failureMode": "fail-closed",
-            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
-            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
-            "statusMessage": "Prompt-DTC gate (default advisory; blocking only via PALANTIR_MINI_PROMPT_DTC_GATE_MODE)…"
-          },
-          {
-            "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" pre-edit-impact-check",
             "if": "!**.test.ts",
             "timeout": 40,
@@ -84,7 +74,7 @@
             "if": "Edit|Write|MultiEdit",
             "timeout": 40,
             "permissionDecision": "defer",
-            "statusMessage": "Downstream pre-delegation gate after prompt-front-door proof…"
+            "statusMessage": "Downstream pre-delegation gate after explicit contract proof…"
           },
           {
             "type": "command",
@@ -110,7 +100,7 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/lead-ontology-discovery-completeness.ts\"",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Downstream ontology discovery completeness advisory (not prompt-front-door proof)…"
+            "statusMessage": "Downstream ontology discovery completeness advisory (not contract proof)…"
           }
         ]
       },
@@ -204,33 +194,12 @@
       {
         "matcher": "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router|mcp__palantir_mini__pm_intent_router|mcp__palantir_mini__.pm_intent_router|mcp__palantir-mini__pm_intent_router|mcp_palantir-mini_pm_intent_router|mcp_palantir_mini_pm_intent_router|mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__ontology_context_query|mcp__palantir_mini__.ontology_context_query|mcp__palantir-mini__ontology_context_query|mcp_palantir-mini_ontology_context_query|mcp_palantir_mini_ontology_context_query",
         "policyRef": "hook-step:pretool-ontology-routing-dtc",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-dtc-enforcement-gate",
-            "timeout": 150,
-            "permissionDecision": "defer",
-            "failureMode": "fail-closed",
-            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
-            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
-            "statusMessage": "Prompt-DTC gate for ontology/action routing tools (default advisory)…"
-          }
-        ]
+        "hooks": []
       },
       {
         "matcher": "Agent",
         "policyRef": "hook-step:pretool-agent-dispatch",
         "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-dtc-enforcement-gate",
-            "timeout": 150,
-            "permissionDecision": "defer",
-            "failureMode": "fail-closed",
-            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
-            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
-            "statusMessage": "Prompt-DTC gate for Agent dispatch (default advisory)…"
-          },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/harness-worktree-advisory.ts\"",
@@ -267,21 +236,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-dtc-enforcement-gate",
-            "timeout": 150,
-            "permissionDecision": "defer",
-            "failureMode": "fail-closed",
-            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
-            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
-            "statusMessage": "Prompt-DTC gate for mutating Bash (default advisory)…"
-          },
-          {
-            "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/lead-git-operation-watch.ts\"",
             "if": "Bash(git commit*)|Bash(git add*)|Bash(git stash*)|Bash(git push*)",
             "timeout": 40,
             "async": true,
-            "statusMessage": "Downstream git-op delegation advisory (not prompt-front-door proof)…"
+            "statusMessage": "Downstream git-op delegation advisory (not contract proof)…"
           }
         ]
       }
@@ -478,7 +437,7 @@
             "if": "!**.d.ts",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Downstream lead-direct edit threshold watch (not prompt-front-door proof)…"
+            "statusMessage": "Downstream lead-direct edit threshold watch (not contract proof)…"
           },
           {
             "type": "command",
@@ -671,127 +630,6 @@
         ]
       }
     ],
-    "SessionStart": [
-      {
-        "policyRef": "hook-step:sessionstart-cold-start-governance",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" agent-frontmatter-validate",
-            "timeout": 50,
-            "decision": "block",
-            "statusMessage": "Validating agent frontmatter…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-start",
-            "timeout": 50
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-drift-check",
-            "timeout": 50,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" rule-audit --mode=drift",
-            "timeout": 40,
-            "async": true,
-            "statusMessage": "rule-audit (drift mode)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-duration-alarm",
-            "timeout": 25,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" cc-allowlist-drift-check",
-            "timeout": 25,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" harness-base-mode-advisory",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Harness base-mode advisory (rule 16 v3.0.0)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" analyzer-marker-pickup",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Scanning analyzer pickup markers (W3.1d)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-start-cleanliness",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Working-tree cleanliness check (rule 25)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" harness-cron-auto-register",
-            "timeout": 40,
-            "async": true,
-            "statusMessage": "Weekly substrate audit cron durability (sprint-056 W2.A §G)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-start-dirty-classify",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Dirty-classify 4-axis advisory (rule 25 v1.1.0)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" research-staleness-check",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Research-source MANIFEST staleness check (rule 02)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" cold-start-browse-index-loader",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Cold-start BROWSE/INDEX loader (rule 02 §Research retrieval)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" harness-engineering-context-loader",
-            "timeout": 40,
-            "async": true,
-            "statusMessage": "Harness Engineering 1차 자료 loader (rule 12 §Harness Engineering context awareness)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" lead-direct-counter-reset",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Lead-direct session counter reset (rule 12 v3.4.0 §Lead-direct edit threshold)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/lead-model-availability-check.ts\"",
-            "timeout": 50,
-            "async": true,
-            "statusMessage": "Downstream lead model availability advisory after prompt-front-door capture…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/session-start-overlay-injector.ts\"",
-            "timeout": 40,
-            "async": true,
-            "statusMessage": "Plugin rules overlay capsule injector (sprint-061 A.W2.b)…"
-          }
-        ]
-      }
-    ],
     "SubagentStart": [
       {
         "policyRef": "hook-step:subagentstart-briefing",
@@ -864,59 +702,6 @@
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" post-compact",
             "timeout": 100
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "policyRef": "hook-step:userprompt-front-door",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-front-door-capture",
-            "timeout": 100,
-            "statusMessage": "Prompt front door capture: promptId/promptHash → pm_semantic_intent_gate…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" context-capsule-init",
-            "timeout": 100,
-            "statusMessage": "Persisting context capsule for prompt-local contract/routing lineage…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" user-prompt-submit",
-            "timeout": 150,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" complex-task-detector",
-            "timeout": 150,
-            "async": true,
-            "statusMessage": "Downstream complex-task advisory (not prompt-front-door proof)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/user-prompt-overlay-advisory.ts\"",
-            "timeout": 150,
-            "async": true,
-            "statusMessage": "Downstream overlay advisory: MCP-First rule lookup after semantic gate…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/user-prompt-ontology-intent-extract.ts\"",
-            "timeout": 150,
-            "async": true,
-            "statusMessage": "Downstream ontology discovery advisory after prompt-front-door capture…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/prompt-fde-readiness-advisory.ts\"",
-            "timeout": 150,
-            "async": true,
-            "statusMessage": "FDE readiness advisory: read-only ontology design prompt classifier (sprint-138 Slice 6; NEVER blocking)…"
           }
         ]
       }
