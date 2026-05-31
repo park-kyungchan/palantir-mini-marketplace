@@ -1,0 +1,508 @@
+{
+  "schemaVersion": "palantir-mini/chatbot-studio-local-regression/v1",
+  "fixtureId": "fixture:chatbot-studio-local-regression",
+  "description": "Metadata-only local regression fixture for the PR6 Chatbot Studio data core.",
+  "targetSchemaRef": "schemas/chatbot-studio-local-core.schema.json",
+  "scope": {
+    "localAnalogueOnly": true,
+    "dataOnly": true,
+    "executableRuntimeBehavior": false,
+    "forbiddenParityClaims": [
+      "foundry_saas",
+      "foundry_security",
+      "workshop",
+      "aip_studio_api",
+      "marketplace_distribution"
+    ]
+  },
+  "runtimeAdapterContractRefs": {
+    "codex": "runtime-adapters/codex/contract.json",
+    "claude": "runtime-adapters/claude/contract.json",
+    "gemini": "runtime-adapters/gemini/contract.json"
+  },
+  "suite": {
+    "suiteId": "suite:chatbot-studio-local-regression",
+    "title": "Chatbot Studio Local Data Core Regression",
+    "target": {
+      "rid": "local-schema:palantir-mini.chatbot-studio-local-core",
+      "kind": "metadata-fixture",
+      "schemaRef": "schemas/chatbot-studio-local-core.schema.json"
+    },
+    "testCaseIds": [
+      "testcase:chatbot-local-application-state",
+      "testcase:chatbot-local-retrieval-context",
+      "testcase:chatbot-local-tool-planning",
+      "testcase:chatbot-local-action-approval-boundary",
+      "testcase:chatbot-local-eval-traceability",
+      "testcase:chatbot-local-runtime-gaps"
+    ],
+    "evaluatorPolicy": {
+      "requireHumanReviewForMutation": true,
+      "requiredMetrics": [
+        "application_state_variable_count",
+        "retrieval_source_ref_count",
+        "tool_surface_count",
+        "approval_required_action_count",
+        "eval_trace_ref_count",
+        "unsupported_runtime_gap_count"
+      ],
+      "forbiddenClaims": [
+        "Foundry SaaS parity",
+        "Foundry security parity",
+        "Workshop parity",
+        "AIP Studio API parity",
+        "Marketplace distribution parity"
+      ]
+    }
+  },
+  "fixtureDeclaration": {
+    "documentKind": "ChatbotStudioDeclaration",
+    "schemaVersion": "palantir-mini/chatbot-studio-local-core/v1",
+    "declarationId": "chatbot-studio:declaration:local-pr6-regression",
+    "name": "Local PR6 Chatbot Studio Data Core",
+    "description": "Local declaration for session state, retrieval context, tool/action/eval surfaces, validators, and runtime projections.",
+    "localOnly": true,
+    "parityClaimsForbidden": [
+      "foundry_saas",
+      "foundry_security",
+      "workshop",
+      "aip_studio_api",
+      "marketplace_distribution",
+      "cross_runtime_parity_without_native_evidence"
+    ],
+    "sourceAuthorityRefs": [
+      "lib/chatbot-studio/semantic-conversation-state.ts",
+      "lib/chatbot-studio/application-state.ts",
+      "lib/chatbot-studio/retrieval-context.ts",
+      "lib/chatbot-studio/workbench-state.ts",
+      "runtime-adapters/codex/contract.json",
+      "runtime-adapters/claude/contract.json",
+      "runtime-adapters/gemini/contract.json"
+    ],
+    "runtimeProjections": [
+      {
+        "runtime": "codex",
+        "support": "adapter-native",
+        "contractRef": "runtime-adapters/codex/contract.json",
+        "runtimeStatus": "usable-after-local-install",
+        "packageSurface": "codex-plugin",
+        "providerIdentityAuthority": "metadata-only",
+        "runtimeGapRefs": [
+          "codex:source-complete-is-not-active-runtime-complete",
+          "codex:requires-plugin-reinstall-reload-and-process-restart",
+          "codex:mounted-hook-manifest-smoke-required"
+        ],
+        "unsupportedSurfaceRefs": [
+          "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
+          "codex:hook-event:SessionStart:unmounted",
+          "codex:hook-event:UserPromptSubmit:unmounted"
+        ],
+        "fallbackObligations": [
+          "Local source declarations are not live Codex runtime behavior until installed payload reload and smoke evidence exist.",
+          "Provider identity remains metadata and must not authorize approvals or mutations."
+        ],
+        "unsupportedParityClaimsForbidden": true
+      },
+      {
+        "runtime": "claude",
+        "support": "unsupported",
+        "contractRef": "runtime-adapters/claude/contract.json",
+        "runtimeStatus": "runtime_gap",
+        "packageSurface": "absent",
+        "providerIdentityAuthority": "metadata-only",
+        "runtimeGapRefs": [
+          "claude:install-surface-absent",
+          "claude:hook-registry-absent",
+          "claude:mcp-profile-absent",
+          "claude:skill-surface-absent"
+        ],
+        "unsupportedSurfaceRefs": [
+          "claude:palantir-mini-runtime-package-absent",
+          "claude:runtime-adapter-contract-only"
+        ],
+        "fallbackObligations": [
+          "Do not claim Claude runtime support until a native package surface, hook registry, MCP exposure, and smoke evidence exist.",
+          "Provider identity remains metadata and must not authorize approvals or mutations."
+        ],
+        "unsupportedParityClaimsForbidden": true
+      },
+      {
+        "runtime": "gemini",
+        "support": "unsupported",
+        "contractRef": "runtime-adapters/gemini/contract.json",
+        "runtimeStatus": "runtime_gap",
+        "packageSurface": "absent",
+        "providerIdentityAuthority": "metadata-only",
+        "runtimeGapRefs": [
+          "gemini:extension-absent",
+          "gemini:hook-registry-absent",
+          "gemini:mcp-profile-absent",
+          "gemini:skill-surface-absent",
+          "gemini:runtime-gap-unsupported"
+        ],
+        "unsupportedSurfaceRefs": [
+          "gemini:palantir-mini-runtime-package-absent",
+          "gemini:native-evidence-absent",
+          "gemini:runtime-gap-unsupported"
+        ],
+        "fallbackObligations": [
+          "Keep Gemini support explicit runtime_gap / unsupported until native adapter and smoke evidence exist.",
+          "Do not translate Codex or Claude evidence into Gemini support claims.",
+          "Provider identity remains metadata and must not authorize approvals or mutations."
+        ],
+        "unsupportedParityClaimsForbidden": true
+      }
+    ],
+    "applicationState": {
+      "schemaVersion": "palantir-mini/chatbot-studio-application-state/v1",
+      "conversationStateId": "semantic-conversation:chatbot-studio-local-pr6",
+      "variables": [
+        {
+          "variableId": "semantic.lifecycle",
+          "visibleToModel": true,
+          "writableByModel": false,
+          "sourceStateId": "semantic-conversation:chatbot-studio-local-pr6",
+          "sourceStateKind": "SemanticConversationState",
+          "value": "dtc-approved",
+          "updateMode": "deterministic"
+        },
+        {
+          "variableId": "semantic.control.dtcReady",
+          "visibleToModel": false,
+          "writableByModel": false,
+          "sourceStateId": "semantic-conversation:chatbot-studio-local-pr6",
+          "sourceStateKind": "SemanticConversationState",
+          "value": true,
+          "updateMode": "deterministic"
+        },
+        {
+          "variableId": "semantic.control.prohibitedWriteFields",
+          "visibleToModel": false,
+          "writableByModel": false,
+          "sourceStateId": "semantic-conversation:chatbot-studio-local-pr6",
+          "sourceStateKind": "SemanticConversationState",
+          "value": [
+            "lifecycle",
+            "contractFacing.dtcReady",
+            "contractFacing.approvalRef",
+            "semanticConsistencyFacing.promotionReady"
+          ],
+          "updateMode": "deterministic"
+        },
+        {
+          "variableId": "semantic.validation.requiredPacks",
+          "visibleToModel": true,
+          "writableByModel": false,
+          "sourceStateId": "semantic-conversation:chatbot-studio-local-pr6",
+          "sourceStateKind": "SemanticConversationState",
+          "value": [
+            "chatbot-studio-local-core",
+            "runtime-projection-contracts",
+            "action-approval-boundary"
+          ],
+          "updateMode": "deterministic"
+        }
+      ],
+      "reasoningLoops": [
+        {
+          "loopId": "reasoning-loop:chatbot-local-pr6:001",
+          "pinnedAt": "2026-05-31T00:00:00.000Z",
+          "pinnedVariableIds": [
+            "semantic.lifecycle",
+            "semantic.control.dtcReady",
+            "semantic.validation.requiredPacks"
+          ]
+        }
+      ]
+    },
+    "retrievalContext": {
+      "schemaVersion": "palantir-mini/chatbot-studio-retrieval-context/v1",
+      "conversationStateId": "semantic-conversation:chatbot-studio-local-pr6",
+      "retrievedPrompt": "Local Chatbot Studio data core fixture. Use application state, retrieval context, and approval boundaries as metadata only.",
+      "ontologyRefs": [
+        "ChatbotStudioDeclaration",
+        "ChatbotStudioSessionState",
+        "ChatbotStudioExchangeState",
+        "ChatbotToolSurface",
+        "ChatbotActionSurface",
+        "ChatbotEvalSurface"
+      ],
+      "skillRefs": [],
+      "sourceRefs": [
+        "lib/chatbot-studio/semantic-conversation-state.ts",
+        "lib/chatbot-studio/application-state.ts",
+        "lib/chatbot-studio/retrieval-context.ts",
+        "lib/chatbot-studio/workbench-state.ts"
+      ],
+      "canonicalTermRefs": [
+        "semantic-conversation-state",
+        "application-state",
+        "retrieval-context",
+        "runtime-projection"
+      ],
+      "semanticConflictRefs": [],
+      "documentRefs": [
+        "schemas/chatbot-studio-local-core.schema.json"
+      ]
+    },
+    "toolSurfaces": [
+      {
+        "surfaceId": "tool:chatbot-local:retrieve-context",
+        "kind": "retrieval",
+        "authorityBoundary": "read-only",
+        "modelMayInvoke": true,
+        "writesApplicationState": false,
+        "inputRefs": [
+          "semantic-conversation:chatbot-studio-local-pr6"
+        ],
+        "outputRefs": [
+          "retrievalContext"
+        ]
+      },
+      {
+        "surfaceId": "tool:chatbot-local:plan-action",
+        "kind": "planner",
+        "authorityBoundary": "requires-action-approval",
+        "modelMayInvoke": true,
+        "writesApplicationState": false,
+        "inputRefs": [
+          "applicationState",
+          "retrievalContext"
+        ],
+        "outputRefs": [
+          "actionSurfaces"
+        ]
+      },
+      {
+        "surfaceId": "tool:chatbot-local:validate-runtime-projections",
+        "kind": "validator",
+        "authorityBoundary": "deterministic-local",
+        "modelMayInvoke": false,
+        "writesApplicationState": false,
+        "inputRefs": [
+          "runtimeProjections"
+        ],
+        "outputRefs": [
+          "validators.requiredChecks"
+        ]
+      }
+    ],
+    "actionSurfaces": [
+      {
+        "actionId": "action:chatbot-local:hold-before-approval",
+        "kind": "record-lineage",
+        "approvalBoundary": "none",
+        "mutationAuthority": "none",
+        "requiredEvidenceRefs": [
+          "semantic-conversation:chatbot-studio-local-pr6"
+        ],
+        "forbiddenWithoutApproval": [
+          "write-runtime-state",
+          "claim-runtime-support"
+        ]
+      },
+      {
+        "actionId": "action:chatbot-local:route-with-approved-dtc",
+        "kind": "route",
+        "approvalBoundary": "digital-twin-approved",
+        "mutationAuthority": "proposed-only",
+        "requiredEvidenceRefs": [
+          "semantic-intent:approved:chatbot-studio-local-pr6",
+          "digital-twin-change:approved:chatbot-studio-local-pr6"
+        ],
+        "forbiddenWithoutApproval": [
+          "mutate-project-files",
+          "write-runtime-cache",
+          "publish-to-foundry"
+        ]
+      }
+    ],
+    "evalSurfaces": [
+      {
+        "evalId": "eval:chatbot-local:regression-fixture",
+        "suiteId": "suite:chatbot-studio-local-regression",
+        "traceabilityRefs": [
+          "testcase:chatbot-local-application-state",
+          "testcase:chatbot-local-retrieval-context",
+          "testcase:chatbot-local-tool-planning",
+          "testcase:chatbot-local-action-approval-boundary",
+          "testcase:chatbot-local-eval-traceability",
+          "testcase:chatbot-local-runtime-gaps"
+        ],
+        "requiredMetrics": [
+          "application_state_variable_count",
+          "retrieval_source_ref_count",
+          "tool_surface_count",
+          "approval_required_action_count",
+          "eval_trace_ref_count",
+          "unsupported_runtime_gap_count"
+        ],
+        "resultPolicy": "metadata-only"
+      }
+    ],
+    "validators": {
+      "schemaRefs": [
+        "schemas/chatbot-studio-local-core.schema.json",
+        "schemas/semantic-conversation-state.schema.json"
+      ],
+      "requiredChecks": [
+        "json_parse",
+        "schema_version_present",
+        "runtime_projection_contract_refs",
+        "claude_gemini_runtime_gap",
+        "application_state_required_fields",
+        "retrieval_context_required_fields",
+        "tool_action_eval_surface_required_fields",
+        "forbid_foundry_parity_claims"
+      ],
+      "forbiddenClaims": [
+        "Foundry SaaS parity",
+        "Foundry security parity",
+        "Workshop parity",
+        "AIP Studio API parity",
+        "Marketplace distribution parity"
+      ],
+      "evidenceRequirements": [
+        "Every runtime projection must reference a PR5 runtime-adapter contract.",
+        "Claude and Gemini projections must remain unsupported/runtime_gap.",
+        "Action surfaces must declare the approval boundary before any mutation authority."
+      ]
+    },
+    "sessions": [
+      {
+        "sessionId": "chatbot-studio:session:local-pr6-regression",
+        "declarationRef": "chatbot-studio:declaration:local-pr6-regression",
+        "status": "approved-local",
+        "exchangeIds": [
+          "chatbot-studio:exchange:local-pr6-regression:001"
+        ]
+      }
+    ],
+    "exchanges": [
+      {
+        "exchangeId": "chatbot-studio:exchange:local-pr6-regression:001",
+        "sessionRef": "chatbot-studio:session:local-pr6-regression",
+        "turnIndex": 0,
+        "inputRefs": [
+          "applicationState",
+          "retrievalContext"
+        ],
+        "outputRefs": [
+          "toolSurfaces",
+          "actionSurfaces",
+          "evalSurfaces"
+        ],
+        "approvalState": "approved"
+      }
+    ],
+    "lineageRefs": [
+      "fixture:chatbot-studio-local-regression",
+      "suite:chatbot-studio-local-regression"
+    ]
+  },
+  "testCases": [
+    {
+      "testCaseId": "testcase:chatbot-local-application-state",
+      "title": "Application state exposes deterministic variables and denies model writes",
+      "category": "application_state",
+      "fixtureRefs": [
+        "fixtureDeclaration.applicationState"
+      ],
+      "assertions": [
+        "applicationState.schemaVersion is palantir-mini/chatbot-studio-application-state/v1",
+        "all variables set writableByModel=false",
+        "reasoning loop pins deterministic variable ids"
+      ],
+      "expectedMetrics": {
+        "application_state_variable_count": 4,
+        "model_writable_variable_count": 0
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-local-retrieval-context",
+      "title": "Retrieval context preserves source refs without SaaS parity claims",
+      "category": "retrieval_context",
+      "fixtureRefs": [
+        "fixtureDeclaration.retrievalContext"
+      ],
+      "assertions": [
+        "retrievalContext.sourceRefs points to local source files",
+        "retrievalContext.semanticConflictRefs is empty for this fixture",
+        "scope.localAnalogueOnly remains true"
+      ],
+      "expectedMetrics": {
+        "retrieval_source_ref_count": 4,
+        "forbidden_parity_claim_count": 0
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-local-tool-planning",
+      "title": "Tool surfaces separate read-only retrieval, planning, and deterministic validation",
+      "category": "tool_planning",
+      "fixtureRefs": [
+        "fixtureDeclaration.toolSurfaces"
+      ],
+      "assertions": [
+        "tool planner writes no application state",
+        "planner authorityBoundary is requires-action-approval",
+        "runtime projection validator is deterministic-local and not model-invoked"
+      ],
+      "expectedMetrics": {
+        "tool_surface_count": 3,
+        "application_state_writing_tool_count": 0
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-local-action-approval-boundary",
+      "title": "Action surfaces record approval boundary before any local mutation authority",
+      "category": "action_approval",
+      "fixtureRefs": [
+        "fixtureDeclaration.actionSurfaces"
+      ],
+      "assertions": [
+        "route action requires digital-twin-approved boundary",
+        "route action is proposed-only",
+        "runtime cache and Foundry publication are forbidden without approval"
+      ],
+      "expectedMetrics": {
+        "approval_required_action_count": 1,
+        "external_runtime_mutation_count": 0
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-local-eval-traceability",
+      "title": "Eval surface traces each regression case and required metric",
+      "category": "eval_traceability",
+      "fixtureRefs": [
+        "fixtureDeclaration.evalSurfaces",
+        "suite.testCaseIds"
+      ],
+      "assertions": [
+        "eval traceabilityRefs equals suite testCaseIds",
+        "eval requiredMetrics equals suite evaluatorPolicy.requiredMetrics",
+        "resultPolicy is metadata-only"
+      ],
+      "expectedMetrics": {
+        "eval_trace_ref_count": 6,
+        "required_metric_count": 6
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-local-runtime-gaps",
+      "title": "Runtime projections keep Claude and Gemini unsupported/runtime_gap",
+      "category": "runtime_gaps",
+      "fixtureRefs": [
+        "fixtureDeclaration.runtimeProjections"
+      ],
+      "assertions": [
+        "codex projection references runtime-adapters/codex/contract.json",
+        "claude projection support is unsupported and runtimeStatus is runtime_gap",
+        "gemini projection support is unsupported and runtimeStatus is runtime_gap"
+      ],
+      "expectedMetrics": {
+        "unsupported_runtime_gap_count": 2,
+        "runtime_contract_ref_count": 3
+      }
+    }
+  ]
+}
