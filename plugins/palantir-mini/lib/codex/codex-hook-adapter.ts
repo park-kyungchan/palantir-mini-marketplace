@@ -72,6 +72,8 @@ export type HookConfig = {
   decision?: string;
   failureMode?: string;
   permissionDecision?: string;
+  inputSchemaRef?: string;
+  outputSchemaRef?: string;
   if?: string;
 };
 
@@ -90,6 +92,7 @@ export type HookRun = {
   stderr: string;
   exitCode: number | null;
   timedOut: boolean;
+  schemaMismatch?: string;
   timeoutObservation?: {
     eventName: string;
     hookName: string;
@@ -307,6 +310,55 @@ export function loadHooks(options: CodexAdapterOptions = {}): HooksDocument {
 
 function stringifyJson(value: unknown): string {
   return `${JSON.stringify(value)}\n`;
+}
+
+function validatePreToolUseInputSchema(payload: JsonObject): string | undefined {
+  if (payload.hook_event_name !== "PreToolUse") return "hook_event_name must be PreToolUse";
+  if (typeof payload.tool_name !== "string" || payload.tool_name.trim().length === 0) {
+    return "tool_name must be a non-empty string";
+  }
+  if (
+    payload.tool_input !== undefined &&
+    (payload.tool_input === null ||
+      typeof payload.tool_input !== "object" ||
+      Array.isArray(payload.tool_input))
+  ) {
+    return "tool_input must be an object when present";
+  }
+  return undefined;
+}
+
+function validateGovernanceHookOutputSchema(output: JsonObject): string | undefined {
+  const decision = output.decision;
+  if (decision !== undefined && decision !== "block" && decision !== "continue") {
+    return "decision must be block or continue";
+  }
+  const specific = asObject(output.hookSpecificOutput);
+  const permissionDecision = specific.permissionDecision ?? output.permissionDecision;
+  if (
+    permissionDecision !== undefined &&
+    permissionDecision !== "deny" &&
+    permissionDecision !== "allow"
+  ) {
+    return "permissionDecision must be deny or allow";
+  }
+  const hookEventName = specific.hookEventName;
+  if (hookEventName !== undefined && typeof hookEventName !== "string") {
+    return "hookSpecificOutput.hookEventName must be a string";
+  }
+  return undefined;
+}
+
+function validateKnownHookSchema(schemaRef: string | undefined, value: JsonObject): string | undefined {
+  if (!schemaRef) return undefined;
+  const normalized = normalizeSlash(schemaRef);
+  if (normalized.endsWith("schemas/hooks/pretooluse.input.schema.json")) {
+    return validatePreToolUseInputSchema(value);
+  }
+  if (normalized.endsWith("schemas/hooks/governance-hook.output.schema.json")) {
+    return validateGovernanceHookOutputSchema(value);
+  }
+  return undefined;
 }
 
 function getToolInput(payload: JsonObject): JsonObject {
@@ -658,6 +710,17 @@ export async function runCommandHook(
   const timeoutMs = Math.max(1, hook.timeout ?? 3000) * 1000;
   const cwd = typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
   const hookPayload = adaptPayloadForHookScripts(payload);
+  const inputSchemaMismatch = validateKnownHookSchema(hook.inputSchemaRef, hookPayload);
+  if (inputSchemaMismatch) {
+    return {
+      hook,
+      stdout: "",
+      stderr: `palantir-mini hook input schema mismatch: ${inputSchemaMismatch}`,
+      exitCode: 1,
+      timedOut: false,
+      schemaMismatch: inputSchemaMismatch,
+    };
+  }
   const proc = Bun.spawn(["bash", "-lc", command], {
     cwd,
     env: {
@@ -701,7 +764,13 @@ export async function runCommandHook(
     await emitCodexAdapterTimeoutObserved(run.timeoutObservation, payload, options);
   }
   const parsed = parseHookJson(stdout);
-  if (parsed) run.parsed = parsed;
+  if (parsed) {
+    run.parsed = parsed;
+    const outputSchemaMismatch = validateKnownHookSchema(hook.outputSchemaRef, parsed);
+    if (outputSchemaMismatch) {
+      run.schemaMismatch = outputSchemaMismatch;
+    }
+  }
   return run;
 }
 
@@ -741,6 +810,15 @@ export function extractPromptFrontDoorIdentityContext(
 
 function blockReason(run: HookRun): string | undefined {
   const parsed = run.parsed;
+  if (
+    run.schemaMismatch &&
+    (run.hook.failureMode === "fail-closed" ||
+      run.hook.decision === "block" ||
+      run.hook.permissionDecision === "defer" ||
+      run.hook.permissionDecision === "deny")
+  ) {
+    return `palantir-mini hook schema mismatch: ${run.schemaMismatch}`;
+  }
   if (run.exitCode === 2) return run.stderr.trim() || "palantir-mini hook blocked this action";
   if ((run.timedOut || (run.exitCode !== null && run.exitCode !== 0)) && run.hook.failureMode === "fail-closed") {
     if (run.timedOut) {

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "palantir-mini/hooks/pretooluse.input/v1",
+  "title": "palantir-mini PreToolUse hook input",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["hook_event_name", "tool_name"],
+  "properties": {
+    "hook_event_name": { "const": "PreToolUse" },
+    "cwd": { "type": "string" },
+    "session_id": { "type": "string" },
+    "tool_name": { "type": "string", "minLength": 1 },
+    "tool_input": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
