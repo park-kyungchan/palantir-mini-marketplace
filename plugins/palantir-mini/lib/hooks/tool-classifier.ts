@@ -102,6 +102,31 @@ export const MCP_FIRST_EVIDENCE_OPERATIONS = new Set<PalantirMiniToolOperation>(
   "pre_edit_impact",
 ]);
 
+const PALANTIR_MINI_OPERATION_BY_CANONICAL_TOOL_NAME = new Map<
+  string,
+  PalantirMiniToolOperation
+>([
+  ["apply_edit_function", "apply_edit_function"],
+  ["commit_edits", "commit_edits"],
+  ["compute_edits_dry_run", "compute_edits_dry_run"],
+  ["emit_event", "emit_event"],
+  ["get_ontology", "get_ontology"],
+  ["grade_outcome_with_rubric", "grade_outcome_with_rubric"],
+  ["impact_query", "impact_query"],
+  ["negotiate_sprint_contract", "negotiate_sprint_contract"],
+  ["ontology_context_query", "ontology_context_query"],
+  ["ontology_schema_get", "ontology_schema_get"],
+  ["pm_health_audit", "pm_health_audit"],
+  ["pm_intent_router", "pm_intent_router"],
+  ["pm_pre_mutation_governance", "pm_pre_mutation_governance"],
+  ["pm_rule", "pm_rule"],
+  ["pm_rule_audit", "pm_rule"],
+  ["pm_rule_query", "pm_rule"],
+  ["pm_semantic_intent_gate", "pm_semantic_intent_gate"],
+  ["pm_substrate_query", "pm_substrate_query"],
+  ["pre_edit_impact", "pre_edit_impact"],
+]);
+
 function normalizeToolName(toolName: string): string {
   return toolName.trim().toLowerCase();
 }
@@ -140,24 +165,8 @@ export function managedSettingsPalantirMiniMcpPattern(toolName: string): string 
 }
 
 export function operationFromToolName(normalizedName: string): PalantirMiniToolOperation {
-  if (normalizedName.includes("apply_edit_function")) return "apply_edit_function";
-  if (normalizedName.includes("commit_edits")) return "commit_edits";
-  if (normalizedName.includes("compute_edits_dry_run")) return "compute_edits_dry_run";
-  if (normalizedName.includes("emit_event")) return "emit_event";
-  if (normalizedName.includes("get_ontology")) return "get_ontology";
-  if (normalizedName.includes("grade_outcome_with_rubric")) return "grade_outcome_with_rubric";
-  if (normalizedName.includes("impact_query")) return "impact_query";
-  if (normalizedName.includes("negotiate_sprint_contract")) return "negotiate_sprint_contract";
-  if (normalizedName.includes("ontology_context_query")) return "ontology_context_query";
-  if (normalizedName.includes("ontology_schema_get")) return "ontology_schema_get";
-  if (normalizedName.includes("pm_health_audit")) return "pm_health_audit";
-  if (normalizedName.includes("pm_intent_router")) return "pm_intent_router";
-  if (normalizedName.includes("pm_pre_mutation_governance")) return "pm_pre_mutation_governance";
-  if (normalizedName.includes("pm_rule")) return "pm_rule";
-  if (normalizedName.includes("pm_semantic_intent_gate")) return "pm_semantic_intent_gate";
-  if (normalizedName.includes("pm_substrate_query")) return "pm_substrate_query";
-  if (normalizedName.includes("pre_edit_impact")) return "pre_edit_impact";
-  return "unknown";
+  const canonicalName = normalizePalantirMiniMcpToolName(normalizedName);
+  return PALANTIR_MINI_OPERATION_BY_CANONICAL_TOOL_NAME.get(canonicalName) ?? "unknown";
 }
 
 export function isMcpFirstEvidenceToolName(toolName: string): boolean {

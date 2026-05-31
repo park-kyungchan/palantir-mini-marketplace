@@ -11,6 +11,9 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/ontology-engineering-workflow-enforcement-gate.ts\"",
             "timeout": 40,
             "permissionDecision": "defer",
+            "failureMode": "fail-closed",
+            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
+            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
             "statusMessage": "Ontology Engineering workflow gate: FDE provenance + no runtime-native question UI…"
           }
         ],
@@ -68,6 +71,9 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" commit-edits-precondition",
             "timeout": 50,
             "permissionDecision": "defer",
+            "failureMode": "fail-closed",
+            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
+            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
             "statusMessage": "Harness B2 file-edit gate (rule 16 v3.4.0 §Default-On Policy)…"
           },
           {

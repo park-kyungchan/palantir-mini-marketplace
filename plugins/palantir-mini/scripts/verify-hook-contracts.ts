@@ -5,6 +5,12 @@ const PLUGIN_ROOT = join(import.meta.dir, "..");
 const HOOKS_JSON = join(PLUGIN_ROOT, "hooks", "hooks.json");
 const REQUIRED_INPUT_SCHEMA = "schemas/hooks/pretooluse.input.schema.json";
 const REQUIRED_OUTPUT_SCHEMA = "schemas/hooks/governance-hook.output.schema.json";
+const REQUIRED_FAIL_CLOSED_COMMAND_FRAGMENTS = [
+  "ontology-engineering-workflow-enforcement-gate.ts",
+  "commit-edits-precondition",
+  "pre-edit-impact-mcp-first",
+  "commit-edits-governance.ts",
+] as const;
 
 interface HookConfig {
   readonly type?: string;
@@ -59,6 +65,30 @@ function main(): void {
           errors.push(`${label}: mutation-required hook must declare ${REQUIRED_OUTPUT_SCHEMA}`);
         }
       }
+    }
+  }
+
+  const preToolUseHooks = (hooks.hooks?.PreToolUse ?? []).flatMap((group) =>
+    (group.hooks ?? []).map((hook) => ({ group, hook })),
+  );
+  for (const commandFragment of REQUIRED_FAIL_CLOSED_COMMAND_FRAGMENTS) {
+    const match = preToolUseHooks.find(({ hook }) => hook.command?.includes(commandFragment));
+    const label = `PreToolUse/${commandFragment}`;
+    if (!match) {
+      errors.push(`${label}: required governance hook is missing`);
+      continue;
+    }
+    if (match.hook.permissionDecision !== "defer") {
+      errors.push(`${label}: required governance hook must declare permissionDecision=defer`);
+    }
+    if (match.hook.failureMode !== "fail-closed") {
+      errors.push(`${label}: required governance hook must declare failureMode=fail-closed`);
+    }
+    if (match.hook.inputSchemaRef !== REQUIRED_INPUT_SCHEMA) {
+      errors.push(`${label}: required governance hook must declare ${REQUIRED_INPUT_SCHEMA}`);
+    }
+    if (match.hook.outputSchemaRef !== REQUIRED_OUTPUT_SCHEMA) {
+      errors.push(`${label}: required governance hook must declare ${REQUIRED_OUTPUT_SCHEMA}`);
     }
   }
 

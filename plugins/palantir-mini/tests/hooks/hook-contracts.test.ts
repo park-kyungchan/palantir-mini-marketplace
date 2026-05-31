@@ -7,6 +7,12 @@ const PLUGIN_ROOT = join(import.meta.dir, "../..");
 const HOOKS_JSON = join(PLUGIN_ROOT, "hooks", "hooks.json");
 const REQUIRED_INPUT_SCHEMA = "schemas/hooks/pretooluse.input.schema.json";
 const REQUIRED_OUTPUT_SCHEMA = "schemas/hooks/governance-hook.output.schema.json";
+const REQUIRED_FAIL_CLOSED_COMMAND_FRAGMENTS = [
+  "ontology-engineering-workflow-enforcement-gate.ts",
+  "commit-edits-precondition",
+  "pre-edit-impact-mcp-first",
+  "commit-edits-governance.ts",
+] as const;
 const SURFACE_STATUS_VALUES = [
   "public-core",
   "protected-default-off",
@@ -75,6 +81,22 @@ describe("hook IO contracts", () => {
     for (const { hook } of mutationRequiredHooks) {
       expect(hook.inputSchemaRef).toBe(REQUIRED_INPUT_SCHEMA);
       expect(hook.outputSchemaRef).toBe(REQUIRED_OUTPUT_SCHEMA);
+    }
+  });
+
+  test("core governance hooks are fail-closed and schema-backed", () => {
+    const hooks = loadHooks();
+    const preToolUseHooks = (hooks.hooks?.PreToolUse ?? []).flatMap((group) =>
+      (group.hooks ?? []).map((hook) => ({ group, hook })),
+    );
+
+    for (const commandFragment of REQUIRED_FAIL_CLOSED_COMMAND_FRAGMENTS) {
+      const match = preToolUseHooks.find(({ hook }) => hook.command?.includes(commandFragment));
+      expect(match, commandFragment).toBeTruthy();
+      expect(match?.hook.permissionDecision, commandFragment).toBe("defer");
+      expect(match?.hook.failureMode, commandFragment).toBe("fail-closed");
+      expect(match?.hook.inputSchemaRef, commandFragment).toBe(REQUIRED_INPUT_SCHEMA);
+      expect(match?.hook.outputSchemaRef, commandFragment).toBe(REQUIRED_OUTPUT_SCHEMA);
     }
   });
 

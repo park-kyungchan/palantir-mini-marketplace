@@ -259,16 +259,19 @@ describe("pre-edit-impact-mcp-first", () => {
     }
   });
 
-  test("8. BYPASS — PALANTIR_MINI_MCP_FIRST_BYPASS=1", async () => {
+  test("8. BLOCKED — PALANTIR_MINI_MCP_FIRST_BYPASS=1 is denied for tracked edit", async () => {
     process.env.PALANTIR_MINI_MCP_FIRST_BYPASS = "1";
     const targetFile = path.join(TMP, "src", "baz.ts");
 
     const result = await preEditImpactMcpFirst(makePayload(targetFile)) as {
       message: string;
       additionalContext?: string;
+      hookSpecificOutput?: { permissionDecision?: string; permissionDecisionReason?: string };
     };
 
-    expect(result.message).toContain("BYPASS");
+    expect(result.message).toContain("bypass denied");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("audit-only");
     expect(result.additionalContext).toBeUndefined();
   });
 

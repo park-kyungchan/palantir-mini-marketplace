@@ -26,7 +26,7 @@
 //     3-criterion rubric. If all criteria pass: emits quick_sprint_inline_graded.
 //     If any criterion fails: emits quick_sprint_inline_grade_failed (advisory).
 //     Neither outcome blocks the commit — Quick Sprint speed semantics preserved.
-//     PALANTIR_MINI_HARNESS_BYPASS=1 skips the inline grade entirely (audited).
+//     PALANTIR_MINI_HARNESS_BYPASS=1 is audit-only and cannot authorize the gate.
 //   v3.14.0 sprint-113 PR 5.3 (dry-run gate strengthening; canonical plan v2 §4 row 5.3):
 //     After passing existing dry-run gate, 3 new ADVISORY checks fire:
 //     (1) Freshness: paired dry_run_graded event must be within last 30 min
@@ -42,8 +42,8 @@
 //     Quick Sprint + grace-period paths are UNAFFECTED (checks only run for full-mode
 //     commits that have already passed the existing dry-run gate).
 //
-// Bypass: PALANTIR_MINI_HARNESS_BYPASS=1 env var disables the gate. Audited via
-// `harness_bypass_invoked` event.
+// Bypass: PALANTIR_MINI_HARNESS_BYPASS=1 is audit-only and cannot authorize
+// protected commit_edits or tracked file edits.
 //
 // Authority: rule 16 (3-agent-harness) §Default-On Policy + §Quick Sprint + §Loop steps 3-5
 //            rule 12 (lead-protocol) §Lead-direct harness wrapping — gates
@@ -356,28 +356,6 @@ export default async function commitEditsPrecondition(payload: unknown): Promise
     return { message: `palantir-mini: commit-edits-precondition skipped (tool=${toolName})`, decision: "continue" };
   }
 
-  // Bypass via env var (audited).
-  if (process.env.PALANTIR_MINI_HARNESS_BYPASS === "1") {
-    try {
-      await emit({
-        type: "validation_phase_completed",
-        payload: {
-          phase: "design",
-          passed: true,
-          errorClass: "harness_bypass_invoked",
-        },
-        toolName: "PreToolUse",
-        cwd,
-        sessionId: p.session_id,
-        identity: "monitor",
-        reasoning: `commit-edits-precondition: bypass via PALANTIR_MINI_HARNESS_BYPASS=1 (tool=${toolName})`,
-      });
-    } catch {
-      // best-effort
-    }
-    return { message: "palantir-mini: commit-edits-precondition BYPASS (env)", decision: "continue" };
-  }
-
   // ─── B2 file-edit branch (v3.12.0) ───
   // For Edit|Write|MultiEdit, gate only when targeting a tracked palantir-mini project file.
   if (isFileEdit) {
@@ -394,6 +372,11 @@ export default async function commitEditsPrecondition(payload: unknown): Promise
   if (!projectRoot) {
     // No palantir-mini project context — let it through.
     return { message: "palantir-mini: commit-edits-precondition skipped (no project root)", decision: "continue" };
+  }
+
+  if (process.env.PALANTIR_MINI_HARNESS_BYPASS === "1") {
+    return blockReason(p, projectRoot, "harness-bypass-denied",
+      "PALANTIR_MINI_HARNESS_BYPASS=1 is audit-only and cannot authorize commit_edits. Use an approved SprintContract, SIC/DTC evidence, and the dry-run/grade pipeline.");
   }
 
   // Soft default-on (B1): require harness dir + bound contract.
@@ -669,6 +652,11 @@ async function handleFileEditBranch(
     }
   }
 
+  if (process.env.PALANTIR_MINI_HARNESS_BYPASS === "1") {
+    return blockReason(p, projectRoot, "harness-bypass-denied",
+      `PALANTIR_MINI_HARNESS_BYPASS=1 is audit-only and cannot authorize tracked file edits (${absPath}). Use an approved bound SprintContract instead.`);
+  }
+
   // Inside tracked project — require harness dir + bound contract (no dry-run check).
   if (!harnessDirExists(projectRoot)) {
     return blockReason(p, projectRoot, "no-harness-dir",
@@ -796,7 +784,7 @@ function blockReason(
     ``,
     hint,
     ``,
-    `Bypass for emergency only: PALANTIR_MINI_HARNESS_BYPASS=1 (audited).`,
+    `Bypass env vars are audit-only and cannot authorize protected/tracked mutations.`,
     `For full text: pm_rule_query({ byId: 16 }) (or /palantir-mini:pm-rule 16)`,
   ].join("\n");
 
