@@ -50,6 +50,7 @@ import type {
 import type { GradingCriterionLite, CriterionScore } from "../bridge/handlers/grade-outcome/types";
 import { gradeCode } from "../bridge/handlers/grade-outcome/code";
 import { gradeRule } from "../bridge/handlers/grade-outcome/rule";
+import { PROJECT_GATE_POLICY_REASON_CODES } from "../lib/governance/effective-gate-mode";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -391,20 +392,6 @@ export default async function commitEditsGovernance(payload: unknown): Promise<H
   const toolName = p.tool_name ?? "mcp__plugin_palantir-mini_palantir-mini__commit_edits";
   const classification = classifyHookTool({ tool_name: toolName, tool_input: p.tool_input });
 
-  // Bypass via env var (audited).
-  if (process.env.PALANTIR_MINI_HARNESS_BYPASS === "1") {
-    await emit({
-      type: "validation_phase_completed",
-      payload: { phase: "design", passed: true, errorClass: "harness_bypass_invoked" },
-      toolName: "PreToolUse",
-      cwd,
-      sessionId: p.session_id,
-      identity: "monitor",
-      reasoning: `commit-edits-governance: bypass via PALANTIR_MINI_HARNESS_BYPASS=1 (tool=${toolName})`,
-    }).catch(() => {});
-    return { message: "palantir-mini: commit-edits-governance BYPASS (env)", decision: "continue" };
-  }
-
   // Resolve project root.
   const projectFromInput = p.tool_input?.project;
   const projectRoot = (projectFromInput && projectFromInput.length > 0)
@@ -416,6 +403,18 @@ export default async function commitEditsGovernance(payload: unknown): Promise<H
   }
 
   const targetFiles = collectTargetFiles(p);
+
+  // Project gate policy is strengthen-only for commit mutations. The legacy
+  // emergency env remains audited, but it can no longer authorize commit_edits.
+  if (process.env.PALANTIR_MINI_HARNESS_BYPASS === "1") {
+    return blockResult(
+      p,
+      projectRoot,
+      PROJECT_GATE_POLICY_REASON_CODES.bypassDenied,
+      "PALANTIR_MINI_HARNESS_BYPASS=1 cannot weaken the project gate policy for commit_edits. Use approved SIC/DTC plus the dry-run/grade pipeline.",
+      targetFiles,
+    );
+  }
 
   // ─── Gate 1: harness dir + bound contract ────────────────────────────────
   if (!harnessDirExists(projectRoot)) {

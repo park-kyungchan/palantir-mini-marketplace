@@ -49,8 +49,14 @@ import {
   isOntologyContextQueryMutation as isClassifiedOntologyContextQueryMutation,
   isReadOnlyBashCommand,
 } from "../lib/hooks/tool-classifier";
+import {
+  gateModeFromEnv,
+  resolveEffectiveGateMode,
+  type ProjectGateMode,
+  type ProtectedMutationClass,
+} from "../lib/governance/effective-gate-mode";
 
-type GateMode = "off" | "advisory" | "selective-blocking" | "scoped-blocking" | "blocking";
+type GateMode = ProjectGateMode;
 
 interface HookPayload {
   readonly cwd?: string;
@@ -112,17 +118,7 @@ interface FDEEngineeringSkipAssessment {
 // PR 5.11: selective-blocking mode added — blocks ONLY ontology-affecting MCP tools
 // with 60-min SIC approval cache exemption.
 function gateMode(): GateMode {
-  const raw = process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE;
-  if (
-    raw === "off" ||
-    raw === "advisory" ||
-    raw === "selective-blocking" ||
-    raw === "scoped-blocking" ||
-    raw === "blocking"
-  ) {
-    return raw;
-  }
-  return "selective-blocking";
+  return gateModeFromEnv(process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE);
 }
 
 function hasExplicitGateMode(): boolean {
@@ -174,6 +170,37 @@ function isMutatingCandidate(payload: HookPayload): boolean {
     classification.normalizedName.includes("ontology_mutation") ||
     classification.normalizedName.includes("action_mutation") ||
     classification.normalizedName.includes("function_mutation");
+}
+
+function protectedMutationClassForPromptGate(
+  payload: HookPayload,
+  mutating: boolean,
+): ProtectedMutationClass | undefined {
+  const classification = classifyHookTool(payload);
+  if (classification.operation === "commit_edits") return "commit";
+  if (
+    classification.operation === "apply_edit_function" ||
+    classification.operation === "ontology_context_query" ||
+    classification.isOntologyAffectingForSelectiveBlocking
+  ) {
+    return "ontology-write";
+  }
+
+  const normalizedName = toolName(payload).toLowerCase();
+  if (normalizedName === "bash" && mutating) {
+    const command = String(payload.tool_input?.command ?? "").toLowerCase();
+    if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(command)) {
+      return "pull-request";
+    }
+    if (/\bgit\s+commit\b/.test(command)) return "commit";
+    if (/\b(git\s+push|npm\s+publish|bun\s+publish|release|deploy)\b/.test(command)) {
+      return "release";
+    }
+    return "external-command";
+  }
+
+  if (classification.isProtectedMutation || mutating) return "generic-mutation";
+  return undefined;
 }
 
 /**
@@ -740,8 +767,14 @@ function denyResult(reason: string): HookResult {
 
 async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResult> {
   const p = (payload ?? {}) as HookPayload;
-  const mode = gateMode();
+  const requestedMode = gateMode();
   const mutating = isMutatingCandidate(p);
+  const mutationClass = protectedMutationClassForPromptGate(p, mutating);
+  const effectiveGateMode = resolveEffectiveGateMode({
+    requestedMode,
+    mutationClass,
+  });
+  const mode = effectiveGateMode.effectiveMode;
   const projectRoot = resolveProjectRoot(p);
   const explicitMode = hasExplicitGateMode();
   const cwdProjectRoot = findProjectRoot(p.cwd ?? process.cwd());
@@ -751,7 +784,7 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
     cwdProjectRoot !== undefined &&
     path.resolve(cwdProjectRoot) === tmpRoot;
 
-  if (!explicitMode && (!cwdProjectRoot || cwdProjectRootIsTempRoot)) {
+  if (!mutationClass && !explicitMode && (!cwdProjectRoot || cwdProjectRootIsTempRoot)) {
     await emitOffBypass(p, projectRoot, mutating);
     return { message: "palantir-mini: prompt-DTC gate off" };
   }
@@ -759,7 +792,7 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
   // Bypass: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 honored in all modes except off
   // (off already exits early below, so bypass applies to advisory/selective-blocking/scoped-blocking/blocking).
   const bypassEnv = process.env.PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS;
-  if (bypassEnv === "1" && mode !== "off") {
+  if (bypassEnv === "1" && mode !== "off" && !mutationClass) {
     await emitOffBypass(p, projectRoot, mutating);
     return { message: "palantir-mini: prompt-DTC gate bypassed (PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1)" };
   }

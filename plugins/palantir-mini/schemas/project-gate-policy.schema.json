@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "palantir-mini/project-gate-policy/v1",
+  "title": "palantir-mini project gate policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "authority",
+    "policyId",
+    "description",
+    "modeOrder",
+    "minimumModes",
+    "environmentPolicy"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "palantir-mini/project-gate-policy/v1"
+    },
+    "authority": {
+      "const": "plugins/palantir-mini"
+    },
+    "policyId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modeOrder": {
+      "type": "array",
+      "prefixItems": [
+        { "const": "off" },
+        { "const": "advisory" },
+        { "const": "selective-blocking" },
+        { "const": "scoped-blocking" },
+        { "const": "blocking" }
+      ],
+      "items": false,
+      "minItems": 5,
+      "maxItems": 5
+    },
+    "minimumModes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ontology-write",
+        "external-command",
+        "commit",
+        "pull-request",
+        "release",
+        "generic-mutation"
+      ],
+      "properties": {
+        "ontology-write": { "const": "blocking" },
+        "external-command": { "enum": ["scoped-blocking", "blocking"] },
+        "commit": { "const": "blocking" },
+        "pull-request": { "const": "blocking" },
+        "release": { "const": "blocking" },
+        "generic-mutation": { "enum": ["scoped-blocking", "blocking"] }
+      }
+    },
+    "environmentPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strengthenOnly",
+        "weakenReasonCode",
+        "bypassDeniedReasonCode"
+      ],
+      "properties": {
+        "strengthenOnly": { "const": true },
+        "weakenReasonCode": { "const": "project_gate_policy_minimum_applied" },
+        "bypassDeniedReasonCode": { "const": "project_gate_policy_env_bypass_denied" }
+      }
+    }
+  }
+}
