@@ -1,0 +1,512 @@
+{
+  "schemaVersion": "palantir-mini/chatbot-studio-local-workbench-regression/v1",
+  "fixtureId": "fixture:chatbot-studio-local-workbench-regression",
+  "description": "Metadata-only regression fixture for the PR7 Chatbot Studio local workbench, session ledger, and publish analogue boundary.",
+  "targetSchemaRefs": [
+    "schemas/chatbot-studio-local-core.schema.json"
+  ],
+  "scope": {
+    "localAnalogueOnly": true,
+    "metadataOnly": true,
+    "executableRuntimeBehavior": false,
+    "sourceCompleteIsActiveRuntimeComplete": false,
+    "ledgerIsEvidenceNotApproval": true,
+    "publishAnalogueLocalOnly": true,
+    "externalPublishForbidden": [
+      "foundry_saas",
+      "aip_studio_api",
+      "marketplace_distribution",
+      "runtime_plugin_publish",
+      "runtime_cache_write"
+    ]
+  },
+  "runtimeAdapterContractRefs": {
+    "codex": "runtime-adapters/codex/contract.json",
+    "claude": "runtime-adapters/claude/contract.json",
+    "gemini": "runtime-adapters/gemini/contract.json"
+  },
+  "sourceAuthorityRefs": [
+    "lib/chatbot-studio/data-core.ts",
+    "lib/chatbot-studio/local-workbench.ts",
+    "runtime-adapters/codex/contract.json",
+    "runtime-adapters/claude/contract.json",
+    "runtime-adapters/gemini/contract.json",
+    "docs/RUNTIME_LAYER_BOUNDARY.md"
+  ],
+  "suite": {
+    "suiteId": "suite:chatbot-studio-local-workbench-regression",
+    "title": "Chatbot Studio Local Workbench Regression",
+    "target": {
+      "rid": "local-schema:palantir-mini.chatbot-studio-local-workbench",
+      "kind": "metadata-fixture",
+      "storage": "local-jsonl-ledger"
+    },
+    "testCaseIds": [
+      "testcase:chatbot-workbench-callable-shape",
+      "testcase:chatbot-workbench-variable-pin-update",
+      "testcase:chatbot-workbench-planned-tool-refs",
+      "testcase:chatbot-workbench-blocked-protected-action",
+      "testcase:chatbot-workbench-runtime-gap-display",
+      "testcase:chatbot-workbench-jsonl-ledger-append",
+      "testcase:chatbot-workbench-publish-analogue-boundary"
+    ],
+    "evaluatorPolicy": {
+      "metadataOnly": true,
+      "requireHumanReviewForMutation": true,
+      "requiredMetrics": [
+        "callable_input_field_count",
+        "callable_output_field_count",
+        "pinned_variable_count",
+        "variable_update_count",
+        "planned_tool_ref_count",
+        "blocked_protected_action_count",
+        "runtime_gap_display_count",
+        "jsonl_ledger_append_count",
+        "external_publish_count"
+      ],
+      "forbiddenClaims": [
+        "Foundry SaaS parity",
+        "AIP Studio API parity",
+        "Marketplace distribution parity",
+        "Runtime publish support",
+        "Source-complete is active-runtime-complete"
+      ]
+    }
+  },
+  "workbenchFixture": {
+    "documentKind": "ChatbotStudioLocalWorkbenchRegression",
+    "schemaVersion": "palantir-mini/chatbot-studio-local-workbench-regression/v1",
+    "workbenchId": "chatbot-studio:local-workbench:pr7-regression",
+    "declarationRef": "chatbot-studio:declaration:local-pr7-workbench-regression",
+    "sessionRef": "chatbot-studio:session:local-pr7-workbench-regression",
+    "localOnly": true,
+    "debugViewFlow": [
+      {
+        "stepId": "workbench-step:compile-context",
+        "title": "Compile context",
+        "inputRefs": [
+          "userInput",
+          "applicationVariables",
+          "retrievalContext",
+          "runtimeProjections"
+        ],
+        "outputRefs": [
+          "compiledContextRef",
+          "runtimeGapRefs"
+        ],
+        "mutationAuthority": "none"
+      },
+      {
+        "stepId": "workbench-step:pin-variables",
+        "title": "Pin application variables",
+        "inputRefs": [
+          "applicationVariables"
+        ],
+        "outputRefs": [
+          "pinnedVariableRefs"
+        ],
+        "mutationAuthority": "local-session-ledger-only"
+      },
+      {
+        "stepId": "workbench-step:plan-tools",
+        "title": "Plan tools",
+        "inputRefs": [
+          "compiledContextRef",
+          "pinnedVariableRefs"
+        ],
+        "outputRefs": [
+          "plannedToolSurfaceRefs"
+        ],
+        "mutationAuthority": "none"
+      },
+      {
+        "stepId": "workbench-step:record-trace",
+        "title": "Record trace refs",
+        "inputRefs": [
+          "plannedToolSurfaceRefs",
+          "blockedActionSurfaceRefs",
+          "runtimeGapRefs"
+        ],
+        "outputRefs": [
+          "traceRefs",
+          "ledgerAppendRef"
+        ],
+        "mutationAuthority": "append-only-local-ledger"
+      },
+      {
+        "stepId": "workbench-step:show-runtime-gaps",
+        "title": "Show runtime gaps",
+        "inputRefs": [
+          "runtimeProjections"
+        ],
+        "outputRefs": [
+          "runtimeGapCards"
+        ],
+        "mutationAuthority": "none"
+      },
+      {
+        "stepId": "workbench-step:block-protected-actions",
+        "title": "Block protected actions until approval evidence exists",
+        "inputRefs": [
+          "approvalEvidenceRefs"
+        ],
+        "outputRefs": [
+          "blockedActionSurfaceRefs"
+        ],
+        "mutationAuthority": "none"
+      }
+    ],
+    "callableShape": {
+      "input": {
+        "requiredFields": [
+          "conversation",
+          "userInput"
+        ],
+        "userFacingRequiredFields": [
+          "userInput"
+        ],
+        "optionalFields": [
+          "sessionId",
+          "variableInputs",
+          "ledgerPath",
+          "now"
+        ],
+        "example": {
+          "conversationRef": "semantic-conversation:chatbot-studio-local-pr7-workbench",
+          "userInput": "Show the local workbench plan for this approved DTC.",
+          "sessionId": "chatbot-studio:session:local-pr7-workbench-regression",
+          "variableInputs": {
+            "semantic.lifecycle": "dtc-approved",
+            "semantic.validation.requiredPacks": [
+              "chatbot-studio-local-workbench"
+            ]
+          }
+        }
+      },
+      "output": {
+        "requiredFields": [
+          "schemaVersion",
+          "declaration",
+          "session",
+          "exchange",
+          "responseMarkdown",
+          "sessionId",
+          "variableUpdates",
+          "plannedToolSurfaceRefs",
+          "blockedActionSurfaceRefs",
+          "traceRefs",
+          "runtimeGaps",
+          "publishAnalogue"
+        ],
+        "example": {
+          "schemaVersion": "palantir-mini/chatbot-studio-local-workbench/v1",
+          "responseMarkdown": "Local workbench context compiled. Protected publish remains blocked.",
+          "sessionId": "chatbot-studio:session:local-pr7-workbench-regression",
+          "variableUpdates": [
+            {
+              "variableId": "semantic.lifecycle",
+              "previousValue": "ready-for-review",
+              "nextValue": "dtc-approved",
+              "updateMode": "local-input",
+              "persistedToRuntime": false
+            }
+          ],
+          "traceRefs": [
+            "trace:chatbot-studio:local-workbench:pr7:001"
+          ],
+          "plannedToolSurfaceRefs": [
+            "tool:chatbot-studio:retrieval-context",
+            "tool:chatbot-studio:route-with-approved-dtc"
+          ],
+          "blockedActionSurfaceRefs": [
+            "action:chatbot-studio:publish-analogue"
+          ],
+          "runtimeGaps": [
+            {
+              "runtime": "codex",
+              "support": "adapter-native",
+              "adapterContractRef": "runtime-adapters/codex/contract.json",
+              "runtimeGapRefs": [
+                "codex:source-complete-is-not-active-runtime-complete",
+                "codex:requires-plugin-reinstall-reload-and-process-restart"
+              ],
+              "unsupportedSurfaceRefs": [
+                "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification"
+              ]
+            }
+          ],
+          "publishAnalogue": {
+            "schemaVersion": "palantir-mini/chatbot-studio-publish-analogue/v1",
+            "status": "ready-for-local-review",
+            "externalPublishAuthorized": false
+          }
+        }
+      }
+    },
+    "applicationVariables": {
+      "pinned": [
+        {
+          "variableId": "semantic.lifecycle",
+          "value": "dtc-approved",
+          "writableByModel": false,
+          "pinReason": "Approval lifecycle is deterministic evidence, not model output."
+        },
+        {
+          "variableId": "semantic.control.dtcReady",
+          "value": true,
+          "writableByModel": false,
+          "pinReason": "Protected action readiness depends on approved DTC evidence."
+        },
+        {
+          "variableId": "workbench.debugMode",
+          "value": true,
+          "writableByModel": false,
+          "pinReason": "Local debug/view flow only."
+        }
+      ],
+      "updates": [
+        {
+          "variableId": "semantic.lifecycle",
+          "previousValue": "ready-for-review",
+          "nextValue": "dtc-approved",
+          "updateMode": "local-input",
+          "persistedToRuntime": false
+        }
+      ]
+    },
+    "toolPlan": {
+      "plannedToolSurfaceRefs": [
+        "tool:chatbot-studio:retrieval-context",
+        "tool:chatbot-studio:route-with-approved-dtc"
+      ],
+      "toolCallsArePlannedNotExecuted": true,
+      "protectedExecutionRequiresApprovalEvidence": true
+    },
+    "actionBoundaries": [
+      {
+        "actionId": "action:chatbot-studio:protected-mutation",
+        "actionKind": "protected-mutation",
+        "enabled": false,
+        "approvalPolicy": "dtc-approval-required",
+        "approvalEvidenceRefs": [],
+        "blockedReason": "Protected actions require approved DTC evidence before execution."
+      },
+      {
+        "actionId": "action:chatbot-studio:publish-analogue",
+        "actionKind": "publish-analogue",
+        "enabled": false,
+        "approvalPolicy": "human-review-required",
+        "approvalEvidenceRefs": [],
+        "blockedReason": "Local publish analogue may record a local intent only; Foundry/API/Marketplace/runtime publish is forbidden."
+      }
+    ],
+    "runtimeGapDisplay": [
+      {
+        "runtime": "codex",
+        "contractRef": "runtime-adapters/codex/contract.json",
+        "displayStatus": "source-complete-is-not-active-runtime-complete",
+        "gapRefs": [
+          "codex:source-complete-is-not-active-runtime-complete",
+          "codex:requires-plugin-reinstall-reload-and-process-restart",
+          "codex:mounted-hook-manifest-smoke-required"
+        ]
+      },
+      {
+        "runtime": "claude",
+        "contractRef": "runtime-adapters/claude/contract.json",
+        "displayStatus": "runtime_gap",
+        "gapRefs": [
+          "claude:install-surface-absent",
+          "claude:hook-registry-absent",
+          "claude:mcp-profile-absent",
+          "claude:skill-surface-absent"
+        ]
+      },
+      {
+        "runtime": "gemini",
+        "contractRef": "runtime-adapters/gemini/contract.json",
+        "displayStatus": "runtime_gap",
+        "gapRefs": [
+          "gemini:extension-absent",
+          "gemini:hook-registry-absent",
+          "gemini:mcp-profile-absent",
+          "gemini:skill-surface-absent",
+          "gemini:runtime-gap-unsupported"
+        ]
+      }
+    ],
+    "ledger": {
+      "kind": "jsonl",
+      "authority": "append-only-local-evidence-not-source-authority",
+      "examplePath": ".palantir-mini/session/chatbot-studio/local-workbench-ledger.jsonl",
+      "appendOnly": true,
+      "writesRuntimeCache": false,
+      "appendShape": {
+        "schemaVersion": "palantir-mini/chatbot-studio-ledger-entry/v1",
+        "entryId": "chatbot-studio-ledger-entry:chatbot-studio-session-local-pr7-workbench-regression-chatbot-studio-exchange-local-pr7-workbench-regression-001",
+        "sessionId": "chatbot-studio:session:local-pr7-workbench-regression",
+        "exchangeId": "chatbot-studio:exchange:local-pr7-workbench-regression:001",
+        "declarationId": "chatbot-studio:declaration:local-pr7-workbench-regression",
+        "when": "2026-05-31T00:00:00.000Z",
+        "userInput": "Show the local workbench plan for this approved DTC.",
+        "responseMarkdown": "Local workbench context compiled. Protected publish remains blocked.",
+        "variableUpdateRefs": [
+          "semantic.lifecycle"
+        ],
+        "plannedToolSurfaceRefs": [
+          "tool:chatbot-studio:retrieval-context",
+          "tool:chatbot-studio:route-with-approved-dtc"
+        ],
+        "blockedActionSurfaceRefs": [
+          "action:chatbot-studio:publish-analogue"
+        ],
+        "traceRefs": [
+          "trace:chatbot-studio:local-workbench:pr7:001"
+        ],
+        "runtimeGapRefs": [
+          "codex:source-complete-is-not-active-runtime-complete",
+          "claude:install-surface-absent",
+          "gemini:runtime-gap-unsupported"
+        ],
+        "publishStatus": "ready-for-local-review"
+      }
+    },
+    "publishAnalogueBoundary": {
+      "localIntentMayBeRecorded": true,
+      "externalPublishAllowed": false,
+      "forbiddenTargets": [
+        "foundry_saas",
+        "aip_studio_api",
+        "marketplace_distribution",
+        "runtime_plugin_publish",
+        "runtime_cache_write"
+      ],
+      "blockedReason": "The PR7 publish analogue is a local ledger/debug surface only and cannot publish to Foundry, APIs, Marketplace distribution, or a running runtime payload."
+    }
+  },
+  "testCases": [
+    {
+      "testCaseId": "testcase:chatbot-workbench-callable-shape",
+      "title": "Callable shape accepts user input and returns markdown, session, variables, and traces",
+      "category": "callable_shape",
+      "fixtureRefs": [
+        "workbenchFixture.callableShape"
+      ],
+      "assertions": [
+        "input requiredFields includes conversation and userInput",
+        "input optionalFields includes sessionId, variableInputs, ledgerPath, and now",
+        "output requiredFields includes responseMarkdown, sessionId, variableUpdates, traceRefs, runtimeGaps, and publishAnalogue"
+      ],
+      "expectedMetrics": {
+        "callable_input_field_count": 6,
+        "callable_output_field_count": 12
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-workbench-variable-pin-update",
+      "title": "Workbench pins protected variables and records deterministic local updates",
+      "category": "variable_pin_update",
+      "fixtureRefs": [
+        "workbenchFixture.applicationVariables"
+      ],
+      "assertions": [
+        "pinned variables set writableByModel=false",
+        "variable updates use local-input mode",
+        "variable updates are not persisted to runtime"
+      ],
+      "expectedMetrics": {
+        "pinned_variable_count": 3,
+        "variable_update_count": 1,
+        "model_writable_pinned_variable_count": 0
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-workbench-planned-tool-refs",
+      "title": "Workbench records planned tool refs without executing tools",
+      "category": "tool_planning",
+      "fixtureRefs": [
+        "workbenchFixture.toolPlan",
+        "workbenchFixture.callableShape.output.example.plannedToolSurfaceRefs"
+      ],
+      "assertions": [
+        "planned tool refs include retrieval context",
+        "planned tool refs include route-with-approved-dtc",
+        "toolCallsArePlannedNotExecuted remains true"
+      ],
+      "expectedMetrics": {
+        "planned_tool_ref_count": 2,
+        "executed_tool_call_count": 0
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-workbench-blocked-protected-action",
+      "title": "Protected actions remain blocked without approval evidence",
+      "category": "protected_action_block",
+      "fixtureRefs": [
+        "workbenchFixture.actionBoundaries"
+      ],
+      "assertions": [
+        "protected mutation action enabled=false",
+        "publish analogue action enabled=false",
+        "approvalEvidenceRefs is empty for blocked actions"
+      ],
+      "expectedMetrics": {
+        "blocked_protected_action_count": 2,
+        "unapproved_enabled_protected_action_count": 0
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-workbench-runtime-gap-display",
+      "title": "Runtime gaps are visible in the local workbench response metadata",
+      "category": "runtime_gap_display",
+      "fixtureRefs": [
+        "workbenchFixture.runtimeGapDisplay",
+        "workbenchFixture.callableShape.output.example.runtimeGaps"
+      ],
+      "assertions": [
+        "Codex display status keeps source-complete-is-not-active-runtime-complete",
+        "Claude display status is runtime_gap",
+        "Gemini display status is runtime_gap"
+      ],
+      "expectedMetrics": {
+        "runtime_gap_display_count": 3,
+        "active_runtime_support_claim_count": 0
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-workbench-jsonl-ledger-append",
+      "title": "Session and trace records append to a local JSONL ledger",
+      "category": "jsonl_ledger",
+      "fixtureRefs": [
+        "workbenchFixture.ledger"
+      ],
+      "assertions": [
+        "ledger kind is jsonl",
+        "ledger append is append-only",
+        "ledger writesRuntimeCache=false",
+        "append shape includes sessionId, userInput, responseMarkdown, variableUpdateRefs, and traceRefs"
+      ],
+      "expectedMetrics": {
+        "jsonl_ledger_append_count": 1,
+        "runtime_cache_write_count": 0
+      }
+    },
+    {
+      "testCaseId": "testcase:chatbot-workbench-publish-analogue-boundary",
+      "title": "Publish analogue records local intent only and forbids external publish",
+      "category": "publish_analogue",
+      "fixtureRefs": [
+        "workbenchFixture.publishAnalogueBoundary"
+      ],
+      "assertions": [
+        "localIntentMayBeRecorded=true",
+        "externalPublishAllowed=false",
+        "forbidden targets include Foundry, API, Marketplace, runtime plugin publish, and runtime cache write"
+      ],
+      "expectedMetrics": {
+        "external_publish_count": 0,
+        "forbidden_publish_target_count": 5
+      }
+    }
+  ]
+}
