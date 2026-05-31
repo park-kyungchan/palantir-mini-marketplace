@@ -16,7 +16,7 @@ The Codex runtime integrates palantir-mini hooks through the plugin manifest:
 
 `hooks/codex-hooks.json` MUST remain a delegation-only entrypoint registry. It
 uses only Codex-supported lifecycle events, regex-safe matchers, and commands
-that call `lib/codex/codex-hook-adapter.ts`. `SessionStart` and
+that call `lib/codex/codex-hook-adapter.ts`. `PreToolUse`, `SessionStart`, and
 `UserPromptSubmit` are intentionally not mounted for Codex, so no palantir-mini
 startup context or prompt-front-door capture runs automatically in ordinary
 Codex sessions. Durable hook intent for mounted events is read from the
@@ -39,7 +39,7 @@ path. Adding or removing Codex entrypoint events still requires updating
 `hooks/codex-hooks.json` and restarting Codex so the runtime re-reads its
 session hook surface.
 
-As of the Codex runtime cutover on 2026-05-31, `SessionStart` and
+As of the Codex runtime cutover on 2026-05-31, `PreToolUse`, `SessionStart`, and
 `UserPromptSubmit` are deliberately absent from `hooks/codex-hooks.json`. Direct
 adapter tests may still pass those event names with temporary hook registries,
 but the checked-in Codex runtime surface does not mount them.

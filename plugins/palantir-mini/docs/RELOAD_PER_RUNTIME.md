@@ -54,7 +54,7 @@ already-running session.
 When Codex hook configuration changes, `hooks/hooks.json` remains the hook
 intent SSoT for mounted hook events, while `hooks/codex-hooks.json` controls
 which Codex lifecycle events are mounted at all. The current Codex surface does
-not mount `SessionStart` or `UserPromptSubmit`; changing that requires a source
+not mount `PreToolUse`, `SessionStart`, or `UserPromptSubmit`; changing that requires a source
 PR, plugin reinstall, trust-state refresh, and process restart. `bun
 scripts/sync-codex-adapter.ts` regenerates the Codex fallback adapter/shim for
 local development. The active Codex session still needs plugin reinstall plus
