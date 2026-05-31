@@ -4,10 +4,8 @@
   "title": "pm_pre_mutation_governance input",
   "type": "object",
   "additionalProperties": false,
-  "required": ["toolName"],
-  "anyOf": [
-    { "required": ["project"] },
-    { "required": ["projectRoot"] }
+  "required": [
+    "toolName"
   ],
   "properties": {
     "schemaVersion": {
@@ -15,11 +13,11 @@
     },
     "project": {
       "type": "string",
-      "description": "Absolute project root."
+      "description": "Absolute project root. Either project or projectRoot is required; enforced by handler."
     },
     "projectRoot": {
       "type": "string",
-      "description": "Alias for project."
+      "description": "Alias for project. Either project or projectRoot is required; enforced by handler."
     },
     "promptId": {
       "type": "string"
@@ -37,11 +35,15 @@
     },
     "targetFiles": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "resolvedTargetFiles": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "semanticIntentContractRef": {
       "type": "string"
@@ -73,20 +75,33 @@
     },
     "mode": {
       "type": "string",
-      "enum": ["advisory", "blocking"],
+      "enum": [
+        "advisory",
+        "blocking"
+      ],
       "default": "blocking"
     },
     "dtcFill": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "complete": { "type": "boolean" },
-        "status": { "type": "string" },
-        "currentTurn": { "type": "number" },
-        "requiredTurns": { "type": "number" },
+        "complete": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        },
+        "currentTurn": {
+          "type": "number"
+        },
+        "requiredTurns": {
+          "type": "number"
+        },
         "evidenceRefs": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
