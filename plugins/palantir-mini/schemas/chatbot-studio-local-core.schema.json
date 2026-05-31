@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-mini.local/schemas/chatbot-studio-local-core.schema.json",
+  "title": "ChatbotStudioLocalCoreV1",
+  "description": "Local-only AIP Chatbot Studio analogue data core. This schema does not claim Foundry SaaS, security, Workshop, API, or Marketplace parity.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": {
+      "enum": [
+        "palantir-mini/chatbot-studio-local-core/v1",
+        "palantir-mini/chatbot-studio-declaration/v1",
+        "palantir-mini/chatbot-studio-session-state/v1",
+        "palantir-mini/chatbot-studio-exchange-state/v1"
+      ]
+    },
+    "documentKind": {
+      "enum": ["ChatbotStudioDeclaration", "ChatbotStudioSession", "ChatbotStudioExchange"]
+    },
+    "declarationId": { "type": "string", "minLength": 1 },
+    "sessionId": { "type": "string", "minLength": 1 },
+    "exchangeId": { "type": "string", "minLength": 1 },
+    "conversationStateId": { "type": "string", "pattern": "^semantic-conversation:.+" },
+    "declarationRef": { "type": "string", "minLength": 1 },
+    "sessionRef": { "type": "string", "minLength": 1 },
+    "sourceKind": { "const": "local-aip-chatbot-studio-analogue" },
+    "scope": {
+      "enum": ["one-developer-local-analogue", "local-analogue-only"]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "localOnly": { "type": "boolean" },
+    "nonParityClaims": { "$ref": "#/$defs/stringArray" },
+    "parityClaimsForbidden": { "$ref": "#/$defs/stringArray" },
+    "sourceAuthorityRefs": { "$ref": "#/$defs/stringArray" },
+    "runtimeProjections": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/runtimeProjection" }
+    },
+    "applicationState": { "$ref": "#/$defs/applicationState" },
+    "retrievalContext": { "$ref": "#/$defs/retrievalContext" },
+    "toolSurfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/toolSurface" }
+    },
+    "actionSurfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/actionSurface" }
+    },
+    "evalSurfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/evalSurface" }
+    },
+    "validators": { "$ref": "#/$defs/validators" },
+    "sessions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sessionState" }
+    },
+    "exchanges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/exchangeState" }
+    },
+    "lifecycle": {
+      "enum": ["draft", "blocked", "ready-for-review", "approved-boundary"]
+    },
+    "applicationVariableSnapshot": { "type": "object" },
+    "traceRefs": { "$ref": "#/$defs/stringArray" },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "schemaVersion": { "const": "palantir-mini/chatbot-studio-declaration/v1" } } },
+      "then": {
+        "required": [
+          "declarationId",
+          "conversationStateId",
+          "sourceKind",
+          "scope",
+          "applicationState",
+          "retrievalContext",
+          "runtimeProjections",
+          "toolSurfaces",
+          "actionSurfaces",
+          "evalSurfaces"
+        ]
+      }
+    },
+    {
+      "if": { "properties": { "schemaVersion": { "const": "palantir-mini/chatbot-studio-local-core/v1" } } },
+      "then": {
+        "required": [
+          "runtimeProjections",
+          "applicationState",
+          "retrievalContext",
+          "toolSurfaces",
+          "actionSurfaces",
+          "evalSurfaces"
+        ]
+      }
+    },
+    {
+      "if": { "properties": { "schemaVersion": { "const": "palantir-mini/chatbot-studio-session-state/v1" } } },
+      "then": {
+        "required": [
+          "sessionId",
+          "declarationId",
+          "conversationStateId",
+          "lifecycle",
+          "applicationVariableSnapshot",
+          "exchanges",
+          "traceRefs",
+          "createdAt",
+          "updatedAt"
+        ]
+      }
+    },
+    {
+      "if": { "properties": { "schemaVersion": { "const": "palantir-mini/chatbot-studio-exchange-state/v1" } } },
+      "then": {
+        "required": [
+          "exchangeId",
+          "userInput",
+          "responseMarkdown",
+          "plannedToolSurfaceRefs",
+          "blockedActionSurfaceRefs",
+          "variableUpdateRefs",
+          "evalTraceRefs",
+          "createdAt"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "runtimeProjection": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["runtime", "support", "runtimeGapRefs", "unsupportedSurfaceRefs"],
+      "properties": {
+        "runtime": { "enum": ["codex", "claude", "gemini"] },
+        "support": { "enum": ["native", "adapter-native", "manual", "schema-only", "unsupported", "runtime_gap"] },
+        "adapterContractRef": { "type": "string", "pattern": "^runtime-adapters/.+/contract\\.json$" },
+        "contractRef": { "type": "string", "pattern": "^runtime-adapters/.+/contract\\.json$" },
+        "runtimeStatus": { "enum": ["usable-after-local-install", "source-only", "unsupported", "runtime_gap"] },
+        "packageSurface": { "enum": ["codex-plugin", "absent"] },
+        "providerIdentityAuthority": { "const": "metadata-only" },
+        "runtimeGapRefs": { "$ref": "#/$defs/stringArray" },
+        "unsupportedSurfaceRefs": { "$ref": "#/$defs/stringArray" },
+        "fallbackObligations": { "$ref": "#/$defs/stringArray" },
+        "unsupportedParityClaimsForbidden": { "type": "boolean" }
+      }
+    },
+    "applicationState": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schemaVersion", "conversationStateId", "variables"],
+      "properties": {
+        "schemaVersion": { "const": "palantir-mini/chatbot-studio-application-state/v1" },
+        "conversationStateId": { "type": "string", "pattern": "^semantic-conversation:.+" },
+        "variables": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/applicationVariable" }
+        },
+        "reasoningLoops": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        }
+      }
+    },
+    "applicationVariable": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["variableId", "visibleToModel", "writableByModel"],
+      "properties": {
+        "variableId": { "type": "string", "minLength": 1 },
+        "visibleToModel": { "type": "boolean" },
+        "writableByModel": { "const": false },
+        "sourceStateId": { "type": "string" },
+        "sourceStateKind": { "const": "SemanticConversationState" },
+        "value": true,
+        "updateMode": { "enum": ["deterministic", "citation", "read-only"] }
+      }
+    },
+    "retrievalContext": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "conversationStateId",
+        "retrievedPrompt",
+        "ontologyRefs",
+        "skillRefs",
+        "sourceRefs"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "palantir-mini/chatbot-studio-retrieval-context/v1" },
+        "conversationStateId": { "type": "string", "pattern": "^semantic-conversation:.+" },
+        "retrievedPrompt": { "type": "string", "minLength": 1 },
+        "ontologyRefs": { "$ref": "#/$defs/stringArray" },
+        "skillRefs": { "$ref": "#/$defs/stringArray" },
+        "sourceRefs": { "$ref": "#/$defs/stringArray" },
+        "canonicalTermRefs": { "$ref": "#/$defs/stringArray" },
+        "semanticConflictRefs": { "$ref": "#/$defs/stringArray" },
+        "documentRefs": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "toolSurface": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["surfaceId", "kind"],
+      "properties": {
+        "surfaceId": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "approvalPolicy": { "type": "string" },
+        "authorityBoundary": { "type": "string" },
+        "modelMayInvoke": { "type": "boolean" },
+        "writesApplicationState": { "type": "boolean" },
+        "inputStateRefs": { "$ref": "#/$defs/stringArray" },
+        "outputStateRefs": { "$ref": "#/$defs/stringArray" },
+        "inputRefs": { "$ref": "#/$defs/stringArray" },
+        "outputRefs": { "$ref": "#/$defs/stringArray" },
+        "runtimeRefs": {
+          "type": "array",
+          "items": { "enum": ["codex", "claude", "gemini"] }
+        },
+        "blockedReason": { "type": "string" }
+      }
+    },
+    "actionSurface": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["actionId"],
+      "properties": {
+        "actionId": { "type": "string", "minLength": 1 },
+        "actionKind": { "type": "string" },
+        "kind": { "type": "string" },
+        "title": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "approvalPolicy": { "type": "string" },
+        "approvalBoundary": { "type": "string" },
+        "mutationAuthority": { "type": "string" },
+        "approvalEvidenceRefs": { "$ref": "#/$defs/stringArray" },
+        "requiredEvidenceRefs": { "$ref": "#/$defs/stringArray" },
+        "forbiddenWithoutApproval": { "$ref": "#/$defs/stringArray" },
+        "blockedReason": { "type": "string" }
+      }
+    },
+    "evalSurface": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["evalId"],
+      "properties": {
+        "schemaVersion": { "const": "palantir-mini/chatbot-studio-eval-surface/v1" },
+        "evalId": { "type": "string", "minLength": 1 },
+        "evalKind": { "type": "string" },
+        "suiteId": { "type": "string" },
+        "traceabilityRefs": { "$ref": "#/$defs/stringArray" },
+        "evidenceRefs": { "$ref": "#/$defs/stringArray" },
+        "commandRefs": { "$ref": "#/$defs/stringArray" },
+        "requiredMetrics": { "$ref": "#/$defs/stringArray" },
+        "required": { "type": "boolean" },
+        "resultPolicy": { "type": "string" }
+      }
+    },
+    "validators": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "schemaRefs": { "$ref": "#/$defs/stringArray" },
+        "requiredChecks": { "$ref": "#/$defs/stringArray" },
+        "forbiddenClaims": { "$ref": "#/$defs/stringArray" },
+        "evidenceRequirements": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "sessionState": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["sessionId"],
+      "properties": {
+        "schemaVersion": { "const": "palantir-mini/chatbot-studio-session-state/v1" },
+        "sessionId": { "type": "string", "minLength": 1 },
+        "declarationId": { "type": "string" },
+        "declarationRef": { "type": "string" },
+        "conversationStateId": { "type": "string" },
+        "lifecycle": { "type": "string" },
+        "status": { "type": "string" },
+        "exchangeIds": { "$ref": "#/$defs/stringArray" },
+        "exchanges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/exchangeState" }
+        },
+        "traceRefs": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "exchangeState": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["exchangeId"],
+      "properties": {
+        "schemaVersion": { "const": "palantir-mini/chatbot-studio-exchange-state/v1" },
+        "exchangeId": { "type": "string", "minLength": 1 },
+        "sessionRef": { "type": "string" },
+        "turnIndex": { "type": "integer", "minimum": 0 },
+        "inputRefs": { "$ref": "#/$defs/stringArray" },
+        "outputRefs": { "$ref": "#/$defs/stringArray" },
+        "approvalState": { "type": "string" },
+        "userInput": { "type": "string" },
+        "responseMarkdown": { "type": "string" },
+        "plannedToolSurfaceRefs": { "$ref": "#/$defs/stringArray" },
+        "blockedActionSurfaceRefs": { "$ref": "#/$defs/stringArray" },
+        "variableUpdateRefs": { "$ref": "#/$defs/stringArray" },
+        "evalTraceRefs": { "$ref": "#/$defs/stringArray" },
+        "createdAt": { "type": "string" }
+      }
+    }
+  }
+}
