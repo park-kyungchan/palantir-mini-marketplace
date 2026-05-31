@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import suiteDeclaration from "../../eval-suites/semantic-consistency-regression.json";
 import { fixtureOutputs } from "../../lib/semantic-consistency/fixtures";
+import { assessSemanticConsistencyPromotionGate } from "../../lib/semantic-consistency/promotion-gate";
 
 const CASE_IDS = [
   "testcase:semantic-source-scoped-aliases",
@@ -36,5 +37,28 @@ describe("Semantic Consistency Regression eval suite declaration", () => {
 
     expect(outputs.docsOnly.mappings.every((mapping) => mapping.mappingKind === "non_applicable")).toBe(true);
     expect(outputs.docsOnly.unresolvedBlockingConflictRefs).toEqual([]);
+  });
+
+  test("promotion gate consumes regression fixtures as release-blocking evidence", () => {
+    const outputs = fixtureOutputs();
+    const customerPromotion = assessSemanticConsistencyPromotionGate({
+      subject: "sic-dtc-pair",
+      ontologyAffecting: true,
+      semanticConsistencyResult: outputs.customer,
+      attachedResolverRunRefs: [outputs.customer.resolverRunId],
+    });
+    const conflictPromotion = assessSemanticConsistencyPromotionGate({
+      subject: "sic-dtc-pair",
+      ontologyAffecting: true,
+      semanticConsistencyResult: outputs.overloaded,
+      attachedResolverRunRefs: [outputs.overloaded.resolverRunId],
+    });
+
+    expect(customerPromotion.promotionAllowed).toBe(true);
+    expect(customerPromotion.reasonCodes).toEqual(["SEMANTIC_CONSISTENCY_READY"]);
+    expect(conflictPromotion.promotionAllowed).toBe(false);
+    expect(conflictPromotion.reasonCodes).toContain(
+      "SEMANTIC_CONSISTENCY_UNRESOLVED_BLOCKING_CONFLICT",
+    );
   });
 });
