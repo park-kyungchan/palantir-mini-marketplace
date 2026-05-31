@@ -21,11 +21,12 @@ const DECISION: RuntimeDecision = {
 };
 
 describe("pm_runtime_decision_parity", () => {
-  test("compares neutral, Claude, and Codex semantic decisions", async () => {
+  test("compares neutral, Claude, Codex, and optional Gemini semantic decisions", async () => {
     const result = await pmRuntimeDecisionParity({
       neutral: DECISION,
       claude: { ...DECISION, runtime: "claude" },
       codex: { ...DECISION, runtime: "codex", unsupportedSurfaceRefs: ["codex:subagent-stop"] },
+      gemini: { ...DECISION, runtime: "gemini", unsupportedSurfaceRefs: ["gemini:runtime-gap-unsupported"] },
     });
 
     expect(result.status).toBe("pass");

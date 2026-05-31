@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "palantir-mini/runtime-adapter-contract/v1",
+  "runtime": "gemini",
+  "support": "unsupported",
+  "providerIdentityAuthority": "metadata-only",
+  "sourceAuthority": "plugins/palantir-mini",
+  "packageSurface": "absent",
+  "manifestRefs": [],
+  "hookRegistryRefs": [],
+  "adapterRefs": [],
+  "mcpProfileRefs": [],
+  "skillSurfaceRefs": [],
+  "mountedHookEvents": [],
+  "unmountedHookEvents": [],
+  "unsupportedSurfaceRefs": [
+    "gemini:palantir-mini-runtime-package-absent",
+    "gemini:native-evidence-absent",
+    "gemini:runtime-gap-unsupported"
+  ],
+  "runtimeGapRefs": [
+    "gemini:extension-absent",
+    "gemini:hook-registry-absent",
+    "gemini:mcp-profile-absent",
+    "gemini:skill-surface-absent",
+    "gemini:runtime-gap-unsupported"
+  ],
+  "fallbackObligations": [
+    "Keep Gemini support explicit runtime_gap / unsupported until native adapter and smoke evidence exist.",
+    "Do not translate Codex or Claude evidence into Gemini support claims.",
+    "Provider identity remains metadata and must not authorize approvals or mutations."
+  ],
+  "smokeEvidenceRefs": [],
+  "reloadEvidenceRefs": [],
+  "lastVerified": "2026-05-31",
+  "unsupportedParityClaimsForbidden": true
+}

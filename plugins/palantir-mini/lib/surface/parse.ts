@@ -241,10 +241,11 @@ function runtimeProjectionFromBlock(lines: readonly string[]): AipFdeLocalSurfac
   return {
     claude: runtimeProjectionFor("claude", block),
     codex: runtimeProjectionFor("codex", block),
+    gemini: runtimeProjectionFor("gemini", block),
   };
 }
 
-function runtimeProjectionFor(runtime: "claude" | "codex", lines: readonly string[]): RuntimeSurfaceProjection {
+function runtimeProjectionFor(runtime: "claude" | "codex" | "gemini", lines: readonly string[]): RuntimeSurfaceProjection {
   const block = collectNestedBlock(lines, runtime);
   const support = scalarFromBlock(block, "support");
   return {
@@ -346,7 +347,7 @@ function normalizeSurfaceContract(
   if (!isDeterministicEnforcementStatus(fields.deterministicStatus)) {
     issues.push(issue("surface.invalid-deterministic-status", "deterministicStatus", "Unknown status."));
   }
-  for (const runtime of ["claude", "codex"] as const) {
+  for (const runtime of ["claude", "codex", "gemini"] as const) {
     if (!isRuntimeSupportDeclaration(runtimeProjection[runtime].support)) {
       issues.push(issue(
         "surface.invalid-runtime-support",

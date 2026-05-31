@@ -44,6 +44,22 @@ export const CODEX_NATIVE_EVENTS = [
   "Stop",
 ] as const;
 
+export const CODEX_MOUNTED_HOOK_EVENTS = [
+  "PermissionRequest",
+  "PostToolUse",
+  "PreCompact",
+  "PostCompact",
+  "SubagentStart",
+  "SubagentStop",
+  "Stop",
+] as const;
+
+export const CODEX_UNMOUNTED_HOOK_EVENTS = [
+  "PreToolUse",
+  "SessionStart",
+  "UserPromptSubmit",
+] as const;
+
 export const CODEX_SCHEMA_ONLY_EVENTS = [] as const;
 
 export const CODEX_NATIVE_GAPS = [
@@ -123,6 +139,16 @@ export const RUNTIME_CAPABILITY_MATRIX: Record<RuntimeId, RuntimeCapabilityFacts
 
 export function runtimeCanObserveEvent(runtime: RuntimeId, event: string): boolean {
   return RUNTIME_CAPABILITY_MATRIX[runtime].nativeEvents.includes(event);
+}
+
+export function runtimeHasMountedHookEvent(runtime: RuntimeId, event: string): boolean {
+  if (runtime !== "codex") return runtimeCanObserveEvent(runtime, event);
+  return CODEX_MOUNTED_HOOK_EVENTS.includes(event as typeof CODEX_MOUNTED_HOOK_EVENTS[number]);
+}
+
+export function runtimeHasUnmountedHookEvent(runtime: RuntimeId, event: string): boolean {
+  if (runtime !== "codex") return false;
+  return CODEX_UNMOUNTED_HOOK_EVENTS.includes(event as typeof CODEX_UNMOUNTED_HOOK_EVENTS[number]);
 }
 
 export function runtimeHasSchemaOnlyEvent(runtime: RuntimeId, event: string): boolean {

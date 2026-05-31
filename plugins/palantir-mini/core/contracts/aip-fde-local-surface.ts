@@ -72,6 +72,7 @@ export interface AipFdeLocalSurfaceContract {
   readonly runtimeProjection: {
     readonly claude: RuntimeSurfaceProjection;
     readonly codex: RuntimeSurfaceProjection;
+    readonly gemini: RuntimeSurfaceProjection;
   };
   readonly outputStateRefs: readonly string[];
   readonly validationRefs: readonly string[];
@@ -97,7 +98,7 @@ export interface HookSurfaceContract {
 }
 
 export interface RuntimeDecision {
-  readonly runtime: "neutral" | "claude" | "codex";
+  readonly runtime: "neutral" | "claude" | "codex" | "gemini";
   readonly workflowFamily: WorkflowFamily;
   readonly phaseId: string;
   readonly requiredContracts: ContractRequirementSet;
@@ -118,6 +119,7 @@ export interface RuntimeDecisionParityDifference {
   readonly neutral: unknown;
   readonly claude: unknown;
   readonly codex: unknown;
+  readonly gemini?: unknown;
 }
 
 export interface RuntimeDecisionParityResult {

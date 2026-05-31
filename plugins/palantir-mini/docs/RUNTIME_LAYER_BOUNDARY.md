@@ -52,11 +52,34 @@ runtime homes such as `~/.claude/plugins/marketplaces/palantir-mini-marketplace`
 or `~/.codex/.tmp/marketplaces/palantir-mini-marketplace`. Treat the runtime
 home prefix as installation locality, not semantic ownership.
 
+## PR5 Runtime Adapter Contracts
+
+PR5 separates runtime-neutral core contracts from per-runtime adapter contracts.
+The per-runtime source contract slots are
+`runtime-adapters/claude/contract.json`,
+`runtime-adapters/codex/contract.json`, and
+`runtime-adapters/gemini/contract.json`, with shared shape in
+`core/contracts/runtime-adapter-contract.ts`. Treat those paths as plugin-source
+contracts only. They describe how a native runtime may consume the
+runtime-neutral core; they do not authorize protected mutation and do not make
+an unsupported runtime active.
+
+| Adapter contract slot | Current support claim | Required evidence before active-runtime claim |
+|---|---|---|
+| `runtime-adapters/codex/contract.json` | Codex is the only active package/install target in this checkout. | Source-complete branch, Codex reinstall/reload/restart, and Codex smoke evidence such as `contracts/runtime-evidence/codex.json` plus targeted tests. |
+| `runtime-adapters/claude/contract.json` | Contract-only `runtime_gap` / unsupported surface. | Native Claude package/install surface plus smoke evidence checked into source authority. |
+| `runtime-adapters/gemini/contract.json` | Contract-only `runtime_gap` / unsupported surface. | Native Gemini package/install surface plus smoke evidence checked into source authority. |
+
+Provider identity remains metadata. A per-runtime adapter contract can document
+protocol shape, reload requirements, and unsupported gaps, but it cannot approve
+SemanticIntentContracts, DigitalTwinChangeContracts, WorkContracts, release
+gates, or ontology mutations.
+
 ## Required Mental Model
 
 ```text
 LLM/provider metadata
-  -> Codex native runtime adapter (config, hooks, MCP, memory)
+  -> runtime adapter contract (Codex active; Claude/Gemini unsupported gaps)
   -> installed palantir-mini payload
   -> deterministic palantir-mini contracts, handlers, validation, lineage
 ```

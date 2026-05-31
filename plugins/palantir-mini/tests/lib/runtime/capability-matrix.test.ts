@@ -1,12 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import {
+  CODEX_MOUNTED_HOOK_EVENTS,
   CODEX_SCHEMA_ONLY_EVENTS,
+  CODEX_UNMOUNTED_HOOK_EVENTS,
   CODEX_NATIVE_GAPS,
   GEMINI_NATIVE_GAPS,
   codexFallbackFactForEvent,
   geminiFallbackFactForEvent,
   runtimeCanObserveEvent,
+  runtimeHasMountedHookEvent,
   runtimeHasSchemaOnlyEvent,
+  runtimeHasUnmountedHookEvent,
 } from "../../../lib/runtime/capability-matrix";
 
 describe("runtime capability matrix", () => {
@@ -26,6 +30,26 @@ describe("runtime capability matrix", () => {
     expect(runtimeCanObserveEvent("codex", "PostCompact")).toBe(true);
     expect(runtimeHasSchemaOnlyEvent("codex", "PreCompact")).toBe(false);
     expect(codexFallbackFactForEvent("PreCompact")).toBeNull();
+  });
+
+  test("Codex mounted hook events stay separated from native vocabulary", () => {
+    expect(CODEX_MOUNTED_HOOK_EVENTS).toEqual([
+      "PermissionRequest",
+      "PostToolUse",
+      "PreCompact",
+      "PostCompact",
+      "SubagentStart",
+      "SubagentStop",
+      "Stop",
+    ]);
+    expect(CODEX_UNMOUNTED_HOOK_EVENTS).toEqual([
+      "PreToolUse",
+      "SessionStart",
+      "UserPromptSubmit",
+    ]);
+    expect(runtimeCanObserveEvent("codex", "PreToolUse")).toBe(true);
+    expect(runtimeHasMountedHookEvent("codex", "PreToolUse")).toBe(false);
+    expect(runtimeHasUnmountedHookEvent("codex", "PreToolUse")).toBe(true);
   });
 
   test("Gemini exposes native Gemini lifecycle names through an adapter map", () => {
