@@ -28,6 +28,21 @@ export const WORKFLOW_FAMILIES = [
 
 export type WorkflowFamily = (typeof WORKFLOW_FAMILIES)[number];
 
+export const WORKFLOW_FAMILY_RELEASE_GATE_REQUIRED_EVIDENCE_REFS = [
+  "tests/governance/effective-gate-mode.test.ts",
+  "tests/runtime-boundary/runtime-parity-claims.test.ts",
+  "scripts/verify-runtime-parity-claims.ts",
+  "tests/integrity/no-semantic-root-fork.test.ts",
+  "scripts/verify-no-semantic-root-fork.ts",
+  "ci/verify-marketplace-integrity.ts",
+  "tests/hooks/hook-contracts.test.ts",
+  "scripts/verify-hook-contracts.ts",
+  "tests/lib/semantic-consistency/promotion-gate.test.ts",
+  "tests/evals/semantic-consistency-regression.test.ts",
+  "tests/lib/chatbot-studio/semantic-conversation-state.test.ts",
+  "tests/bridge/handlers/pm-semantic-intent-gate.test.ts",
+] as const;
+
 export const DETERMINISTIC_ENFORCEMENT_STATUSES = [
   "enforced",
   "advisory-only",
@@ -677,7 +692,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         forbiddenTools: ["unbounded-subagent"],
         requiredEvidenceRefs: ["Approved boundary", "Write scope", "Validation"],
         outputStateRefs: ["workerOutputContract"],
-        deterministicStatus: "advisory-only",
+        deterministicStatus: "enforced",
       }),
     ],
     aipSurfaceRefs: [
@@ -944,7 +959,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         forbiddenTools: ["git push origin main"],
         requiredEvidenceRefs: ["PR URL", "merge status"],
         outputStateRefs: ["releaseLineageRef"],
-        deterministicStatus: "advisory-only",
+        deterministicStatus: "enforced",
       }),
     ],
     aipSurfaceRefs: [
@@ -959,6 +974,11 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
           determinism: "enforced",
           requiredEvidenceRefs: ["PR body: why, scope, verification, recovery"],
         },
+        {
+          gateId: "release-gate:workflow-family-final-aggregator",
+          determinism: "enforced",
+          requiredEvidenceRefs: WORKFLOW_FAMILY_RELEASE_GATE_REQUIRED_EVIDENCE_REFS,
+        },
       ],
       selfChecks: [
         {
@@ -967,6 +987,13 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
           determinism: "enforced",
           releaseBlocking: true,
           evidenceRefs: ["tests/lib/harness/release-evidence.test.ts"],
+        },
+        {
+          checkId: "self-check:workflow-family-release-gate",
+          mode: "release",
+          determinism: "enforced",
+          releaseBlocking: true,
+          evidenceRefs: ["lib/release/workflow-family-release-gate.ts"],
         },
       ],
     }),
@@ -1070,7 +1097,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         allowedTools: ["pm_semantic_workbench_state", "ontology_context_query"],
         requiredEvidenceRefs: ["ApplicationVariableContract", "RetrievalContextContract"],
         outputStateRefs: ["applicationStateProjection"],
-        deterministicStatus: "advisory-only",
+        deterministicStatus: "enforced",
       }),
       phase({
         phaseId: "app-chatbot:authoring-validation",
