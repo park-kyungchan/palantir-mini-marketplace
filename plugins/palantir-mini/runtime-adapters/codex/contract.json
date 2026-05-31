@@ -15,7 +15,8 @@
     "hooks/hooks.json"
   ],
   "adapterRefs": [
-    "lib/codex/codex-hook-adapter.ts"
+    "lib/codex/codex-hook-adapter.ts",
+    "lib/codex/palantir-mini-activation-policy.ts"
   ],
   "mcpProfileRefs": [
     ".mcp.json",
@@ -50,16 +51,20 @@
   "runtimeGapRefs": [
     "codex:source-complete-is-not-active-runtime-complete",
     "codex:requires-plugin-reinstall-reload-and-process-restart",
-    "codex:mounted-hook-manifest-smoke-required"
+    "codex:mounted-hook-manifest-smoke-required",
+    "codex:true-hook-no-call-requires-codex-config-profile-or-plugin-disable"
   ],
   "fallbackObligations": [
     "A source plan or source merge is not live Codex behavior until the plugin payload is reinstalled/reloaded and Codex is restarted.",
     "Mounted hook, MCP profile, and skill surface claims require smoke evidence from the installed runtime payload.",
+    "Silent adapter bypass is not a no-call guarantee; true no-call policy must be configured in Codex before hook loading.",
+    "Prompt-only opt-out is not durable to prompt-less mounted events while UserPromptSubmit remains unmounted; use Codex no-call config or repo-local opt-in-only policy for that boundary.",
     "Provider identity remains metadata and must not authorize approvals or mutations."
   ],
   "smokeEvidenceRefs": [
     "tests/runtime-boundary/codex-plugin-hooks.test.ts",
-    "tests/integration/codex-skill-surface.test.ts"
+    "tests/integration/codex-skill-surface.test.ts",
+    "tests/lib/codex/palantir-mini-activation-policy.test.ts"
   ],
   "reloadEvidenceRefs": [
     "docs/RELOAD_PER_RUNTIME.md",

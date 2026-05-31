@@ -17,6 +17,7 @@ import {
 } from "../../../lib/prompt-front-door";
 
 const tmpDirs: string[] = [];
+const REAL_PLUGIN_ROOT = path.resolve(import.meta.dir, "../../..");
 
 function makePlugin(hooks: HooksDocument, env: Record<string, string | undefined> = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-codex-adapter-"));
@@ -247,7 +248,7 @@ describe("Codex hook adapter", () => {
     expect(second.runs[0]?.parsed).toEqual({ message: "fake capture" });
   });
 
-  test("UserPromptSubmit opt-out runs only prompt-front-door capture", async () => {
+  test("UserPromptSubmit opt-out bypasses all palantir-mini hooks silently", async () => {
     const { root, options } = makePlugin(
       {
         hooks: {
@@ -277,21 +278,41 @@ describe("Codex hook adapter", () => {
       options,
     );
 
-    expect(result.matchedHooks.map((hook) => hook.command)).toEqual([
-      command("prompt-front-door-capture"),
-    ]);
-    expect(result.runs).toHaveLength(1);
-    expect(result.response.hookSpecificOutput).toEqual({
-      hookEventName: "UserPromptSubmit",
-      additionalContext: "plugin opt-out captured",
+    expect(result.matchedHooks).toEqual([]);
+    expect(result.runs).toEqual([]);
+    expect(result.response).toEqual({});
+    expect(fs.existsSync(recordPath)).toBe(false);
+  });
+
+  test("PermissionRequest in meta-harness bypasses shared PreToolUse hooks", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "Edit|Write",
+            hooks: [{ type: "command", command: command("deny-pretool"), timeout: 3 }],
+          },
+        ],
+      },
     });
 
-    const modes = fs
-      .readFileSync(recordPath, "utf8")
-      .trim()
-      .split("\n")
-      .map((line) => (JSON.parse(line) as { mode: string }).mode);
-    expect(modes).toEqual(["prompt-front-door-capture"]);
+    const result = await runCodexHookAdapter(
+      "PermissionRequest",
+      {
+        cwd: "/home/palantirkc/meta-harness",
+        tool_name: "apply_patch",
+        tool_input: { command: "*** Add File: _workspace/example.md\n+hello\n" },
+      },
+      {
+        ...options,
+        pluginRoot: REAL_PLUGIN_ROOT,
+        hooksJsonPath: path.join(root, "hooks", "hooks.json"),
+      },
+    );
+
+    expect(result.matchedHooks).toEqual([]);
+    expect(result.runs).toEqual([]);
+    expect(result.response).toEqual({});
   });
 
   test("PreToolUse opt-out skips plugin enforcement hooks from current prompt-front-door state", async () => {

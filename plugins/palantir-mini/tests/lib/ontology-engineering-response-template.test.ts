@@ -38,6 +38,8 @@ describe("palantir-mini workflow response requirements", () => {
     expect(isPalantirMiniPluginExplicitlyDisabled(optOutPrompt)).toBe(true);
     expect(isPalantirMiniWorkflowResponseRequired(optOutPrompt)).toBe(false);
     expect(isOntologyEngineeringResponseRequired(optOutPrompt)).toBe(false);
+    expect(detectPalantirMiniPluginOptOut("Do not invoke palantir-mini here.")?.explicit).toBe(true);
+    expect(detectPalantirMiniPluginOptOut("Don't run palantir-mini here.")?.explicit).toBe(true);
 
     const metaPrompt =
       "palantir-mini plugin을 사용하지 말라고 할 경우에는 opt-out을 감지해야 한다.";

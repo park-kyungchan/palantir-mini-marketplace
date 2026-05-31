@@ -189,7 +189,11 @@ const PALANTIR_MINI_WORKFLOW_RESPONSE_MARKERS = [
 
 const PALANTIR_MINI_PLUGIN_DIRECT_OPT_OUT_MARKERS = [
   "do not use palantir-mini",
+  "do not invoke palantir-mini",
+  "do not run palantir-mini",
   "don't use palantir-mini",
+  "don't invoke palantir-mini",
+  "don't run palantir-mini",
   "without palantir-mini",
   "skip palantir-mini",
   "avoid palantir-mini",

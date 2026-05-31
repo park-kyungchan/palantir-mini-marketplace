@@ -297,6 +297,12 @@ export default async function promptFrontDoorCapture(payload: unknown): Promise<
   const runtime = detectRuntime(p);
   const projectRoot = resolveCaptureProjectRoot(cwd);
   const palantirMiniPluginOptOut = detectPalantirMiniPluginOptOut(rawPrompt);
+  if (runtime === "codex" && palantirMiniPluginOptOut?.explicit) {
+    return {
+      continue: true,
+      message: `palantir-mini: prompt-front-door-capture skipped (explicit plugin opt-out: ${palantirMiniPluginOptOut.matchedMarker})`,
+    };
+  }
   const previous = readJsonSync<PromptCurrentPointer>(
     currentPointerPathFor(projectRoot, runtime, sessionId),
   );
