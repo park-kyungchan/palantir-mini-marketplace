@@ -1,5 +1,6 @@
 ---
 name: plugin-maintainer
+surfaceStatus: public-core
 description: >
   palantir-mini plugin maintenance specialist. Owns version sync across
   plugins/palantir-mini/.codex-plugin/plugin.json and

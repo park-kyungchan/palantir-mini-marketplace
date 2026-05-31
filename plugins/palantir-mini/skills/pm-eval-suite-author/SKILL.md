@@ -1,6 +1,7 @@
 ---
 name: pm-eval-suite-author
 category: merge-candidate
+surfaceStatus: public-core
 description: "Author an AIP-Evals-style EvaluationSuite (test cases + target + evaluator policy +..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__ontology_schema_get Read Write Edit Bash
 effort: high

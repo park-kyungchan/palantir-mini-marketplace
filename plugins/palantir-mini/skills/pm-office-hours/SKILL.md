@@ -1,6 +1,7 @@
 ---
 name: pm-office-hours
 category: research
+surfaceStatus: public-core
 description: "YC Office Hours — two modes. Startup mode — six forcing questions that expose demand..."
 allowed-tools: Bash Read Write Edit Grep Glob WebSearch mcp__palantir-mini__pm_preamble mcp__palantir-mini__emit_event
 effort: high

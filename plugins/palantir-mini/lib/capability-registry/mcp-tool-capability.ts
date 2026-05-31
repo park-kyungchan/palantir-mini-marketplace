@@ -21,6 +21,23 @@ export type McpToolLifecycle =
   | "deprecated"
   | "merged";
 
+export type McpToolSurfaceStatus =
+  | "public-core"
+  | "dev-only"
+  | "protected-default-off"
+  | "internal-telemetry";
+
+export type McpToolSurfaceProfile =
+  | "studio-core"
+  | "dev-full"
+  | "protected-actions"
+  | "internal-telemetry";
+
+export interface McpToolSurfaceMetadata {
+  readonly status: McpToolSurfaceStatus;
+  readonly profiles: readonly McpToolSurfaceProfile[];
+}
+
 export type McpToolEffect =
   | "read"
   | "compute"
@@ -72,7 +89,12 @@ export interface McpToolCapability {
   readonly releaseDeploy: boolean;
   readonly externalEgress: boolean;
   readonly classifierProjection: McpToolClassifierProjection;
+  readonly surface?: McpToolSurfaceMetadata;
 }
+
+export type McpToolCapabilityRecord = McpToolCapability & {
+  readonly surface: McpToolSurfaceMetadata;
+};
 
 export interface McpToolCapabilityCoverage {
   readonly declaredToolCount: number;
@@ -89,16 +111,125 @@ const EXPLICIT_PROJECTION_REASON =
 const FALLBACK_PROJECTION_REASON =
   "Legacy classifier intentionally keeps this tool on fallback operation=unknown to avoid runtime blocking drift.";
 
+export const MCP_TOOL_SURFACE_PROFILE_ENV = "PALANTIR_MINI_MCP_PROFILE";
+
+export const DEFAULT_MCP_TOOL_SURFACE_PROFILE =
+  "studio-core" as const satisfies McpToolSurfaceProfile;
+
+export const MCP_TOOL_SURFACE_PROFILES = [
+  "studio-core",
+  "dev-full",
+  "protected-actions",
+  "internal-telemetry",
+] as const satisfies readonly McpToolSurfaceProfile[];
+
+export const MCP_TOOL_SURFACE_STATUSES = [
+  "public-core",
+  "dev-only",
+  "protected-default-off",
+  "internal-telemetry",
+] as const satisfies readonly McpToolSurfaceStatus[];
+
+export const STUDIO_CORE_MCP_TOOL_NAMES = [
+  "ontology_context_query",
+  "pm_semantic_intent_gate",
+  "pm_ontology_engineering_workflow",
+  "pm_intent_router",
+  "pm_pre_mutation_governance",
+  "compute_edits_dry_run",
+  "ontology_schema_get",
+] as const;
+
+export const PROTECTED_ACTION_MCP_TOOL_NAMES = [
+  "apply_edit_function",
+  "commit_edits",
+  "negotiate_sprint_contract",
+  "research_library_refresh",
+] as const;
+
+export const INTERNAL_TELEMETRY_MCP_TOOL_NAMES = [
+  "emit_event",
+  "events_log_rotate",
+] as const;
+
+const STUDIO_CORE_MCP_TOOL_SET = new Set<string>(STUDIO_CORE_MCP_TOOL_NAMES);
+const PROTECTED_ACTION_MCP_TOOL_SET = new Set<string>(PROTECTED_ACTION_MCP_TOOL_NAMES);
+const INTERNAL_TELEMETRY_MCP_TOOL_SET = new Set<string>(INTERNAL_TELEMETRY_MCP_TOOL_NAMES);
+const MCP_TOOL_SURFACE_PROFILE_SET = new Set<string>(MCP_TOOL_SURFACE_PROFILES);
+
+function surfaceMetadataForTool(toolName: string): McpToolSurfaceMetadata {
+  if (STUDIO_CORE_MCP_TOOL_SET.has(toolName)) {
+    return {
+      status: "public-core",
+      profiles: ["dev-full", "studio-core"],
+    };
+  }
+  if (PROTECTED_ACTION_MCP_TOOL_SET.has(toolName)) {
+    return {
+      status: "protected-default-off",
+      profiles: ["dev-full", "protected-actions"],
+    };
+  }
+  if (INTERNAL_TELEMETRY_MCP_TOOL_SET.has(toolName)) {
+    return {
+      status: "internal-telemetry",
+      profiles: ["dev-full", "internal-telemetry"],
+    };
+  }
+  return {
+    status: "dev-only",
+    profiles: ["dev-full"],
+  };
+}
+
+export function isMcpToolSurfaceProfile(
+  value: string | undefined,
+): value is McpToolSurfaceProfile {
+  return value !== undefined && MCP_TOOL_SURFACE_PROFILE_SET.has(value);
+}
+
+export function resolveMcpToolSurfaceProfile(
+  rawProfile: string | undefined,
+): McpToolSurfaceProfile {
+  // Unknown values fall back to the conservative Studio surface so a typo cannot
+  // silently widen the local MCP tool exposure.
+  return isMcpToolSurfaceProfile(rawProfile)
+    ? rawProfile
+    : DEFAULT_MCP_TOOL_SURFACE_PROFILE;
+}
+
+export function includedMcpToolSurfaceProfiles(
+  profile: McpToolSurfaceProfile,
+): readonly McpToolSurfaceProfile[] {
+  if (profile === "protected-actions" || profile === "internal-telemetry") {
+    return ["studio-core", profile];
+  }
+  return [profile];
+}
+
+export function isMcpToolVisibleInProfile(
+  capabilityRecord: Pick<McpToolCapability, "surface"> | undefined,
+  profile: McpToolSurfaceProfile,
+): boolean {
+  const surface = capabilityRecord?.surface;
+  if (surface === undefined) return false;
+  const includedProfiles = includedMcpToolSurfaceProfiles(profile);
+  return surface.profiles.some((candidate) =>
+    includedProfiles.includes(candidate),
+  );
+}
+
 function capability(
   toolName: string,
   args: Omit<
     McpToolCapability,
-    "schemaVersion" | "toolName" | "rid" | "ownerModule" | "lifecycle"
+    "schemaVersion" | "toolName" | "rid" | "ownerModule" | "lifecycle" | "surface"
   > & {
     readonly ownerModule?: string;
     readonly lifecycle?: McpToolLifecycle;
+    readonly surface?: McpToolSurfaceMetadata;
   },
-): McpToolCapability {
+): McpToolCapabilityRecord {
   return {
     schemaVersion: MCP_TOOL_CAPABILITY_SCHEMA_VERSION,
     toolName,
@@ -114,6 +245,7 @@ function capability(
     releaseDeploy: args.releaseDeploy,
     externalEgress: args.externalEgress,
     classifierProjection: args.classifierProjection,
+    surface: args.surface ?? surfaceMetadataForTool(toolName),
   };
 }
 
@@ -135,7 +267,7 @@ function fallback(): McpToolClassifierProjection {
   };
 }
 
-export const MCP_TOOL_CAPABILITIES: readonly McpToolCapability[] = [
+export const MCP_TOOL_CAPABILITIES: readonly McpToolCapabilityRecord[] = [
   capability("emit_event", {
     domain: "LEARN",
     effects: ["append-event"],
@@ -488,17 +620,17 @@ const MCP_TOOL_CAPABILITY_BY_NAME = new Map(
 
 export function getMcpToolCapability(
   toolName: string | undefined,
-): McpToolCapability | undefined {
+): McpToolCapabilityRecord | undefined {
   if (!toolName) return undefined;
   return MCP_TOOL_CAPABILITY_BY_NAME.get(toolName);
 }
 
 export function listMcpToolCapabilitiesForDeclaredTools(
   declaredToolNames: readonly string[],
-): readonly McpToolCapability[] {
+): readonly McpToolCapabilityRecord[] {
   return declaredToolNames
     .map((toolName) => getMcpToolCapability(toolName))
-    .filter((capabilityRecord): capabilityRecord is McpToolCapability =>
+    .filter((capabilityRecord): capabilityRecord is McpToolCapabilityRecord =>
       capabilityRecord !== undefined,
     );
 }

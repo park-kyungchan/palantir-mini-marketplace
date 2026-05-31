@@ -1,6 +1,7 @@
 ---
 name: pm-replay
 category: codex-audit
+surfaceStatus: public-core
 description: "Codex default replay entrypoint; delegates to the canonical BackPropagation skill."
 allowed-tools: mcp__palantir-mini__pm_substrate_query mcp__palantir-mini__pm_health_audit
 effort: medium

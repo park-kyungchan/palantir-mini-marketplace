@@ -1,6 +1,7 @@
 ---
 name: pm-fde-grade
 category: fde-readiness
+surfaceStatus: public-core
 description: "Grade an FDEOntologyBuildSession against the 17-criterion FDE Ontology Build..."
 allowed-tools: Read Bash
 effort: medium

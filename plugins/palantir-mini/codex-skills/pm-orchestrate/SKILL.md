@@ -1,6 +1,7 @@
 ---
 name: pm-orchestrate
 category: codex-core
+surfaceStatus: public-core
 description: "Codex default orchestration entrypoint; delegates to the canonical workflow skill."
 allowed-tools: mcp__palantir-mini__pm_semantic_intent_gate mcp__palantir-mini__pm_intent_router mcp__palantir-mini__ontology_context_query
 effort: high

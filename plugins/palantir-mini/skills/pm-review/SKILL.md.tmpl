@@ -1,6 +1,7 @@
 ---
 name: pm-review
 category: core-workflow
+surfaceStatus: public-core
 description: "Pre-landing PR review. Analyzes diff against the base branch for SQL safety, LLM..."
 allowed-tools: Bash Read Write Edit MultiEdit Grep Glob Agent WebSearch mcp__palantir-mini__pm_preamble mcp__palantir-mini__pm_learn_query
 ---

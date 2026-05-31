@@ -1,6 +1,7 @@
 ---
 name: pm-rule-memory-prune
 category: maintenance
+surfaceStatus: public-core
 description: "Unified prune-candidate list combining pm_rule_audit (unused_rule_30d findings) +..."
 costClass: free
 effort: medium

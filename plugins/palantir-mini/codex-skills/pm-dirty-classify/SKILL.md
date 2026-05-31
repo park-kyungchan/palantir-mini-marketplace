@@ -1,6 +1,7 @@
 ---
 name: pm-dirty-classify
 category: codex-release
+surfaceStatus: public-core
 description: "Codex default dirty-state entrypoint; delegates to the canonical palantir-mini skill."
 allowed-tools: mcp__palantir-mini__pm_health_audit
 effort: low

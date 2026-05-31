@@ -1,5 +1,6 @@
 ---
 name: mc-implementer
+surfaceStatus: deprecated-candidate
 deprecated: true
 supersededBy: project-implementer
 deprecationWindowEndsSprint: 65

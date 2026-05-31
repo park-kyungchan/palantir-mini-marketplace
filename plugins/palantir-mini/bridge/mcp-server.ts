@@ -18,6 +18,15 @@
 import * as readline from "readline";
 import type { EventType } from "../lib/event-log/types";
 import {
+  DEFAULT_MCP_TOOL_SURFACE_PROFILE,
+  MCP_TOOL_SURFACE_PROFILE_ENV,
+  getMcpToolCapability,
+  isMcpToolVisibleInProfile,
+  resolveMcpToolSurfaceProfile,
+  type McpToolSurfaceMetadata,
+  type McpToolSurfaceProfile,
+} from "../lib/capability-registry/mcp-tool-capability";
+import {
   classifyError,
   elapsedMs,
   emitToolInvocationCompleted,
@@ -57,6 +66,7 @@ export interface ToolSpec {
   ownerModule?: string;
   replacedBy?:  string;
   stableSince?: string;
+  surface?:     McpToolSurfaceMetadata;
 }
 
 const TOOLS: ToolSpec[] = [
@@ -884,14 +894,63 @@ for (const tool of TOOLS) {
   tool.lifecycle ??= "public";
   tool.ownerModule = handlerPathToOwnerModule(HANDLER_MODULES[tool.name] ?? `./handlers/${tool.name}`);
   tool.stableSince = tool.name === "pm_semantic_intent_gate" ? "v5.1.0" : "v5.0.0";
+  const capability = getMcpToolCapability(tool.name);
+  if (capability === undefined) {
+    throw new Error(`missing MCP tool capability metadata for ${tool.name}`);
+  }
+  tool.surface = capability.surface;
 }
 
-function publicToolSpec(tool: ToolSpec): Pick<ToolSpec, "name" | "description" | "inputSchema"> {
+interface PublicToolSpec {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: unknown;
+  readonly metadata: {
+    readonly "palantir-mini": {
+      readonly activeProfile: McpToolSurfaceProfile;
+      readonly defaultProfile: typeof DEFAULT_MCP_TOOL_SURFACE_PROFILE;
+      readonly surface: McpToolSurfaceMetadata;
+    };
+  };
+}
+
+function activeMcpToolSurfaceProfile(): McpToolSurfaceProfile {
+  return resolveMcpToolSurfaceProfile(process.env[MCP_TOOL_SURFACE_PROFILE_ENV]);
+}
+
+function visibleToolsForProfile(profile: McpToolSurfaceProfile): readonly ToolSpec[] {
+  return TOOLS.filter((tool) =>
+    isMcpToolVisibleInProfile(getMcpToolCapability(tool.name), profile),
+  );
+}
+
+function publicToolSpec(
+  tool: ToolSpec,
+  activeProfile: McpToolSurfaceProfile,
+): PublicToolSpec {
+  const capability = getMcpToolCapability(tool.name);
+  if (capability === undefined) {
+    throw new Error(`missing MCP tool capability metadata for ${tool.name}`);
+  }
   return {
     name: tool.name,
     description: tool.description,
     inputSchema: tool.inputSchema,
+    metadata: {
+      "palantir-mini": {
+        activeProfile,
+        defaultProfile: DEFAULT_MCP_TOOL_SURFACE_PROFILE,
+        surface: capability.surface,
+      },
+    },
   };
+}
+
+function hiddenToolMessage(
+  toolName: string,
+  profile: McpToolSurfaceProfile,
+): string {
+  return `tools/call: tool \`${toolName}\` is not visible in MCP profile \`${profile}\``;
 }
 
 // ─── MCP-first project evidence ────────────────────────────────────────────
@@ -1074,13 +1133,31 @@ async function handleRequest(req: JsonRpcRequest): Promise<JsonRpcResponse | nul
       }
 
       case "tools/list": {
-        return respondSuccess(req.id, { tools: TOOLS.map(publicToolSpec) });
+        const profile = activeMcpToolSurfaceProfile();
+        return respondSuccess(req.id, {
+          profile,
+          defaultProfile: DEFAULT_MCP_TOOL_SURFACE_PROFILE,
+          profileEnvVar: MCP_TOOL_SURFACE_PROFILE_ENV,
+          tools: visibleToolsForProfile(profile).map((tool) =>
+            publicToolSpec(tool, profile),
+          ),
+        });
       }
 
       case "tools/call": {
         const params = (req.params ?? {}) as { name?: string; arguments?: unknown };
         if (!params.name) return respondError(req.id, ERR.PARAMS, "tools/call: missing `name`");
         const toolName = params.name;
+        const profile = activeMcpToolSurfaceProfile();
+        const capability = getMcpToolCapability(toolName);
+        if (!isMcpToolVisibleInProfile(capability, profile)) {
+          return respondError(req.id, ERR.PARAMS, hiddenToolMessage(toolName, profile), {
+            profile,
+            defaultProfile: DEFAULT_MCP_TOOL_SURFACE_PROFILE,
+            profileEnvVar: MCP_TOOL_SURFACE_PROFILE_ENV,
+            toolName,
+          });
+        }
         const handler = await loadHandler(toolName);
         // v2.8.2 — Session 3 Slice 1 (B-15): handler latency instrumentation.
         // Best-effort telemetry around every dispatch — failure to emit MUST NOT

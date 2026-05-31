@@ -1,6 +1,7 @@
 ---
 name: pm-substrate-audit-cron-status
 category: delete-candidate
+surfaceStatus: deprecated-candidate
 description: "Read-only CronList wrapper filtered to weekly-substrate-audit registrations...."
 costClass: free
 effort: small

@@ -96,6 +96,22 @@
     "deny": [
       "Write(~/.claude/schemas/ontology/types.ts)",
       "Write(~/.claude/schemas/ontology/semantics.ts)"
+    ],
+    "surfaceStatusSchemaVersion": "palantir-mini/surface-status/v1",
+    "surfaceStatus": "protected-default-off",
+    "surfaceToolDecisions": [
+      {
+        "toolName": "pm_semantic_workbench_state",
+        "registryStatus": "keep",
+        "surfaceStatus": "internal",
+        "reason": "Handler remains plugin-internal until SemanticWorkbenchState is stable; no deletion in PR1."
+      },
+      {
+        "toolName": "pm_semantic_consistency_gate",
+        "registryStatus": "register",
+        "surfaceStatus": "public-core",
+        "reason": "Deterministic semantic consistency promotion gate is planned for later public-core registration; PR1 records the decision only and performs no public MCP exposure or deletion."
+      }
     ]
   },
   "env": {

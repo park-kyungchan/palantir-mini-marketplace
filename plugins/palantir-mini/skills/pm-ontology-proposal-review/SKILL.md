@@ -1,6 +1,7 @@
 ---
 name: pm-ontology-proposal-review
 category: core-workflow
+surfaceStatus: public-core
 description: "Append review verdict to an existing OntologyProposal/GlobalBranchingProposal —..."
 allowed-tools: mcp__palantir-mini__apply_edit_function mcp__palantir-mini__commit_edits mcp__palantir-mini__compute_edits_dry_run mcp__palantir-mini__impact_query mcp__palantir-mini__emit_event Read Write Bash
 effort: medium

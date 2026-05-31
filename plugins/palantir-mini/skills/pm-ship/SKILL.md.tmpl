@@ -1,6 +1,7 @@
 ---
 name: pm-ship
 category: core-workflow
+surfaceStatus: public-core
 description: "Ship workflow — detect + merge base branch, run tests, audit coverage, review diff,..."
 allowed-tools: Bash Read Write Edit MultiEdit Grep Glob Agent WebSearch mcp__palantir-mini__verify_schema_pin mcp__palantir-mini__detect_doc_drift mcp__palantir-mini__get_team_health mcp__palantir-mini__emit_event
 ---

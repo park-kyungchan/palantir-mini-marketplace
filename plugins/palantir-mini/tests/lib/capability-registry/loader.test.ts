@@ -17,7 +17,14 @@ import { invalidate } from "../../../lib/capability-registry/cache";
 import {
   loadCapabilityRegistry,
 } from "../../../lib/capability-registry/index";
-import { MCP_TOOL_CAPABILITIES } from "../../../lib/capability-registry/mcp-tool-capability";
+import {
+  MCP_TOOL_CAPABILITIES,
+  MCP_TOOL_SURFACE_PROFILES,
+  MCP_TOOL_SURFACE_STATUSES,
+  INTERNAL_TELEMETRY_MCP_TOOL_NAMES,
+  PROTECTED_ACTION_MCP_TOOL_NAMES,
+  STUDIO_CORE_MCP_TOOL_NAMES,
+} from "../../../lib/capability-registry/mcp-tool-capability";
 
 const REAL_PLUGIN_ROOT =
   process.env["PALANTIR_MINI_ROOT"] ??
@@ -25,6 +32,21 @@ const REAL_PLUGIN_ROOT =
   process.env["PLUGIN_ROOT"] ??
   process.env["PALANTIR_MINI_PLUGIN_ROOT"] ??
   path.resolve(import.meta.dir, "../../..");
+
+function requireCapabilitySurface(
+  registryCapabilities: readonly (typeof MCP_TOOL_CAPABILITIES)[number][],
+  toolName: string,
+): NonNullable<(typeof MCP_TOOL_CAPABILITIES)[number]["surface"]> {
+  const capability = registryCapabilities.find((entry) =>
+    entry.toolName === toolName,
+  );
+  const surface = capability?.surface;
+  expect(surface).toBeDefined();
+  if (surface === undefined) {
+    throw new Error(`missing surface metadata for ${toolName}`);
+  }
+  return surface;
+}
 
 // ─── Setup / teardown ─────────────────────────────────────────────────────────
 
@@ -113,7 +135,7 @@ describe("loadCapabilityRegistry", () => {
     }
   });
 
-  test("all declared MCP tools have capability metadata with fallback visibility", () => {
+  test("all declared MCP tools have capability surface metadata with dev-full visibility", () => {
     const { registry, stats } = loadCapabilityRegistry(tmpProjectRoot);
     const coverage = stats.mcpToolCapabilityCoverage;
 
@@ -124,6 +146,39 @@ describe("loadCapabilityRegistry", () => {
     expect(coverage.coveredToolNames.length).toBe(registry.mcpTools.length);
     expect(coverage.fallbackClassifiedToolNames).toContain("get_ontology");
     expect(coverage.fallbackClassifiedToolNames).toContain("research_library_refresh");
+
+    const validStatuses = new Set(MCP_TOOL_SURFACE_STATUSES);
+    const validProfiles = new Set(MCP_TOOL_SURFACE_PROFILES);
+    for (const capability of registry.mcpToolCapabilities) {
+      const surface = capability.surface;
+      expect(surface).toBeDefined();
+      if (surface === undefined) {
+        throw new Error(`missing surface metadata for ${capability.toolName}`);
+      }
+      expect(validStatuses.has(surface.status)).toBe(true);
+      expect(surface.profiles).toContain("dev-full");
+      for (const profile of surface.profiles) {
+        expect(validProfiles.has(profile)).toBe(true);
+      }
+    }
+
+    for (const toolName of STUDIO_CORE_MCP_TOOL_NAMES) {
+      const surface = requireCapabilitySurface(MCP_TOOL_CAPABILITIES, toolName);
+      expect(surface.status).toBe("public-core");
+      expect(surface.profiles).toContain("studio-core");
+    }
+
+    for (const toolName of PROTECTED_ACTION_MCP_TOOL_NAMES) {
+      const surface = requireCapabilitySurface(MCP_TOOL_CAPABILITIES, toolName);
+      expect(surface.status).toBe("protected-default-off");
+      expect(surface.profiles).toContain("protected-actions");
+    }
+
+    for (const toolName of INTERNAL_TELEMETRY_MCP_TOOL_NAMES) {
+      const surface = requireCapabilitySurface(MCP_TOOL_CAPABILITIES, toolName);
+      expect(surface.status).toBe("internal-telemetry");
+      expect(surface.profiles).toContain("internal-telemetry");
+    }
   });
 
   test("empty project (no palantir-mini dir) → projectActions/knownIssues = 0, skills/agents from real plugin root ≥1", () => {

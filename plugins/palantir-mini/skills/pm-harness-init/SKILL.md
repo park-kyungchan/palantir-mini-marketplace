@@ -1,6 +1,7 @@
 ---
 name: pm-harness-init
 category: core-workflow
+surfaceStatus: public-core
 description: "Bootstrap the 3-agent harness workspace in a project."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 effort: medium

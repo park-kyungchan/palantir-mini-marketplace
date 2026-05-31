@@ -1,5 +1,6 @@
 ---
 name: harness-generator
+surfaceStatus: public-core
 description: Worktree-isolated implementer for bound harness sprints; builds from spec.md and writes self-assessment-NNN.md per iteration.
 model: sonnet
 tools:

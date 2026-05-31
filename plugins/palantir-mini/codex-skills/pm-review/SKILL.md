@@ -1,6 +1,7 @@
 ---
 name: pm-review
 category: codex-release
+surfaceStatus: public-core
 description: "Codex default PR review entrypoint; delegates to the canonical palantir-mini skill."
 allowed-tools: mcp__palantir-mini__ontology_context_query mcp__palantir-mini__pm_health_audit
 effort: medium

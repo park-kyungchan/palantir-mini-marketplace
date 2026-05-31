@@ -1,6 +1,7 @@
 ---
 name: pm-dtc-fill
 category: core-workflow
+surfaceStatus: public-core
 description: "Turn-by-turn DTC (DigitalTwinChangeContract) fill conversation. Use after SIC..."
 allowed-tools: Read
 effort: low

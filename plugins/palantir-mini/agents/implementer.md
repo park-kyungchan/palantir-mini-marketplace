@@ -1,5 +1,6 @@
 ---
 name: implementer
+surfaceStatus: public-core
 description: >
   Focused execution specialist for coding, refactoring, and file modifications.
   Use when the Lead assigns implementation tasks with clear scope, acceptance

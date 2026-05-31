@@ -1,6 +1,7 @@
 ---
 name: pm-learn
 category: research
+surfaceStatus: public-core
 description: "Manage cross-session project learnings. Review, search, prune, export, and log..."
 allowed-tools: Bash Read Grep Glob mcp__palantir-mini__pm_learn_query mcp__palantir-mini__emit_event
 ---

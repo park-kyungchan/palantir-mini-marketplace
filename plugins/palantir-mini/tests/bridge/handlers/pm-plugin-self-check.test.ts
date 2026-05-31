@@ -35,6 +35,20 @@ import {
   saveEnv,
 } from "./pm-plugin-self-check/fixtures";
 
+const PLUGIN_ROOT = path.resolve(import.meta.dir, "../../..");
+const SURFACE_STATUS_VALUES = [
+  "public-core",
+  "protected-default-off",
+  "dev-only",
+  "docs-only",
+  "internal",
+  "deprecated-candidate",
+  "archived",
+] as const;
+const REGISTRY_STATUSES = ["keep", "register", "retire"] as const;
+const SURFACE_STATUS_VALUE_SET = new Set<string>(SURFACE_STATUS_VALUES);
+const REGISTRY_STATUS_SET = new Set<string>(REGISTRY_STATUSES);
+
 function countHookCommandsFromRegistry(): number {
   const hooksJson = path.resolve(import.meta.dir, "../../../hooks/hooks.json");
   const parsed = JSON.parse(fs.readFileSync(hooksJson, "utf8")) as {
@@ -45,6 +59,43 @@ function countHookCommandsFromRegistry(): number {
       return entryCount + (entry.hooks ?? []).filter((hook) => typeof hook.command === "string").length;
     }, 0);
   }, 0);
+}
+
+function walkFiles(root: string, predicate: (filePath: string) => boolean): string[] {
+  if (!fs.existsSync(root)) return [];
+  const out: string[] = [];
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
+    const absPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...walkFiles(absPath, predicate));
+      continue;
+    }
+    if (entry.isFile() && predicate(absPath)) out.push(absPath);
+  }
+  return out.sort((left, right) => left.localeCompare(right));
+}
+
+function frontmatter(source: string, filePath: string): string {
+  expect(source.startsWith("---\n"), filePath).toBe(true);
+  const end = source.indexOf("\n---", 4);
+  expect(end, filePath).toBeGreaterThan(0);
+  return source.slice(4, end);
+}
+
+function surfaceStatusFromFrontmatter(filePath: string): string | undefined {
+  const source = fs.readFileSync(filePath, "utf8");
+  return frontmatter(source, filePath).match(/^surfaceStatus:\s*(\S+)\s*$/m)?.[1];
+}
+
+function expectedMarkdownSurfaceStatus(filePath: string): string {
+  const source = fs.readFileSync(filePath, "utf8");
+  const fm = frontmatter(source, filePath);
+  const category = fm.match(/^category:\s*(\S+)\s*$/m)?.[1];
+  const deprecated = /^deprecated:\s*true\s*$/m.test(fm);
+  return deprecated || category === "deprecated" || category === "delete-candidate"
+    ? "deprecated-candidate"
+    : "public-core";
 }
 
 beforeEach(() => {
@@ -235,6 +286,59 @@ describe("pm_plugin_self_check", () => {
     expect(result.activeChecks).toEqual(["surface-contracts"]);
     expect(["pass", "advisory"]).toContain(result.surfaceContractAuditResult.status);
     expect(result.surfaceContractAuditResult.scannedFileCount).toBeGreaterThan(0);
+  });
+
+  test("9d. skill and agent surfaces declare valid frontmatter status metadata", () => {
+    const markdownFiles = [
+      ...walkFiles(path.join(PLUGIN_ROOT, "agents"), (filePath) => filePath.endsWith(".md")),
+      ...walkFiles(path.join(PLUGIN_ROOT, "skills"), (filePath) => path.basename(filePath) === "SKILL.md"),
+      ...walkFiles(path.join(PLUGIN_ROOT, "codex-skills"), (filePath) => path.basename(filePath) === "SKILL.md"),
+    ];
+
+    expect(markdownFiles.length).toBeGreaterThan(0);
+    for (const filePath of markdownFiles) {
+      const relPath = path.relative(PLUGIN_ROOT, filePath);
+      const status = surfaceStatusFromFrontmatter(filePath);
+      expect(SURFACE_STATUS_VALUE_SET.has(status ?? ""), relPath).toBe(true);
+      expect(status, relPath).toBe(expectedMarkdownSurfaceStatus(filePath));
+    }
+  });
+
+  test("9e. managed-settings fragment carries protected status and semantic tool decisions", () => {
+    const fragmentPath = path.join(PLUGIN_ROOT, "managed-settings.d", "50-palantir-mini.json");
+    const parsed = JSON.parse(fs.readFileSync(fragmentPath, "utf8")) as {
+      permissions?: {
+        allow?: string[];
+        deny?: string[];
+        surfaceStatusSchemaVersion?: string;
+        surfaceStatus?: string;
+        surfaceToolDecisions?: Array<{
+          toolName?: string;
+          registryStatus?: string;
+          surfaceStatus?: string;
+          reason?: string;
+        }>;
+      };
+    };
+    const permissions = parsed.permissions;
+
+    expect(Array.isArray(permissions?.allow)).toBe(true);
+    expect(Array.isArray(permissions?.deny)).toBe(true);
+    expect(permissions?.surfaceStatusSchemaVersion).toBe("palantir-mini/surface-status/v1");
+    expect(permissions?.surfaceStatus).toBe("protected-default-off");
+
+    const decisions = permissions?.surfaceToolDecisions ?? [];
+    expect(decisions).toHaveLength(2);
+    for (const decision of decisions) {
+      expect(REGISTRY_STATUS_SET.has(decision.registryStatus ?? "")).toBe(true);
+      expect(SURFACE_STATUS_VALUE_SET.has(decision.surfaceStatus ?? "")).toBe(true);
+      expect(decision.reason?.toLowerCase()).toContain("no");
+      expect(decision.reason?.toLowerCase()).toContain("deletion");
+    }
+    expect(decisions.find((decision) => decision.toolName === "pm_semantic_workbench_state"))
+      .toMatchObject({ registryStatus: "keep", surfaceStatus: "internal" });
+    expect(decisions.find((decision) => decision.toolName === "pm_semantic_consistency_gate"))
+      .toMatchObject({ registryStatus: "register", surfaceStatus: "public-core" });
   });
 
   test("9b. release mode validates mandatory workflow response requirements", async () => {

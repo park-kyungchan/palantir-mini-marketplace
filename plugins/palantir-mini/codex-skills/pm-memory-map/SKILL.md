@@ -1,6 +1,7 @@
 ---
 name: pm-memory-map
 category: codex-audit
+surfaceStatus: public-core
 description: "Codex default memory audit entrypoint; delegates to the canonical palantir-mini skill."
 allowed-tools: mcp__palantir-mini__pm_health_audit mcp__palantir-mini__pm_substrate_query
 effort: medium

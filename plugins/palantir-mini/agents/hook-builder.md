@@ -1,5 +1,6 @@
 ---
 name: hook-builder
+surfaceStatus: public-core
 description: >
   palantir-mini plugin hook + monitor + script specialist. Writes or modifies
   TypeScript under plugins/palantir-mini/hooks/, monitors/,

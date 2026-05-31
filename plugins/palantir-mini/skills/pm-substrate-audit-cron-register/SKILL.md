@@ -1,6 +1,7 @@
 ---
 name: pm-substrate-audit-cron-register
 category: delete-candidate
+surfaceStatus: deprecated-candidate
 description: "One-time wrapper that registers a durable weekly substrate audit cron via CronCreate."
 costClass: free
 effort: small

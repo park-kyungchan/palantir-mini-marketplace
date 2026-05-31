@@ -1,6 +1,7 @@
 ---
 name: pm-project-onboard
 category: core-workflow
+surfaceStatus: public-core
 description: "Scaffold the minimum palantir-mini ProjectOntologyIndex runtime for a project, then..."
 allowed-tools: Bash Read Write Edit Grep Glob mcp__palantir-mini__pm_health_audit mcp__palantir-mini__emit_event
 effort: medium

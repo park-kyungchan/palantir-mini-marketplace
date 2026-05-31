@@ -1,6 +1,7 @@
 ---
 name: pm-walk-build
 category: research
+surfaceStatus: public-core
 description: "Mode A (Small Block): Build ontology entities step by step using scene-based..."
 effort: medium
 disable-model-invocation: false

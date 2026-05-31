@@ -1,6 +1,7 @@
 ---
 name: pm-harness-sprint
 category: core-workflow
+surfaceStatus: public-core
 description: "Execute a sprint in the harness (rule 16). Default 2-role — spawns Generator; Lead..."
 allowed-tools: Agent mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric
 argument-hint: "<sprint-number>   (1-based; must match spec.md sprint plan)"

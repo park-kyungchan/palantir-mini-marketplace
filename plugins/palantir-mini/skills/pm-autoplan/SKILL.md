@@ -1,6 +1,7 @@
 ---
 name: pm-autoplan
 category: core-workflow
+surfaceStatus: public-core
 description: "Auto-review pipeline — invokes the CEO, eng, and DX review skills sequentially and..."
 allowed-tools: Bash Read Write Edit Grep Glob WebSearch Agent mcp__palantir-mini__pm_preamble mcp__palantir-mini__emit_event
 effort: high

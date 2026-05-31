@@ -1,5 +1,6 @@
 ---
 name: project-implementer
+surfaceStatus: public-core
 description: Generic project-bound implementer. Reads <project>/.palantir-mini/project-scope.json for writableRoot / forbiddenPatterns / domainAgents. Replaces pm-implementer / mc-implementer / kosmos-implementer (1-sprint deprecation window per rule 21).
 tools: Read, Write, Edit, Glob, Grep, Bash, LSP, NotebookEdit, mcp__plugin_palantir-mini_palantir-mini__emit_event
 model: sonnet

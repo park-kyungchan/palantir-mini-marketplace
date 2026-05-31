@@ -1,6 +1,7 @@
 ---
 name: pm-retro
 category: research
+surfaceStatus: public-core
 description: "Engineering retrospective. Aggregates session metrics from the palantir-mini..."
 allowed-tools: Bash Read Grep Glob mcp__palantir-mini__pm_retro_query mcp__palantir-mini__pm_learn_query mcp__palantir-mini__emit_event
 ---

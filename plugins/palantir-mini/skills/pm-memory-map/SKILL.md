@@ -1,6 +1,7 @@
 ---
 name: pm-memory-map
 category: research
+surfaceStatus: public-core
 description: "4-layer agentic memory balance audit (working / episodic / semantic / procedural)."
 allowed-tools: mcp__palantir-mini__pm_memory_layer_audit
 effort: low

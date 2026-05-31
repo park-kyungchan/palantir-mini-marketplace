@@ -1,5 +1,6 @@
 ---
 name: researcher
+surfaceStatus: public-core
 description: >
   Deep research specialist for multi-angle information gathering. Use when the
   Lead needs parallel research on external resources, documentation, codebase

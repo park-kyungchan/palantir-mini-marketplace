@@ -1,6 +1,7 @@
 ---
 name: pm-impact-quick
 category: maintenance
+surfaceStatus: public-core
 description: "1-call wrapper for impact_query + pm_workflow_lineage_query targeting a single RID."
 allowed-tools: mcp__palantir-mini__impact_query,mcp__palantir-mini__pm_workflow_lineage_query,mcp__palantir-mini__emit_event
 effort: low

@@ -1,5 +1,6 @@
 ---
 name: model-grader
+surfaceStatus: public-core
 description: >
   Runtime-gated model-domain rubric scoring per 06-plugin-only-architecture.md
   §6.3; escalation path to eval-judge for hard cases. Claude hosts may use the

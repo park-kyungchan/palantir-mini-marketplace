@@ -1,6 +1,7 @@
 ---
 name: pm-investigate
 category: core-workflow
+surfaceStatus: public-core
 description: "Systematic root-cause debugging. Four phases — investigate, analyze, hypothesize,..."
 allowed-tools: Bash Read Write Edit Grep Glob Agent mcp__palantir-mini__pm_preamble mcp__palantir-mini__replay_lineage mcp__palantir-mini__impact_query mcp__palantir-mini__pm_learn_query mcp__palantir-mini__emit_event WebSearch
 ---

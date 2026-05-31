@@ -1,6 +1,7 @@
 ---
 name: pm-eval-suite-run
 category: merge-candidate
+surfaceStatus: public-core
 description: "Execute an authored AIPEvaluationSuiteDeclaration over a target artifact —..."
 allowed-tools: mcp__palantir-mini__grade_outcome_with_rubric mcp__palantir-mini__pm_grader_dispatch mcp__palantir-mini__emit_event Read Write Bash
 effort: high

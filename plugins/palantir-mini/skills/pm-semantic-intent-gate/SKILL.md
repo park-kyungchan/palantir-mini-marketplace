@@ -1,6 +1,7 @@
 ---
 name: pm-semantic-intent-gate
 category: core-workflow
+surfaceStatus: public-core
 description: "Maintain the FDE-to-contract front door: FDE meaning discovery, SIC boundary, DTC..."
 allowed-tools: mcp__palantir-mini__ontology_context_query mcp__palantir-mini__pm_ontology_engineering_workflow mcp__palantir-mini__pm_semantic_intent_gate mcp__palantir-mini__pm_intent_router mcp__palantir-mini__emit_event
 effort: medium

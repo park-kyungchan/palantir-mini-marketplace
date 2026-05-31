@@ -1,6 +1,7 @@
 ---
 name: pm-harness-grade
 category: core-workflow
+surfaceStatus: public-core
 description: "Standalone rubric grading — apply a GradingRubric to any artifact without running a..."
 allowed-tools: Agent mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric mcp__plugin_palantir-mini_palantir-mini__emit_event
 argument-hint: "<artifactPath>   (file or directory to grade; rubric resolved via --rubric flag or default eval-rubric.md)"

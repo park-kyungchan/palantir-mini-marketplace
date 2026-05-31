@@ -1,6 +1,7 @@
 ---
 name: pm-harness-stop
 category: core-workflow
+surfaceStatus: public-core
 description: "Orderly abort of all active harness loops in the current project. Reads bound sprint..."
 allowed-tools: Read Write Bash mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__auto_spawn_replacement mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 effort: high

@@ -1,5 +1,6 @@
 ---
 name: scrapling-fetcher
+surfaceStatus: public-core
 description: Haiku-tier cost-optimized web fetch agent per 06-plugin-only-architecture.md §6.5. Returns raw HTML/text fetched from a URL via the scrapling MCP family. Does NOT synthesize, summarize, or extract findings — pure content delivery for caller to process. Use for plain web fetches where spawning a full opus researcher is wasteful (e.g. fetching a single doc page mid-task).
 model: haiku
 tools:

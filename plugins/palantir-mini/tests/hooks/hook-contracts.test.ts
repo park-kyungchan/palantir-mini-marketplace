@@ -7,6 +7,16 @@ const PLUGIN_ROOT = join(import.meta.dir, "../..");
 const HOOKS_JSON = join(PLUGIN_ROOT, "hooks", "hooks.json");
 const REQUIRED_INPUT_SCHEMA = "schemas/hooks/pretooluse.input.schema.json";
 const REQUIRED_OUTPUT_SCHEMA = "schemas/hooks/governance-hook.output.schema.json";
+const SURFACE_STATUS_VALUES = [
+  "public-core",
+  "protected-default-off",
+  "dev-only",
+  "docs-only",
+  "internal",
+  "deprecated-candidate",
+  "archived",
+] as const;
+const SURFACE_STATUS_VALUE_SET = new Set<string>(SURFACE_STATUS_VALUES);
 
 interface HookConfig {
   readonly type?: string;
@@ -19,6 +29,7 @@ interface HookConfig {
 
 interface HookGroup {
   readonly policyRef?: string;
+  readonly surfaceStatus?: string;
   readonly hooks?: readonly HookConfig[];
 }
 
@@ -31,6 +42,20 @@ function loadHooks(): HooksDocument {
 }
 
 describe("hook IO contracts", () => {
+  test("shared hook policy groups declare valid surface status metadata", () => {
+    const hooks = loadHooks();
+    const groups = Object.entries(hooks.hooks ?? {}).flatMap(([eventName, eventGroups]) =>
+      eventGroups.map((group, index) => ({ eventName, group, index })),
+    );
+
+    expect(groups.length).toBeGreaterThan(0);
+    for (const { eventName, group, index } of groups) {
+      const label = `${eventName}[${index}]`;
+      expect(group.policyRef, label).toMatch(/^hook-step:/);
+      expect(SURFACE_STATUS_VALUE_SET.has(group.surfaceStatus ?? ""), label).toBe(true);
+    }
+  });
+
   test("mutation-required PreToolUse hooks declare input and output schema refs", () => {
     const hooks = loadHooks();
     const mutationRequiredHooks = Object.entries(hooks.hooks ?? {}).flatMap(([eventName, groups]) =>

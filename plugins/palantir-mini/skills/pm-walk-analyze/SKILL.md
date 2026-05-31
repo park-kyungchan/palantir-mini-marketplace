@@ -1,6 +1,7 @@
 ---
 name: pm-walk-analyze
 category: research
+surfaceStatus: public-core
 description: "Mode B (Project Analysis): Walk real production ontology code (palantir-math,..."
 effort: medium
 disable-model-invocation: false

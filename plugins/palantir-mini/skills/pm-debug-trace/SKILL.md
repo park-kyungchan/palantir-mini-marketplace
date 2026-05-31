@@ -1,6 +1,7 @@
 ---
 name: pm-debug-trace
 category: substrate-query
+surfaceStatus: public-core
 description: "Reconstruct an event lineage by promptId / sessionId / commitSha / correlationId...."
 allowed-tools: Read Bash
 effort: low

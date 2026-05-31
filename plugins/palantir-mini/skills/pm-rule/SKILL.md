@@ -1,6 +1,7 @@
 ---
 name: pm-rule
 category: delete-candidate
+surfaceStatus: deprecated-candidate
 description: "Fetch or enumerate Claude-local overlay rules from ~/.claude/rules/ via..."
 allowed-tools: mcp__palantir-mini__pm_rule_query
 effort: low

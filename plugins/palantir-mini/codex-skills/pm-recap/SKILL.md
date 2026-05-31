@@ -1,6 +1,7 @@
 ---
 name: pm-recap
 category: codex-runtime
+surfaceStatus: public-core
 description: "Codex default recap entrypoint; delegates to the canonical palantir-mini skill."
 allowed-tools: mcp__palantir-mini__pm_substrate_query
 effort: low

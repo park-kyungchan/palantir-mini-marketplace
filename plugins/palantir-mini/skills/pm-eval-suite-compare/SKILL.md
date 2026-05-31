@@ -1,6 +1,7 @@
 ---
 name: pm-eval-suite-compare
 category: merge-candidate
+surfaceStatus: public-core
 description: "Compare two AIPEvaluationRun results (baseline vs candidate) and produce..."
 allowed-tools: mcp__palantir-mini__emit_event Read Write Bash
 effort: high

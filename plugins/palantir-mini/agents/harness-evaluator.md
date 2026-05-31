@@ -1,5 +1,6 @@
 ---
 name: harness-evaluator
+surfaceStatus: public-core
 description: QA Engineer and design critic for optional isolated harness evaluation; tests live behavior and scores evidence against a GradingRubric.
 ontologyAgent:
   version: "palantir-mini/ontology-agent/v1"

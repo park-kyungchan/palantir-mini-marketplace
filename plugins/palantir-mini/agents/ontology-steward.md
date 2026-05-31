@@ -1,5 +1,6 @@
 ---
 name: ontology-steward
+surfaceStatus: public-core
 description: >
   Shared-schema + shared-core ontology steward. Owns primitive promotion and
   deprecation workflow across ~/.claude/schemas/ and ~/ontology/shared-core/.

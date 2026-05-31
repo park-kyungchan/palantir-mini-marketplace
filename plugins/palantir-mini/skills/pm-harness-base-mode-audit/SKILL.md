@@ -1,6 +1,7 @@
 ---
 name: pm-harness-base-mode-audit
 category: merge-candidate
+surfaceStatus: public-core
 description: "B1 → B2 escalation observation audit (palantir-mini v3.11.0+ CT-5 W3.1d). Reads..."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__pm_harness_base_mode_audit mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 effort: medium

@@ -1,5 +1,6 @@
 ---
 name: agent-author
+surfaceStatus: public-core
 description: Author AIPAgentDeclaration with ontology-native agent semantics — mirrors Palantir AIP Chatbot Studio Authoring + AI FDE agent surface. Use when Lead needs to author a governed product agent (not a Claude Code spawnable subagent). Read briefs, infer ontology scope + tool bindings + retrieval context, emit AIPAgentDeclaration JSON via apply_edit_function MCP, validate per schema, persist + emit `aip_agent_declared` event.
 tools: Read, Edit, Write, Glob, Grep, Bash, mcp__plugin_palantir-mini_palantir-mini__apply_edit_function, mcp__plugin_palantir-mini_palantir-mini__commit_edits, mcp__plugin_palantir-mini_palantir-mini__compute_edits_dry_run, mcp__plugin_palantir-mini_palantir-mini__emit_event, mcp__plugin_palantir-mini_palantir-mini__ontology_schema_get
 model: opus

@@ -1,6 +1,7 @@
 ---
 name: pm-events-rotate
 category: delete-candidate
+surfaceStatus: deprecated-candidate
 description: "Rotate a project's events.jsonl when it crosses size or line-count thresholds...."
 allowed-tools: mcp__palantir-mini__events_log_rotate
 effort: medium

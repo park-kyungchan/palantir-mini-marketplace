@@ -1,6 +1,7 @@
 ---
 name: pm-fde-report
 category: fde-readiness
+surfaceStatus: public-core
 description: "Render an FDEGapReportDetailed (output of pm-fde-grade) as a human-readable markdown..."
 allowed-tools: Read Write Bash
 effort: low

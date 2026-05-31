@@ -1,5 +1,6 @@
 ---
 name: code-grader
+surfaceStatus: public-core
 description: >
   Shell-expression rubric scoring per 06-plugin-only-architecture.md §6.3.
   Sonnet-tier cost-optimized agent for code-domain GradingCriterion evaluation.

@@ -1,5 +1,6 @@
 ---
 name: eval-judge
+surfaceStatus: public-core
 description: >
   Rubric-only judge for harness artifacts; scores GradingRubric evidence and
   emits strictness-probe events without live testing.

@@ -1,6 +1,7 @@
 ---
 name: pm-harness-component-audit
 category: merge-candidate
+surfaceStatus: public-core
 description: "Run a component stress-test audit per Rajasekaran §1 (W5 substrate, plugin v3.11.0)."
 allowed-tools: mcp__plugin_palantir-mini_palantir-mini__pm_harness_component_audit mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__replay_lineage mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 argument-hint: "<componentId>   (e.g. sprint-construct | per-sprint-evaluator | context-reset | planner | harness-analyzer | file-ipc-feedback | sprint-contract-negotiation)"
