@@ -202,7 +202,7 @@ function buildGateContext(envelope: PromptEnvelope, universalOntologyEntryRef?: 
       "",
       "Explicit palantir-mini plugin opt-out detected for this prompt.",
       `Matched opt-out marker: ${envelope.palantirMiniPluginOptOut.matchedMarker}`,
-      "Policy: Do not apply palantir-mini workflow routing, response-template enforcement, or Prompt-DTC mutation gating for this prompt unless the user later opts back in.",
+      "Policy: Do not apply palantir-mini workflow routing, response-template enforcement, Prompt-DTC mutation gating, MCP-first hook enforcement, or other palantir-mini plugin policy hooks for this prompt unless the user later opts back in.",
       "UniversalOntologyEntry and PromptEnvelope were captured only as trace evidence.",
     ].join("\n");
   }

@@ -10,6 +10,11 @@ import {
   type CodexAdapterOptions,
   type HooksDocument,
 } from "../../../lib/codex/codex-hook-adapter";
+import {
+  createPromptEnvelope,
+  PromptFrontDoorStore,
+  type PromptEnvelope,
+} from "../../../lib/prompt-front-door";
 
 const tmpDirs: string[] = [];
 
@@ -30,6 +35,8 @@ function makePlugin(hooks: HooksDocument, env: Record<string, string | undefined
       "}",
       "if (mode === 'user-context') {",
       "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: `gate ${payload.prompt}` } }));",
+      "} else if (mode === 'prompt-front-door-capture') {",
+      "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'plugin opt-out captured' } }));",
       "} else if (mode === 'invalid-output') {",
       "  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'maybe' } }));",
       "} else if (mode === 'duplicate-context-a') {",
@@ -81,6 +88,25 @@ function readProjectEvents(projectRoot: string): Array<Record<string, unknown>> 
     .split("\n")
     .filter(Boolean)
     .map((line) => JSON.parse(line) as Record<string, unknown>);
+}
+
+async function savePluginOptOutEnvelope(
+  projectRoot: string,
+  sessionId = "session-opt-out",
+): Promise<PromptEnvelope> {
+  const envelope = createPromptEnvelope({
+    rawPrompt: "palantir-mini 사용하지 말고 일반 Codex 런타임으로만 작업해.",
+    sessionId,
+    runtime: "codex",
+    projectRoot,
+    palantirMiniPluginOptOut: {
+      explicit: true,
+      matchedMarker: "palantir-mini 사용하지 말고",
+      reason: "User prompt explicitly requested that the palantir-mini plugin not be used for this turn.",
+    },
+  });
+  await new PromptFrontDoorStore({ projectRoot }).saveEnvelope(envelope);
+  return envelope;
 }
 
 afterEach(() => {
@@ -219,6 +245,126 @@ describe("Codex hook adapter", () => {
 
     expect(second.matchedHooks.map((hook) => hook.command)).toEqual([command("capture")]);
     expect(second.runs[0]?.parsed).toEqual({ message: "fake capture" });
+  });
+
+  test("UserPromptSubmit opt-out runs only prompt-front-door capture", async () => {
+    const { root, options } = makePlugin(
+      {
+        hooks: {
+          UserPromptSubmit: [
+            {
+              hooks: [
+                { type: "command", command: command("prompt-front-door-capture"), timeout: 3 },
+                { type: "command", command: command("user-context"), timeout: 3 },
+                { type: "command", command: command("duplicate-context-a"), timeout: 3 },
+              ],
+            },
+          ],
+        },
+      },
+      { FAKE_HOOK_RECORD_PATH: path.join(os.tmpdir(), `pm-codex-adapter-record-${Date.now()}.jsonl`) },
+    );
+    const recordPath = options.env?.FAKE_HOOK_RECORD_PATH ?? "";
+
+    const result = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: root,
+        session_id: "session-direct-opt-out",
+        turn_id: "turn-direct-opt-out",
+        prompt: "Do not use palantir-mini for this turn. Just edit the local file.",
+      },
+      options,
+    );
+
+    expect(result.matchedHooks.map((hook) => hook.command)).toEqual([
+      command("prompt-front-door-capture"),
+    ]);
+    expect(result.runs).toHaveLength(1);
+    expect(result.response.hookSpecificOutput).toEqual({
+      hookEventName: "UserPromptSubmit",
+      additionalContext: "plugin opt-out captured",
+    });
+
+    const modes = fs
+      .readFileSync(recordPath, "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => (JSON.parse(line) as { mode: string }).mode);
+    expect(modes).toEqual(["prompt-front-door-capture"]);
+  });
+
+  test("PreToolUse opt-out skips plugin enforcement hooks from current prompt-front-door state", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "Edit|Write",
+            hooks: [{ type: "command", command: command("deny-pretool"), timeout: 3 }],
+          },
+        ],
+      },
+    });
+    await savePluginOptOutEnvelope(root);
+
+    const result = await runCodexHookAdapter(
+      "PreToolUse",
+      {
+        cwd: root,
+        session_id: "session-opt-out",
+        tool_name: "apply_patch",
+        tool_input: { command: "*** Update File: src/example.ts\n@@\n" },
+      },
+      options,
+    );
+
+    expect(result.matchedHooks).toEqual([]);
+    expect(result.runs).toEqual([]);
+    expect(result.response).toEqual({});
+  });
+
+  test("stored opt-out does not suppress a later non-opt-out UserPromptSubmit", async () => {
+    const recordPath = path.join(os.tmpdir(), `pm-codex-adapter-record-${Date.now()}.jsonl`);
+    const { root, options } = makePlugin(
+      {
+        hooks: {
+          UserPromptSubmit: [
+            {
+              hooks: [
+                { type: "command", command: command("prompt-front-door-capture"), timeout: 3 },
+                { type: "command", command: command("user-context"), timeout: 3 },
+              ],
+            },
+          ],
+        },
+      },
+      { FAKE_HOOK_RECORD_PATH: recordPath },
+    );
+    await savePluginOptOutEnvelope(root);
+
+    const result = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: root,
+        session_id: "session-opt-out",
+        turn_id: "turn-opt-back-in",
+        prompt: "Use the palantir-mini workflow for this turn.",
+      },
+      options,
+    );
+
+    expect(result.matchedHooks.map((hook) => hook.command)).toEqual([
+      command("prompt-front-door-capture"),
+      command("user-context"),
+    ]);
+    expect(result.runs).toHaveLength(2);
+
+    const modes = fs
+      .readFileSync(recordPath, "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => (JSON.parse(line) as { mode: string }).mode);
+    expect(modes).toEqual(["prompt-front-door-capture", "user-context"]);
   });
 
   test("PreToolUse deny uses Codex hook-specific output", async () => {

@@ -59,6 +59,14 @@ import {
 } from "../runtime/capability-matrix";
 import { palantirMiniMcpToolAliasesFor } from "../hooks/tool-classifier";
 import { resolvePalantirMiniRoot } from "../config/root";
+import { detectPalantirMiniPluginOptOut } from "../ontology-engineering-response-template";
+import {
+  PROMPT_RUNTIMES,
+  PromptFrontDoorStore,
+  isPromptRuntime,
+  type PromptEnvelope,
+  type PromptRuntime,
+} from "../prompt-front-door";
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type JsonObject = Record<string, unknown>;
@@ -137,6 +145,13 @@ export interface PromptFrontDoorIdentityContext {
   runtime: "claude" | "codex" | "cursor" | "gemini" | "unknown";
 }
 
+export interface PalantirMiniPluginBypass {
+  explicit: true;
+  matchedMarker: string;
+  source: "prompt" | "prompt-front-door";
+  promptId?: string;
+}
+
 const DEFAULT_HOME = process.env.HOME || "/home/palantirkc";
 
 export const CODEX_EVENTS = new Set<string>(CODEX_NATIVE_EVENTS);
@@ -193,12 +208,167 @@ function projectRootForPayload(payload: JsonObject, options: CodexAdapterOptions
   return typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
 }
 
+function findTrackedProjectRoot(start: string): string | undefined {
+  let cur = path.resolve(start);
+  const root = path.parse(cur).root;
+  while (cur !== root) {
+    if (existsSync(path.join(cur, ".palantir-mini"))) return cur;
+    cur = path.dirname(cur);
+  }
+  return undefined;
+}
+
 function sessionIdForPayload(payload: JsonObject): string | undefined {
   for (const key of ["session_id", "sessionId", "turn_id"]) {
     const value = payload[key];
     if (typeof value === "string" && value.trim()) return value;
   }
   return undefined;
+}
+
+function promptHashMatchesPayload(envelope: PromptEnvelope, payload: JsonObject): boolean {
+  const input = asObject(payload.tool_input);
+  const expectedPromptHash = input.promptHash;
+  return typeof expectedPromptHash !== "string" || envelope.promptHash === expectedPromptHash;
+}
+
+function promptIdForPayload(payload: JsonObject): string | undefined {
+  const input = asObject(payload.tool_input);
+  const promptId = input.promptId;
+  return typeof promptId === "string" && promptId.trim() ? promptId : undefined;
+}
+
+function runtimeForPayload(payload: JsonObject, options: CodexAdapterOptions = {}): PromptRuntime | undefined {
+  const resolved = resolveOptions(options);
+  const envRuntime = resolved.env.PALANTIR_MINI_HOST_RUNTIME ?? process.env.PALANTIR_MINI_HOST_RUNTIME;
+  if (isPromptRuntime(envRuntime)) return envRuntime;
+  const input = asObject(payload.tool_input);
+  const inputRuntime = input.runtime;
+  if (isPromptRuntime(inputRuntime)) return inputRuntime;
+  if (typeof payload.turn_id === "string" && payload.turn_id.trim()) return "codex";
+  return undefined;
+}
+
+function uniqueAbsPaths(values: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    if (!value || !value.trim()) continue;
+    const resolved = path.resolve(value);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    result.push(resolved);
+  }
+  return result;
+}
+
+function promptFrontDoorRootCandidates(
+  payload: JsonObject,
+  options: CodexAdapterOptions = {},
+): string[] {
+  const resolved = resolveOptions(options);
+  const cwd = typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
+  const trackedRoot = findTrackedProjectRoot(cwd);
+  return uniqueAbsPaths([
+    resolved.env.PALANTIR_MINI_PROJECT,
+    process.env.PALANTIR_MINI_PROJECT,
+    trackedRoot,
+    cwd,
+    resolved.cwd,
+    resolved.home,
+  ]);
+}
+
+async function readCurrentPromptEnvelope(
+  projectRoot: string,
+  payload: JsonObject,
+  options: CodexAdapterOptions = {},
+): Promise<PromptEnvelope | undefined> {
+  const sessionId = sessionIdForPayload(payload);
+  if (!sessionId) return undefined;
+
+  const store = new PromptFrontDoorStore({ projectRoot });
+  const promptId = promptIdForPayload(payload);
+  if (promptId) {
+    const envelope = (await store.readEnvelope(sessionId, promptId)) ?? undefined;
+    return envelope && promptHashMatchesPayload(envelope, payload) ? envelope : undefined;
+  }
+
+  const preferred = runtimeForPayload(payload, options);
+  const runtimes = preferred
+    ? [preferred, ...PROMPT_RUNTIMES.filter((runtime) => runtime !== preferred)]
+    : PROMPT_RUNTIMES;
+  for (const runtime of runtimes) {
+    const pointer = await store.readCurrentPointer(runtime, sessionId);
+    if (!pointer) continue;
+    const envelope = (await store.readEnvelope(pointer.sessionId, pointer.promptId)) ?? undefined;
+    if (envelope && promptHashMatchesPayload(envelope, payload)) return envelope;
+  }
+  return undefined;
+}
+
+async function currentPromptFrontDoorOptOut(
+  payload: JsonObject,
+  options: CodexAdapterOptions = {},
+): Promise<PalantirMiniPluginBypass | undefined> {
+  for (const root of promptFrontDoorRootCandidates(payload, options)) {
+    try {
+      const envelope = await readCurrentPromptEnvelope(root, payload, options);
+      if (!envelope?.palantirMiniPluginOptOut?.explicit) continue;
+      return {
+        explicit: true,
+        matchedMarker: envelope.palantirMiniPluginOptOut.matchedMarker,
+        source: "prompt-front-door",
+        promptId: envelope.promptId,
+      };
+    } catch {
+      // Prompt-front-door lookup is best-effort. A missing or corrupt store must
+      // not fail closed before a user has explicitly opted in to palantir-mini.
+    }
+  }
+  return undefined;
+}
+
+export function directPromptPluginOptOut(payload: JsonObject): PalantirMiniPluginBypass | undefined {
+  const prompt = payload.prompt;
+  if (typeof prompt !== "string" || prompt.trim().length === 0) return undefined;
+  const optOut = detectPalantirMiniPluginOptOut(prompt);
+  return optOut
+    ? {
+        explicit: true,
+        matchedMarker: optOut.matchedMarker,
+        source: "prompt",
+      }
+    : undefined;
+}
+
+function isPromptFrontDoorCaptureHook(hook: HookConfig): boolean {
+  return typeof hook.command === "string" && /\bprompt-front-door-capture\b/.test(hook.command);
+}
+
+function pluginBypassResponse(eventName: string, bypass: PalantirMiniPluginBypass): JsonObject {
+  if (eventName === "UserPromptSubmit") {
+    return {
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "UserPromptSubmit",
+        additionalContext: [
+          "palantir-mini plugin opt-out is active for this prompt.",
+          `Matched opt-out marker: ${bypass.matchedMarker}`,
+          "Codex will not apply palantir-mini workflow routing, response-template enforcement, Prompt-DTC gates, or MCP-first hook enforcement for this prompt.",
+        ].join("\n"),
+      },
+    };
+  }
+  if (
+    eventName === "SessionStart" ||
+    eventName === "PreCompact" ||
+    eventName === "PostCompact" ||
+    eventName === "Stop"
+  ) {
+    return { continue: true };
+  }
+  return {};
 }
 
 function claimDailyDiagnosticMarker(
@@ -1048,6 +1218,7 @@ export async function runCodexHookAdapter(
   options: CodexAdapterOptions = {},
 ): Promise<CodexAdapterRunResult> {
   const doc = loadHooks(options);
+  const directBypass = directPromptPluginOptOut(inputPayload);
   if (eventName && runtimeHasSchemaOnlyEvent("codex", eventName)) {
     await emitCodexAdapterCapabilityMismatch(eventName, inputPayload, options);
     return {
@@ -1073,7 +1244,25 @@ export async function runCodexHookAdapter(
   const payload = deepCloneObject(inputPayload);
   payload.hook_event_name = policyEventName;
 
-  const hooks = matchingHooks(doc, policyEventName, payload, options);
+  const storedBypass =
+    directBypass || eventName === "UserPromptSubmit" ? undefined : await currentPromptFrontDoorOptOut(payload, options);
+  const bypass = directBypass ?? storedBypass;
+  const matchedHooks = matchingHooks(doc, policyEventName, payload, options);
+  const hooks =
+    bypass?.explicit && eventName === "UserPromptSubmit"
+      ? matchedHooks.filter(isPromptFrontDoorCaptureHook)
+      : bypass?.explicit
+        ? []
+        : matchedHooks;
+
+  if (bypass?.explicit && hooks.length === 0) {
+    return {
+      response: pluginBypassResponse(eventName, bypass),
+      matchedHooks: [],
+      runs: [],
+    };
+  }
+
   const syncHooks = hooks.filter((hook) => !hook.async);
   const asyncHooks = hooks.filter((hook) => hook.async);
 
@@ -1098,7 +1287,10 @@ export async function runCodexHookAdapter(
   }
 
   return {
-    response: responseFor(eventName, runs, doc, options),
+    response:
+      bypass?.explicit && eventName === "UserPromptSubmit" && runs.length === 0
+        ? pluginBypassResponse(eventName, bypass)
+        : responseFor(eventName, runs, doc, options),
     matchedHooks: hooks,
     runs,
   };
