@@ -36,6 +36,8 @@
 //      - Otherwise: emit validation_phase_completed errorClass="mcp_first_blocked" passed=false
 //        + refinementTarget → return permissionDecision:"deny".
 //   9. If PALANTIR_MINI_MCP_FIRST_BYPASS=1: emit bypass audit + continue.
+//  10. If the current prompt-front-door envelope explicitly opted out of the
+//      palantir-mini plugin workflow, skip MCP-first blocking for that prompt.
 //
 // Bypass: PALANTIR_MINI_MCP_FIRST_BYPASS=1 (audited via mcp_first_bypass_invoked).
 // Advisory escape: PALANTIR_MINI_MCP_FIRST_ADVISORY_ONLY=1 (sprint-062 rollout safety).
@@ -59,6 +61,13 @@ import { eventsPathFor } from "../scripts/log";
 import { evaluatePreMutationImpactGate } from "../lib/governance/pre-mutation-impact-gate";
 import { isMcpFirstEvidenceToolName } from "../lib/hooks/tool-classifier";
 import { isPlanArtifactPath } from "../lib/plan-root/resolve-plan-root";
+import {
+  PROMPT_RUNTIMES,
+  PromptFrontDoorStore,
+  isPromptRuntime,
+  type PromptEnvelope,
+  type PromptRuntime,
+} from "../lib/prompt-front-door";
 
 /** 5-minute window in milliseconds */
 const MCP_FIRST_WINDOW_MS = 5 * 60 * 1000;
@@ -84,6 +93,10 @@ interface HookPayload {
     file_path?:     string;
     notebook_path?: string;
     path?:          string;
+    promptId?:      string;
+    promptHash?:    string;
+    sessionId?:     string;
+    runtime?:       string;
     /** Edit tool: old text being replaced (used for small-change LOC estimation) */
     old_string?:    string;
     /** Write tool: content being written */
@@ -155,6 +168,84 @@ function deriveRidTokens(
   const rel = path.relative(projectRoot, absFilePath);
   const parent = path.dirname(rel);
   return { relPath: rel, parentDir: parent === "." ? "" : parent };
+}
+
+function detectRuntime(payload: HookPayload): PromptRuntime | undefined {
+  const envRuntime = process.env.PALANTIR_MINI_HOST_RUNTIME;
+  if (isPromptRuntime(envRuntime)) return envRuntime;
+  const inputRuntime = payload.tool_input?.runtime;
+  if (isPromptRuntime(inputRuntime)) return inputRuntime;
+  return undefined;
+}
+
+function uniqueRoots(roots: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const root of roots) {
+    if (!root || root.trim().length === 0) continue;
+    const resolved = path.resolve(root);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    result.push(resolved);
+  }
+  return result;
+}
+
+function promptRootCandidates(projectRoot: string, cwd: string): string[] {
+  return uniqueRoots([
+    projectRoot,
+    process.env.PALANTIR_MINI_PROJECT,
+    findProjectRoot(cwd),
+    cwd,
+    process.env.HOME,
+  ]);
+}
+
+function promptHashMatchesPayload(envelope: PromptEnvelope, payload: HookPayload): boolean {
+  const expectedPromptHash = payload.tool_input?.promptHash;
+  return typeof expectedPromptHash !== "string" || envelope.promptHash === expectedPromptHash;
+}
+
+async function readCurrentPromptEnvelope(
+  projectRoot: string,
+  payload: HookPayload,
+): Promise<PromptEnvelope | undefined> {
+  const store = new PromptFrontDoorStore({ projectRoot });
+  const sessionId = payload.tool_input?.sessionId ?? payload.session_id;
+  const promptId = payload.tool_input?.promptId;
+  if (typeof promptId === "string" && typeof sessionId === "string") {
+    const envelope = (await store.readEnvelope(sessionId, promptId)) ?? undefined;
+    return envelope && promptHashMatchesPayload(envelope, payload) ? envelope : undefined;
+  }
+  if (typeof sessionId !== "string" || sessionId.length === 0) return undefined;
+
+  const preferred = detectRuntime(payload);
+  const runtimes = preferred
+    ? [preferred, ...PROMPT_RUNTIMES.filter((runtime) => runtime !== preferred)]
+    : PROMPT_RUNTIMES;
+  for (const runtime of runtimes) {
+    const pointer = await store.readCurrentPointer(runtime, sessionId);
+    if (!pointer) continue;
+    const envelope = await store.readEnvelope(pointer.sessionId, pointer.promptId);
+    if (envelope && promptHashMatchesPayload(envelope, payload)) return envelope;
+  }
+  return undefined;
+}
+
+async function readPluginOptOutEnvelope(
+  projectRoot: string,
+  cwd: string,
+  payload: HookPayload,
+): Promise<PromptEnvelope | undefined> {
+  for (const root of promptRootCandidates(projectRoot, cwd)) {
+    try {
+      const envelope = await readCurrentPromptEnvelope(root, payload);
+      if (envelope?.palantirMiniPluginOptOut?.explicit) return envelope;
+    } catch {
+      // Best-effort: absence or corrupt prompt-front-door data must not break the hook.
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -316,6 +407,29 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
     // Derive RID tokens
     const tokens = deriveRidTokens(absFilePath, projectRoot);
     const relPath = tokens.relPath;
+    const optOutEnvelope = await readPluginOptOutEnvelope(projectRoot, cwd, p);
+    if (optOutEnvelope?.palantirMiniPluginOptOut?.explicit) {
+      try {
+        await emit({
+          type: "validation_phase_completed",
+          payload: {
+            phase:      "design",
+            passed:     true,
+            errorClass: "mcp_first_skipped_plugin_opt_out",
+            promptId:   optOutEnvelope.promptId,
+          },
+          toolName,
+          cwd:         projectRoot,
+          sessionId,
+          identity:    "monitor",
+          memoryLayers: ["working", "episodic"],
+          reasoning:   `pre-edit-impact-mcp-first skipped MCP-first blocking for file ${relPath} because the current prompt explicitly opted out of palantir-mini plugin workflow enforcement via marker ${optOutEnvelope.palantirMiniPluginOptOut.matchedMarker}.`,
+        });
+      } catch { /* best-effort */ }
+      return {
+        message: `palantir-mini: pre-edit-impact-mcp-first skipped (explicit plugin opt-out: ${optOutEnvelope.palantirMiniPluginOptOut.matchedMarker})`,
+      };
+    }
     const impactGateResult = evaluatePreMutationImpactGate({
       projectRoot,
       toolName,

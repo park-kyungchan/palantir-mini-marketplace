@@ -99,6 +99,10 @@ export type HookRun = {
   parsed?: JsonObject;
 };
 
+type PayloadReadResult =
+  | { payload: JsonObject; invalidJson?: undefined }
+  | { payload: JsonObject; invalidJson: string };
+
 export interface CodexAdapterOptions {
   home?: string;
   pluginRoot?: string;
@@ -739,12 +743,21 @@ function blockReason(run: HookRun): string | undefined {
   const parsed = run.parsed;
   if (run.exitCode === 2) return run.stderr.trim() || "palantir-mini hook blocked this action";
   if ((run.timedOut || (run.exitCode !== null && run.exitCode !== 0)) && run.hook.failureMode === "fail-closed") {
+    if (run.timedOut) {
+      return `palantir-mini hook timed out after ${run.timeoutObservation?.timeoutMs ?? "unknown"}ms: ${run.hook.command}`;
+    }
     return run.stderr.trim() || `palantir-mini hook failed closed: ${run.hook.command}`;
   }
   if ((run.timedOut || (run.exitCode !== null && run.exitCode !== 0)) && run.hook.decision === "block") {
+    if (run.timedOut) {
+      return `palantir-mini blocking hook timed out after ${run.timeoutObservation?.timeoutMs ?? "unknown"}ms: ${run.hook.command}`;
+    }
     return run.stderr.trim() || `palantir-mini blocking hook failed closed: ${run.hook.command}`;
   }
   if ((run.timedOut || (run.exitCode !== null && run.exitCode !== 0)) && run.hook.permissionDecision === "deny") {
+    if (run.timedOut) {
+      return `palantir-mini permission hook timed out after ${run.timeoutObservation?.timeoutMs ?? "unknown"}ms: ${run.hook.command}`;
+    }
     return run.stderr.trim() || `palantir-mini permission hook failed closed: ${run.hook.command}`;
   }
   if (!parsed) return undefined;
@@ -992,7 +1005,18 @@ export async function runCodexHookAdapter(
 
   const runs: HookRun[] = [];
   for (const hook of syncHooks) {
-    runs.push(await runCommandHook(hook, payload, options));
+    try {
+      runs.push(await runCommandHook(hook, payload, options));
+    } catch (err) {
+      const msg = (err as Error).message ?? String(err);
+      runs.push({
+        hook,
+        stdout: "",
+        stderr: `palantir-mini Codex adapter hook runner failed: ${msg}`,
+        exitCode: 1,
+        timedOut: false,
+      });
+    }
   }
 
   return {
@@ -1002,14 +1026,47 @@ export async function runCodexHookAdapter(
   };
 }
 
-async function readPayload(stdinText?: string): Promise<JsonObject> {
+async function readPayload(stdinText?: string): Promise<PayloadReadResult> {
   const text = stdinText ?? (await Bun.stdin.text());
-  if (text.trim().length === 0) return {};
+  if (text.trim().length === 0) return { payload: {} };
   try {
-    return asObject(JSON.parse(text));
-  } catch {
-    return {};
+    return { payload: asObject(JSON.parse(text)) };
+  } catch (err) {
+    const msg = (err as Error).message ?? String(err);
+    return {
+      payload: {},
+      invalidJson: `Codex hook adapter failed closed because stdin is not valid JSON: ${msg}`,
+    };
   }
+}
+
+function invalidPayloadResponse(eventName: string, reason: string): JsonObject | undefined {
+  if (eventName === "PreToolUse") {
+    return {
+      systemMessage: reason,
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: reason,
+      },
+    };
+  }
+  if (eventName === "PermissionRequest") {
+    return {
+      systemMessage: reason,
+      hookSpecificOutput: {
+        hookEventName: "PermissionRequest",
+        decision: {
+          behavior: "deny",
+          message: reason,
+        },
+      },
+    };
+  }
+  if (eventName === "PostToolUse" || eventName === "UserPromptSubmit" || eventName === "Stop") {
+    return { decision: "block", reason };
+  }
+  return undefined;
 }
 
 export async function runCodexHookAdapterCli(
@@ -1027,7 +1084,7 @@ export async function runCodexHookAdapterCli(
   if (eventName === "--match") {
     const matchEventName = argv[3] ?? "";
     const policyEventName = policyEventNameFor(matchEventName);
-    const payload = await readPayload(stdinText);
+    const { payload } = await readPayload(stdinText);
     payload.hook_event_name = policyEventName;
     const hooks = matchingHooks(doc, policyEventName, payload, options);
     return JSON.stringify(
@@ -1043,7 +1100,11 @@ export async function runCodexHookAdapterCli(
     );
   }
 
-  const payload = await readPayload(stdinText);
+  const { payload, invalidJson } = await readPayload(stdinText);
+  if (invalidJson) {
+    const response = invalidPayloadResponse(eventName ?? "", invalidJson);
+    if (response) return JSON.stringify(response);
+  }
   const result = await runCodexHookAdapter(eventName ?? "", payload, options);
   return JSON.stringify(result.response);
 }

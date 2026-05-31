@@ -51,6 +51,7 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-dtc-enforcement-gate",
             "timeout": 150,
             "permissionDecision": "defer",
+            "failureMode": "fail-closed",
             "statusMessage": "Prompt-DTC gate (default advisory; blocking only via PALANTIR_MINI_PROMPT_DTC_GATE_MODE)…"
           },
           {
@@ -203,6 +204,7 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-dtc-enforcement-gate",
             "timeout": 150,
             "permissionDecision": "defer",
+            "failureMode": "fail-closed",
             "statusMessage": "Prompt-DTC gate for ontology/action routing tools (default advisory)…"
           }
         ]
@@ -216,6 +218,7 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-dtc-enforcement-gate",
             "timeout": 150,
             "permissionDecision": "defer",
+            "failureMode": "fail-closed",
             "statusMessage": "Prompt-DTC gate for Agent dispatch (default advisory)…"
           },
           {
@@ -257,6 +260,7 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-dtc-enforcement-gate",
             "timeout": 150,
             "permissionDecision": "defer",
+            "failureMode": "fail-closed",
             "statusMessage": "Prompt-DTC gate for mutating Bash (default advisory)…"
           },
           {

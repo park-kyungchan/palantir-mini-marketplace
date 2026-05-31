@@ -45,6 +45,8 @@ function makePlugin(hooks: HooksDocument, env: Record<string, string | undefined
       "} else if (mode === 'sleep') {",
       "  await new Promise((resolve) => setTimeout(resolve, 1200));",
       "  console.log(JSON.stringify({ message: 'awake' }));",
+      "} else if (mode === 'throw-unhandled') {",
+      "  throw new Error('simulated unhandled exception');",
       "} else if (mode === 'fail-nonzero') {",
       "  console.error('simulated hook failure');",
       "  process.exit(1);",
@@ -282,6 +284,106 @@ describe("Codex hook adapter", () => {
       permissionDecision: "deny",
       permissionDecisionReason: "simulated hook failure",
     });
+  });
+
+  test("PreToolUse failureMode fail-closed denies on unhandled hook exception", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "Edit|Write",
+            hooks: [
+              {
+                type: "command",
+                command: command("throw-unhandled"),
+                timeout: 3,
+                permissionDecision: "defer",
+                failureMode: "fail-closed",
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await runCodexHookAdapter(
+      "PreToolUse",
+      {
+        cwd: root,
+        tool_name: "apply_patch",
+        tool_input: { command: "*** Update File: src/example.ts\n@@\n" },
+      },
+      options,
+    );
+
+    expect(result.response.hookSpecificOutput).toMatchObject({
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+    });
+    expect(
+      String(
+        (result.response.hookSpecificOutput as { permissionDecisionReason?: string })
+          .permissionDecisionReason,
+      ),
+    ).toContain("simulated unhandled exception");
+  });
+
+  test("PreToolUse failureMode fail-closed denies on timed out hook", async () => {
+    const { root, options } = makePlugin({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "Edit",
+            hooks: [
+              {
+                type: "command",
+                command: command("sleep"),
+                timeout: 0.001,
+                permissionDecision: "defer",
+                failureMode: "fail-closed",
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await runCodexHookAdapter(
+      "PreToolUse",
+      { cwd: root, tool_name: "Edit", tool_input: { file_path: "src/a.ts" } },
+      options,
+    );
+
+    expect(result.runs[0]?.timedOut).toBe(true);
+    expect(result.response.hookSpecificOutput).toMatchObject({
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+    });
+    expect(
+      String(
+        (result.response.hookSpecificOutput as { permissionDecisionReason?: string })
+          .permissionDecisionReason,
+      ),
+    ).toContain("timed out");
+  });
+
+  test("PreToolUse adapter CLI fails closed on invalid stdin JSON", async () => {
+    const { options } = makePlugin({ hooks: { PreToolUse: [] } });
+
+    const output = await runCodexHookAdapterCli(["bun", "adapter", "PreToolUse"], "{ invalid json", options);
+    const parsed = JSON.parse(output) as {
+      hookSpecificOutput?: {
+        hookEventName?: string;
+        permissionDecision?: string;
+        permissionDecisionReason?: string;
+      };
+    };
+
+    expect(parsed.hookSpecificOutput).toMatchObject({
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+    });
+    expect(parsed.hookSpecificOutput?.permissionDecisionReason).toContain("stdin is not valid JSON");
   });
 
   test("PermissionRequest uses PreToolUse policy hooks while preserving wire event response", async () => {

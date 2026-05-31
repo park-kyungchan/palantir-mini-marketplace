@@ -356,6 +356,19 @@ function blockResult(p: HookPayload, projectRoot: string, errorClass: string, hi
   };
 }
 
+function failClosedResult(errorClass: string, reason: string): HookResult {
+  return {
+    message: `palantir-mini: commit-edits-governance BLOCK (${errorClass})`,
+    decision: "block",
+    reason,
+    hookSpecificOutput: {
+      permissionDecision: "deny",
+      permissionDecisionReason: reason,
+      additionalContext: reason,
+    },
+  };
+}
+
 function allowResult(p: HookPayload, projectRoot: string, reasonTag: string, targetFiles: string[], dtc?: DigitalTwinChangeContract, sic?: SemanticIntentContract): HookResult {
   void emit({
     type: "validation_phase_completed",
@@ -380,7 +393,7 @@ export default async function commitEditsGovernance(payload: unknown): Promise<H
 
   // Bypass via env var (audited).
   if (process.env.PALANTIR_MINI_HARNESS_BYPASS === "1") {
-    void emit({
+    await emit({
       type: "validation_phase_completed",
       payload: { phase: "design", passed: true, errorClass: "harness_bypass_invoked" },
       toolName: "PreToolUse",
@@ -546,8 +559,12 @@ async function main(): Promise<void> {
   if (raw.trim().length > 0) {
     try {
       payload = JSON.parse(raw);
-    } catch {
-      process.stderr.write("[commit-edits-governance] stdin is not valid JSON — skipping\n");
+    } catch (err) {
+      const msg = (err as Error).message ?? String(err);
+      const reason = `commit-edits-governance failed closed because stdin is not valid JSON: ${msg}`;
+      process.stderr.write(`[commit-edits-governance] ${reason}\n`);
+      process.stdout.write(JSON.stringify(failClosedResult("invalid-stdin", reason)) + "\n");
+      process.exit(0);
     }
   }
 
@@ -556,8 +573,9 @@ async function main(): Promise<void> {
     result = await commitEditsGovernance(payload);
   } catch (err) {
     const msg = (err as Error).message ?? String(err);
-    process.stderr.write(`[commit-edits-governance] unhandled error: ${msg}\n`);
-    result = { message: "palantir-mini: commit-edits-governance — unhandled error; continuing", decision: "continue" };
+    const reason = `commit-edits-governance failed closed on unhandled error: ${msg}`;
+    process.stderr.write(`[commit-edits-governance] ${reason}\n`);
+    result = failClosedResult("unhandled-exception", reason);
   }
 
   process.stdout.write(JSON.stringify(result) + "\n");

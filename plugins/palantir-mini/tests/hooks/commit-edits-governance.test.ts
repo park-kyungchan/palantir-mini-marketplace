@@ -42,12 +42,19 @@ function runHook(
   payload: unknown,
   env: Record<string, string> = {},
 ): { exitCode: number; stdout: string; stderr: string; result: Record<string, unknown> | null } {
+  return runHookRaw(JSON.stringify(payload), env);
+}
+
+function runHookRaw(
+  input: string,
+  env: Record<string, string> = {},
+): { exitCode: number; stdout: string; stderr: string; result: Record<string, unknown> | null } {
   // Build clean env: inherit process.env but strip bypass vars so tests exercise real gate logic.
   const cleanEnv = { ...process.env };
   delete cleanEnv.PALANTIR_MINI_HARNESS_BYPASS;
   delete cleanEnv.PALANTIR_MINI_AUTO_SPRINT_DISABLE;
   const spawnResult = spawnSync("bun", ["run", HOOK_SCRIPT], {
-    input: JSON.stringify(payload),
+    input,
     encoding: "utf8",
     env: { ...cleanEnv, PALANTIR_MINI_EVENTS_FILE: path.join(TMP, "events.jsonl"), ...env },
     timeout: 15_000,
@@ -173,6 +180,47 @@ describe("commitEditsGovernance — bypass", () => {
     );
     expect(result?.decision).toBe("continue");
     expect(String(result?.message)).toContain("BYPASS");
+  });
+
+  test("bypass writes an audit event before continuing", () => {
+    const { result } = runHook(
+      { tool_name: COMMIT_EDITS_TOOL, cwd: TMP, tool_input: { project: TMP } },
+      { PALANTIR_MINI_HARNESS_BYPASS: "1" },
+    );
+    expect(result?.decision).toBe("continue");
+    const eventsPath = path.join(TMP, "events.jsonl");
+    const events = fs
+      .readFileSync(eventsPath, "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { payload?: { errorClass?: string } });
+    expect(events.some((event) => event.payload?.errorClass === "harness_bypass_invoked")).toBe(true);
+  });
+});
+
+describe("commitEditsGovernance — fail-closed script entrypoint", () => {
+  test("BLOCKS invalid stdin instead of skipping", () => {
+    const { exitCode, result, stderr } = runHookRaw("{ not valid json");
+    expect(exitCode).toBe(0);
+    expect(stderr).toContain("stdin is not valid JSON");
+    expect(result?.decision).toBe("block");
+    expect(String(result?.message)).toContain("invalid-stdin");
+    const output = result?.hookSpecificOutput as Record<string, unknown> | undefined;
+    expect(output?.permissionDecision).toBe("deny");
+  });
+
+  test("BLOCKS unhandled exceptions instead of continuing", () => {
+    const { exitCode, result, stderr } = runHook({
+      tool_name: COMMIT_EDITS_TOOL,
+      cwd: { invalid: true },
+      tool_input: { edits: [] },
+    });
+    expect(exitCode).toBe(0);
+    expect(stderr).toContain("failed closed on unhandled error");
+    expect(result?.decision).toBe("block");
+    expect(String(result?.message)).toContain("unhandled-exception");
+    const output = result?.hookSpecificOutput as Record<string, unknown> | undefined;
+    expect(output?.permissionDecision).toBe("deny");
   });
 });
 

@@ -148,6 +148,25 @@ async function capturedPrompt(project: string) {
   return { store, envelope };
 }
 
+async function pluginOptOutPrompt(project: string) {
+  const store = new PromptFrontDoorStore({ projectRoot: project });
+  const envelope = createPromptEnvelope({
+    rawPrompt: "palantir-mini plugin 사용하지 말고 파일 수정해",
+    sessionId: "session-wave4",
+    runtime: "codex",
+    projectRoot: project,
+    capturedAt: "2026-05-31T00:00:00.000Z",
+    sequence: 1,
+    palantirMiniPluginOptOut: {
+      explicit: true,
+      matchedMarker: "palantir-mini plugin 사용하지 말고",
+      reason: "User requested plugin-free execution.",
+    },
+  });
+  await store.saveEnvelope(envelope);
+  return { store, envelope };
+}
+
 async function approvedPrompt(
   project: string,
   overrides: {
@@ -329,6 +348,41 @@ describe("prompt-dtc-enforcement-gate", () => {
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain(
       "Call pm_semantic_intent_gate",
     );
+  });
+
+  test("blocking mode skips prompt-DTC gate for explicit plugin opt-out", async () => {
+    const project = makeTmpProject();
+    process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "blocking";
+    const { envelope } = await pluginOptOutPrompt(project);
+
+    const result = await promptDtcEnforcementGate(
+      payload(project, {
+        tool_input: {
+          file_path: "src/example.ts",
+          promptId: envelope.promptId,
+          promptHash: envelope.promptHash,
+          sessionId: envelope.sessionId,
+          runtime: envelope.runtime,
+        },
+      }),
+    );
+
+    expect(result).toEqual({ message: "palantir-mini: prompt-DTC gate OK" });
+    expect(result.hookSpecificOutput?.permissionDecision).toBeUndefined();
+  });
+
+  test("fail-closed wrapper blocks unexpected prompt-DTC hook exceptions", async () => {
+    process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "blocking";
+
+    const result = await promptDtcEnforcementGate({
+      cwd: { invalid: true },
+      tool_name: "Edit",
+      tool_input: { file_path: "src/example.ts" },
+    });
+
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.reason).toContain("failed closed on unexpected error");
   });
 
   test("blocking mode allows read-only commands and semantic gate while pending", async () => {
