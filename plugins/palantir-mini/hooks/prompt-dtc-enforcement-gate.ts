@@ -738,7 +738,7 @@ function denyResult(reason: string): HookResult {
   };
 }
 
-export default async function promptDtcEnforcementGate(payload: unknown): Promise<HookResult> {
+async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResult> {
   const p = (payload ?? {}) as HookPayload;
   const mode = gateMode();
   const mutating = isMutatingCandidate(p);
@@ -915,6 +915,21 @@ export default async function promptDtcEnforcementGate(payload: unknown): Promis
       additionalContext: reason,
     },
   };
+}
+
+export default async function promptDtcEnforcementGate(payload: unknown): Promise<HookResult> {
+  try {
+    return await promptDtcEnforcementGateImpl(payload);
+  } catch (err) {
+    const msg = (err as Error).message ?? String(err);
+    const reason = `prompt-DTC gate failed closed on unexpected error: ${msg}`;
+    try {
+      process.stderr.write(`[palantir-mini/prompt-dtc-enforcement-gate] ${reason}\n`);
+    } catch {
+      // no-op: fail-closed result is returned even if stderr is unavailable.
+    }
+    return denyResult(reason);
+  }
 }
 
 export const __test__ = {

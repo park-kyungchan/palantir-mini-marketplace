@@ -8,6 +8,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import preEditImpactMcpFirst from "../../hooks/pre-edit-impact-mcp-first";
+import { createPromptEnvelope, PromptFrontDoorStore } from "../../lib/prompt-front-door";
 
 let TMP: string;
 let savedBypass: string | undefined;
@@ -60,6 +61,25 @@ function makeEditPayload(
     },
     ...overrides,
   };
+}
+
+async function writePluginOptOutPrompt() {
+  const store = new PromptFrontDoorStore({ projectRoot: TMP });
+  const envelope = createPromptEnvelope({
+    rawPrompt: "palantir-mini plugin 사용하지 말고 파일 수정해",
+    sessionId: "test-session",
+    runtime: "codex",
+    projectRoot: TMP,
+    capturedAt: "2026-05-31T00:00:00.000Z",
+    sequence: 1,
+    palantirMiniPluginOptOut: {
+      explicit: true,
+      matchedMarker: "palantir-mini plugin 사용하지 말고",
+      reason: "User requested plugin-free execution.",
+    },
+  });
+  await store.saveEnvelope(envelope);
+  return envelope;
 }
 
 beforeEach(() => {
@@ -241,5 +261,35 @@ describe("pre-edit-impact-mcp-first (blocking mode)", () => {
     const result = await preEditImpactMcpFirst(makeEditPayload());
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("matching RID/path evidence");
+  });
+
+  test("T15: explicit palantir-mini plugin opt-out → skip MCP-first blocking", async () => {
+    await writePluginOptOutPrompt();
+
+    const result = await preEditImpactMcpFirst(makeEditPayload());
+
+    expect(result.hookSpecificOutput?.permissionDecision).not.toBe("deny");
+    expect(result.message).toContain("explicit plugin opt-out");
+    expect(result.message).toContain("palantir-mini plugin 사용하지 말고");
+  });
+
+  test("T16: explicit plugin opt-out with promptHash mismatch does not skip", async () => {
+    const envelope = await writePluginOptOutPrompt();
+
+    const result = await preEditImpactMcpFirst(
+      makeEditPayload(undefined, "x".repeat(500), {
+        tool_input: {
+          file_path: path.join(TMP, "foo.ts"),
+          old_string: "x".repeat(500),
+          promptId: envelope.promptId,
+          promptHash: "different-prompt-hash",
+          sessionId: envelope.sessionId,
+          runtime: envelope.runtime,
+        },
+      }),
+    );
+
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.message).not.toContain("explicit plugin opt-out");
   });
 });
