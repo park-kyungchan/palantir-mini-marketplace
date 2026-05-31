@@ -1,6 +1,6 @@
 // palantir-mini PR-13 — Hook enforcement level
 //   enforcement: scoped-blocking
-//   rationale:   permissionDecision=defer + blocks when no impact-query event precedes first edit in tracked project; bypass PALANTIR_MINI_MCP_FIRST_BYPASS=1 (audited).
+//   rationale:   permissionDecision=defer + blocks when no impact-query event precedes first edit in tracked project; PALANTIR_MINI_MCP_FIRST_BYPASS=1 is denied for tracked edits.
 // palantir-mini v4.15.0 — pre-edit-impact-mcp-first hook (sprint-063 W2.B)
 // Fires on: PreToolUse(Edit|Write|MultiEdit) — BLOCKING by default (promoted from advisory sprint-062 W3)
 //
@@ -35,11 +35,11 @@
 //      - If PALANTIR_MINI_MCP_FIRST_ADVISORY_ONLY=1: advisory additionalContext only (no deny).
 //      - Otherwise: emit validation_phase_completed errorClass="mcp_first_blocked" passed=false
 //        + refinementTarget → return permissionDecision:"deny".
-//   9. If PALANTIR_MINI_MCP_FIRST_BYPASS=1: emit bypass audit + continue.
+//   9. If PALANTIR_MINI_MCP_FIRST_BYPASS=1: emit bypass-denied audit + deny.
 //  10. If the current prompt-front-door envelope explicitly opted out of the
 //      palantir-mini plugin workflow, skip MCP-first blocking for that prompt.
 //
-// Bypass: PALANTIR_MINI_MCP_FIRST_BYPASS=1 (audited via mcp_first_bypass_invoked).
+// Bypass: PALANTIR_MINI_MCP_FIRST_BYPASS=1 is audit-only and cannot authorize tracked edits.
 // Advisory escape: PALANTIR_MINI_MCP_FIRST_ADVISORY_ONLY=1 (sprint-062 rollout safety).
 //
 // Chain position: LAST — agent-ownership-validate → pre-delegation-check →
@@ -348,27 +348,6 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
   const advisoryOnly = process.env.PALANTIR_MINI_MCP_FIRST_ADVISORY_ONLY === "1";
 
   try {
-    // Hard bypass via env var (audited)
-    if (process.env.PALANTIR_MINI_MCP_FIRST_BYPASS === "1") {
-      try {
-        await emit({
-          type: "validation_phase_completed",
-          payload: {
-            phase:      "design",
-            passed:     true,
-            errorClass: "mcp_first_bypass_invoked",
-          },
-          toolName: "PALANTIR_MINI_MCP_FIRST_BYPASS",
-          cwd,
-          sessionId,
-          identity:    "monitor",
-          memoryLayers: ["working"],
-          reasoning:   `pre-edit-impact-mcp-first: bypass via PALANTIR_MINI_MCP_FIRST_BYPASS=1 (tool=${toolName}, filePath=${p.tool_input?.file_path ?? p.tool_input?.path ?? "unknown"}). Audited per sprint-062 W3-α.`,
-        });
-      } catch { /* best-effort */ }
-      return { message: "palantir-mini: pre-edit-impact-mcp-first BYPASS (env)" };
-    }
-
     // Extract file path
     const rawFilePath =
       p.tool_input?.file_path ??
@@ -430,6 +409,36 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
         message: `palantir-mini: pre-edit-impact-mcp-first skipped (explicit plugin opt-out: ${optOutEnvelope.palantirMiniPluginOptOut.matchedMarker})`,
       };
     }
+    if (process.env.PALANTIR_MINI_MCP_FIRST_BYPASS === "1") {
+      const reason = [
+        `PALANTIR_MINI_MCP_FIRST_BYPASS=1 is audit-only and cannot authorize tracked edits.`,
+        `Run impact_query/pre_edit_impact/get_ontology with matching RID/path evidence before editing "${relPath}",`,
+        `or explicitly opt out of palantir-mini plugin workflow for the current prompt when that boundary is intended.`,
+      ].join(" ");
+      try {
+        await emit({
+          type: "validation_phase_completed",
+          payload: {
+            phase:      "design",
+            passed:     false,
+            errorClass: "mcp_first_bypass_denied",
+          },
+          toolName: "PALANTIR_MINI_MCP_FIRST_BYPASS",
+          cwd: projectRoot,
+          sessionId,
+          identity:    "monitor",
+          memoryLayers: ["working"],
+          reasoning:   `pre-edit-impact-mcp-first: denied PALANTIR_MINI_MCP_FIRST_BYPASS=1 (tool=${toolName}, filePath=${relPath}).`,
+        });
+      } catch { /* best-effort */ }
+      return {
+        message: `palantir-mini: pre-edit-impact-mcp-first BLOCKED (mcp-first bypass denied for ${relPath})`,
+        hookSpecificOutput: {
+          permissionDecision: "deny",
+          permissionDecisionReason: reason,
+        },
+      };
+    }
     const impactGateResult = evaluatePreMutationImpactGate({
       projectRoot,
       toolName,
@@ -488,7 +497,7 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
       `  ${mcpCallSuggestion}`,
       `  OR: /palantir-mini:pm-impact-quick file:${relPath}`,
       ``,
-      `Bypass: PALANTIR_MINI_MCP_FIRST_BYPASS=1 (audited).`,
+      `Bypass env vars are audit-only and cannot authorize tracked edits.`,
       `Advisory-only mode: PALANTIR_MINI_MCP_FIRST_ADVISORY_ONLY=1 (sprint-062 rollout escape).`,
       `sprint-063 W2.B: legacy semantic-change planning tool removed from valid tool set.`,
     ].join("\n");

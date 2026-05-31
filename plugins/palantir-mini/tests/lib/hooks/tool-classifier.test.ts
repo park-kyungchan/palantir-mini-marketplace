@@ -31,6 +31,23 @@ describe("classifyHookTool", () => {
     }
   });
 
+  test("does not substring-match spoofed palantir-mini operation names", () => {
+    for (const toolName of [
+      "mcp__palantir_mini__not_commit_edits",
+      "mcp__palantir_mini__commit_edits_extra",
+      "mcp__palantir_mini__impact_query_backup",
+      "my_commit_edits_wrapper",
+    ]) {
+      const classification = classifyHookTool({ tool_name: toolName });
+      expect(classification.operation).toBe("unknown");
+      expect(classification.isReadOnly).toBe(false);
+      expect(classification.isProtectedMutation).toBe(false);
+      expect(classification.isDtcMutatingMcpTool).toBe(false);
+      expect(classification.isOntologyAffectingForSelectiveBlocking).toBe(false);
+      expect(isMcpFirstEvidenceToolName(toolName)).toBe(false);
+    }
+  });
+
   test("normalizes all supported palantir-mini MCP namespace spellings", () => {
     expect(normalizePalantirMiniMcpToolName("mcp__plugin_palantir-mini_palantir-mini__emit_event"))
       .toBe("emit_event");
@@ -55,6 +72,55 @@ describe("classifyHookTool", () => {
     ]);
     expect(managedSettingsPalantirMiniMcpPattern("mcp__palantir_mini__.emit_event"))
       .toBe("mcp__palantir-mini__emit_event");
+  });
+
+  test("preserves exact read-only evidence operation aliases", () => {
+    for (const { operation, toolNames } of [
+      {
+        operation: "impact_query",
+        toolNames: [
+          "impact_query",
+          "mcp__plugin_palantir-mini_palantir-mini__impact_query",
+          "mcp__palantir_mini__impact_query",
+          "mcp__palantir_mini__.impact_query",
+          "mcp__palantir-mini__impact_query",
+          "mcp_palantir-mini_impact_query",
+          "mcp_palantir_mini_impact_query",
+        ],
+      },
+      {
+        operation: "pre_edit_impact",
+        toolNames: [
+          "pre_edit_impact",
+          "mcp__plugin_palantir-mini_palantir-mini__pre_edit_impact",
+          "mcp__palantir_mini__pre_edit_impact",
+          "mcp__palantir_mini__.pre_edit_impact",
+          "mcp__palantir-mini__pre_edit_impact",
+          "mcp_palantir-mini_pre_edit_impact",
+          "mcp_palantir_mini_pre_edit_impact",
+        ],
+      },
+      {
+        operation: "get_ontology",
+        toolNames: [
+          "get_ontology",
+          "mcp__plugin_palantir-mini_palantir-mini__get_ontology",
+          "mcp__palantir_mini__get_ontology",
+          "mcp__palantir_mini__.get_ontology",
+          "mcp__palantir-mini__get_ontology",
+          "mcp_palantir-mini_get_ontology",
+          "mcp_palantir_mini_get_ontology",
+        ],
+      },
+    ] as const) {
+      for (const toolName of toolNames) {
+        const classification = classifyHookTool({ tool_name: toolName });
+        expect(classification.operation).toBe(operation);
+        expect(classification.isReadOnly).toBe(true);
+        expect(classification.isProtectedMutation).toBe(false);
+        expect(isMcpFirstEvidenceToolName(toolName)).toBe(true);
+      }
+    }
   });
 
   test("keeps ontology_context_query read mode read-only and write mode protected", () => {

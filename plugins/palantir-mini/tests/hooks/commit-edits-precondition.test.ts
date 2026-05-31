@@ -38,14 +38,17 @@ describe("commitEditsPrecondition", () => {
     expect(result.message).toContain("skipped");
   });
 
-  test("bypasses with PALANTIR_MINI_HARNESS_BYPASS=1", async () => {
+  test("blocks PALANTIR_MINI_HARNESS_BYPASS=1 for commit_edits", async () => {
     process.env.PALANTIR_MINI_HARNESS_BYPASS = "1";
+    fs.mkdirSync(path.join(TMP, ".palantir-mini"), { recursive: true });
     const result = await commitEditsPrecondition({
       tool_name: COMMIT_EDITS_TOOL,
       cwd: TMP,
+      tool_input: { project: TMP, actionTypeRid: "test", edits: [] },
     });
-    expect(result.decision).toBe("continue");
-    expect(result.message).toContain("BYPASS");
+    expect(result.decision).toBe("block");
+    expect(result.message).toContain("harness-bypass-denied");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
   });
 
   // Note: "skipped when no project root resolvable" path is hard to test in
@@ -435,7 +438,7 @@ describe("commitEditsPrecondition — v3.12.0 B2 file-edit branch", () => {
     }
   });
 
-  test("MultiEdit with PALANTIR_MINI_HARNESS_BYPASS=1 → ALLOW (env bypass)", async () => {
+  test("MultiEdit with PALANTIR_MINI_HARNESS_BYPASS=1 → BLOCK (env bypass denied)", async () => {
     process.env.PALANTIR_MINI_HARNESS_BYPASS = "1";
     const targetFile = path.join(TMP, "src", "module.ts");
     fs.mkdirSync(path.dirname(targetFile), { recursive: true });
@@ -444,8 +447,9 @@ describe("commitEditsPrecondition — v3.12.0 B2 file-edit branch", () => {
       cwd: TMP,
       tool_input: { file_path: targetFile },
     });
-    expect(result.decision).toBe("continue");
-    expect(result.message).toContain("BYPASS");
+    expect(result.decision).toBe("block");
+    expect(result.message).toContain("harness-bypass-denied");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
   });
 
   test("Edit with no file_path field → ALLOW (skip; cannot determine tracked status)", async () => {
@@ -990,7 +994,7 @@ describe("commitEditsPrecondition — sprint-059 W2.8 Quick Sprint inline grader
     expect(result.hookSpecificOutput?.permissionDecision).not.toBe("deny");
   });
 
-  test("(W2.8-4) PALANTIR_MINI_HARNESS_BYPASS=1 skips inline grade entirely", async () => {
+  test("(W2.8-4) PALANTIR_MINI_HARNESS_BYPASS=1 is denied before inline grade", async () => {
     process.env.PALANTIR_MINI_HARNESS_BYPASS = "1";
     setupQuickSprint([
       {
@@ -1007,10 +1011,9 @@ describe("commitEditsPrecondition — sprint-059 W2.8 Quick Sprint inline grader
       cwd: TMP,
       tool_input: { project: TMP, actionTypeRid: "test", edits: [] },
     });
-    // Bypass fires before quick-sprint branch — message is BYPASS, not inline-graded
-    expect(result.decision).toBe("continue");
-    expect(result.message).toContain("BYPASS");
-    // Must NOT contain inline-graded (bypass short-circuited before grader ran)
+    expect(result.decision).toBe("block");
+    expect(result.message).toContain("harness-bypass-denied");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
     expect(result.message).not.toContain("quick-sprint-inline-graded");
   });
 

@@ -208,11 +208,12 @@ describe("pre-edit-impact-mcp-first (blocking mode)", () => {
     expect(result.additionalContext).toContain("rule 12 v3.10.0");
   });
 
-  test("T10: PALANTIR_MINI_MCP_FIRST_BYPASS=1 → continue (bypass audited)", async () => {
+  test("T10: PALANTIR_MINI_MCP_FIRST_BYPASS=1 → deny for tracked edit", async () => {
     process.env.PALANTIR_MINI_MCP_FIRST_BYPASS = "1";
     const result = await preEditImpactMcpFirst(makeEditPayload());
-    expect(result.hookSpecificOutput?.permissionDecision).not.toBe("deny");
-    expect(result.message).toContain("BYPASS");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.message).toContain("bypass denied");
+    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("audit-only");
   });
 
   test("T11: no file_path in tool_input → skip (continue)", async () => {

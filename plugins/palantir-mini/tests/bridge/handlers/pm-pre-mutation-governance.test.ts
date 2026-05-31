@@ -31,6 +31,18 @@ describe("pm_pre_mutation_governance handler", () => {
     expect(defaulted.computeOnly).toBe(true);
   });
 
+  test("accepts projectRoot when project is absent", async () => {
+    const result = await handler({
+      projectRoot: "/repo",
+      toolName: "Read",
+      targetFiles: ["docs/README.md"],
+    });
+
+    expect(result.allowed).toBe(true);
+    expect(result.reasonCode).toBe("read_only_allow");
+    expect(result.computeOnly).toBe(true);
+  });
+
   test("returns schema-shaped deny output for missing DTC", async () => {
     const result = await handler({
       projectRoot: "/repo",

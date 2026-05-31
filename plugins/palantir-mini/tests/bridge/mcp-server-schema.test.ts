@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { handleRequest, TOOLS } from "../../bridge/mcp-server";
 import {
   DEFAULT_MCP_TOOL_SURFACE_PROFILE,
@@ -16,6 +17,7 @@ import type { EventsLogRotateArgs } from "../../bridge/handlers/events-log-rotat
 
 type JsonSchemaObject = {
   additionalProperties?: boolean;
+  anyOf?: Array<{ required?: string[] }>;
   properties?: Record<string, { type?: string; enum?: readonly string[]; items?: { type?: string } }>;
   required?: string[];
 };
@@ -170,6 +172,14 @@ function expectSchemaPropertiesExactly(
   expect(schema.additionalProperties).toBe(false);
   expect(Object.keys(props).sort()).toEqual([...expectedFields].sort());
   return props;
+}
+
+function expectProjectScopeAnyOf(schema: JsonSchemaObject): void {
+  expect(schema.required).toContain("toolName");
+  expect(schema.anyOf).toEqual([
+    { required: ["project"] },
+    { required: ["projectRoot"] },
+  ]);
 }
 
 describe("mcp-server prompt identity schemas", () => {
@@ -549,5 +559,15 @@ describe("mcp-server ToolSpec metadata", () => {
     expect(props.thresholdLines?.type).toBe("number");
     expect(props.sessionId?.type).toBe("string");
     expect(props.agentName?.type).toBe("string");
+  });
+
+  test("pm_pre_mutation_governance schemas require project scope", () => {
+    const inlineSchema = toolSchema("pm_pre_mutation_governance");
+    expectProjectScopeAnyOf(inlineSchema);
+
+    const fileSchema = JSON.parse(
+      fs.readFileSync("schemas/pm-pre-mutation-governance.input.schema.json", "utf8"),
+    ) as JsonSchemaObject;
+    expectProjectScopeAnyOf(fileSchema);
   });
 });
