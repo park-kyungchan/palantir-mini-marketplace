@@ -18,7 +18,7 @@ import type { EventsLogRotateArgs } from "../../bridge/handlers/events-log-rotat
 type JsonSchemaObject = {
   additionalProperties?: boolean;
   anyOf?: Array<{ required?: string[] }>;
-  properties?: Record<string, { type?: string; enum?: readonly string[]; items?: { type?: string } }>;
+  properties?: Record<string, JsonSchemaObject & { type?: string; enum?: readonly string[]; items?: JsonSchemaObject & { type?: string } }>;
   required?: string[];
 };
 
@@ -176,10 +176,28 @@ function expectSchemaPropertiesExactly(
 
 function expectProjectScopeAnyOf(schema: JsonSchemaObject): void {
   expect(schema.required).toContain("toolName");
-  expect(schema.anyOf).toEqual([
-    { required: ["project"] },
-    { required: ["projectRoot"] },
-  ]);
+  expect(schema.anyOf).toBeUndefined();
+  expect(schema.properties?.project).toBeDefined();
+  expect(schema.properties?.projectRoot).toBeDefined();
+}
+
+function collectCompositionKeywords(value: unknown, pathParts: string[] = []): string[] {
+  if (value === null || typeof value !== "object") return [];
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) =>
+      collectCompositionKeywords(item, [...pathParts, String(index)]),
+    );
+  }
+
+  const object = value as Record<string, unknown>;
+  const findings: string[] = [];
+  for (const keyword of ["anyOf", "oneOf", "allOf", "not"] as const) {
+    if (keyword in object) findings.push([...pathParts, keyword].join("."));
+  }
+  for (const [key, nested] of Object.entries(object)) {
+    findings.push(...collectCompositionKeywords(nested, [...pathParts, key]));
+  }
+  return findings;
 }
 
 describe("mcp-server prompt identity schemas", () => {
@@ -298,6 +316,14 @@ describe("mcp-server prompt identity schemas", () => {
 });
 
 describe("mcp-server ToolSpec metadata", () => {
+  test("public MCP input schemas avoid Codex-unsupported composition keywords", () => {
+    const findings = TOOLS.flatMap((tool) =>
+      collectCompositionKeywords(tool.inputSchema, [tool.name, "inputSchema"]),
+    );
+
+    expect(findings).toEqual([]);
+  });
+
   test("all public tools carry internal metadata and tools/list exposes additive surface metadata", async () => {
     for (const tool of TOOLS) {
       expect(tool.audience).toBe("public");

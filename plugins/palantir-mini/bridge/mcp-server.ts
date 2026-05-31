@@ -167,10 +167,6 @@ const TOOLS: ToolSpec[] = [
     inputSchema: {
       type: "object",
       required: ["toolName"],
-      anyOf: [
-        { required: ["project"] },
-        { required: ["projectRoot"] },
-      ],
       properties: {
         project: { type: "string", description: "Absolute project root. Either project or projectRoot is required; enforced by handler." },
         projectRoot: { type: "string", description: "Alias for project. Either project or projectRoot is required; enforced by handler." },
