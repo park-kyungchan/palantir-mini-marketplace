@@ -32,6 +32,7 @@ import { checkOutcomeReplayEvidence } from "./pm-plugin-self-check/check-outcome
 import { checkWorkflowResponseTemplate } from "./pm-plugin-self-check/check-workflow-response-template";
 import { DEPRECATION_MAP } from "./_deprecation-map";
 import { auditSurfaceContracts } from "../../lib/surface/audit";
+import { evaluateWorkflowFamilyReleaseGate } from "../../lib/release/workflow-family-release-gate";
 import {
   PLUGIN_ROOT,
   type PmPluginSelfCheckArgs,
@@ -65,6 +66,7 @@ const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {
     "adversarial-verifier-evidence",
     "outcome-replay-evidence",
     "workflow-response-template",
+    "workflow-family-release-gate",
     "surface-contracts",
   ],
 };
@@ -85,6 +87,7 @@ const ALL_CHECKS = [
   "adversarial-verifier-evidence",
   "outcome-replay-evidence",
   "workflow-response-template",
+  "workflow-family-release-gate",
   "surface-contracts",
 ] as const;
 
@@ -112,6 +115,7 @@ function statusFor(
     case "adversarial-verifier-evidence": return result.adversarialVerifierEvidenceResult.status;
     case "outcome-replay-evidence": return result.outcomeReplayEvidenceResult.status;
     case "workflow-response-template": return result.workflowResponseTemplateResult.status;
+    case "workflow-family-release-gate": return result.workflowFamilyReleaseGateResult.status;
     case "surface-contracts": return result.surfaceContractAuditResult.status === "fail" ? "fail" : "pass";
     default: return "skipped";
   }
@@ -145,6 +149,7 @@ export async function pmPluginSelfCheck(
   const adversarialVerifierEvidenceResult = checkAdversarialVerifierEvidence(project);
   const outcomeReplayEvidenceResult = checkOutcomeReplayEvidence(project);
   const workflowResponseTemplateResult = checkWorkflowResponseTemplate();
+  const workflowFamilyReleaseGateResult = evaluateWorkflowFamilyReleaseGate();
   const rawSurfaceContractAuditResult = auditSurfaceContracts({
     pluginRoot: PLUGIN_ROOT,
     mode: "all",
@@ -186,6 +191,7 @@ export async function pmPluginSelfCheck(
       adversarialVerifierEvidenceResult,
       outcomeReplayEvidenceResult,
       workflowResponseTemplateResult,
+      workflowFamilyReleaseGateResult,
       surfaceContractAuditResult,
       overallStatus: "pass",
     }, check))
@@ -217,6 +223,7 @@ export async function pmPluginSelfCheck(
     adversarialVerifierEvidenceResult,
     outcomeReplayEvidenceResult,
     workflowResponseTemplateResult,
+    workflowFamilyReleaseGateResult,
     surfaceContractAuditResult,
     overallStatus,
     removedToolAdvisories,
@@ -229,7 +236,7 @@ export async function pmPluginSelfCheck(
     toolName: "pm_plugin_self_check",
     cwd: project,
     agentName: args.agentName,
-    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} broadTestRatchet=${broadTestRatchetResult.status} broadReleaseBlocking=${broadTestRatchetResult.releaseBlockingCount} evalSuiteArtifacts=${evalSuiteArtifactsResult.status} evalMissing=${evalSuiteArtifactsResult.missingArtifacts.length} adversarialVerifier=${adversarialVerifierEvidenceResult.status} adversarialMissing=${adversarialVerifierEvidenceResult.missingCategories.length} outcomeReplay=${outcomeReplayEvidenceResult.status} outcomeReplayMissing=${outcomeReplayEvidenceResult.missingReplayEvidence.length} workflowResponseTemplate=${workflowResponseTemplateResult.status} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length}`,
+    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} broadTestRatchet=${broadTestRatchetResult.status} broadReleaseBlocking=${broadTestRatchetResult.releaseBlockingCount} evalSuiteArtifacts=${evalSuiteArtifactsResult.status} evalMissing=${evalSuiteArtifactsResult.missingArtifacts.length} adversarialVerifier=${adversarialVerifierEvidenceResult.status} adversarialMissing=${adversarialVerifierEvidenceResult.missingCategories.length} outcomeReplay=${outcomeReplayEvidenceResult.status} outcomeReplayMissing=${outcomeReplayEvidenceResult.missingReplayEvidence.length} workflowResponseTemplate=${workflowResponseTemplateResult.status} workflowFamilyReleaseGate=${workflowFamilyReleaseGateResult.status} workflowFamilyReleaseFindings=${workflowFamilyReleaseGateResult.findings.length} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length}`,
     hypothesis:
       "Substrate health aggregation provides a single-call readiness signal before Phase 2 migration steps execute.",
   });

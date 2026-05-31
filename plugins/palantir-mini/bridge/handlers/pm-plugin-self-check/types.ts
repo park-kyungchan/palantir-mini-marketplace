@@ -3,6 +3,7 @@
 
 import * as path from "path";
 import type { ReleaseChangedSurfaceEvidence } from "../../../lib/harness/release-evidence";
+import type { WorkflowFamilyReleaseGateResult } from "../../../lib/release/workflow-family-release-gate";
 import type { SurfaceContractAuditFinding } from "../../../lib/surface/audit";
 
 /** Plugin root resolved from this file's location (bridge/handlers/pm-plugin-self-check/types.ts → ../../.. = plugin root). */
@@ -179,6 +180,7 @@ export interface PmPluginSelfCheckResult {
     completeSampleValid: boolean;
     forbiddenMarkerRejected: boolean;
   };
+  workflowFamilyReleaseGateResult: WorkflowFamilyReleaseGateResult;
   surfaceContractAuditResult: {
     status: PmPluginSelfCheckStatus | "advisory";
     details: string;
