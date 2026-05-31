@@ -55,7 +55,7 @@ describe("hook timeout policy", () => {
       ),
     );
 
-    expect(classifications.length).toBe(97);
+    expect(classifications.length).toBe(69);
     expect(classifications.filter((entry) => entry.policy === "heavy-audit-forbidden")).toEqual([]);
   });
 });

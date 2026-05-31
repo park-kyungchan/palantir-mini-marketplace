@@ -16,8 +16,11 @@ The Codex runtime integrates palantir-mini hooks through the plugin manifest:
 
 `hooks/codex-hooks.json` MUST remain a delegation-only entrypoint registry. It
 uses only Codex-supported lifecycle events, regex-safe matchers, and commands
-that call `lib/codex/codex-hook-adapter.ts`. Durable hook intent is read from
-the canonical source root at `plugins/palantir-mini/hooks/hooks.json`.
+that call `lib/codex/codex-hook-adapter.ts`. `SessionStart` and
+`UserPromptSubmit` are intentionally not mounted for Codex, so no palantir-mini
+startup context or prompt-front-door capture runs automatically in ordinary
+Codex sessions. Durable hook intent for mounted events is read from the
+canonical source root at `plugins/palantir-mini/hooks/hooks.json`.
 
 ## Adapter Architecture
 
@@ -26,7 +29,7 @@ Codex runtime
   → .codex-plugin/plugin.json
       → hooks/codex-hooks.json  (regex-safe Codex entrypoints)
           → lib/codex/codex-hook-adapter.ts  (Codex adapter)
-              → hooks/hooks.json  (shared hook intent registry)
+              → hooks/hooks.json  (shared hook intent registry for mounted events)
 ```
 
 The adapter performs a **live-read** of shared `hooks/hooks.json` at runtime —
@@ -35,6 +38,11 @@ registered hook events are visible to Codex through the canonical source read
 path. Adding or removing Codex entrypoint events still requires updating
 `hooks/codex-hooks.json` and restarting Codex so the runtime re-reads its
 session hook surface.
+
+As of the Codex runtime cutover on 2026-05-31, `SessionStart` and
+`UserPromptSubmit` are deliberately absent from `hooks/codex-hooks.json`. Direct
+adapter tests may still pass those event names with temporary hook registries,
+but the checked-in Codex runtime surface does not mount them.
 
 Codex `PermissionRequest` is a runtime wire event, not a separate palantir-mini
 policy family. When the adapter receives `PermissionRequest`, it looks up and

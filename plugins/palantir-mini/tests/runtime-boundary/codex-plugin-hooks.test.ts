@@ -48,6 +48,7 @@ describe("Codex plugin hook entrypoints", () => {
     expect(doc.description).toContain("entrypoints");
     expect(doc.description).toContain("delegate");
     expect(doc.description).toContain("live-reads hooks/hooks.json");
+    expect(doc.description).toContain("SessionStart and UserPromptSubmit are intentionally not registered");
 
     expect(events).toEqual([
       "PermissionRequest",
@@ -55,11 +56,9 @@ describe("Codex plugin hook entrypoints", () => {
       "PostToolUse",
       "PreCompact",
       "PreToolUse",
-      "SessionStart",
       "Stop",
       "SubagentStart",
       "SubagentStop",
-      "UserPromptSubmit",
     ]);
 
     for (const groups of Object.values(doc.hooks ?? {})) {

@@ -27,8 +27,12 @@ describe("runtime-neutral hook workflow registry", () => {
     for (const event of CODEX_SCHEMA_ONLY_HOOK_EVENTS) {
       expect(projection.schemaOnlyEvents).toContain(event);
     }
-    expect(codexUnsupportedHookSummary()).toContain("unsupported=none");
+    expect(codexUnsupportedHookSummary()).toContain("unsupported=UserPromptSubmit,SessionStart");
     expect(codexUnsupportedHookSummary()).toContain("schemaOnly=none");
+    expect(projection.supportedEvents).not.toContain("SessionStart");
+    expect(projection.supportedEvents).not.toContain("UserPromptSubmit");
+    expect(projection.unsupportedEvents).toContain("SessionStart");
+    expect(projection.unsupportedEvents).toContain("UserPromptSubmit");
     expect(projection.supportedEvents).toContain("PreCompact");
     expect(projection.supportedEvents).toContain("SubagentStop");
   });

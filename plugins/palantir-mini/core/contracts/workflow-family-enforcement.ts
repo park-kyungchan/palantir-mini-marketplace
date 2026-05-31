@@ -701,15 +701,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
     ],
     requiredContracts: CONTRACT_REQUIREMENTS.workContract,
     enforcement: enforcement({
-      hooks: [
-        {
-          hookId: "hook:complex-task-detector",
-          phaseId: "lead-orchestration:dispatch-analysis",
-          event: "UserPromptSubmit",
-          determinism: "advisory-only",
-          evidenceRefs: ["hooks/complex-task-detector.ts"],
-        },
-      ],
+      hooks: [],
     }),
     runtimeProjection: runtimeProjection({
       codexSupport: "manual",
@@ -729,7 +721,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         aipSurfaceRefs: ["instructions-descriptions", "tools-command"],
         runtimeRefs: ["claude", "codex"],
         validationRefs: ["tests/lib/lead-intent/contracts.test.ts"],
-        evidenceRefs: ["tests/hooks/complex-task-detector.test.ts"],
+        evidenceRefs: ["tests/lib/lead-intent/contracts.test.ts"],
       }),
     ],
   }),
