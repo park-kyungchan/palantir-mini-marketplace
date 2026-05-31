@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/project-gate-policy.schema.json",
+  "schemaVersion": "palantir-mini/project-gate-policy/v1",
+  "authority": "plugins/palantir-mini",
+  "policyId": "project-gate-policy:protected-mutation-minimums:v1",
+  "description": "Minimum project gate modes for protected mutation classes. Environment variables may strengthen these gates but may not weaken them.",
+  "modeOrder": [
+    "off",
+    "advisory",
+    "selective-blocking",
+    "scoped-blocking",
+    "blocking"
+  ],
+  "minimumModes": {
+    "ontology-write": "blocking",
+    "external-command": "scoped-blocking",
+    "commit": "blocking",
+    "pull-request": "blocking",
+    "release": "blocking",
+    "generic-mutation": "scoped-blocking"
+  },
+  "environmentPolicy": {
+    "strengthenOnly": true,
+    "weakenReasonCode": "project_gate_policy_minimum_applied",
+    "bypassDeniedReasonCode": "project_gate_policy_env_bypass_denied"
+  }
+}

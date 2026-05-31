@@ -173,28 +173,30 @@ async function approvedPrompt(): Promise<{
 }
 
 describe("commitEditsGovernance — bypass", () => {
-  test("bypasses with PALANTIR_MINI_HARNESS_BYPASS=1", () => {
+  test("blocks PALANTIR_MINI_HARNESS_BYPASS=1 for strengthen-only commit policy", () => {
+    createBoundContract("sprint-001-quick", "quick");
     const { result } = runHook(
       { tool_name: COMMIT_EDITS_TOOL, cwd: TMP, tool_input: { project: TMP } },
       { PALANTIR_MINI_HARNESS_BYPASS: "1" },
     );
-    expect(result?.decision).toBe("continue");
-    expect(String(result?.message)).toContain("BYPASS");
+    expect(result?.decision).toBe("block");
+    expect(String(result?.message)).toContain("project_gate_policy_env_bypass_denied");
   });
 
-  test("bypass writes an audit event before continuing", () => {
+  test("denied bypass writes an audit event before blocking", () => {
+    createBoundContract("sprint-001-quick", "quick");
     const { result } = runHook(
       { tool_name: COMMIT_EDITS_TOOL, cwd: TMP, tool_input: { project: TMP } },
       { PALANTIR_MINI_HARNESS_BYPASS: "1" },
     );
-    expect(result?.decision).toBe("continue");
+    expect(result?.decision).toBe("block");
     const eventsPath = path.join(TMP, "events.jsonl");
     const events = fs
       .readFileSync(eventsPath, "utf8")
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line) as { payload?: { errorClass?: string } });
-    expect(events.some((event) => event.payload?.errorClass === "harness_bypass_invoked")).toBe(true);
+    expect(events.some((event) => event.payload?.errorClass === "project_gate_policy_env_bypass_denied")).toBe(true);
   });
 });
 

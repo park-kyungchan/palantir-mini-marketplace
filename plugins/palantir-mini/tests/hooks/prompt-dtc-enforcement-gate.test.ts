@@ -407,14 +407,16 @@ describe("prompt-dtc-enforcement-gate", () => {
     expect(semanticGate.message).toContain("skipped");
   });
 
-  test("mode off disables only the prompt-DTC gate", async () => {
+  test("mode off is strengthen-only for protected edit mutations", async () => {
     const project = makeTmpProject();
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "off";
     await capturedPrompt(project);
 
     const result = await promptDtcEnforcementGate(payload(project));
 
-    expect(result).toEqual({ message: "palantir-mini: prompt-DTC gate off" });
+    expect(result.message).toBe("palantir-mini: prompt-DTC gate advisory");
+    expect(result.additionalContext).toContain("SCOPED-BLOCKING");
+    expect(result.additionalContext).toContain("Call pm_semantic_intent_gate");
   });
 
   test("blocking mode allows mutating edit after approved prompt-local contracts", async () => {
@@ -640,20 +642,20 @@ describe("prompt-dtc-enforcement-gate", () => {
 
   // PR 5.11 — selective-blocking mode tests
   describe("selective-blocking mode (PR 5.11)", () => {
-    test("mode off (explicit) — no gate regardless of tool", async () => {
+    test("mode off (explicit) is strengthened for commit_edits", async () => {
       const project = makeTmpProject();
-      // v6.78.0+: default is now selective-blocking; must explicitly set off to test off path
       process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "off";
       const result = await promptDtcEnforcementGate(
         payload(project, {
           tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
         }),
       );
-      expect(result.message).toBe("palantir-mini: prompt-DTC gate off");
-      expect(result.decision).toBeUndefined();
+      expect(result.decision).toBe("block");
+      expect(result.reason).toContain("BLOCKING");
+      expect(result.reason).toContain("Run pm_semantic_intent_gate");
     });
 
-    test("selective-blocking + non-ontology tool → no gate (Edit passes through)", async () => {
+    test("selective-blocking + generic edit becomes scoped advisory", async () => {
       const project = makeTmpProject();
       process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "selective-blocking";
       await capturedPrompt(project);
@@ -664,7 +666,8 @@ describe("prompt-dtc-enforcement-gate", () => {
           tool_input: { file_path: "src/example.ts" },
         }),
       );
-      expect(result.message).toContain("not ontology-affecting");
+      expect(result.message).toBe("palantir-mini: prompt-DTC gate advisory");
+      expect(result.additionalContext).toContain("SCOPED-BLOCKING");
       expect(result.decision).toBeUndefined();
     });
 
@@ -693,8 +696,8 @@ describe("prompt-dtc-enforcement-gate", () => {
       );
       expect(result.decision).toBe("block");
       expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-      expect(result.reason).toContain("SELECTIVE-BLOCKING");
-      expect(result.reason).toContain("no SIC approval found within last 60 min");
+      expect(result.reason).toContain("BLOCKING");
+      expect(result.reason).toContain("No current prompt-front-door envelope");
     });
 
     test("selective-blocking + apply_edit_function + no SIC approval → blocks", async () => {
@@ -721,7 +724,7 @@ describe("prompt-dtc-enforcement-gate", () => {
           tool_input: { scope: "test" },
         }),
       );
-      expect(result.message).toContain("not ontology-affecting");
+      expect(result.message).toContain("read-only or allowed");
       expect(result.decision).toBeUndefined();
     });
 
@@ -781,7 +784,7 @@ describe("prompt-dtc-enforcement-gate", () => {
 
       expect(result.decision).toBe("block");
       expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-      expect(result.reason).toContain("SELECTIVE-BLOCKING");
+      expect(result.reason).toContain("BLOCKING");
       expect(result.reason).toContain("Current prompt has no SemanticIntentContract ref");
     });
 
@@ -828,7 +831,7 @@ describe("prompt-dtc-enforcement-gate", () => {
       );
       expect(result.decision).toBe("block");
       expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-      expect(result.reason).toContain("SELECTIVE-BLOCKING");
+      expect(result.reason).toContain("BLOCKING");
       expect(result.reason).toContain("No current prompt-front-door envelope");
     });
 
@@ -856,10 +859,10 @@ describe("prompt-dtc-enforcement-gate", () => {
         }),
       );
       expect(result.decision).toBe("block");
-      expect(result.reason).toContain("SELECTIVE-BLOCKING");
+      expect(result.reason).toContain("BLOCKING");
     });
 
-    test("selective-blocking + PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 → bypassed", async () => {
+    test("selective-blocking + PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 cannot bypass protected commit_edits", async () => {
       const project = makeTmpProject();
       process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "selective-blocking";
       process.env.PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS = "1";
@@ -869,8 +872,8 @@ describe("prompt-dtc-enforcement-gate", () => {
           tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
         }),
       );
-      expect(result.message).toContain("bypassed");
-      expect(result.decision).toBeUndefined();
+      expect(result.message).toContain("BLOCKED");
+      expect(result.decision).toBe("block");
     });
 
     test("__test__ helpers: isOntologyAffectingForSelectiveBlocking", () => {
