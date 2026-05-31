@@ -219,8 +219,32 @@ function responseMarkdownFor(
   const runtimeGaps = publishAnalogue.runtimeGapRefs
     .map((ref) => `- ${ref}`)
     .join("\n") || "- none";
+  const boundary = declaration.semanticBoundary;
+  const contextRefs = boundary.contextEngineeringRefs
+    .map((ref) => `- ${ref.kind}: ${ref.title}`)
+    .join("\n") || "- none";
+  const ontologyRefs = boundary.ontologyPrimitiveRefs
+    .map((ref) => `- ${ref.kind}: ${ref.title}`)
+    .join("\n") || "- none";
+  const warnings = boundary.nonInterchangeabilityWarnings
+    .map((warning) => `- ${warning}`)
+    .join("\n") || "- none";
   return [
     `# ${declaration.title}`,
+    "",
+    "## Semantic Boundary",
+    `Local analogue only: ${boundary.localAnalogueOnly}`,
+    `Foundry parity claimed: ${boundary.foundryParityClaimed}`,
+    `Mutation authority: ${boundary.mutationAuthority}`,
+    "",
+    "### Context Engineering Layer",
+    contextRefs,
+    "",
+    "### Ontology Modeling Layer",
+    ontologyRefs,
+    "",
+    "### Non-Interchangeability",
+    warnings,
     "",
     "## Planned Tools",
     enabledTools,

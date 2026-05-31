@@ -18,7 +18,7 @@ import type { EventsLogRotateArgs } from "../../bridge/handlers/events-log-rotat
 type JsonSchemaObject = {
   additionalProperties?: boolean;
   anyOf?: Array<{ required?: string[] }>;
-  properties?: Record<string, JsonSchemaObject & { type?: string; enum?: readonly string[]; items?: JsonSchemaObject & { type?: string } }>;
+  properties?: Record<string, JsonSchemaObject & { type?: string; enum?: readonly string[]; description?: string; items?: JsonSchemaObject & { type?: string } }>;
   required?: string[];
 };
 
@@ -162,6 +162,12 @@ function toolSchema(name: string): JsonSchemaObject {
   return tool!.inputSchema as JsonSchemaObject;
 }
 
+function toolSpec(name: string) {
+  const tool = TOOLS.find((entry) => entry.name === name);
+  expect(tool).toBeDefined();
+  return tool!;
+}
+
 function expectSchemaPropertiesExactly(
   toolName: string,
   expectedFields: readonly string[],
@@ -293,6 +299,18 @@ describe("mcp-server prompt identity schemas", () => {
     expect(props.includeCurriculumContext?.type).toBe("boolean");
     expect(props.curriculumQueryTerms?.type).toBe("array");
     expect(props.curriculumQueryTerms?.items?.type).toBe("string");
+  });
+
+  test("Context Engineering MCP descriptions do not claim Ontology primitive authority", () => {
+    const ontologyContext = toolSpec("ontology_context_query");
+    const impactQuery = toolSpec("impact_query");
+    const requestedAxes = toolSchema("ontology_context_query").properties?.requestedAxes;
+
+    expect(ontologyContext.description).toContain("Context Engineering axes");
+    expect(ontologyContext.description).toContain("not Ontology primitive declarations");
+    expect(impactQuery.description).toContain("context selectors");
+    expect(impactQuery.description).toContain("do not prove ObjectType/LinkType/ActionType/Function mutation authority");
+    expect(requestedAxes?.description).toContain("not ObjectType/LinkType/ActionType/Function declarations");
   });
 
   test("pm_ontology_engineering_workflow public schema matches handler input fields", () => {

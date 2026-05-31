@@ -53,10 +53,10 @@ function conversation(approved = false) {
         contractId: "sic:workbench",
         status: "approved",
         confirmedIntent: "Run local Chatbot Studio workbench",
-        approvedObjectTypeRefs: [],
-        approvedLinkTypeRefs: [],
+        approvedObjectTypeRefs: ["ObjectType:LocalChatbotStudioSession"],
+        approvedLinkTypeRefs: ["LinkType:session-records-exchange"],
         approvedSurfaceRefs: ["lib/chatbot-studio/local-workbench.ts"],
-        approvedLaneRefs: [],
+        approvedLaneRefs: ["ACTION"],
         approvedNouns: ["ChatbotStudioLocalWorkbench"],
         approvedVerbs: ["run"],
         nonGoals: ["external publish"],
@@ -137,6 +137,10 @@ describe("local Chatbot Studio workbench", () => {
 
     expect(result.schemaVersion).toBe("palantir-mini/chatbot-studio-local-workbench/v1");
     expect(result.sessionId).toBe("chatbot-studio-session:test");
+    expect(result.responseMarkdown).toContain("## Semantic Boundary");
+    expect(result.responseMarkdown).toContain("### Context Engineering Layer");
+    expect(result.responseMarkdown).toContain("### Ontology Modeling Layer");
+    expect(result.responseMarkdown).toContain("Context Engineering DATA/LOGIC/ACTION");
     expect(result.responseMarkdown).toContain("## Planned Tools");
     expect(result.variableUpdates.map((update) => update.variableId)).toEqual([
       "semantic.lifecycle",
@@ -144,6 +148,7 @@ describe("local Chatbot Studio workbench", () => {
     ]);
     expect(result.plannedToolSurfaceRefs).toContain("tool:chatbot-studio:route-with-approved-dtc");
     expect(result.traceRefs).toContain("chatbot-studio-local-regression:action-approval");
+    expect(result.traceRefs).toContain("chatbot-studio-local-regression:semantic-boundary");
   });
 
   test("shows runtime gaps while keeping source-complete separate from active runtime", () => {

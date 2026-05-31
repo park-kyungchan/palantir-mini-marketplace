@@ -44,10 +44,10 @@ function conversation(approved = false) {
         contractId: "sic:test",
         status: "approved",
         confirmedIntent: "Build local Chatbot Studio data core",
-        approvedObjectTypeRefs: [],
-        approvedLinkTypeRefs: [],
+        approvedObjectTypeRefs: ["ObjectType:ChatbotStudioDeclaration"],
+        approvedLinkTypeRefs: ["LinkType:chatbot-studio-declares-context"],
         approvedSurfaceRefs: ["lib/chatbot-studio/data-core.ts"],
-        approvedLaneRefs: [],
+        approvedLaneRefs: ["DATA"],
         approvedNouns: ["ChatbotStudioDeclaration"],
         approvedVerbs: ["build"],
         nonGoals: ["Foundry SaaS parity"],
@@ -123,10 +123,14 @@ describe("Chatbot Studio local data core", () => {
     expect(declaration.nonParityClaims.join("\n")).toContain("Not Foundry SaaS parity");
     expect(declaration.applicationState.variables.length).toBeGreaterThan(0);
     expect(declaration.retrievalContext.retrievedPrompt).toContain("Control state source");
+    expect(declaration.retrievalContext.retrievedPrompt).toContain(
+      "Context Engineering refs are not Ontology primitive declarations",
+    );
     expect(declaration.toolSurfaces.map((tool) => tool.kind)).toContain("retrieval-context");
     expect(declaration.evalSurfaces.map((surface) => surface.evalKind)).toEqual([
       "application-state",
       "retrieval-context",
+      "semantic-boundary",
       "action-approval",
     ]);
     expect(validateChatbotStudioDeclaration(declaration)).toEqual({
@@ -176,6 +180,58 @@ describe("Chatbot Studio local data core", () => {
       });
     expect(approved.toolSurfaces.find((tool) => tool.kind === "route-with-approved-dtc"))
       .toMatchObject({ enabled: true });
+  });
+
+  test("separates Context Engineering refs from Ontology primitive refs", () => {
+    const declaration = buildChatbotStudioDeclarationFromConversation({
+      conversation: conversation(true),
+    });
+
+    expect(declaration.retrievalContext.ontologyPrimitiveRefs).toEqual([
+      "ObjectType:ChatbotStudioDeclaration",
+      "LinkType:chatbot-studio-declares-context",
+    ]);
+    expect(declaration.retrievalContext.ontologyRefs).toEqual(
+      declaration.retrievalContext.ontologyPrimitiveRefs,
+    );
+    expect(declaration.retrievalContext.contextEngineeringRefs).toEqual(
+      expect.arrayContaining([
+        "lib/chatbot-studio/data-core.ts",
+        "DATA",
+      ]),
+    );
+    expect(declaration.retrievalContext.validationRefs).toContain(
+      "chatbot-studio-local-regression",
+    );
+    expect(declaration.retrievalContext.ontologyPrimitiveRefs).not.toContain(
+      "chatbot-studio-local-regression",
+    );
+  });
+
+  test("grounds the semantic boundary in Palantir research SSoT without claiming parity", () => {
+    const declaration = buildChatbotStudioDeclarationFromConversation({
+      conversation: conversation(true),
+    });
+    const warningText = declaration.semanticBoundary.nonInterchangeabilityWarnings.join("\n");
+    const sourceText = declaration.semanticBoundary.sourceAuthorityRefs.join("\n");
+
+    expect(declaration.semanticBoundary.localAnalogueOnly).toBe(true);
+    expect(declaration.semanticBoundary.foundryParityClaimed).toBe(false);
+    expect(declaration.semanticBoundary.providerIdentityAuthority).toBe("metadata-only");
+    expect(declaration.semanticBoundary.mutationAuthority).toBe("approved-dtc-only");
+    expect(sourceText).toContain(
+      "/home/palantirkc/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
+    );
+    expect(sourceText).toContain(
+      "/home/palantirkc/.claude/research/palantir-official/foundry/ontology/core-concepts.md",
+    );
+    expect(warningText).toContain("Context Engineering");
+    expect(warningText).toContain("ObjectType");
+    expect(warningText).toContain("ActionType");
+    expect(warningText).toContain("Provider/runtime identity is metadata only");
+    expect(declaration.semanticBoundary.noReferenceNoConfusionRules.join("\n")).toContain(
+      "Public Codex MCP input schemas must stay flat",
+    );
   });
 
   test("builds session and exchange state without enabling publish analogue", () => {
@@ -243,6 +299,7 @@ describe("Chatbot Studio local data core", () => {
     expect(fixture.testCases?.map((entry) => entry.category)).toEqual([
       "application_state",
       "retrieval_context",
+      "semantic_boundary",
       "tool_planning",
       "action_approval",
       "eval_traceability",

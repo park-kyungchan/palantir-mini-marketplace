@@ -130,7 +130,8 @@ const TOOLS: ToolSpec[] = [
     name: "impact_query",
     description:
       "Context Engineering core: ForwardProp/BackwardProp impact graph query for a RID. " +
-      "Returns single-hop + transitive closure (depth 3). Call BEFORE any edit.",
+      "Returns single-hop + transitive closure (depth 3). Call BEFORE any edit. " +
+      "Impact RIDs are context selectors and do not prove ObjectType/LinkType/ActionType/Function mutation authority.",
     inputSchema: {
       type: "object",
       required: ["rid"],
@@ -745,7 +746,8 @@ const TOOLS: ToolSpec[] = [
       "Phase 3 read-path orchestrator (sprint-093 PR 3.1). Unifies impact + capability + lineage projections " +
       "into a single read-only query consuming the Phase 2 substrate (10 indexers + impact_query upgrade). " +
       "Returns graphConfidence + missingEdges + recommendedAgentUse + requiredContracts + nonGoals. " +
-      "ApplicationState/RetrievalContext/Risk/Eval projections are typed placeholders filled by subsequent Phase 3 PRs.",
+      "ApplicationState/RetrievalContext/Risk/Eval projections are typed placeholders filled by subsequent Phase 3 PRs. " +
+      "Context Engineering axes and retrieval refs are not Ontology primitive declarations or mutation authority.",
     inputSchema: {
       type: "object",
       required: ["project"],
@@ -754,7 +756,7 @@ const TOOLS: ToolSpec[] = [
         promptId:            { type: "string" },
         promptHash:          { type: "string" },
         scopePaths:          { type: "array", items: { type: "string" }, description: "Narrowing file/directory paths." },
-        requestedAxes:       { type: "array", items: { type: "string" }, description: "AIP axes filter (opaque RIDs)." },
+        requestedAxes:       { type: "array", items: { type: "string" }, description: "AIP/Context Engineering axis selectors (opaque RIDs), not ObjectType/LinkType/ActionType/Function declarations." },
         includeImpact:       { type: "boolean", description: "Default true." },
         includeLineage:      { type: "boolean", description: "Default true." },
         includeCapabilities: { type: "boolean", description: "Default true." },

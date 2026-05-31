@@ -21,6 +21,26 @@ export const CHATBOT_STUDIO_EXCHANGE_STATE_SCHEMA_VERSION =
   "palantir-mini/chatbot-studio-exchange-state/v1" as const;
 export const CHATBOT_STUDIO_EVAL_SURFACE_SCHEMA_VERSION =
   "palantir-mini/chatbot-studio-eval-surface/v1" as const;
+export const CHATBOT_STUDIO_SEMANTIC_BOUNDARY_SCHEMA_VERSION =
+  "palantir-mini/chatbot-studio-semantic-boundary/v1" as const;
+
+const PALANTIR_CHATBOT_STUDIO_SOURCE_REFS = [
+  "/home/palantirkc/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/tools.md",
+] as const;
+
+const PALANTIR_ONTOLOGY_SOURCE_REFS = [
+  "/home/palantirkc/.claude/research/palantir-official/foundry/ontology/core-concepts.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/object-link-types/object-types-overview.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/object-link-types/link-types-overview.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/action-types/overview.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/functions/overview.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/interfaces/interface-overview.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/global-branching/overview.md",
+  "/home/palantirkc/.claude/research/palantir-official/foundry/aip-evals/ontology-edits.md",
+] as const;
 
 export type ChatbotStudioApprovalPolicy =
   | "none"
@@ -34,6 +54,58 @@ export type ChatbotStudioToolKind =
   | "draft-dtc"
   | "route-with-approved-dtc"
   | "eval-check";
+
+export type ChatbotStudioSemanticBoundaryLayer =
+  | "context-engineering"
+  | "ontology-modeling";
+
+export type ChatbotStudioContextEngineeringKind =
+  | "DATA"
+  | "LOGIC"
+  | "ACTION"
+  | "GOVERNANCE"
+  | "SECURITY"
+  | "EVAL"
+  | "RUNTIME";
+
+export type ChatbotStudioOntologyPrimitiveKind =
+  | "ObjectType"
+  | "LinkType"
+  | "ActionType"
+  | "Function"
+  | "Interface"
+  | "ObjectView"
+  | "ObjectSet"
+  | "Branch"
+  | "Proposal"
+  | "OntologyEdit";
+
+export interface ChatbotStudioSemanticBoundaryRef {
+  readonly refId: string;
+  readonly layer: ChatbotStudioSemanticBoundaryLayer;
+  readonly kind: ChatbotStudioContextEngineeringKind | ChatbotStudioOntologyPrimitiveKind;
+  readonly title: string;
+  readonly sourceAuthorityRefs: readonly string[];
+  readonly localAnalogueStatus:
+    | "context-state"
+    | "ontology-modeling-concept"
+    | "local-governance-analogue";
+  readonly doesNotProve: readonly string[];
+}
+
+export interface ChatbotStudioSemanticBoundary {
+  readonly schemaVersion: typeof CHATBOT_STUDIO_SEMANTIC_BOUNDARY_SCHEMA_VERSION;
+  readonly localAnalogueOnly: true;
+  readonly foundryParityClaimed: false;
+  readonly providerIdentityAuthority: "metadata-only";
+  readonly mutationAuthority: "approved-dtc-only";
+  readonly sourceAuthorityRefs: readonly string[];
+  readonly contextEngineeringRefs: readonly ChatbotStudioSemanticBoundaryRef[];
+  readonly ontologyPrimitiveRefs: readonly ChatbotStudioSemanticBoundaryRef[];
+  readonly nonInterchangeabilityWarnings: readonly string[];
+  readonly noReferenceNoConfusionRules: readonly string[];
+  readonly doesNotProve: readonly string[];
+}
 
 export interface ChatbotStudioRuntimeProjection {
   readonly runtime: RuntimeId;
@@ -73,6 +145,7 @@ export interface ChatbotStudioEvalSurface {
   readonly evalKind:
     | "application-state"
     | "retrieval-context"
+    | "semantic-boundary"
     | "tool-planning"
     | "action-approval"
     | "traceability";
@@ -92,6 +165,7 @@ export interface ChatbotStudioDeclaration {
   readonly nonParityClaims: readonly string[];
   readonly applicationState: ChatbotStudioApplicationState;
   readonly retrievalContext: ChatbotStudioRetrievalContext;
+  readonly semanticBoundary: ChatbotStudioSemanticBoundary;
   readonly runtimeProjections: readonly ChatbotStudioRuntimeProjection[];
   readonly toolSurfaces: readonly ChatbotStudioToolSurface[];
   readonly actionSurfaces: readonly ChatbotStudioActionSurface[];
@@ -157,6 +231,148 @@ function unique(values: readonly (string | undefined)[]): string[] {
   return Array.from(new Set(values.filter((value): value is string =>
     typeof value === "string" && value.length > 0
   )));
+}
+
+function contextBoundaryRef(
+  kind: ChatbotStudioContextEngineeringKind,
+  title: string,
+  sourceAuthorityRefs: readonly string[],
+): ChatbotStudioSemanticBoundaryRef {
+  return {
+    refId: `semantic-boundary:context-engineering:${kind}`,
+    layer: "context-engineering",
+    kind,
+    title,
+    sourceAuthorityRefs,
+    localAnalogueStatus: "context-state",
+    doesNotProve: [
+      `${kind} is not an Ontology primitive declaration.`,
+      `${kind} does not authorize local or Foundry ontology mutation.`,
+    ],
+  };
+}
+
+function ontologyBoundaryRef(
+  kind: ChatbotStudioOntologyPrimitiveKind,
+  title: string,
+  sourceAuthorityRefs: readonly string[],
+  localAnalogueStatus: ChatbotStudioSemanticBoundaryRef["localAnalogueStatus"] =
+    "ontology-modeling-concept",
+): ChatbotStudioSemanticBoundaryRef {
+  return {
+    refId: `semantic-boundary:ontology-modeling:${kind}`,
+    layer: "ontology-modeling",
+    kind,
+    title,
+    sourceAuthorityRefs,
+    localAnalogueStatus,
+    doesNotProve: [
+      `${kind} grounding does not make the local workbench a Foundry SaaS runtime.`,
+      `${kind} grounding does not bypass SIC/DTC approval, branch/proposal review, or mutation governance.`,
+    ],
+  };
+}
+
+export function buildChatbotStudioSemanticBoundary(
+  conversation: SemanticConversationState,
+  retrievalContext: ChatbotStudioRetrievalContext,
+): ChatbotStudioSemanticBoundary {
+  const sourceAuthorityRefs = unique([
+    ...PALANTIR_CHATBOT_STUDIO_SOURCE_REFS,
+    ...PALANTIR_ONTOLOGY_SOURCE_REFS,
+    conversation.universalEntryRef,
+    conversation.ontologyContextRef,
+    ...retrievalContext.sourceRefs,
+  ]);
+  return {
+    schemaVersion: CHATBOT_STUDIO_SEMANTIC_BOUNDARY_SCHEMA_VERSION,
+    localAnalogueOnly: true,
+    foundryParityClaimed: false,
+    providerIdentityAuthority: "metadata-only",
+    mutationAuthority: "approved-dtc-only",
+    sourceAuthorityRefs,
+    contextEngineeringRefs: [
+      contextBoundaryRef("DATA", "Application state, retrieval context, and source data selection.", [
+        PALANTIR_CHATBOT_STUDIO_SOURCE_REFS[0],
+        PALANTIR_CHATBOT_STUDIO_SOURCE_REFS[1],
+        PALANTIR_CHATBOT_STUDIO_SOURCE_REFS[2],
+      ]),
+      contextBoundaryRef("LOGIC", "Reasoning, routing, and tool-planning logic around gathered context.", [
+        PALANTIR_CHATBOT_STUDIO_SOURCE_REFS[0],
+        PALANTIR_CHATBOT_STUDIO_SOURCE_REFS[3],
+      ]),
+      contextBoundaryRef("ACTION", "Tool/action surfaces available to a local Chatbot Studio turn.", [
+        PALANTIR_CHATBOT_STUDIO_SOURCE_REFS[3],
+      ]),
+      contextBoundaryRef("GOVERNANCE", "Approval boundaries, review gates, and local publish analogue constraints.", [
+        PALANTIR_CHATBOT_STUDIO_SOURCE_REFS[0],
+        "/home/palantirkc/.claude/research/palantir-official/foundry/global-branching/protecting-resources.md",
+      ]),
+      contextBoundaryRef("SECURITY", "Runtime separation and non-authorizing provider identity metadata.", [
+        "/home/palantirkc/.claude/research/palantir-official/foundry/ai-fde/security-and-governance.md",
+      ]),
+      contextBoundaryRef("EVAL", "Evaluation and regression checks for local workbench outputs.", [
+        "/home/palantirkc/.claude/research/palantir-official/foundry/aip-evals/ontology-edits.md",
+      ]),
+      contextBoundaryRef("RUNTIME", "Codex/Claude/Gemini runtime support status and reload evidence boundaries.", [
+        "/home/palantirkc/.claude/research/palantir-official/foundry/palantir-mcp/overview.md",
+        "docs/RUNTIME_LAYER_BOUNDARY.md",
+      ]),
+    ],
+    ontologyPrimitiveRefs: [
+      ontologyBoundaryRef("ObjectType", "Ontology object type modeling concept.", [
+        PALANTIR_ONTOLOGY_SOURCE_REFS[1],
+      ]),
+      ontologyBoundaryRef("LinkType", "Ontology link type modeling concept.", [
+        PALANTIR_ONTOLOGY_SOURCE_REFS[2],
+      ]),
+      ontologyBoundaryRef("ActionType", "Ontology action type and governed edit surface.", [
+        PALANTIR_ONTOLOGY_SOURCE_REFS[3],
+      ]),
+      ontologyBoundaryRef("Function", "Foundry Function / Logic Function concept.", [
+        PALANTIR_ONTOLOGY_SOURCE_REFS[4],
+      ]),
+      ontologyBoundaryRef("Interface", "Ontology interface concept.", [
+        PALANTIR_ONTOLOGY_SOURCE_REFS[5],
+      ]),
+      ontologyBoundaryRef("ObjectView", "Object view presentation concept.", [
+        "/home/palantirkc/.claude/research/palantir-official/foundry/object-views/overview.md",
+      ]),
+      ontologyBoundaryRef("ObjectSet", "Ontology object set concept used by tools and views.", [
+        PALANTIR_ONTOLOGY_SOURCE_REFS[0],
+        PALANTIR_CHATBOT_STUDIO_SOURCE_REFS[1],
+      ]),
+      ontologyBoundaryRef("Branch", "Global Branching branch lifecycle concept.", [
+        PALANTIR_ONTOLOGY_SOURCE_REFS[6],
+      ], "local-governance-analogue"),
+      ontologyBoundaryRef("Proposal", "Global Branching proposal/review concept.", [
+        PALANTIR_ONTOLOGY_SOURCE_REFS[6],
+      ], "local-governance-analogue"),
+      ontologyBoundaryRef("OntologyEdit", "Governed ontology edit/eval concept.", [
+        PALANTIR_ONTOLOGY_SOURCE_REFS[7],
+      ], "local-governance-analogue"),
+    ],
+    nonInterchangeabilityWarnings: [
+      "Context Engineering DATA/LOGIC/ACTION/GOVERNANCE/SECURITY/EVAL/RUNTIME surfaces describe how local context, tools, approval, eval, and runtime gaps are gathered and governed; they are not ObjectType/LinkType/ActionType/Function/Interface declarations.",
+      "A Chatbot Studio action tool is not an Ontology ActionType unless an approved, Palantir-grounded primitive ref says so.",
+      "Application state, retrieval context, session ledger, and publish analogue are local workbench state; they are not Foundry Ontology mutation authority.",
+      "Provider/runtime identity is metadata only; it does not create semantic authority or mutation authority.",
+      "Local AIP Chatbot Studio is a one-developer analogue and does not claim Foundry SaaS parity.",
+    ],
+    noReferenceNoConfusionRules: [
+      "Semantic implementation claims must cite local Palantir research SSoT under /home/palantirkc/.claude/research/palantir-official/.",
+      "Local derived palantir-mini vocabulary cannot override Palantir official/research authority.",
+      "Generated docs, tool descriptions, and workbench output must not collapse Context Engineering layer names into Ontology primitive names.",
+      "Gemini support remains runtime_gap/unsupported until native evidence exists.",
+      "Public Codex MCP input schemas must stay flat and avoid anyOf/oneOf/allOf/not composition keywords.",
+    ],
+    doesNotProve: [
+      "Does not prove active runtime completion; plugin reinstall/reload and Codex process restart smoke evidence are still required.",
+      "Does not prove Foundry SaaS, AIP Studio API, Workshop, Marketplace, or Palantir security parity.",
+      "Does not authorize protected mutation without approved DTC evidence.",
+      "Does not convert Chatbot Studio application state, retrieval context, or local ledger data into Ontology primitives.",
+    ],
+  };
 }
 
 export function defaultChatbotStudioRuntimeProjections(): readonly ChatbotStudioRuntimeProjection[] {
@@ -229,6 +445,18 @@ export function buildChatbotStudioEvalSurfaces(
     },
     {
       schemaVersion: CHATBOT_STUDIO_EVAL_SURFACE_SCHEMA_VERSION,
+      evalId: "chatbot-studio-local-regression:semantic-boundary",
+      evalKind: "semantic-boundary",
+      required: true,
+      evidenceRefs: unique([
+        ...PALANTIR_CHATBOT_STUDIO_SOURCE_REFS,
+        ...PALANTIR_ONTOLOGY_SOURCE_REFS,
+        "tests/lib/chatbot-studio/data-core.test.ts",
+      ]),
+      commandRefs: ["bun test tests/lib/chatbot-studio/data-core.test.ts"],
+    },
+    {
+      schemaVersion: CHATBOT_STUDIO_EVAL_SURFACE_SCHEMA_VERSION,
       evalId: "chatbot-studio-local-regression:action-approval",
       evalKind: "action-approval",
       required: true,
@@ -251,7 +479,8 @@ function toolSurfaces(conversation: SemanticConversationState): readonly Chatbot
       surfaceId: "tool:chatbot-studio:retrieval-context",
       kind: "retrieval-context",
       title: "Build retrieval context",
-      description: "Build local retrieved prompt context from SemanticConversationState.",
+      description:
+        "Build local retrieved prompt context from SemanticConversationState; Context Engineering refs are not Ontology primitive declarations.",
       enabled: true,
       approvalPolicy: "none",
       inputStateRefs: [conversation.stateId],
@@ -337,6 +566,7 @@ export function buildChatbotStudioDeclarationFromConversation(
   const { conversation } = input;
   const applicationState = buildApplicationStateFromConversation(conversation);
   const retrievalContext = buildRetrievalContextFromConversation(conversation);
+  const semanticBoundary = buildChatbotStudioSemanticBoundary(conversation, retrievalContext);
   return {
     schemaVersion: CHATBOT_STUDIO_DECLARATION_SCHEMA_VERSION,
     declarationId:
@@ -355,9 +585,11 @@ export function buildChatbotStudioDeclarationFromConversation(
       "Not Foundry SaaS parity.",
       "Not Workshop, Marketplace, API, or Palantir security parity.",
       "Does not authorize protected mutation without DTC approval evidence.",
+      "Context Engineering layers are not Ontology modeling primitives.",
     ],
     applicationState,
     retrievalContext,
+    semanticBoundary,
     runtimeProjections: defaultChatbotStudioRuntimeProjections(),
     toolSurfaces: toolSurfaces(conversation),
     actionSurfaces: actionSurfaces(conversation),
@@ -476,6 +708,67 @@ export function validateChatbotStudioDeclaration(
   }
   if (!declaration.retrievalContext.retrievedPrompt) {
     issues.push(issue("chatbot-studio.retrieval-empty", "retrievalContext.retrievedPrompt", "Retrieval context must include a prompt."));
+  }
+  if (!declaration.retrievalContext.retrievedPrompt.includes("Context Engineering refs are not Ontology primitive declarations")) {
+    issues.push(issue(
+      "chatbot-studio.retrieval-boundary-missing",
+      "retrievalContext.retrievedPrompt",
+      "Retrieval context must state that Context Engineering refs are not Ontology primitive declarations.",
+    ));
+  }
+  if (declaration.retrievalContext.ontologyRefs.some((ref) =>
+    declaration.retrievalContext.issueRefs.includes(ref) ||
+    declaration.retrievalContext.validationRefs.includes(ref)
+  )) {
+    issues.push(issue(
+      "chatbot-studio.retrieval-ontology-ref-collapse",
+      "retrievalContext.ontologyRefs",
+      "Issue ids and validation packs must not be serialized as Ontology primitive refs.",
+    ));
+  }
+  const boundary = declaration.semanticBoundary;
+  if (!boundary || boundary.schemaVersion !== CHATBOT_STUDIO_SEMANTIC_BOUNDARY_SCHEMA_VERSION) {
+    issues.push(issue(
+      "chatbot-studio.semantic-boundary-missing",
+      "semanticBoundary",
+      "Declaration must include the semantic boundary contract.",
+    ));
+  } else {
+    if (!boundary.localAnalogueOnly || boundary.foundryParityClaimed) {
+      issues.push(issue(
+        "chatbot-studio.semantic-boundary-parity",
+        "semanticBoundary",
+        "Semantic boundary must remain local-analogue-only and must not claim Foundry parity.",
+      ));
+    }
+    if (!boundary.sourceAuthorityRefs.some((ref) =>
+      ref.includes("/home/palantirkc/.claude/research/palantir-official/")
+    )) {
+      issues.push(issue(
+        "chatbot-studio.semantic-boundary-source-missing",
+        "semanticBoundary.sourceAuthorityRefs",
+        "Semantic boundary claims require local Palantir research SSoT refs.",
+      ));
+    }
+    const warningText = boundary.nonInterchangeabilityWarnings.join("\n");
+    if (
+      !warningText.includes("Context Engineering") ||
+      !warningText.includes("ObjectType") ||
+      !warningText.includes("ActionType")
+    ) {
+      issues.push(issue(
+        "chatbot-studio.semantic-boundary-warning-missing",
+        "semanticBoundary.nonInterchangeabilityWarnings",
+        "Semantic boundary must explicitly separate Context Engineering layers from Ontology primitive names.",
+      ));
+    }
+    if (boundary.providerIdentityAuthority !== "metadata-only") {
+      issues.push(issue(
+        "chatbot-studio.provider-identity-authority",
+        "semanticBoundary.providerIdentityAuthority",
+        "Provider identity must remain metadata-only.",
+      ));
+    }
   }
   if (!declaration.toolSurfaces.length || !declaration.actionSurfaces.length || !declaration.evalSurfaces.length) {
     issues.push(issue("chatbot-studio.surface-empty", "tool/action/evalSurfaces", "Tool, action, and eval surfaces are required."));
