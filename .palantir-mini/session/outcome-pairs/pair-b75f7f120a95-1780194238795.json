@@ -1,0 +1,20 @@
+{
+  "pairingId": "pair-b75f7f120a95-1780194238795",
+  "actionRid": "evt-mpt5opqj-3fhxjka6",
+  "scenario": "validation_phase_completed",
+  "baselineOutcome": {
+    "verdict": "fail",
+    "score": -1,
+    "capturedAt": "2026-05-31T02:23:58.795Z"
+  },
+  "refinedOutcome": {
+    "verdict": "fail",
+    "score": -1,
+    "capturedAt": "2026-05-31T02:23:58.795Z"
+  },
+  "evidence": {
+    "actionRid": "evt-mpt5opqj-3fhxjka6"
+  },
+  "createdAt": "2026-05-31T02:23:58.795Z",
+  "closedAt": "2026-05-31T02:23:58.795Z"
+}
