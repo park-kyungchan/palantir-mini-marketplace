@@ -5,6 +5,7 @@ import * as path from "path";
 import type { ReleaseChangedSurfaceEvidence } from "../../../lib/harness/release-evidence";
 import type { WorkflowFamilyReleaseGateResult } from "../../../lib/release/workflow-family-release-gate";
 import type { SurfaceContractAuditFinding } from "../../../lib/surface/audit";
+import type { DeletionReadinessResult } from "./check-deletion-readiness";
 
 /** Plugin root resolved from this file's location (bridge/handlers/pm-plugin-self-check/types.ts → ../../.. = plugin root). */
 export const PLUGIN_ROOT = path.resolve(__dirname, "../../..");
@@ -194,6 +195,7 @@ export interface PmPluginSelfCheckResult {
     unsupportedRepresentationCount: number;
     findings: readonly SurfaceContractAuditFinding[];
   };
+  deletionReadinessResult: DeletionReadinessResult;
   overallStatus: "pass" | "fail";
   /**
    * v6.0.0 removal advisories from DEPRECATION_MAP.

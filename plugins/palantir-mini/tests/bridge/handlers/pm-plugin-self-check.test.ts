@@ -341,6 +341,37 @@ describe("pm_plugin_self_check", () => {
       .toMatchObject({ registryStatus: "register", surfaceStatus: "public-core" });
   });
 
+  test("9f. release mode blocks physical deletion until replacement, no-reference, and runtime smoke evidence exists", async () => {
+    const eventsDir = makeTmpDir();
+    process.env.PALANTIR_MINI_PROJECT = eventsDir;
+    process.env.PALANTIR_MINI_EVENTS_FILE = path.join(eventsDir, "events.jsonl");
+
+    const result = await pmPluginSelfCheck({ mode: "release" });
+
+    expect(result.activeChecks).toContain("deletion-readiness");
+    expect(result.deletionReadinessResult.status).toBe("pass");
+    expect(result.deletionReadinessResult.candidateCount).toBeGreaterThan(0);
+    expect(result.deletionReadinessResult.deletionAllowedCount).toBe(0);
+    expect(result.deletionReadinessResult.blockedCount).toBe(
+      result.deletionReadinessResult.candidateCount,
+    );
+
+    const workbench = result.deletionReadinessResult.candidates.find(
+      (candidate) => candidate.surfaceName === "pm_semantic_workbench_state",
+    );
+    expect(workbench).toBeDefined();
+    expect(workbench?.registryStatus).toBe("keep");
+    expect(workbench?.blockingReasons.join(" ")).toContain("does not authorize deletion");
+
+    const removed = result.deletionReadinessResult.candidates.find(
+      (candidate) => candidate.surfaceName === "propagation_audit_forward",
+    );
+    expect(removed).toBeDefined();
+    expect(removed?.replacement).toContain("pm_health_audit");
+    expect(removed?.blockingReasons.join(" ")).toContain("no-reference proof incomplete");
+    expect(removed?.blockingReasons.join(" ")).toContain("runtime activation evidence is source-only");
+  });
+
   test("9b. release mode validates mandatory workflow response requirements", async () => {
     const eventsDir = makeTmpDir();
     process.env.PALANTIR_MINI_PROJECT = eventsDir;

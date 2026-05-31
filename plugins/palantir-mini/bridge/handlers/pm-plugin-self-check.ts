@@ -30,6 +30,7 @@ import { checkAdversarialVerifierEvidence } from "./pm-plugin-self-check/check-a
 import { checkEvalSuiteArtifacts } from "./pm-plugin-self-check/check-eval-suite-artifacts";
 import { checkOutcomeReplayEvidence } from "./pm-plugin-self-check/check-outcome-replay-evidence";
 import { checkWorkflowResponseTemplate } from "./pm-plugin-self-check/check-workflow-response-template";
+import { checkDeletionReadiness } from "./pm-plugin-self-check/check-deletion-readiness";
 import { DEPRECATION_MAP } from "./_deprecation-map";
 import { auditSurfaceContracts } from "../../lib/surface/audit";
 import { evaluateWorkflowFamilyReleaseGate } from "../../lib/release/workflow-family-release-gate";
@@ -68,6 +69,7 @@ const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {
     "workflow-response-template",
     "workflow-family-release-gate",
     "surface-contracts",
+    "deletion-readiness",
   ],
 };
 
@@ -89,6 +91,7 @@ const ALL_CHECKS = [
   "workflow-response-template",
   "workflow-family-release-gate",
   "surface-contracts",
+  "deletion-readiness",
 ] as const;
 
 function modeFromArgs(mode: PmPluginSelfCheckArgs["mode"]): PmPluginSelfCheckMode {
@@ -117,6 +120,7 @@ function statusFor(
     case "workflow-response-template": return result.workflowResponseTemplateResult.status;
     case "workflow-family-release-gate": return result.workflowFamilyReleaseGateResult.status;
     case "surface-contracts": return result.surfaceContractAuditResult.status === "fail" ? "fail" : "pass";
+    case "deletion-readiness": return result.deletionReadinessResult.status;
     default: return "skipped";
   }
 }
@@ -166,6 +170,7 @@ export async function pmPluginSelfCheck(
       `unsupportedRepresentation=${rawSurfaceContractAuditResult.unsupportedRepresentationCount}; ` +
       `invalid=${rawSurfaceContractAuditResult.invalidContractCount}.`,
   };
+  const deletionReadinessResult = checkDeletionReadiness();
 
   // overallStatus: PASS iff none of the active authoritative axes is FAIL (skipped is OK).
   // primitiveSeedAdvisories and consumerPeerDepResult are advisory in release mode:
@@ -193,6 +198,7 @@ export async function pmPluginSelfCheck(
       workflowResponseTemplateResult,
       workflowFamilyReleaseGateResult,
       surfaceContractAuditResult,
+      deletionReadinessResult,
       overallStatus: "pass",
     }, check))
     .some((status) => status === "fail") ? "fail" : "pass";
@@ -225,6 +231,7 @@ export async function pmPluginSelfCheck(
     workflowResponseTemplateResult,
     workflowFamilyReleaseGateResult,
     surfaceContractAuditResult,
+    deletionReadinessResult,
     overallStatus,
     removedToolAdvisories,
   };
