@@ -3,61 +3,97 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 const PLUGIN_ROOT = path.resolve(import.meta.dir, "../..");
+const PLUGIN_MANIFEST = path.join(PLUGIN_ROOT, ".codex-plugin", "plugin.json");
+const CODEX_SKILLS_DIR = path.join(PLUGIN_ROOT, "codex-skills");
+const CANONICAL_SKILLS_DIR = path.join(PLUGIN_ROOT, "skills");
 
-const CODEX_DEFAULT_SKILLS = [
+const EXPECTED_CODEX_SKILLS = [
+  "pm-mcp-reload",
+  "pm-ontology-engineering-lead",
+  "pm-orchestrate",
+  "pm-recap",
+  "pm-review",
+  "pm-semantic-intent-gate",
+  "pm-ship",
+  "pm-verify",
+] as const;
+
+const NON_DEFAULT_CANONICAL_SKILLS = [
   "pm-dirty-classify",
   "pm-dtc-fill",
   "pm-events-rotate",
   "pm-intent-to-ontology",
-  "pm-mcp-reload",
   "pm-memory-map",
-  "pm-ontology-engineering-lead",
-  "pm-orchestrate",
-  "pm-recap",
   "pm-replay",
-  "pm-review",
   "pm-rule-audit",
-  "pm-semantic-intent-gate",
-  "pm-ship",
   "pm-value-audit",
-  "pm-verify",
 ] as const;
 
-function read(filePath: string): string {
-  return fs.readFileSync(filePath, "utf8");
+interface CodexPluginManifest {
+  readonly skills?: string;
+  readonly agents?: string;
+}
+
+function readJson<T>(filePath: string): T {
+  return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
 }
 
 function skillDirs(root: string): string[] {
-  return fs.readdirSync(root, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && !entry.name.startsWith(".") && !entry.name.startsWith("_"))
+  return fs
+    .readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+    .filter((entry) => fs.existsSync(path.join(root, entry.name, "SKILL.md")))
     .map((entry) => entry.name)
-    .sort();
+    .sort((left, right) => left.localeCompare(right));
 }
 
-describe("Codex skill surface", () => {
-  test("Codex manifest exposes a curated default skill directory", () => {
-    const manifest = JSON.parse(read(path.join(PLUGIN_ROOT, ".codex-plugin", "plugin.json")));
-    expect(manifest.skills).toBe("./codex-skills/");
+function frontmatter(filePath: string): string {
+  const source = fs.readFileSync(filePath, "utf8");
+  expect(source.startsWith("---\n"), filePath).toBe(true);
+  const end = source.indexOf("\n---", 4);
+  expect(end, filePath).toBeGreaterThan(0);
+  return source.slice(4, end);
+}
+
+describe("Codex skill and agent export surface", () => {
+  test("Codex plugin manifest exports only the thin codex-skills directory", () => {
+    const manifest = readJson<CodexPluginManifest>(PLUGIN_MANIFEST);
+    const skillsPath = manifest.skills;
+
+    expect(skillsPath).toBe("./codex-skills/");
+    if (typeof skillsPath !== "string") {
+      throw new Error("plugin.json must declare a Codex skills path");
+    }
+    expect(path.resolve(PLUGIN_ROOT, skillsPath)).toBe(CODEX_SKILLS_DIR);
+    expect(path.resolve(PLUGIN_ROOT, skillsPath)).not.toBe(CANONICAL_SKILLS_DIR);
   });
 
-  test("Codex default skills stay small and delegate to canonical skills", () => {
-    const canonicalDir = path.join(PLUGIN_ROOT, "skills");
-    const codexDir = path.join(PLUGIN_ROOT, "codex-skills");
-    const canonicalSkills = skillDirs(canonicalDir);
-    const codexSkills = skillDirs(codexDir);
+  test("Codex exported wrappers are the small front-door continuity and release set", () => {
+    const exported = skillDirs(CODEX_SKILLS_DIR);
 
-    expect(codexSkills).toEqual([...CODEX_DEFAULT_SKILLS].sort());
-    expect(canonicalSkills.length).toBeGreaterThan(codexSkills.length);
-    expect(codexSkills.length).toBeLessThanOrEqual(20);
-
-    for (const skill of codexSkills) {
-      const wrapperPath = path.join(codexDir, skill, "SKILL.md");
-      const canonicalPath = path.join(canonicalDir, skill, "SKILL.md");
-      const wrapper = read(wrapperPath);
-
-      expect(fs.existsSync(canonicalPath), `${canonicalPath} should exist`).toBe(true);
-      expect(wrapper).toContain(`../../skills/${skill}/SKILL.md`);
-      expect(wrapper).toContain("thin Codex default export");
+    expect(exported).toEqual([...EXPECTED_CODEX_SKILLS]);
+    for (const skillName of exported) {
+      const fm = frontmatter(path.join(CODEX_SKILLS_DIR, skillName, "SKILL.md"));
+      expect(fm).toContain(`name: ${skillName}`);
+      expect(fm).toContain("surfaceStatus: public-core");
+      expect(fs.existsSync(path.join(CANONICAL_SKILLS_DIR, skillName, "SKILL.md"))).toBe(true);
     }
+  });
+
+  test("canonical skills remain source authority but are not Codex defaults", () => {
+    const canonical = skillDirs(CANONICAL_SKILLS_DIR);
+    const exported = new Set(skillDirs(CODEX_SKILLS_DIR));
+
+    expect(canonical.length).toBeGreaterThan(EXPECTED_CODEX_SKILLS.length);
+    for (const skillName of NON_DEFAULT_CANONICAL_SKILLS) {
+      expect(canonical).toContain(skillName);
+      expect(exported.has(skillName)).toBe(false);
+    }
+  });
+
+  test("Codex plugin manifest does not export native agents", () => {
+    const manifest = readJson<CodexPluginManifest>(PLUGIN_MANIFEST);
+
+    expect(manifest.agents).toBeUndefined();
   });
 });
