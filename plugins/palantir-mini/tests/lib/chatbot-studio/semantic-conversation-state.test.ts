@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import {
   buildSemanticConversationState,
 } from "../../../lib/chatbot-studio/semantic-conversation-state";
@@ -136,6 +137,22 @@ describe("SemanticConversationState", () => {
     const retrievalContext = buildRetrievalContextFromConversation(state);
 
     expect(state.lifecycle).toBe("dtc-approved");
+    expect(state.llmControlFacing).toMatchObject({
+      stateSource: "SemanticConversationState",
+      writableByModel: false,
+      readinessWritableByModel: false,
+      approvalWritableByModel: false,
+    });
+    expect(state.llmControlFacing.prohibitedWriteFields).toContain("contractFacing.dtcReady");
+    expect(state.llmControlFacing.prohibitedWriteFields).toContain("contractFacing.approvalRef");
+    expect(appState.variables.every((variable) => variable.writableByModel === false)).toBe(true);
+    expect(appState.variables.every((variable) =>
+      variable.sourceStateKind === "SemanticConversationState"
+    )).toBe(true);
+    expect(appState.variables.find((variable) => variable.variableId === "semantic.control.dtcReady")?.visibleToModel)
+      .toBe(false);
+    expect(appState.variables.filter((variable) => variable.visibleToModel).map((variable) => variable.variableId))
+      .not.toContain("semantic.approval.dtcReady");
     expect(appState.variables.find((variable) => variable.variableId === "semantic.lifecycle")?.value)
       .toBe("dtc-approved");
     expect(appState.variables.find((variable) => variable.variableId === "semantic.impact.directSurfaces")?.value)
@@ -147,7 +164,41 @@ describe("SemanticConversationState", () => {
       "dtc:test",
     ]);
     expect(retrievalContext.skillRefs).toEqual(["palantir-math-expert"]);
+    expect(retrievalContext.retrievedPrompt).toContain(
+      "Control state source: SemanticConversationState",
+    );
+    expect(retrievalContext.retrievedPrompt).toContain(
+      "Model writes to readiness/approval: denied",
+    );
+    expect(retrievalContext.retrievedPrompt).toContain(
+      "DTC readiness: ready (plugin-derived, read-only)",
+    );
     expect(retrievalContext.retrievedPrompt).toContain("Known issues: semantic-workbench-projection-only");
+  });
+
+  test("schema locks LLM control fields to read-only SemanticConversationState projection", () => {
+    const schema = JSON.parse(
+      fs.readFileSync("schemas/semantic-conversation-state.schema.json", "utf8"),
+    ) as {
+      properties?: Record<string, unknown>;
+      $defs?: {
+        llmControlFacing?: {
+          properties?: Record<string, { const?: unknown; contains?: unknown }>;
+        };
+      };
+    };
+    const llmControl = schema.$defs?.llmControlFacing?.properties ?? {};
+
+    expect(schema.properties?.llmControlFacing).toEqual({
+      "$ref": "#/$defs/llmControlFacing",
+    });
+    expect(llmControl.stateSource?.const).toBe("SemanticConversationState");
+    expect(llmControl.writableByModel?.const).toBe(false);
+    expect(llmControl.readinessWritableByModel?.const).toBe(false);
+    expect(llmControl.approvalWritableByModel?.const).toBe(false);
+    expect(llmControl.prohibitedWriteFields?.contains).toEqual({
+      const: "contractFacing.dtcReady",
+    });
   });
 });
 

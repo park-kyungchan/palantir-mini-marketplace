@@ -1,4 +1,7 @@
-import type { SemanticConversationState } from "./semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "./semantic-conversation-state";
 
 export const CHATBOT_STUDIO_RETRIEVAL_CONTEXT_SCHEMA_VERSION =
   "palantir-mini/chatbot-studio-retrieval-context/v1";
@@ -39,14 +42,23 @@ export function buildRetrievalContextFromConversation(
     ...conversation.skillFacing.selectedSkillRefs.map((skill) => skill.skillId),
   ];
   const semantic = conversation.semanticConsistencyFacing;
+  const llmControl = conversation.llmControlFacing ??
+    buildLLMControlFacingState(conversation.stateId);
 
   return {
     schemaVersion: CHATBOT_STUDIO_RETRIEVAL_CONTEXT_SCHEMA_VERSION,
     conversationStateId: conversation.stateId,
     retrievedPrompt: [
+      `Control state source: ${llmControl.stateSource}`,
+      `Model writes to readiness/approval: ${
+        llmControl.writableByModel ? "allowed" : "denied"
+      }`,
       `Goal: ${conversation.userFacing.confirmedGoal ?? conversation.userFacing.plainRequestSummary}`,
       `Lifecycle: ${conversation.lifecycle}`,
-      `DTC ready: ${conversation.contractFacing.dtcReady ? "yes" : "no"}`,
+      `DTC readiness: ${
+        conversation.contractFacing.dtcReady ? "ready" : "not-ready"
+      } (plugin-derived, read-only)`,
+      `Approval authority: prompt-front-door contract refs (read-only)`,
       `Unresolved questions: ${conversation.userFacing.unresolvedQuestions.length}`,
       semantic
         ? `Canonical semantic terms: ${semantic.canonicalTermRefs.length}`

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-mini.local/schemas/semantic-conversation-state.schema.json",
+  "title": "SemanticConversationStateV1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "stateId",
+    "schemaVersion",
+    "userFacing",
+    "ontologyFacing",
+    "skillFacing",
+    "capabilityFacing",
+    "llmControlFacing",
+    "contractFacing",
+    "projectFacing",
+    "lifecycle"
+  ],
+  "properties": {
+    "stateId": {
+      "type": "string",
+      "pattern": "^semantic-conversation:.+"
+    },
+    "schemaVersion": {
+      "const": "palantir-mini/semantic-conversation-state/v1"
+    },
+    "llmControlFacing": {
+      "$ref": "#/$defs/llmControlFacing"
+    },
+    "contractFacing": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["dtcReady"],
+      "properties": {
+        "dtcReady": {
+          "type": "boolean",
+          "description": "Plugin-derived readiness projection. It is never writable by an LLM."
+        },
+        "approvalRef": {
+          "description": "Prompt-front-door approval reference. It is read-only to the LLM."
+        }
+      }
+    },
+    "lifecycle": {
+      "type": "string",
+      "enum": [
+        "captured",
+        "clarifying",
+        "semantic-approved",
+        "dtc-drafted",
+        "dtc-fill-in-progress",
+        "dtc-approved",
+        "routed"
+      ]
+    }
+  },
+  "$defs": {
+    "llmControlFacing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "sourceStateId",
+        "stateSource",
+        "writableByModel",
+        "readinessWritableByModel",
+        "approvalWritableByModel",
+        "prohibitedWriteFields",
+        "reasonCodes"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "palantir-mini/llm-control-state-projection/v1"
+        },
+        "sourceStateId": {
+          "type": "string",
+          "pattern": "^semantic-conversation:.+"
+        },
+        "stateSource": {
+          "const": "SemanticConversationState"
+        },
+        "writableByModel": {
+          "const": false
+        },
+        "readinessWritableByModel": {
+          "const": false
+        },
+        "approvalWritableByModel": {
+          "const": false
+        },
+        "prohibitedWriteFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "contains": {
+            "const": "contractFacing.dtcReady"
+          }
+        },
+        "reasonCodes": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "enum": [
+              "semantic_conversation_state_only",
+              "plugin_derived_readiness",
+              "prompt_front_door_approval_ref",
+              "llm_authority_write_denied"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
