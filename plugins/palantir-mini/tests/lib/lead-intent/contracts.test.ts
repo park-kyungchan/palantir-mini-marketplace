@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
+  assessOntologyDtcBuildReadinessGate,
   assessContractGate,
   createUserApprovalRef,
   deriveWorkContractFromContracts,
@@ -234,6 +235,40 @@ function completeOntologyDtc(contract: DigitalTwinChangeContract): DigitalTwinCh
 
 function approvedDigitalTwin(): DigitalTwinChangeContract {
   return completeOntologyDtc(baseApprovedDigitalTwin());
+}
+
+function approvedDigitalTwinForReadinessGate(): DigitalTwinChangeContract {
+  return {
+    ...approvedDigitalTwin(),
+    requiredBranchPolicyRef: {
+      rid: "ri.branch-policy.main.scene3d-proposal",
+      displayName: "Scene3D protected branch proposal policy",
+    },
+    requiredPermissionPolicyRef: {
+      rid: "ri.permission-policy.main.scene3d-authoring",
+      displayName: "Scene3D ontology authoring permission boundary",
+    },
+  };
+}
+
+function routerBindingForContracts(input: {
+  semantic: SemanticIntentContract;
+  digitalTwin: DigitalTwinChangeContract;
+  work: WorkContract;
+}): RouterBinding {
+  return {
+    bindingId: "router-binding:test",
+    status: "attached",
+    source: "pm_intent_router",
+    delegationMode: "lead-direct",
+    semanticIntentContractRef: input.semantic.contractId,
+    digitalTwinChangeContractRef: input.digitalTwin.contractId,
+    workContractRef: input.work.contractId,
+    routerBasis: "approved-inline-contracts",
+    routerOutputRef: "pm-intent-router-output:test",
+    attachedOutputRefs: ["contract-routing-projection:test"],
+    rationale: "Attach approved router output to the approved SIC/DTC and WorkContract.",
+  };
 }
 
 describe("Lead Intent -> Digital Twin contracts", () => {
@@ -791,6 +826,184 @@ describe("Lead Intent -> Digital Twin contracts", () => {
     expect(fields).toContain("attachedOutputRefs");
     expect(fields).toContain("delegationRecipeRef");
     expect(fields).toContain("rationale");
+  });
+
+  describe("OntologyDtcBuildReadinessGate", () => {
+    function readyInputs() {
+      const semantic = approvedSemantic();
+      const digitalTwin = approvedDigitalTwinForReadinessGate();
+      const work = deriveWorkContractFromContracts({
+        contractId: "work-contract:test",
+        semanticIntentContract: semantic,
+        digitalTwinChangeContract: digitalTwin,
+        workSummary: "Implement the approved Scene3D proof slice.",
+      });
+      const routerBinding = routerBindingForContracts({ semantic, digitalTwin, work });
+      return { semantic, digitalTwin, work, routerBinding };
+    }
+
+    test("ready fixture passes all readiness checkpoints", () => {
+      const { semantic, digitalTwin, work, routerBinding } = readyInputs();
+
+      const gate = assessOntologyDtcBuildReadinessGate({
+        intent: "Implement Scene3D ontology, geometry3D, renderer, and Visual Editor migration",
+        scopePaths: ["ontology/data/visual3D.ts", "src/lib/jsxGraph3D"],
+        complexityHint: "cross-cutting",
+        semanticIntentContractRef: semantic.contractId,
+        digitalTwinChangeContractRef: digitalTwin.contractId,
+        workContractRef: work.contractId,
+        routerBindingRef: routerBinding.bindingId,
+        semanticIntentContract: semantic,
+        digitalTwinChangeContract: digitalTwin,
+        semanticConsistencyResult: approvedSemanticConsistencyResult,
+        workContract: work,
+        routerBinding,
+      });
+
+      expect(gate.status).toBe("ready-for-router");
+      expect(gate.readyForRouter).toBe(true);
+      expect(gate.blockedDecisionUntilReady).toBeNull();
+      expect(gate.requiredBasis).toBe("approved-inline-contracts");
+      expect(gate.checks["ref-present"].valid).toBe(true);
+      expect(gate.checks["body-dereferenced"].valid).toBe(true);
+      expect(gate.checks["body-validated"].valid).toBe(true);
+      expect(gate.checks["approval-ref-present"].valid).toBe(true);
+      expect(gate.checks["work-contract-valid"].valid).toBe(true);
+      expect(gate.checks["router-binding-valid"].valid).toBe(true);
+      expect(gate.checks["ready-for-router"].valid).toBe(true);
+    });
+
+    test("ref strings without dereferenced bodies remain non-authorizing", () => {
+      const gate = assessOntologyDtcBuildReadinessGate({
+        semanticIntentContractRef: "semantic-intent:test",
+        digitalTwinChangeContractRef: "digital-twin:test",
+        workContractRef: "work-contract:test",
+        routerBindingRef: "router-binding:test",
+      });
+
+      expect(gate.status).toBe("blocked");
+      expect(gate.checks["ref-present"].valid).toBe(true);
+      expect(gate.checks["body-dereferenced"].valid).toBe(false);
+      expect(gate.checks["ready-for-router"].valid).toBe(false);
+      expect(gate.issues.map((issue) => issue.field)).toContain("semanticIntentContract");
+      expect(gate.issues.map((issue) => issue.field)).toContain("digitalTwinChangeContract");
+    });
+
+    test("draft contracts block before approval refs and body validation", () => {
+      const semantic = draftSemanticIntentContract({
+        intent: "Implement Scene3D ontology and renderer",
+        scopePaths: ["ontology/data/visual3D.ts", "src/lib/jsxGraph3D"],
+        complexityHint: "cross-cutting",
+      });
+      const digitalTwin = draftDigitalTwinChangeContract(
+        {
+          intent: "Implement Scene3D ontology and renderer",
+          scopePaths: ["ontology/data/visual3D.ts", "src/lib/jsxGraph3D"],
+          complexityHint: "cross-cutting",
+        },
+        semantic.contractId,
+      );
+      const work = deriveWorkContractFromContracts({
+        contractId: "work-contract:test",
+        semanticIntentContract: semantic,
+        digitalTwinChangeContract: digitalTwin,
+      });
+      const routerBinding = routerBindingForContracts({ semantic, digitalTwin, work });
+
+      const gate = assessOntologyDtcBuildReadinessGate({
+        semanticIntentContract: semantic,
+        digitalTwinChangeContract: digitalTwin,
+        workContract: work,
+        routerBinding,
+      });
+
+      expect(gate.status).toBe("blocked");
+      expect(gate.checks["body-dereferenced"].valid).toBe(true);
+      expect(gate.checks["body-validated"].valid).toBe(false);
+      expect(gate.checks["approval-ref-present"].valid).toBe(false);
+      expect(gate.issues.map((issue) => issue.field)).toContain(
+        "semanticIntentContract.status",
+      );
+      expect(gate.issues.map((issue) => issue.field)).toContain(
+        "digitalTwinChangeContract.status",
+      );
+    });
+
+    test("missing eval, branch, and permission evidence blocks router readiness", () => {
+      const { semantic, digitalTwin, work, routerBinding } = readyInputs();
+      const missingEvidenceDtc: DigitalTwinChangeContract = {
+        ...digitalTwin,
+        requiredEvaluationRefs: [],
+        requiredBranchPolicyRef: undefined,
+        requiredPermissionPolicyRef: undefined,
+      };
+      const missingEvidenceWork = deriveWorkContractFromContracts({
+        contractId: work.contractId,
+        semanticIntentContract: semantic,
+        digitalTwinChangeContract: missingEvidenceDtc,
+      });
+
+      const gate = assessOntologyDtcBuildReadinessGate({
+        semanticIntentContract: semantic,
+        digitalTwinChangeContract: missingEvidenceDtc,
+        workContract: missingEvidenceWork,
+        routerBinding: {
+          ...routerBinding,
+          workContractRef: missingEvidenceWork.contractId,
+        },
+      });
+      const fields = gate.issues.map((issue) => issue.field);
+
+      expect(gate.status).toBe("blocked");
+      expect(gate.checks["body-validated"].valid).toBe(false);
+      expect(fields).toContain("digitalTwinChangeContract.requiredEvaluationRefs");
+      expect(fields).toContain("digitalTwinChangeContract.requiredBranchPolicyRef");
+      expect(fields).toContain("digitalTwinChangeContract.requiredPermissionPolicyRef");
+    });
+
+    test("invalid WorkContract blocks readiness even with valid SIC and DTC", () => {
+      const { semantic, digitalTwin, work, routerBinding } = readyInputs();
+      const outOfScopeWork: WorkContract = {
+        ...work,
+        scopePaths: [...work.scopePaths, "src/runtime/out-of-scope.ts"],
+      };
+
+      const gate = assessOntologyDtcBuildReadinessGate({
+        semanticIntentContract: semantic,
+        digitalTwinChangeContract: digitalTwin,
+        workContract: outOfScopeWork,
+        routerBinding,
+      });
+
+      expect(gate.status).toBe("blocked");
+      expect(gate.checks["work-contract-valid"].valid).toBe(false);
+      expect(gate.workContract.issues.map((issue) => issue.field)).toContain("scopePaths");
+    });
+
+    test("invalid RouterBinding blocks readiness even with valid WorkContract", () => {
+      const { semantic, digitalTwin, work, routerBinding } = readyInputs();
+      const invalidBinding: RouterBinding = {
+        ...routerBinding,
+        attachedOutputRefs: [],
+        digitalTwinChangeContractRef: "digital-twin:other",
+      };
+
+      const gate = assessOntologyDtcBuildReadinessGate({
+        semanticIntentContract: semantic,
+        digitalTwinChangeContract: digitalTwin,
+        workContract: work,
+        routerBinding: invalidBinding,
+      });
+
+      expect(gate.status).toBe("blocked");
+      expect(gate.checks["router-binding-valid"].valid).toBe(false);
+      expect(gate.routerBinding.issues.map((issue) => issue.field)).toContain(
+        "digitalTwinChangeContractRef",
+      );
+      expect(gate.routerBinding.issues.map((issue) => issue.field)).toContain(
+        "attachedOutputRefs",
+      );
+    });
   });
 
   // ---------------------------------------------------------------------------

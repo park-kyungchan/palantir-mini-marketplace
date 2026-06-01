@@ -58,6 +58,7 @@ import type { HarnessSpeciesVendor } from "#schemas/ontology/primitives/harness-
 import { emit } from "../../scripts/log";
 import {
   assessContractGate,
+  assessOntologyDtcBuildReadinessGate,
   deriveWorkContractFromContracts,
   isOntologyAffectingIntent,
   isReadOnlyIntent,
@@ -70,6 +71,7 @@ import type {
   ContractRoutingProjection,
   ContractValidationResult,
   DigitalTwinChangeContract,
+  OntologyDtcBuildReadinessGate,
   RouterBinding,
   SemanticIntentContract,
   WorkContract,
@@ -237,6 +239,8 @@ export interface IntentRouterResult {
   costRationale: string;
   /** Semantic Intent / Digital Twin gate status. */
   contractGate: ContractGateResult;
+  /** Ontology-DTC dispatch readiness diagnostics for ontology-affecting work. */
+  ontologyDtcBuildReadinessGate?: OntologyDtcBuildReadinessGate;
   /** The actual semantic basis used to choose the downstream route. */
   routingProjection: ContractRoutingProjection;
   /** Best-effort prefetched context. */
@@ -663,15 +667,15 @@ function deriveWorkBindingForRoute(input: {
     input.effectiveInput.semanticIntentContract &&
     input.effectiveInput.digitalTwinChangeContract
   ) {
+    const semanticIntentContractRef =
+      input.effectiveInput.semanticIntentContract.contractId;
+    const digitalTwinChangeContractRef =
+      input.effectiveInput.digitalTwinChangeContract.contractId;
     workContract = deriveWorkContractFromContracts({
       semanticIntentContract: input.effectiveInput.semanticIntentContract,
       digitalTwinChangeContract: input.effectiveInput.digitalTwinChangeContract,
-      ...(input.effectiveInput.semanticIntentContractRef
-        ? { semanticIntentContractRef: input.effectiveInput.semanticIntentContractRef }
-        : {}),
-      ...(input.effectiveInput.digitalTwinChangeContractRef
-        ? { digitalTwinChangeContractRef: input.effectiveInput.digitalTwinChangeContractRef }
-        : {}),
+      semanticIntentContractRef,
+      digitalTwinChangeContractRef,
       workSummary: input.routingProjection.intent.split("\n")[0] ?? input.effectiveInput.intent,
     });
     state = validateWorkBindingState({
@@ -727,6 +731,104 @@ function workBindingResultFields(state: WorkBindingState): Partial<IntentRouterR
     ...(state.routerBindingValidation
       ? { routerBindingValidation: state.routerBindingValidation }
       : {}),
+  };
+}
+
+function shouldAssessOntologyDtcBuildReadiness(
+  input: EffectiveIntentRouterInput,
+  routingProjection: ContractRoutingProjection,
+): boolean {
+  if (isReadOnlyIntent(input.intent)) return false;
+  return isOntologyAffectingIntent({
+    intent: input.intent,
+    scopePaths: routingProjection.scopePaths,
+    complexityHint: input.complexityHint,
+  });
+}
+
+function assessRouterOntologyDtcBuildReadiness(input: {
+  effectiveInput: EffectiveIntentRouterInput;
+  routingProjection: ContractRoutingProjection;
+  workBindingState: WorkBindingState;
+}): OntologyDtcBuildReadinessGate | undefined {
+  if (
+    !shouldAssessOntologyDtcBuildReadiness(
+      input.effectiveInput,
+      input.routingProjection,
+    )
+  ) {
+    return undefined;
+  }
+
+  const routerBinding =
+    input.workBindingState.routerBinding ??
+    input.workBindingState.workContract?.routerBinding;
+  return assessOntologyDtcBuildReadinessGate({
+    intent: input.routingProjection.intent,
+    scopePaths: input.routingProjection.scopePaths,
+    complexityHint: input.routingProjection.complexityHint,
+    projectRoot: input.effectiveInput.project,
+    semanticIntentContractRef:
+      input.effectiveInput.semanticIntentContract?.contractId ??
+      input.effectiveInput.semanticIntentContractRef,
+    digitalTwinChangeContractRef:
+      input.effectiveInput.digitalTwinChangeContract?.contractId ??
+      input.effectiveInput.digitalTwinChangeContractRef,
+    workContractRef: input.workBindingState.workContractRef,
+    routerBindingRef: input.workBindingState.routerBindingRef,
+    semanticConsistencyResultRef:
+      input.effectiveInput.semanticConsistencyResultRef ??
+      input.effectiveInput.semanticConsistencyResult?.resolverRunId,
+    semanticIntentContract: input.effectiveInput.semanticIntentContract,
+    digitalTwinChangeContract: input.effectiveInput.digitalTwinChangeContract,
+    semanticConsistencyResult: input.effectiveInput.semanticConsistencyResult,
+    workContract: input.workBindingState.workContract,
+    routerBinding,
+  });
+}
+
+function ontologyDtcReadinessBlockedChecks(
+  gate: OntologyDtcBuildReadinessGate | undefined,
+): string[] {
+  if (!gate) return [];
+  return Object.entries(gate.checks)
+    .filter(([, result]) => !result.valid)
+    .map(([check]) => check);
+}
+
+function ontologyDtcReadinessPayload(
+  gate: OntologyDtcBuildReadinessGate | undefined,
+): Record<string, unknown> {
+  if (!gate) return {};
+  return {
+    ontologyDtcBuildReadinessGateStatus: gate.status,
+    ontologyDtcReadyForRouter: gate.readyForRouter,
+    ontologyDtcReadinessBlockedChecks: ontologyDtcReadinessBlockedChecks(gate),
+    ontologyDtcReadinessIssueCount: gate.issues.length,
+  };
+}
+
+function applyOntologyDtcReadinessFailure(
+  gate: ContractGateResult,
+  readinessGate: OntologyDtcBuildReadinessGate,
+): ContractGateResult {
+  const issueSummary = readinessGate.issues
+    .slice(0, 4)
+    .map((issue) => `${issue.field}: ${issue.message}`)
+    .join("; ");
+  return {
+    ...gate,
+    status: "contract_required",
+    allowsRouting: false,
+    reason:
+      "OntologyDtcBuildReadinessGate blocked router dispatch before recipe return: " +
+      (issueSummary || "ready-for-router check failed"),
+    contractPolicy: "approval-required",
+    riskClass: "digital-twin",
+    requiredContracts: ["SemanticIntentContract", "DigitalTwinChangeContract"],
+    recommendedContracts: ["SemanticIntentContract", "DigitalTwinChangeContract"],
+    semanticIntent: readinessGate.semanticIntent,
+    digitalTwin: readinessGate.digitalTwin,
   };
 }
 
@@ -974,6 +1076,12 @@ export async function routeIntent(
     };
   }
 
+  let ontologyDtcBuildReadinessGate = assessRouterOntologyDtcBuildReadiness({
+    effectiveInput,
+    routingProjection,
+    workBindingState,
+  });
+
   const routingScopePaths = routingProjection.scopePaths;
   const routingScopeCount = routingScopePaths.length;
 
@@ -1100,6 +1208,7 @@ export async function routeIntent(
           routerBindingRef: workBindingState.routerBindingRef,
           workContractValid: workBindingState.workContractValidation?.valid,
           routerBindingValid: workBindingState.routerBindingValidation?.valid,
+          ...ontologyDtcReadinessPayload(ontologyDtcBuildReadinessGate),
           ...lineagePayload,
         } as Record<string, unknown>,
         toolName: "pm_intent_router",
@@ -1137,6 +1246,9 @@ export async function routeIntent(
       dispatchSpecies,
       costRationale,
       contractGate: routingContractGate,
+      ...(ontologyDtcBuildReadinessGate
+        ? { ontologyDtcBuildReadinessGate }
+        : {}),
       routingProjection,
       prefetchedContext,
       prefetchTimingsMs: timings,
@@ -1168,6 +1280,89 @@ export async function routeIntent(
     baseRecipe,
     recipeContractBinding(workBindingState),
   );
+  ontologyDtcBuildReadinessGate = assessRouterOntologyDtcBuildReadiness({
+    effectiveInput,
+    routingProjection,
+    workBindingState,
+  });
+
+  if (
+    ontologyDtcBuildReadinessGate &&
+    !ontologyDtcBuildReadinessGate.readyForRouter
+  ) {
+    const readinessContractGate = applyOntologyDtcReadinessFailure(
+      routingContractGate,
+      ontologyDtcBuildReadinessGate,
+    );
+    const blockedDecision: IntentRouterDecision = "contract_required";
+    try {
+      const durationMs =
+        (timings.impactMs ?? 0) + (timings.lineageMs ?? 0) + (timings.gradesMs ?? 0);
+      await emit({
+        type: "validation_phase_completed",
+        payload: {
+          passed: false,
+          errorClass: "ontology_dtc_build_readiness_gate_blocked",
+          decision: blockedDecision,
+          dispatchSpecies,
+          prefetchSucceeded: succeeded,
+          durationMs,
+          scopeCount: routingScopeCount,
+          rawScopeCount: scopeCount,
+          contractPolicy: readinessContractGate.contractPolicy,
+          requiredContracts: readinessContractGate.requiredContracts,
+          recommendedContracts: readinessContractGate.recommendedContracts,
+          routingBasis: routingProjection.basis,
+          failClosedPredicate: false,
+          workContractRef: workBindingState.workContractRef,
+          routerBindingRef: workBindingState.routerBindingRef,
+          workContractValid: workBindingState.workContractValidation?.valid,
+          routerBindingValid: workBindingState.routerBindingValidation?.valid,
+          ...ontologyDtcReadinessPayload(ontologyDtcBuildReadinessGate),
+          ...lineagePayload,
+        } as Record<string, unknown>,
+        toolName: "pm_intent_router",
+        cwd: input.project,
+        reasoning:
+          `pm_intent_router: OntologyDtcBuildReadinessGate blocked dispatch for ` +
+          `intent="${input.intent.slice(0, 80)}" basis=${routingProjection.basis}.`,
+        hypothesis:
+          "Ontology-affecting dispatch requires approved SIC/DTC bodies plus eval, " +
+          "branch, permission, WorkContract, and RouterBinding evidence. Context or tools " +
+          "can enrich diagnostics but cannot authorize the route.",
+        memoryLayers: ["semantic", "procedural"],
+        refinementTarget: {
+          kind: "rule-conformance-policy",
+          filePathOrRid: "bridge/handlers/pm-intent-router.ts",
+          description:
+            "Intent router stopped ontology-affecting dispatch before readiness evidence was complete.",
+          confidenceLevel: "high",
+        },
+      });
+    } catch {
+      // Non-fatal — result is returned regardless of emit failure.
+    }
+
+    return {
+      decision: blockedDecision,
+      rationale: readinessContractGate.reason,
+      dispatchSpecies,
+      costRationale,
+      contractGate: readinessContractGate,
+      ontologyDtcBuildReadinessGate,
+      routingProjection,
+      prefetchedContext,
+      prefetchTimingsMs: timings,
+      prefetchSucceeded: succeeded,
+      ...workBindingResultFields(workBindingState),
+      ...(ontologyContextDigest !== undefined ? { ontologyContextDigest } : {}),
+      ...(graphConfidenceDispatchMode !== undefined ? { graphConfidenceDispatchMode } : {}),
+      ...(capabilityRegistryStats !== undefined ? { capabilityRegistryStats } : {}),
+      ...(promptRouting.envelope ? { promptEnvelope: promptRouting.envelope } : {}),
+      ...(promptRouting.contractRefs ? { contractRefs: promptRouting.contractRefs } : {}),
+      ...(promptRouting.continuity ? { promptContinuity: promptRouting.continuity } : {}),
+    };
+  }
 
   // f. Emit validation_phase_completed (best-effort, non-fatal)
   //    PR 3.4: includes ontologyContextDigest + rawIntentFallback advisory signal.
@@ -1197,6 +1392,7 @@ export async function routeIntent(
         routerBindingRef: workBindingState.routerBindingRef,
         workContractValid: workBindingState.workContractValidation?.valid,
         routerBindingValid: workBindingState.routerBindingValidation?.valid,
+        ...ontologyDtcReadinessPayload(ontologyDtcBuildReadinessGate),
         prefetchSucceeded: succeeded,
         durationMs,
         scopeCount: routingScopeCount,
@@ -1364,6 +1560,9 @@ export async function routeIntent(
     dispatchSpecies,
     costRationale,
     contractGate: routingContractGate,
+    ...(ontologyDtcBuildReadinessGate
+      ? { ontologyDtcBuildReadinessGate }
+      : {}),
     routingProjection,
     prefetchedContext,
     prefetchTimingsMs: timings,

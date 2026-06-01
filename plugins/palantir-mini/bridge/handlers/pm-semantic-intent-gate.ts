@@ -68,9 +68,12 @@ import {
 } from "../../lib/ontology-workflow/emit";
 import {
   assessContractGate,
+  assessOntologyDtcBuildReadinessGate,
   draftDigitalTwinChangeContract,
   draftSemanticIntentContract,
   hasApprovalRef,
+  isOntologyAffectingIntent,
+  isReadOnlyIntent,
   requiresContractApproval,
   validateDigitalTwinChangeContract,
   validateSemanticIntentContract,
@@ -80,6 +83,7 @@ import type {
   ContractValidationResult,
   DigitalTwinChangeContract,
   DigitalTwinRiskRecord,
+  OntologyDtcBuildReadinessGate,
   SemanticClarificationQuestion,
   SemanticIntentContract,
   TurnCardDecisionSpec,
@@ -286,6 +290,8 @@ export interface SemanticIntentGateResult {
   status: ContractGateResult["status"];
   allowsRouting: boolean;
   gate: ContractGateResult;
+  /** Ontology-DTC dispatch readiness diagnostics. Semantic gate never treats context/tools as authority. */
+  ontologyDtcBuildReadinessGate?: OntologyDtcBuildReadinessGate;
   turnCardDecisionQueue: SemanticIntentTurnCardDecision[];
   workflowContract?: SemanticIntentWorkflowContractProjection;
   draftContracts?: {
@@ -355,6 +361,12 @@ export interface SemanticIntentWorkflowContractProjection {
   allowedNextActions: string[];
   mutationAuthorized: boolean;
   blockingReason?: string;
+  ontologyDtcBuildReadiness?: {
+    status: OntologyDtcBuildReadinessGate["status"];
+    readyForRouter: boolean;
+    blockedChecks: string[];
+    issueCount: number;
+  };
 }
 
 type ContractApprovalOption = "approve" | "revise" | "cancel";
@@ -450,6 +462,7 @@ function buildWorkflowContractProjection(
   gate: ContractGateResult,
   questions: readonly SemanticIntentTurnCardDecision[],
   contractRefs?: PromptContractRefs,
+  ontologyDtcBuildReadinessGate?: OntologyDtcBuildReadinessGate,
 ): SemanticIntentWorkflowContractProjection {
   const runtime = input.runtime ?? "unknown";
   const turnCards = questions.map((question) => question.decisionSpec);
@@ -458,6 +471,7 @@ function buildWorkflowContractProjection(
     gate.allowsRouting &&
     gate.semanticIntent.valid &&
     gate.digitalTwin.valid &&
+    (ontologyDtcBuildReadinessGate?.readyForRouter ?? true) &&
     openDecisionIds.length === 0;
   const currentPhase =
     mutationAuthorized
@@ -478,11 +492,100 @@ function buildWorkflowContractProjection(
     closedDecisionIds: [],
     allowedNextActions: mutationAuthorized
       ? ["route-with-approved-contracts"]
-      : ["render-turn-card-as-text", "record-user-decision", "do-not-route"],
+      : ontologyDtcBuildReadinessGate && !ontologyDtcBuildReadinessGate.readyForRouter
+        ? [
+            "render-readiness-diagnostics",
+            "attach-work-contract-and-router-binding",
+            "do-not-route",
+          ]
+        : ["render-turn-card-as-text", "record-user-decision", "do-not-route"],
     mutationAuthorized,
     ...(!mutationAuthorized
-      ? { blockingReason: "Blocking workflow decisions or approved SIC/DTC refs are still missing." }
+      ? {
+          blockingReason:
+            ontologyDtcBuildReadinessGate && !ontologyDtcBuildReadinessGate.readyForRouter
+              ? "OntologyDtcBuildReadinessGate is not ready; approved SIC/DTC alone do not authorize router dispatch."
+              : "Blocking workflow decisions or approved SIC/DTC refs are still missing.",
+        }
       : {}),
+    ...(ontologyDtcBuildReadinessGate
+      ? {
+          ontologyDtcBuildReadiness: {
+            status: ontologyDtcBuildReadinessGate.status,
+            readyForRouter: ontologyDtcBuildReadinessGate.readyForRouter,
+            blockedChecks: ontologyDtcReadinessBlockedChecks(ontologyDtcBuildReadinessGate),
+            issueCount: ontologyDtcBuildReadinessGate.issues.length,
+          },
+        }
+      : {}),
+  };
+}
+
+function shouldAssessOntologyDtcBuildReadiness(
+  input: SemanticIntentGateInput,
+  gate: ContractGateResult,
+): boolean {
+  if (isReadOnlyIntent(input.rawIntent)) return false;
+  if (
+    !gate.allowsRouting &&
+    !input.semanticIntentContract &&
+    !input.digitalTwinChangeContract &&
+    !input.semanticIntentContractRef &&
+    !input.digitalTwinChangeContractRef
+  ) {
+    return false;
+  }
+  return isOntologyAffectingIntent({
+    intent: input.rawIntent,
+    scopePaths: Array.isArray(input.scopePaths) ? input.scopePaths : [],
+    complexityHint: input.complexityHint,
+  });
+}
+
+function assessSemanticGateOntologyDtcBuildReadiness(input: {
+  gateInput: SemanticIntentGateInput;
+  gate: ContractGateResult;
+  semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+}): OntologyDtcBuildReadinessGate | undefined {
+  if (!shouldAssessOntologyDtcBuildReadiness(input.gateInput, input.gate)) {
+    return undefined;
+  }
+  return assessOntologyDtcBuildReadinessGate({
+    intent: input.gateInput.rawIntent,
+    scopePaths: Array.isArray(input.gateInput.scopePaths) ? input.gateInput.scopePaths : [],
+    complexityHint: input.gateInput.complexityHint,
+    projectRoot: input.gateInput.project,
+    semanticIntentContractRef:
+      input.gateInput.semanticIntentContract?.contractId ??
+      input.gateInput.semanticIntentContractRef,
+    digitalTwinChangeContractRef:
+      input.gateInput.digitalTwinChangeContract?.contractId ??
+      input.gateInput.digitalTwinChangeContractRef,
+    semanticIntentContract: input.gateInput.semanticIntentContract,
+    digitalTwinChangeContract: input.gateInput.digitalTwinChangeContract,
+    semanticConsistencyResult: input.semanticConsistencyResult,
+    semanticConsistencyResultRef: input.semanticConsistencyResult?.resolverRunId,
+  });
+}
+
+function ontologyDtcReadinessBlockedChecks(
+  gate: OntologyDtcBuildReadinessGate | undefined,
+): string[] {
+  if (!gate) return [];
+  return Object.entries(gate.checks)
+    .filter(([, result]) => !result.valid)
+    .map(([check]) => check);
+}
+
+function ontologyDtcReadinessPayload(
+  gate: OntologyDtcBuildReadinessGate | undefined,
+): Record<string, unknown> {
+  if (!gate) return {};
+  return {
+    ontologyDtcBuildReadinessGateStatus: gate.status,
+    ontologyDtcReadyForRouter: gate.readyForRouter,
+    ontologyDtcReadinessBlockedChecks: ontologyDtcReadinessBlockedChecks(gate),
+    ontologyDtcReadinessIssueCount: gate.issues.length,
   };
 }
 
@@ -1498,6 +1601,11 @@ export async function semanticIntentGate(
       ? applyPromptContinuityFailure(gate, continuity)
       : gate;
   const effectiveGate = applyFDEProvenanceFailure(continuityGate, input);
+  const ontologyDtcBuildReadinessGate = assessSemanticGateOntologyDtcBuildReadiness({
+    gateInput: input,
+    gate: effectiveGate,
+    semanticConsistencyResult,
+  });
   let persisted =
     continuity && !continuity.valid
       ? { envelope: prompt.envelope }
@@ -1569,6 +1677,7 @@ export async function semanticIntentGate(
           semanticConsistencyResult
             ? semanticConsistencyResult.unresolvedBlockingConflictRefs.length === 0
             : undefined,
+        ...ontologyDtcReadinessPayload(ontologyDtcBuildReadinessGate),
         ...lineagePayload,
       } as Record<string, unknown>,
       toolName: "pm_semantic_intent_gate",
@@ -2040,12 +2149,16 @@ export async function semanticIntentGate(
     effectiveGate,
     turnCardDecisionQueue,
     persisted.contractRefs,
+    ontologyDtcBuildReadinessGate,
   );
 
   return {
     status: effectiveGate.status,
     allowsRouting: effectiveGate.allowsRouting,
     gate: effectiveGate,
+    ...(ontologyDtcBuildReadinessGate
+      ? { ontologyDtcBuildReadinessGate }
+      : {}),
     turnCardDecisionQueue,
     workflowContract,
     promptEnvelopeLookup: prompt.lookup,
