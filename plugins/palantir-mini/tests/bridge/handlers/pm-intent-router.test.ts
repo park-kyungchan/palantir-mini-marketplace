@@ -23,6 +23,18 @@ import type {
   SemanticIntentContract,
   WorkContract,
 } from "../../../lib/lead-intent/contracts";
+import { resolveSemanticConsistency } from "../../../lib/semantic-consistency/resolver";
+import {
+  canonicalTerm,
+  registrySnapshot,
+  sourceSystemRef,
+  sourceSystemTerm,
+  termAlias,
+} from "../../../lib/semantic-consistency/registry";
+import type {
+  SemanticConsistencyResolverInput,
+  SemanticConsistencyResolverOutput,
+} from "../../../lib/semantic-consistency/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -67,6 +79,87 @@ async function createCapturedPrompt(project: string, rawPrompt: string) {
   return envelope;
 }
 
+function scene3dSemanticConsistencyInput(): SemanticConsistencyResolverInput {
+  const repo = sourceSystemRef({
+    sourceSystemId: "palantir-math-repo",
+    kind: "repo",
+    displayName: "palantir-math repository",
+    authorityRank: 80,
+  });
+  const scene3d = canonicalTerm({
+    displayName: "Scene3D",
+    definition: "Additive 3D scene ontology primitive for palantir-math.",
+    ontologyKind: "ObjectType",
+    ontologyRef: "ontology://palantir-math/object/Scene3D",
+    approvalRef: "user:approved:scene3d",
+  });
+  const geometry3d = canonicalTerm({
+    displayName: "geometry3D",
+    definition: "3D geometry contained by a Scene3D.",
+    ontologyKind: "LinkType",
+    ontologyRef: "ontology://palantir-math/link/Scene3DContainsGeometry",
+    approvalRef: "user:approved:scene3d",
+  });
+  const validateScene3d = canonicalTerm({
+    displayName: "ValidateScene3D",
+    definition: "Validation function for Scene3D render/evaluation readiness.",
+    ontologyKind: "Function",
+    ontologyRef: "ontology://palantir-math/function/ValidateScene3D",
+    approvalRef: "user:approved:scene3d",
+  });
+  const ontologyPrimitive = canonicalTerm({
+    displayName: "ontology primitive",
+    definition: "Project-local ontology schema primitive.",
+    ontologyKind: "Unknown",
+    approvalRef: "user:approved:scene3d",
+  });
+
+  return {
+    sourceTerms: [
+      sourceSystemTerm({
+        sourceSystemRef: repo,
+        fieldPath: "ontology/data/visual3D.ts#Scene3D",
+        rawTerm: "Scene3D",
+        evidenceRefs: ["test://pm-intent-router/scene3d"],
+      }),
+      sourceSystemTerm({
+        sourceSystemRef: repo,
+        fieldPath: "ontology/data/visual3D.ts#geometry3D",
+        rawTerm: "geometry3D",
+        evidenceRefs: ["test://pm-intent-router/geometry3d"],
+      }),
+      sourceSystemTerm({
+        sourceSystemRef: repo,
+        fieldPath: "ontology/data/visual3D.ts#ValidateScene3D",
+        rawTerm: "ValidateScene3D",
+        evidenceRefs: ["test://pm-intent-router/validate-scene3d"],
+      }),
+      sourceSystemTerm({
+        sourceSystemRef: repo,
+        fieldPath: "ontology/data/visual3D.ts#primitive",
+        rawTerm: "ontology primitive",
+        evidenceRefs: ["test://pm-intent-router/ontology-primitive"],
+      }),
+    ],
+    registry: registrySnapshot({
+      sourceSystems: [repo],
+      canonicalTerms: [scene3d, geometry3d, validateScene3d, ontologyPrimitive],
+      aliases: [
+        termAlias({
+          canonicalTermId: scene3d.canonicalTermId,
+          alias: "3D scene",
+          sourceSystemIds: ["palantir-math-repo"],
+          approvalRef: "user:approved:scene3d",
+        }),
+      ],
+    }),
+  };
+}
+
+const approvedSemanticConsistencyResult = resolveSemanticConsistency(
+  scene3dSemanticConsistencyInput(),
+);
+
 function approvedSemanticContract(): SemanticIntentContract {
   return {
     contractId: "semantic-intent:approved:scene3d",
@@ -83,6 +176,11 @@ function approvedSemanticContract(): SemanticIntentContract {
     downstreamAllowed: ["Route implementation to ontology-steward."],
     downstreamForbidden: ["Do not route to docs-researcher just because the raw prompt names a plan."],
     clarificationQuestions: [],
+    approvedCanonicalTermRefs: [...approvedSemanticConsistencyResult.canonicalTermRefs],
+    approvedTermMappingRefs: approvedSemanticConsistencyResult.mappings.map(
+      (mapping) => mapping.mappingId,
+    ),
+    semanticConsistencyResultRef: approvedSemanticConsistencyResult.resolverRunId,
     approvalRef: "user:approved:scene3d",
   };
 }
@@ -135,6 +233,7 @@ function approvedDigitalTwinContract(): DigitalTwinChangeContract {
         confidence: "exact",
       },
     ],
+    semanticConsistencyRefs: [approvedSemanticConsistencyResult.resolverRunId],
     fillPolicy: "ontology-dtc-build",
     ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
       step: index + 1,
@@ -149,6 +248,7 @@ function approvedDigitalTwinContract(): DigitalTwinChangeContract {
       functionRefs: ["ontology://palantir-math/function/ValidateScene3D"],
       applicationStateRefs: ["application-state:scene3d-review"],
       evaluationRefs: ["project://palantir-math/validation-pack/router-tests"],
+      semanticTermRefs: [approvedSemanticConsistencyResult.resolverRunId],
       readinessVerdict: "ready-for-dtc",
     },
     risks: [
@@ -163,6 +263,18 @@ function approvedDigitalTwinContract(): DigitalTwinChangeContract {
     ],
     approvalRef: "user:approved:scene3d",
   } as unknown as DigitalTwinChangeContract;
+}
+
+function approvedContractEvidence(): {
+  semanticIntentContract: SemanticIntentContract;
+  digitalTwinChangeContract: DigitalTwinChangeContract;
+  semanticConsistencyResult: SemanticConsistencyResolverOutput;
+} {
+  return {
+    semanticIntentContract: approvedSemanticContract(),
+    digitalTwinChangeContract: approvedDigitalTwinContract(),
+    semanticConsistencyResult: approvedSemanticConsistencyResult,
+  };
 }
 
 beforeEach(() => {
@@ -596,8 +708,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       intent: "Implement Ontology Engineering WorkflowContract and TurnCardDecisionSpec enforcement",
       scopePaths: ["bridge/handlers/pm-ontology-engineering-workflow.ts"],
       complexityHint: "cross-cutting",
-      semanticIntentContract: approvedSemanticContract(),
-      digitalTwinChangeContract: approvedDigitalTwinContract(),
+      ...approvedContractEvidence(),
     });
 
     expect(blocked.decision).toBe("contract_required");
@@ -609,8 +720,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       intent: "Implement Ontology Engineering WorkflowContract and TurnCardDecisionSpec enforcement",
       scopePaths: ["bridge/handlers/pm-ontology-engineering-workflow.ts"],
       complexityHint: "cross-cutting",
-      semanticIntentContract: approvedSemanticContract(),
-      digitalTwinChangeContract: approvedDigitalTwinContract(),
+      ...approvedContractEvidence(),
       fdeOntologyEngineeringSessionRef: "fde-ontology-engineering://session/test",
     });
 
@@ -629,8 +739,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
         "research/3d/runtime-blueprint.md",
       ],
       complexityHint: "cross-cutting",
-      semanticIntentContract: approvedSemanticContract(),
-      digitalTwinChangeContract: approvedDigitalTwinContract(),
+      ...approvedContractEvidence(),
     });
 
     expect(result.contractGate.status).toBe("pass");
@@ -655,8 +764,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
         "research/3d/runtime-blueprint.md",
       ],
       complexityHint: "cross-cutting",
-      semanticIntentContract: approvedSemanticContract(),
-      digitalTwinChangeContract: approvedDigitalTwinContract(),
+      ...approvedContractEvidence(),
     });
 
     expect(result.decision).toBe("delegate-to-ontology-steward");
@@ -709,8 +817,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
         "src/lib/jsxGraph3D/scene3DCompiler.ts",
       ],
       complexityHint: "cross-cutting",
-      semanticIntentContract: approvedSemanticContract(),
-      digitalTwinChangeContract: approvedDigitalTwinContract(),
+      ...approvedContractEvidence(),
       workContract: mismatchedWorkContract,
     });
 
@@ -742,6 +849,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       runtime: envelope.runtime,
       semanticIntentContract: approvedSemanticContract(),
       digitalTwinChangeContract: approvedDigitalTwinContract(),
+      semanticConsistencyResolverInput: scene3dSemanticConsistencyInput(),
     });
 
     const result = await routeIntent({
@@ -753,6 +861,8 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       promptHash: envelope.promptHash,
       sessionId: envelope.sessionId,
       runtime: envelope.runtime,
+      semanticConsistencyResult:
+        gate.semanticConsistencyResult ?? approvedSemanticConsistencyResult,
     });
 
     expect(gate.promptEnvelope?.state).toBe("digital_twin_approved");
@@ -862,8 +972,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       promptHash: envelope.promptHash,
       sessionId: envelope.sessionId,
       runtime: envelope.runtime,
-      semanticIntentContract: approvedSemanticContract(),
-      digitalTwinChangeContract: approvedDigitalTwinContract(),
+      ...approvedContractEvidence(),
     });
 
     expect(draftGate.contractRefs?.semanticIntentContractRef).toBeDefined();

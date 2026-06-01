@@ -88,7 +88,7 @@ describe("fde_skip_not_triggered_for_mutations", () => {
 // ─── 3. Regression: gate behavior unchanged for non-FDE prompts ───────────────
 
 describe("gate_behavior_regression", () => {
-  test("mode=off + mutation prompt → gate exits with 'off' message (not FDE skip)", async () => {
+  test("default mode + generic mutation prompt → scoped advisory, not FDE skip", async () => {
     delete process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE;
 
     const mod = await import("../../hooks/prompt-dtc-enforcement-gate");
@@ -101,7 +101,8 @@ describe("gate_behavior_regression", () => {
       // No prompt field → fdePromptText will be "" → FDE skip skipped entirely
     }) as unknown as Record<string, unknown>;
 
-    expect(result.message).toContain("off");
+    expect(result.message).toBe("palantir-mini: prompt-DTC gate advisory");
+    expect(result.message).not.toContain("FDE read-only design intent");
   });
 
   test("mode=advisory + mutation-only prompt → gate proceeds to assess (not FDE skip)", async () => {

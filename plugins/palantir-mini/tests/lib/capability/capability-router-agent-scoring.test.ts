@@ -6,7 +6,10 @@ import { routeCapabilityOntology } from "../../../lib/capability/capability-rout
 import { agentDefinitionToCapabilityContract } from "../../../lib/capability/agent-to-capability-contract";
 import type { AgentDefinitionDeclaration } from "#schemas/ontology/primitives/agent-definition";
 import type { OntologyContextSeed } from "../../../lib/context-engineering/ontology-activation";
-import type { SemanticConversationState } from "../../../lib/chatbot-studio/semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "../../../lib/chatbot-studio/semantic-conversation-state";
 import type { CapabilityContract } from "../../../lib/capability/capability-contract";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -70,8 +73,9 @@ function capabilityFixture(id: string, nouns: string[], verbs: string[], example
 }
 
 function conversation(summary: string): SemanticConversationState {
+  const stateId = "semantic-conversation:test";
   return {
-    stateId: "semantic-conversation:test",
+    stateId,
     schemaVersion: "palantir-mini/semantic-conversation-state/v1",
     prompt: {},
     userFacing: {
@@ -98,6 +102,7 @@ function conversation(summary: string): SemanticConversationState {
       selectedCapabilityRefs: [],
       capabilityRoutingReason: "test",
     },
+    llmControlFacing: buildLLMControlFacingState(stateId),
     contractFacing: { dtcReady: false },
     projectFacing: {
       projectRoot: "/tmp/test-project",

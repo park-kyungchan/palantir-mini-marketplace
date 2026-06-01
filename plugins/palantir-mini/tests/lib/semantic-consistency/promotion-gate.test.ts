@@ -49,7 +49,12 @@ describe("semantic consistency promotion gate", () => {
 
     expect(result.promotionAllowed).toBe(false);
     expect(result.reasonCodes).toContain("SEMANTIC_CONSISTENCY_UNRESOLVED_BLOCKING_CONFLICT");
-    expect(result.evidenceRefs).toContain(resolverOutput.unresolvedBlockingConflictRefs[0]);
+    const firstConflictRef = resolverOutput.unresolvedBlockingConflictRefs[0];
+    expect(firstConflictRef).toBeDefined();
+    if (firstConflictRef === undefined) {
+      throw new Error("Expected overloaded customer fixture to produce an unresolved conflict ref.");
+    }
+    expect(result.evidenceRefs).toContain(firstConflictRef);
   });
 
   test("blocks resolver evidence that is not attached to the approved contracts", () => {

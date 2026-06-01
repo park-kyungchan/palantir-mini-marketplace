@@ -14,6 +14,14 @@ import {
   validateSemanticIntentContract,
 } from "../../lib/lead-intent/contracts";
 import {
+  canonicalTerm,
+  registrySnapshot,
+  sourceSystemRef,
+  sourceSystemTerm,
+} from "../../lib/semantic-consistency/registry";
+import { resolveSemanticConsistency } from "../../lib/semantic-consistency/resolver";
+import type { SemanticConsistencyResolverInput } from "../../lib/semantic-consistency/types";
+import {
   formatPromptDtcEvalReport,
   runPromptDtcEvalSuite,
   type PromptDtcEvalCase,
@@ -51,6 +59,81 @@ async function createCapturedPrompt(project: string, rawPrompt: string) {
   return { store, envelope };
 }
 
+const promptDtcSource = sourceSystemRef({
+  sourceSystemId: "prompt-dtc-eval-fixture",
+  kind: "repo",
+  displayName: "Prompt-to-DTC eval fixture",
+  authorityRank: 100,
+});
+
+function promptDtcSemanticConsistencyInput(): SemanticConsistencyResolverInput {
+  const terms = [
+    canonicalTerm({
+      displayName: "PromptEnvelope",
+      definition: "Prompt-front-door identity envelope.",
+      ontologyKind: "Unknown",
+      approvalRef: "user:approved:prompt-dtc-eval",
+    }),
+    canonicalTerm({
+      displayName: "SemanticIntentContract",
+      definition: "Approved semantic boundary for prompt-to-DTC execution.",
+      ontologyKind: "Unknown",
+      approvalRef: "user:approved:prompt-dtc-eval",
+    }),
+    canonicalTerm({
+      displayName: "seq.rendering-scene",
+      definition: "Education project rendering-scene ProjectScope lane.",
+      ontologyKind: "ApplicationState",
+      ontologyRef: "project://palantir-math/lane/seq.rendering-scene",
+      approvalRef: "user:approved:prompt-dtc-eval",
+    }),
+    canonicalTerm({
+      displayName: "validate",
+      definition: "Validate contract and routing behavior.",
+      ontologyKind: "Function",
+      approvalRef: "user:approved:prompt-dtc-eval",
+    }),
+    canonicalTerm({
+      displayName: "route",
+      definition: "Route approved Prompt-to-DTC execution.",
+      ontologyKind: "ActionType",
+      approvalRef: "user:approved:prompt-dtc-eval",
+    }),
+    canonicalTerm({
+      displayName: "gate",
+      definition: "Gate mutation surfaces by prompt-local DTC approval.",
+      ontologyKind: "Function",
+      approvalRef: "user:approved:prompt-dtc-eval",
+    }),
+  ];
+
+  return {
+    sourceTerms: [
+      "PromptEnvelope",
+      "SemanticIntentContract",
+      "seq.rendering-scene",
+      "validate",
+      "route",
+      "gate",
+    ].map((term) =>
+      sourceSystemTerm({
+        sourceSystemRef: promptDtcSource,
+        fieldPath: `approved-term:${term}`,
+        rawTerm: term,
+        evidenceRefs: ["test://prompt-to-dtc-regression/semantic-consistency"],
+      }),
+    ),
+    registry: registrySnapshot({
+      sourceSystems: [promptDtcSource],
+      canonicalTerms: terms,
+    }),
+  };
+}
+
+const approvedSemanticConsistencyResult = resolveSemanticConsistency(
+  promptDtcSemanticConsistencyInput(),
+);
+
 function semanticContract(
   overrides: Partial<SemanticIntentContract> = {},
 ): SemanticIntentContract {
@@ -69,6 +152,11 @@ function semanticContract(
     downstreamAllowed: ["Run eval-like regression cases."],
     downstreamForbidden: ["Do not mutate runtime surfaces from eval execution."],
     clarificationQuestions: [],
+    approvedCanonicalTermRefs: [...approvedSemanticConsistencyResult.canonicalTermRefs],
+    approvedTermMappingRefs: approvedSemanticConsistencyResult.mappings.map(
+      (mapping) => mapping.mappingId,
+    ),
+    semanticConsistencyResultRef: approvedSemanticConsistencyResult.resolverRunId,
     approvalRef: "user:approved:prompt-dtc-eval",
     ...overrides,
   };
@@ -107,6 +195,53 @@ function digitalTwinContract(
     evaluationPlan:
       "Run deterministic-core, capability-routing, presenter-parity, ontology-runtime-drift.",
     requiredEvaluationRefs: validationPackRefs(),
+    touchedOntologyRefs: [
+      {
+        kind: "ObjectType",
+        rid: "ontology://prompt-dtc/object/PromptEnvelope",
+        displayName: "PromptEnvelope",
+        confidence: "exact",
+      },
+      {
+        kind: "LinkType",
+        rid: "ontology://prompt-dtc/link/PromptEnvelopeAuthorizesDTC",
+        displayName: "PromptEnvelopeAuthorizesDTC",
+        confidence: "exact",
+      },
+      {
+        kind: "ActionType",
+        rid: "ontology://prompt-dtc/action/RouteAfterApproval",
+        displayName: "RouteAfterApproval",
+        confidence: "exact",
+      },
+      {
+        kind: "Function",
+        rid: "ontology://prompt-dtc/function/ValidatePromptDTC",
+        displayName: "ValidatePromptDTC",
+        confidence: "exact",
+      },
+    ],
+    semanticConsistencyRefs: [approvedSemanticConsistencyResult.resolverRunId],
+    fillPolicy: "ontology-dtc-build",
+    ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
+      step: index + 1,
+      question: `T${index}`,
+      filledAt: "2026-06-01T00:00:00.000Z",
+      source: "agent",
+    })),
+    ontologyDtcBuildReadiness: {
+      objectTypeRefs: ["ontology://prompt-dtc/object/PromptEnvelope"],
+      linkTypeRefs: ["ontology://prompt-dtc/link/PromptEnvelopeAuthorizesDTC"],
+      actionTypeRefs: ["ontology://prompt-dtc/action/RouteAfterApproval"],
+      functionRefs: ["ontology://prompt-dtc/function/ValidatePromptDTC"],
+      applicationStateRefs: ["application-state:prompt-dtc-eval"],
+      evaluationRefs: validationPackRefs().map((ref) => ref.rid),
+      semanticTermRefs: [
+        approvedSemanticConsistencyResult.resolverRunId,
+        ...approvedSemanticConsistencyResult.mappings.map((mapping) => mapping.mappingId),
+      ],
+      readinessVerdict: "ready-for-dtc",
+    },
     risks: [],
     approvalRef: "user:approved:prompt-dtc-eval",
     ...overrides,
@@ -189,6 +324,7 @@ function makeEvalCases(): PromptDtcEvalCase[] {
           runtime: envelope.runtime,
           semanticIntentContract: semanticContract(),
           digitalTwinChangeContract: digitalTwinContract(),
+          semanticConsistencyResolverInput: promptDtcSemanticConsistencyInput(),
         });
         const route = await routeIntent({
           project,
@@ -199,6 +335,8 @@ function makeEvalCases(): PromptDtcEvalCase[] {
           promptHash: envelope.promptHash,
           sessionId: envelope.sessionId,
           runtime: envelope.runtime,
+          semanticConsistencyResult:
+            gate.semanticConsistencyResult ?? approvedSemanticConsistencyResult,
         });
         const passed =
           gate.status === "pass" &&
@@ -320,6 +458,7 @@ function makeEvalCases(): PromptDtcEvalCase[] {
           complexityHint: "cross-cutting",
           semanticIntentContract: semanticContract(),
           digitalTwinChangeContract: digitalTwinContract(),
+          semanticConsistencyResult: approvedSemanticConsistencyResult,
         });
         const packs = result.routingProjection.projectScopePolicy?.validationPacks ?? [];
         const passed =
@@ -339,7 +478,7 @@ function makeEvalCases(): PromptDtcEvalCase[] {
     },
     {
       id: "testcase:gate-selective-blocking-default",
-      title: "Selective-blocking default skips non-ontology mutating work",
+      title: "Selective-blocking default advises ordinary mutating work",
       category: "gate",
       async run() {
         const project = makeTmpProject();
@@ -348,13 +487,13 @@ function makeEvalCases(): PromptDtcEvalCase[] {
           promptDtcEnforcementGate(gatePayload(project)),
         );
         const passed =
-          result.message ===
-            "palantir-mini: prompt-DTC gate skipped (Edit is not ontology-affecting; selective-blocking mode)" &&
-          result.decision === undefined;
+          result.message === "palantir-mini: prompt-DTC gate advisory" &&
+          result.decision === undefined &&
+          result.additionalContext?.includes("Scoped blocking surface: none") === true;
         return {
           passed,
           details: passed
-            ? "Default selective-blocking mode skipped non-ontology mutation without denial."
+            ? "Default selective-blocking mode produced scoped advisory without denial."
             : `Unexpected gate result: ${result.message}`,
         };
       },

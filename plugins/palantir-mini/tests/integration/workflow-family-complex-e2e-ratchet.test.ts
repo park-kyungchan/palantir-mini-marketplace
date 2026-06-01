@@ -30,8 +30,18 @@ describe("workflow family complex E2E ratchet", () => {
       const phaseIds = new Set(contract.phases.map((phase) => phase.phaseId));
 
       expect(scenario.complexity).toBe("complex");
-      expect(scenario.runtimeRefs).toEqual(expect.arrayContaining(["claude", "codex"]));
+      expect(scenario.runtimeRefs).toContain("codex");
+      expect(scenario.runtimeRefs).not.toContain("claude");
+      expect(scenario.runtimeRefs).not.toContain("gemini");
+      expect(new Set(scenario.runtimeRefs).size).toBe(scenario.runtimeRefs.length);
       expect(scenario.coveredPhaseIds.length).toBeGreaterThanOrEqual(2);
+
+      for (const runtime of ["claude", "gemini"] as const) {
+        const support = contract.runtimeProjection[runtime];
+        expect(support.support).toBe("unsupported");
+        expect(support.evidenceRefs).toEqual([]);
+        expect(support.unsupportedSurfaceRefs.length).toBeGreaterThan(0);
+      }
 
       for (const phaseId of scenario.coveredPhaseIds) {
         expect(phaseIds.has(phaseId)).toBe(true);

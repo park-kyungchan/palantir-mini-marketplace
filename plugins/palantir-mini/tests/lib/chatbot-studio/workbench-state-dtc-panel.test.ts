@@ -14,7 +14,10 @@ import {
   SEMANTIC_WORKBENCH_STATE_SCHEMA_VERSION,
   buildSemanticWorkbenchState,
 } from "../../../lib/chatbot-studio/workbench-state";
-import type { SemanticConversationState } from "../../../lib/chatbot-studio/semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "../../../lib/chatbot-studio/semantic-conversation-state";
 import type { DtcFillSequenceSession } from "../../../lib/chatbot-studio/dtc-fill-session";
 import { DTC_FILL_SEQUENCE_SESSION_SCHEMA_VERSION } from "../../../lib/chatbot-studio/dtc-fill-session";
 import { DTC_FILL_SEQUENCE } from "../../../lib/semantic-intent/fill-sequence";
@@ -27,8 +30,9 @@ import type { DtcWithFillFields } from "../../../lib/semantic-intent/dtc-fill-se
 function minimalConversation(
   overrides: Partial<SemanticConversationState> = {},
 ): SemanticConversationState {
+  const stateId = overrides.stateId ?? "semantic-conversation:dtc-panel-test";
   return {
-    stateId: "semantic-conversation:dtc-panel-test",
+    stateId,
     schemaVersion: "palantir-mini/semantic-conversation-state/v1",
     prompt: { promptId: "p1", sessionId: "s1", runtime: "claude" },
     userFacing: {
@@ -59,6 +63,7 @@ function minimalConversation(
     },
     lifecycle: "clarifying",
     ...overrides,
+    llmControlFacing: overrides.llmControlFacing ?? buildLLMControlFacingState(stateId),
   };
 }
 

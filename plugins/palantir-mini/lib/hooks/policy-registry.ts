@@ -263,7 +263,8 @@ export const WORKFLOW_STEP_POLICY_REGISTRY: readonly WorkflowStepPolicy[] = [
     hookPolicyId: "hook-policy:mutation-governance",
     event: "PreToolUse",
     matcher: mcpMatcher("pm_intent_router", "apply_edit_function", "ontology_context_query"),
-    purpose: "Run prompt-DTC gate before routing and ontology action tools.",
+    purpose:
+      "Reserve DTC routing lifecycle wiring; current Prompt-DTC evidence is handler/contract-gate evidence, not hook enforcement.",
   },
   {
     policyId: "hook-step:pretool-agent-dispatch",

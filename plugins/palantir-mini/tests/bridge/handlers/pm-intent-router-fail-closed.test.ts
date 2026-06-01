@@ -19,6 +19,14 @@ import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
 } from "../../../lib/lead-intent/contracts";
+import {
+  canonicalTerm,
+  registrySnapshot,
+  sourceSystemRef,
+  sourceSystemTerm,
+} from "../../../lib/semantic-consistency/registry";
+import { resolveSemanticConsistency } from "../../../lib/semantic-consistency/resolver";
+import type { SemanticConsistencyResolverOutput } from "../../../lib/semantic-consistency/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +57,74 @@ function readEvents(
     .map((l) => JSON.parse(l));
 }
 
+const routerFailClosedSource = sourceSystemRef({
+  sourceSystemId: "router-fail-closed-fixture",
+  kind: "repo",
+  displayName: "Router fail-closed fixture",
+  authorityRank: 100,
+});
+const hookTerm = canonicalTerm({
+  displayName: "hook",
+  definition: "Codex-side hook surface used for ontology drift detection.",
+  ontologyKind: "Function",
+  ontologyRef: "ontology://palantir-mini/function/OntologyDriftHook",
+  approvalRef: "user:approved:fc-test",
+});
+const ontologyDriftTerm = canonicalTerm({
+  displayName: "ontology drift",
+  definition: "Detected mismatch between ontology source authority and runtime behavior.",
+  ontologyKind: "ObjectType",
+  ontologyRef: "ontology://palantir-mini/object/OntologyDriftSignal",
+  approvalRef: "user:approved:fc-test",
+});
+const detectionTerm = canonicalTerm({
+  displayName: "detection",
+  definition: "Detection action for ontology drift evidence.",
+  ontologyKind: "ActionType",
+  ontologyRef: "ontology://palantir-mini/action/RegisterOntologyDriftDetection",
+  approvalRef: "user:approved:fc-test",
+});
+const addTerm = canonicalTerm({
+  displayName: "add",
+  definition: "Additive implementation verb.",
+  ontologyKind: "ActionType",
+  approvalRef: "user:approved:fc-test",
+});
+const emitTerm = canonicalTerm({
+  displayName: "emit",
+  definition: "Emit deterministic hook evidence.",
+  ontologyKind: "Function",
+  approvalRef: "user:approved:fc-test",
+});
+const detectTerm = canonicalTerm({
+  displayName: "detect",
+  definition: "Detect ontology drift without widening existing hooks.",
+  ontologyKind: "Function",
+  approvalRef: "user:approved:fc-test",
+});
+const approvedSemanticConsistencyResult = resolveSemanticConsistency({
+  sourceTerms: ["hook", "ontology drift", "detection", "add", "emit", "detect"].map(
+    (term) =>
+      sourceSystemTerm({
+        sourceSystemRef: routerFailClosedSource,
+        fieldPath: `approved-term:${term}`,
+        rawTerm: term,
+        evidenceRefs: ["test://pm-intent-router-fail-closed/fc-a"],
+      }),
+  ),
+  registry: registrySnapshot({
+    sourceSystems: [routerFailClosedSource],
+    canonicalTerms: [
+      hookTerm,
+      ontologyDriftTerm,
+      detectionTerm,
+      addTerm,
+      emitTerm,
+      detectTerm,
+    ],
+  }),
+});
+
 // Canned approved contracts for Prompt A
 function approvedSemanticContract(): SemanticIntentContract {
   return {
@@ -66,6 +142,11 @@ function approvedSemanticContract(): SemanticIntentContract {
     downstreamAllowed: ["Route implementation to hook-builder."],
     downstreamForbidden: ["Do not widen scope to lib/lead-intent/."],
     clarificationQuestions: [],
+    approvedCanonicalTermRefs: [...approvedSemanticConsistencyResult.canonicalTermRefs],
+    approvedTermMappingRefs: approvedSemanticConsistencyResult.mappings.map(
+      (mapping) => mapping.mappingId,
+    ),
+    semanticConsistencyResultRef: approvedSemanticConsistencyResult.resolverRunId,
     approvalRef: "user:approved:fc-test",
   };
 }
@@ -83,8 +164,76 @@ function approvedDigitalTwinContract(): DigitalTwinChangeContract {
     observabilityPlan: "Emit gate events per rule 10.",
     toolSurfaceReadiness: "WorkflowContract turn-card decision used to confirm scope.",
     evaluationPlan: "TypeScript, bun test, router smoke test.",
+    touchedOntologyRefs: [
+      {
+        kind: "ObjectType",
+        rid: "ontology://palantir-mini/object/OntologyDriftSignal",
+        displayName: "OntologyDriftSignal",
+        confidence: "exact",
+      },
+      {
+        kind: "LinkType",
+        rid: "ontology://palantir-mini/link/HookDetectsOntologyDrift",
+        displayName: "HookDetectsOntologyDrift",
+        confidence: "exact",
+      },
+      {
+        kind: "ActionType",
+        rid: "ontology://palantir-mini/action/RegisterOntologyDriftHook",
+        displayName: "RegisterOntologyDriftHook",
+        confidence: "exact",
+      },
+      {
+        kind: "Function",
+        rid: "ontology://palantir-mini/function/DetectOntologyDrift",
+        displayName: "DetectOntologyDrift",
+        confidence: "exact",
+      },
+    ],
+    requiredEvaluationRefs: [
+      {
+        kind: "ValidationPack",
+        rid: "project://palantir-mini/validation-pack/router-fail-closed",
+        displayName: "router-fail-closed",
+        project: "palantir-mini",
+        confidence: "exact",
+      },
+    ],
+    semanticConsistencyRefs: [approvedSemanticConsistencyResult.resolverRunId],
+    fillPolicy: "ontology-dtc-build",
+    ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
+      step: index + 1,
+      question: `T${index}`,
+      filledAt: "2026-06-01T00:00:00.000Z",
+      source: "agent",
+    })),
+    ontologyDtcBuildReadiness: {
+      objectTypeRefs: ["ontology://palantir-mini/object/OntologyDriftSignal"],
+      linkTypeRefs: ["ontology://palantir-mini/link/HookDetectsOntologyDrift"],
+      actionTypeRefs: ["ontology://palantir-mini/action/RegisterOntologyDriftHook"],
+      functionRefs: ["ontology://palantir-mini/function/DetectOntologyDrift"],
+      applicationStateRefs: ["application-state:ontology-drift-review"],
+      evaluationRefs: ["project://palantir-mini/validation-pack/router-fail-closed"],
+      semanticTermRefs: [
+        approvedSemanticConsistencyResult.resolverRunId,
+        ...approvedSemanticConsistencyResult.mappings.map((mapping) => mapping.mappingId),
+      ],
+      readinessVerdict: "ready-for-dtc",
+    },
     risks: [],
     approvalRef: "user:approved:fc-test",
+  };
+}
+
+function approvedContractEvidence(): {
+  semanticIntentContract: SemanticIntentContract;
+  digitalTwinChangeContract: DigitalTwinChangeContract;
+  semanticConsistencyResult: SemanticConsistencyResolverOutput;
+} {
+  return {
+    semanticIntentContract: approvedSemanticContract(),
+    digitalTwinChangeContract: approvedDigitalTwinContract(),
+    semanticConsistencyResult: approvedSemanticConsistencyResult,
   };
 }
 
@@ -125,8 +274,7 @@ describe("FC-A — ontology-affecting intent with approved typed-ref DTC present
       intent: "Add ontology hook for drift detection in hooks/ontology-drift-detect.ts",
       scopePaths: ["hooks/ontology-drift-detect.ts"],
       complexityHint: "single-file",
-      semanticIntentContract: approvedSemanticContract(),
-      digitalTwinChangeContract: approvedDigitalTwinContract(),
+      ...approvedContractEvidence(),
     });
 
     // Must NOT be fail-closed when contracts are present
@@ -157,8 +305,7 @@ describe("FC-A — ontology-affecting intent with approved typed-ref DTC present
       project,
       intent: "Add ontology hook for drift detection in hooks/ontology-drift-detect.ts",
       scopePaths: ["hooks/ontology-drift-detect.ts"],
-      semanticIntentContract: approvedSemanticContract(),
-      digitalTwinChangeContract: approvedDigitalTwinContract(),
+      ...approvedContractEvidence(),
     });
 
     expect(result.routingProjection.basis).toBe("approved-inline-contracts");

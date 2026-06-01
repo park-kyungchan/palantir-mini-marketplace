@@ -4,6 +4,7 @@ import * as os from "os";
 import * as path from "path";
 import { emitMcpFirstEvidenceForToolCall, handleRequest } from "../../bridge/mcp-server";
 import preEditImpactMcpFirst from "../../hooks/pre-edit-impact-mcp-first";
+import { MCP_TOOL_SURFACE_PROFILE_ENV } from "../../lib/capability-registry/mcp-tool-capability";
 import { readEvents } from "../../lib/event-log/read";
 
 let tmpRoot: string;
@@ -50,11 +51,13 @@ beforeEach(() => {
     "PALANTIR_MINI_HOST_RUNTIME",
     "PALANTIR_MINI_MCP_FIRST_ADVISORY_ONLY",
     "PALANTIR_MINI_MCP_FIRST_BYPASS",
+    MCP_TOOL_SURFACE_PROFILE_ENV,
   ]) {
     saveEnv(name);
   }
   delete process.env.PALANTIR_MINI_MCP_FIRST_ADVISORY_ONLY;
   delete process.env.PALANTIR_MINI_MCP_FIRST_BYPASS;
+  delete process.env[MCP_TOOL_SURFACE_PROFILE_ENV];
   process.env.PALANTIR_MINI_EVENTS_FILE = eventsPathFor(tmpRoot);
   process.env.PALANTIR_MINI_EVENTS_FILE_FORCE = "1";
   process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
@@ -68,7 +71,7 @@ afterEach(() => {
 });
 
 describe("MCP server MCP-first evidence", () => {
-  test("pre_edit_impact tools/call dispatch emits detector evidence before responding", async () => {
+  test("default studio-core profile rejects hidden pre_edit_impact calls without evidence", async () => {
     const response = await handleRequest({
       jsonrpc: "2.0",
       id: 1,
@@ -82,6 +85,36 @@ describe("MCP server MCP-first evidence", () => {
     expect(response).toMatchObject({
       jsonrpc: "2.0",
       id: 1,
+      error: {
+        code: -32602,
+        message: "tools/call: tool `pre_edit_impact` is not visible in MCP profile `studio-core`",
+        data: {
+          profile: "studio-core",
+          defaultProfile: "studio-core",
+          profileEnvVar: MCP_TOOL_SURFACE_PROFILE_ENV,
+          toolName: "pre_edit_impact",
+        },
+      },
+    });
+    expect(fs.existsSync(eventsPathFor(tmpRoot))).toBe(false);
+  });
+
+  test("visible-profile pre_edit_impact tools/call dispatch emits detector evidence before responding", async () => {
+    process.env[MCP_TOOL_SURFACE_PROFILE_ENV] = "dev-full";
+
+    const response = await handleRequest({
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
+      params: {
+        name: "pre_edit_impact",
+        arguments: { project: tmpRoot, proposedFiles: ["src/dispatch.ts"] },
+      },
+    });
+
+    expect(response).toMatchObject({
+      jsonrpc: "2.0",
+      id: 2,
       result: { isError: false },
     });
 

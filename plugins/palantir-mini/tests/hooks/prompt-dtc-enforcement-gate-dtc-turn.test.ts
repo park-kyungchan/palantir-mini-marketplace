@@ -1,17 +1,17 @@
 /**
  * prompt-dtc-enforcement-gate-dtc-turn.test.ts
  *
- * Sprint-097 W5-B (dtc-T5-hooks-gate-default-on): Tests for the default-on
- * selective-blocking gate behavior introduced in v6.78.0.
+ * Sprint-097 W5-B (dtc-T5-hooks-gate-default-on): Tests for default-on
+ * Prompt-DTC gate behavior, including the stronger effective minimum policy.
  *
  * Plan §13.1 W5 acceptance criteria:
- * - Default-on behavior: no env → ontology tool + no SIC → BLOCKS
+ * - Default-on behavior: no env → ontology/protected tool + no DTC → BLOCKS
  * - Default-on with SIC cache hit alone: no env + SIC within 60min → still BLOCKS protected mutation without approved DTC
- * - Bypass envvar: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 → PASSES + emits audit event
+ * - Bypass envvar: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 → cannot bypass protected mutation minimums
  * - Mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=advisory → advisory only
- * - Mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off → fully off + audit event
+ * - Mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off → cannot bypass protected mutation minimums
  * - Mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=blocking → blocks ALL mutating tools
- * - Non-ontology tool (Read, Grep, Glob, pm_rule_query) → not gated in selective-blocking
+ * - Non-mutating/read-only tools (Read, Grep, Glob, pm_rule_query) → not gated in default mode
  * - DTC turn path (ontology_context_query write-mode via DTC fill) → evaluates correctly
  */
 
@@ -93,12 +93,13 @@ afterEach(() => {
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)", () => {
+describe("prompt-dtc-enforcement-gate: default-on effective policy", () => {
   // ── §9.2 Default-on behavior ──────────────────────────────────────────────
 
   test("default-on: no env var set + ontology-affecting tool (commit_edits) + no SIC approval → BLOCKS", async () => {
     const project = makeTmpProject();
-    // No env var set: v6.78.0+ default = "selective-blocking"
+    // No env var set: default request starts at selective-blocking, then
+    // protected commit mutations strengthen to blocking.
 
     const result = await promptDtcEnforcementGate(
       makePayload(project, {
@@ -108,8 +109,8 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
 
     expect(result.decision).toBe("block");
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-    expect(result.reason).toContain("SELECTIVE-BLOCKING");
-    expect(result.reason).toContain("no SIC approval found within last 60 min");
+    expect(result.reason).toContain("BLOCKING");
+    expect(result.reason).toContain("No current prompt-front-door envelope");
   });
 
   test("default-on: no env var set + ontology-affecting tool (apply_edit_function) + no SIC approval → BLOCKS", async () => {
@@ -141,13 +142,14 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
 
     expect(result.decision).toBe("block");
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-    expect(result.reason).toContain("SELECTIVE-BLOCKING");
+    expect(result.reason).toContain("BLOCKING");
     expect(result.reason).toContain("No current prompt-front-door envelope");
   });
 
-  test("default-on: non-ontology tool (Edit) → passes through without gate evaluation", async () => {
+  test("default-on: generic Edit mutation → scoped advisory without protected scope", async () => {
     const project = makeTmpProject();
-    // No env var; default = selective-blocking. Edit is NOT ontology-affecting.
+    // Generic mutations strengthen to scoped-blocking, but ordinary files are
+    // advisory until they touch scoped protected surfaces.
 
     const result = await promptDtcEnforcementGate(
       makePayload(project, {
@@ -157,15 +159,16 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
     );
 
     expect(result.decision).toBeUndefined();
-    expect(result.message).toContain("not ontology-affecting");
+    expect(result.message).toBe("palantir-mini: prompt-DTC gate advisory");
+    expect(result.additionalContext).toContain("Scoped blocking surface: none");
   });
 
   // ── §9.4 Bypass envvar ────────────────────────────────────────────────────
 
-  test("bypass envvar: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 → PASSES + emits prompt_dtc_gate_off_bypass event", async () => {
+  test("bypass envvar: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 → cannot bypass protected mutation minimums", async () => {
     const project = makeTmpProject();
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS = "1";
-    // Default mode = selective-blocking (no env var set)
+    // Default requested mode strengthens to blocking for commit_edits.
 
     const result = await promptDtcEnforcementGate(
       makePayload(project, {
@@ -173,11 +176,9 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
       }),
     );
 
-    expect(result.decision).toBeUndefined();
-    expect(result.message).toContain("bypassed");
-
-    // Allow fire-and-forget audit event to flush
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(result.decision).toBe("block");
+    expect(result.message).toBe("palantir-mini: prompt-DTC gate BLOCKED");
+    expect(result.reason).toContain("BLOCKING");
 
     const events = readEvents(project);
     const bypassEvent = events.find(
@@ -185,7 +186,7 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
         e.type === "validation_phase_completed" &&
         e.payload?.errorClass === "prompt_dtc_gate_off_bypass",
     );
-    expect(bypassEvent).toBeDefined();
+    expect(bypassEvent).toBeUndefined();
   });
 
   // ── Mode overrides ────────────────────────────────────────────────────────
@@ -206,7 +207,7 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
     expect(result.message).toBe("palantir-mini: prompt-DTC gate advisory");
   });
 
-  test("mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off → fully off + emits off_bypass audit event", async () => {
+  test("mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off → cannot bypass protected mutation minimums", async () => {
     const project = makeTmpProject();
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "off";
 
@@ -216,8 +217,13 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
       }),
     );
 
-    expect(result.decision).toBeUndefined();
-    expect(result.message).toBe("palantir-mini: prompt-DTC gate off");
+    expect(result.decision).toBe("block");
+    expect(result.message).toBe("palantir-mini: prompt-DTC gate BLOCKED");
+    expect(result.reason).toContain("BLOCKING");
+    const bypassEvent = readEvents(project).find(
+      (e) => e.payload?.errorClass === "prompt_dtc_gate_off_bypass",
+    );
+    expect(bypassEvent).toBeUndefined();
   });
 
   test("mode override: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=blocking → blocks ALL mutating Edit (not just ontology-affecting subset)", async () => {
@@ -310,7 +316,7 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
 
     expect(result.decision).toBe("block");
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-    expect(result.reason).toContain("SELECTIVE-BLOCKING");
+    expect(result.reason).toContain("BLOCKING");
   });
 
   test("DTC turn path: ontology_context_query read-only (no action) → passes through in default selective-blocking", async () => {
@@ -324,7 +330,7 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
     );
 
     expect(result.decision).toBeUndefined();
-    expect(result.message).toContain("not ontology-affecting");
+    expect(result.message).toContain("read-only or allowed");
   });
 
   test("DTC turn path: negotiate_sprint_contract approve → gated in default selective-blocking", async () => {
@@ -411,6 +417,6 @@ describe("prompt-dtc-enforcement-gate: default-on selective-blocking (v6.78.0)",
     );
 
     expect(result.decision).toBe("block");
-    expect(result.reason).toContain("SELECTIVE-BLOCKING");
+    expect(result.reason).toContain("BLOCKING");
   });
 });

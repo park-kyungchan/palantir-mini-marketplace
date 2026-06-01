@@ -2,7 +2,7 @@
 // Coverage: arg validation, registered-function happy path, unknown-function path,
 // edit_proposed event substrate (rule 10 5-dim envelope assertion).
 
-import { test, expect, describe, afterEach } from "bun:test";
+import { test, expect, describe, afterEach, beforeEach } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -19,8 +19,15 @@ function eventsPathFor(root: string): string {
 }
 
 const tmpRoots: string[] = [];
+const originalHostRuntime = process.env.PALANTIR_MINI_HOST_RUNTIME;
+
+beforeEach(() => {
+  process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
+});
 
 afterEach(() => {
+  if (originalHostRuntime === undefined) delete process.env.PALANTIR_MINI_HOST_RUNTIME;
+  else process.env.PALANTIR_MINI_HOST_RUNTIME = originalHostRuntime;
   for (const r of tmpRoots.splice(0)) fs.rmSync(r, { recursive: true, force: true });
 });
 
@@ -92,7 +99,7 @@ describe("apply_edit_function handler", () => {
     expect(proposed.length).toBe(1);
     const evt = proposed[0]!;
     expect(evt.throughWhich.toolName).toBe("apply_edit_function");
-    expect(evt.byWhom.identity).toBe("claude-code");
+    expect(evt.byWhom.identity).toBe("codex");
     expect((evt.payload as any).functionName).toBe("test_apply_edit_function_noop");
     expect((evt.payload as any).hypotheticalEdits).toEqual([]);
   });

@@ -5,11 +5,15 @@ import {
   SEMANTIC_WORKBENCH_STATE_SCHEMA_VERSION,
   buildSemanticWorkbenchState,
 } from "../../../lib/chatbot-studio/workbench-state";
-import type { SemanticConversationState } from "../../../lib/chatbot-studio/semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "../../../lib/chatbot-studio/semantic-conversation-state";
 
 function conversation(overrides: Partial<SemanticConversationState> = {}): SemanticConversationState {
+  const stateId = overrides.stateId ?? "semantic-conversation:problem-15";
   return {
-    stateId: "semantic-conversation:problem-15",
+    stateId,
     schemaVersion: "palantir-mini/semantic-conversation-state/v1",
     prompt: {
       promptId: "prompt-1",
@@ -80,6 +84,7 @@ function conversation(overrides: Partial<SemanticConversationState> = {}): Seman
     },
     lifecycle: "semantic-approved",
     ...overrides,
+    llmControlFacing: overrides.llmControlFacing ?? buildLLMControlFacingState(stateId),
   };
 }
 

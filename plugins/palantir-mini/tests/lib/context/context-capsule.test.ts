@@ -16,6 +16,9 @@ import {
   persistContextCapsule,
 } from "../../../lib/context/context-capsule";
 import type { DtcFillSequenceSession } from "../../../lib/chatbot-studio/dtc-fill-session";
+import {
+  buildLLMControlFacingState,
+} from "../../../lib/chatbot-studio/semantic-conversation-state";
 import { createHarnessRatchetProposal } from "../../../lib/harness/ratchet-proposal";
 import {
   EDUCATION_READINESS_DEFAULTS,
@@ -88,6 +91,7 @@ describe("internal context and readiness records", () => {
           selectedSkillRefs: [],
           skillRoutingReason: "No skills selected.",
         },
+        llmControlFacing: buildLLMControlFacingState("semantic-conversation:prompt-test"),
         contractFacing: {
           semanticIntentContractRef: "semantic:test",
           digitalTwinChangeContractRef: "dtc:test",
