@@ -324,6 +324,44 @@ export interface ContractGateResult {
   digitalTwin: ContractValidationResult;
 }
 
+export type OntologyDtcBuildReadinessGateStatus = "blocked" | "ready-for-router";
+
+export type OntologyDtcBuildReadinessGateCheck =
+  | "ref-present"
+  | "body-dereferenced"
+  | "body-validated"
+  | "approval-ref-present"
+  | "work-contract-valid"
+  | "router-binding-valid"
+  | "ready-for-router";
+
+export interface OntologyDtcBuildReadinessGateInput extends ContractBindingRefContext {
+  intent?: string;
+  scopePaths?: string[];
+  complexityHint?: LeadIntentGateInput["complexityHint"];
+  projectRoot?: string;
+  semanticIntentContract?: SemanticIntentContract;
+  digitalTwinChangeContract?: DigitalTwinChangeContract;
+  semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+  workContract?: WorkContract;
+  routerBinding?: RouterBinding;
+  routerBindingRef?: string;
+}
+
+export interface OntologyDtcBuildReadinessGate {
+  gateSubject: "ontology-affecting-dispatch";
+  status: OntologyDtcBuildReadinessGateStatus;
+  readyForRouter: boolean;
+  requiredBasis: "approved-inline-contracts";
+  blockedDecisionUntilReady: "contract_required" | null;
+  checks: Record<OntologyDtcBuildReadinessGateCheck, ContractValidationResult>;
+  semanticIntent: ContractValidationResult;
+  digitalTwin: ContractValidationResult;
+  workContract: ContractValidationResult;
+  routerBinding: ContractValidationResult;
+  issues: ContractValidationIssue[];
+}
+
 export type ContractRoutingBasisKind =
   | "raw-intent"
   | "approved-contract-refs"
@@ -1364,6 +1402,285 @@ export function deriveWorkContractFromContracts(input: {
     requiredEvaluationRefs: input.digitalTwinChangeContract.requiredEvaluationRefs,
     ...(semanticConsistencyResultRef ? { semanticConsistencyResultRef } : {}),
     ...(input.routerBinding ? { routerBinding: input.routerBinding } : {}),
+  };
+}
+
+function hasGateRef(value: string | undefined): boolean {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasGateApprovalRef(value: ApprovalRef | undefined): boolean {
+  if (typeof value === "string") return value.trim().length > 0;
+  return Boolean(value);
+}
+
+function hasBranchPolicyEvidence(
+  contract: DigitalTwinChangeContract | undefined,
+): boolean {
+  const ref = contract?.requiredBranchPolicyRef;
+  return Boolean(
+    typeof ref?.rid === "string" &&
+      ref.rid.trim() &&
+      typeof ref.displayName === "string" &&
+      ref.displayName.trim(),
+  );
+}
+
+function hasPermissionPolicyEvidence(
+  contract: DigitalTwinChangeContract | undefined,
+): boolean {
+  const ref = contract?.requiredPermissionPolicyRef;
+  return Boolean(
+    typeof ref?.rid === "string" &&
+      ref.rid.trim() &&
+      typeof ref.displayName === "string" &&
+      ref.displayName.trim(),
+  );
+}
+
+function hasEvaluationEvidence(
+  contract: DigitalTwinChangeContract | undefined,
+): boolean {
+  return (contract?.requiredEvaluationRefs?.length ?? 0) > 0;
+}
+
+function mergeValidationIssues(
+  issues: readonly ContractValidationIssue[],
+): ContractValidationIssue[] {
+  const seen = new Set<string>();
+  const result: ContractValidationIssue[] = [];
+  for (const issue of issues) {
+    const key = `${issue.field}\n${issue.message}\n${issue.severity ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(issue);
+  }
+  return result;
+}
+
+function ontologyDtcGateValidationResult(
+  issues: readonly ContractValidationIssue[],
+): ContractValidationResult {
+  return contractValidationResult(mergeValidationIssues(issues));
+}
+
+export function assessOntologyDtcBuildReadinessGate(
+  input: OntologyDtcBuildReadinessGateInput,
+): OntologyDtcBuildReadinessGate {
+  const semanticIntentContract = input.semanticIntentContract;
+  const digitalTwinChangeContract = input.digitalTwinChangeContract;
+  const workContract = input.workContract;
+  const routerBinding = input.routerBinding ?? workContract?.routerBinding;
+  const semanticIntentContractRef =
+    semanticIntentContract?.contractId ??
+    input.semanticIntentContractRef ??
+    digitalTwinChangeContract?.semanticIntentContractRef ??
+    workContract?.semanticIntentContractRef ??
+    routerBinding?.semanticIntentContractRef;
+  const digitalTwinChangeContractRef =
+    digitalTwinChangeContract?.contractId ??
+    input.digitalTwinChangeContractRef ??
+    workContract?.digitalTwinChangeContractRef ??
+    routerBinding?.digitalTwinChangeContractRef;
+  const workContractRef =
+    workContract?.contractId ?? input.workContractRef ?? routerBinding?.workContractRef;
+  const routerBindingRef = routerBinding?.bindingId ?? input.routerBindingRef;
+
+  const refPresentIssues: ContractValidationIssue[] = [];
+  for (const [field, value] of [
+    ["semanticIntentContractRef", semanticIntentContractRef],
+    ["digitalTwinChangeContractRef", digitalTwinChangeContractRef],
+    ["workContractRef", workContractRef],
+    ["routerBindingRef", routerBindingRef],
+  ] as const) {
+    if (!hasGateRef(value)) {
+      refPresentIssues.push({
+        field,
+        message: `${field} is required for ontology-DTC router readiness`,
+      });
+    }
+  }
+  if (input.semanticIntentContractRef && semanticIntentContract) {
+    requireExpectedRef(
+      refPresentIssues,
+      "semanticIntentContractRef",
+      input.semanticIntentContractRef,
+      semanticIntentContract.contractId,
+    );
+  }
+  if (input.digitalTwinChangeContractRef && digitalTwinChangeContract) {
+    requireExpectedRef(
+      refPresentIssues,
+      "digitalTwinChangeContractRef",
+      input.digitalTwinChangeContractRef,
+      digitalTwinChangeContract.contractId,
+    );
+  }
+  if (input.workContractRef && workContract) {
+    requireExpectedRef(
+      refPresentIssues,
+      "workContractRef",
+      input.workContractRef,
+      workContract.contractId,
+    );
+  }
+  if (input.routerBindingRef && routerBinding) {
+    requireExpectedRef(
+      refPresentIssues,
+      "routerBindingRef",
+      input.routerBindingRef,
+      routerBinding.bindingId,
+    );
+  }
+
+  const bodyDereferencedIssues: ContractValidationIssue[] = [];
+  if (!semanticIntentContract) {
+    bodyDereferencedIssues.push({
+      field: "semanticIntentContract",
+      message:
+        "SemanticIntentContract body must be dereferenced; ref strings alone are not execution authority.",
+    });
+  }
+  if (!digitalTwinChangeContract) {
+    bodyDereferencedIssues.push({
+      field: "digitalTwinChangeContract",
+      message:
+        "DigitalTwinChangeContract body must be dereferenced; ref strings alone are not execution authority.",
+    });
+  }
+  if (!workContract) {
+    bodyDereferencedIssues.push({
+      field: "workContract",
+      message:
+        "WorkContract body must be dereferenced before router dispatch can be authorized.",
+    });
+  }
+  if (!routerBinding) {
+    bodyDereferencedIssues.push({
+      field: "routerBinding",
+      message:
+        "RouterBinding body must be dereferenced before router dispatch can be authorized.",
+    });
+  }
+
+  const semanticIntent = validateSemanticIntentContract(semanticIntentContract);
+  const digitalTwinBase = validateDigitalTwinChangeContract(digitalTwinChangeContract);
+  const digitalTwin = digitalTwinChangeContract
+    ? ontologyDtcGateValidationResult([
+        ...digitalTwinBase.issues,
+        ...ontologyDtcBuildReadinessIssues(digitalTwinChangeContract, {
+          requirePolicy: true,
+        }),
+      ])
+    : digitalTwinBase;
+  const bodyValidatedIssues = mergeValidationIssues([
+    ...semanticIntent.issues.map((issue) => ({
+      ...issue,
+      field: `semanticIntentContract.${issue.field}`,
+    })),
+    ...digitalTwin.issues.map((issue) => ({
+      ...issue,
+      field: `digitalTwinChangeContract.${issue.field}`,
+    })),
+  ]);
+
+  if (!hasEvaluationEvidence(digitalTwinChangeContract)) {
+    bodyValidatedIssues.push({
+      field: "digitalTwinChangeContract.requiredEvaluationRefs",
+      message:
+        "AIP Eval evidence must be present before ontology-DTC router dispatch.",
+    });
+  }
+  if (!hasBranchPolicyEvidence(digitalTwinChangeContract)) {
+    bodyValidatedIssues.push({
+      field: "digitalTwinChangeContract.requiredBranchPolicyRef",
+      message:
+        "Global Branching policy evidence must be present before ontology-DTC router dispatch.",
+    });
+  }
+  if (!hasPermissionPolicyEvidence(digitalTwinChangeContract)) {
+    bodyValidatedIssues.push({
+      field: "digitalTwinChangeContract.requiredPermissionPolicyRef",
+      message:
+        "Ontology security permission evidence must be present before ontology-DTC router dispatch.",
+    });
+  }
+
+  const approvalRefPresentIssues: ContractValidationIssue[] = [];
+  if (!hasGateApprovalRef(semanticIntentContract?.approvalRef)) {
+    approvalRefPresentIssues.push({
+      field: "semanticIntentContract.approvalRef",
+      message: "approved SemanticIntentContract approvalRef is required",
+    });
+  }
+  if (!hasGateApprovalRef(digitalTwinChangeContract?.approvalRef)) {
+    approvalRefPresentIssues.push({
+      field: "digitalTwinChangeContract.approvalRef",
+      message: "approved DigitalTwinChangeContract approvalRef is required",
+    });
+  }
+
+  const workContractResult = validateWorkContract(workContract, {
+    semanticIntentContractRef,
+    digitalTwinChangeContractRef,
+    workContractRef,
+    semanticConsistencyResultRef: input.semanticConsistencyResultRef,
+    semanticIntentContract,
+    digitalTwinChangeContract,
+    semanticConsistencyResult: input.semanticConsistencyResult,
+  });
+  const routerBindingResult = validateRouterBinding(routerBinding, {
+    semanticIntentContractRef,
+    digitalTwinChangeContractRef,
+    workContractRef,
+  });
+
+  const checks: Record<OntologyDtcBuildReadinessGateCheck, ContractValidationResult> = {
+    "ref-present": ontologyDtcGateValidationResult(refPresentIssues),
+    "body-dereferenced": ontologyDtcGateValidationResult(bodyDereferencedIssues),
+    "body-validated": ontologyDtcGateValidationResult(bodyValidatedIssues),
+    "approval-ref-present": ontologyDtcGateValidationResult(approvalRefPresentIssues),
+    "work-contract-valid": workContractResult,
+    "router-binding-valid": routerBindingResult,
+    "ready-for-router": { valid: false, issues: [] },
+  };
+  const readyForRouter = (
+    [
+      "ref-present",
+      "body-dereferenced",
+      "body-validated",
+      "approval-ref-present",
+      "work-contract-valid",
+      "router-binding-valid",
+    ] as const
+  ).every((check) => checks[check].valid);
+  checks["ready-for-router"] = readyForRouter
+    ? { valid: true, issues: [] }
+    : {
+        valid: false,
+        issues: [
+          {
+            field: "readyForRouter",
+            message:
+              "OntologyDtcBuildReadinessGate blocks routing until approved SIC, approved ontology-DTC DTC, eval/branch/permission evidence, WorkContract, and RouterBinding are valid.",
+          },
+        ],
+      };
+
+  return {
+    gateSubject: "ontology-affecting-dispatch",
+    status: readyForRouter ? "ready-for-router" : "blocked",
+    readyForRouter,
+    requiredBasis: "approved-inline-contracts",
+    blockedDecisionUntilReady: readyForRouter ? null : "contract_required",
+    checks,
+    semanticIntent,
+    digitalTwin,
+    workContract: workContractResult,
+    routerBinding: routerBindingResult,
+    issues: mergeValidationIssues(
+      Object.values(checks).flatMap((check) => check.issues),
+    ),
   };
 }
 

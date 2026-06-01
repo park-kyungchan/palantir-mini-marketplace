@@ -126,6 +126,14 @@ function approvedDigitalTwin(
     requiredEvaluationRefs: [
       { kind: "ValidationPack", rid: "validation-pack:prompt-front-door" } as never,
     ],
+    requiredBranchPolicyRef: {
+      rid: "branch-policy:prompt-front-door",
+      displayName: "Prompt front-door branch proposal policy",
+    } as never,
+    requiredPermissionPolicyRef: {
+      rid: "permission-policy:prompt-front-door",
+      displayName: "Prompt front-door authoring permissions",
+    } as never,
     semanticConsistencyRefs: [approvedSemanticConsistencyResult.resolverRunId],
     fillPolicy: "ontology-dtc-build",
     ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
@@ -751,6 +759,52 @@ describe("pm_semantic_intent_gate", () => {
       digitalTwinChangeContractRef: approved.contractRefs?.digitalTwinChangeContractRef,
       approvalRef: "user:approved:wave3",
     });
+  });
+
+  test("approved SIC/DTC diagnostics do not treat context or tools as router authority", async () => {
+    const project = makeTmpProject();
+    const result = await semanticIntentGate({
+      project,
+      rawIntent:
+        "Implement ontology-affecting prompt-front-door contracts with application state and tool context",
+      scopePaths: [
+        ".claude/plugins/palantir-mini/bridge/handlers/pm-semantic-intent-gate.ts",
+        ".claude/plugins/palantir-mini/bridge/handlers/pm-intent-router.ts",
+      ],
+      complexityHint: "multi-file",
+      semanticIntentContract: approvedSemantic(),
+      digitalTwinChangeContract: approvedDigitalTwin(undefined, {
+        toolSurfaceReadiness:
+          "ApplicationState, RetrievalContext, and tools are diagnostic inputs only.",
+        ontologyDtcBuildReadiness: {
+          objectTypeRefs: ["object-type:prompt-envelope"],
+          linkTypeRefs: ["link-type:prompt-envelope-contract"],
+          actionTypeRefs: ["action-type:approve-prompt-contract"],
+          functionRefs: ["function:validate-prompt-contract"],
+          applicationStateRefs: ["application-state:prompt-front-door-review"],
+          retrievalContextRefs: ["retrieval-context:prompt-front-door-docs"],
+          toolRefs: ["tool:pm-intent-router"],
+          evaluationRefs: ["validation-pack:prompt-front-door"],
+          readinessVerdict: "ready-for-dtc",
+        },
+      }),
+      semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+    });
+
+    const fields =
+      result.ontologyDtcBuildReadinessGate?.issues.map((issue) => issue.field) ?? [];
+    expect(result.status).toBe("pass");
+    expect(result.allowsRouting).toBe(true);
+    expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
+    expect(result.ontologyDtcBuildReadinessGate?.checks["body-dereferenced"].valid).toBe(
+      false,
+    );
+    expect(fields).toContain("workContract");
+    expect(fields).toContain("routerBinding");
+    expect(result.workflowContract?.mutationAuthorized).toBe(false);
+    expect(result.workflowContract?.allowedNextActions).toContain(
+      "attach-work-contract-and-router-binding",
+    );
   });
 
   test("workflow-control-plane implementation requires FDE session provenance", async () => {

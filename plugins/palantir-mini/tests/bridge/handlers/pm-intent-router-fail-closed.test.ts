@@ -199,6 +199,14 @@ function approvedDigitalTwinContract(): DigitalTwinChangeContract {
         confidence: "exact",
       },
     ],
+    requiredBranchPolicyRef: {
+      rid: "branch-policy://palantir-mini/router-fail-closed",
+      displayName: "Router fail-closed proposal policy",
+    },
+    requiredPermissionPolicyRef: {
+      rid: "permission-policy://palantir-mini/router-fail-closed",
+      displayName: "Router fail-closed permission boundary",
+    },
     semanticConsistencyRefs: [approvedSemanticConsistencyResult.resolverRunId],
     fillPolicy: "ontology-dtc-build",
     ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
@@ -279,6 +287,8 @@ describe("FC-A — ontology-affecting intent with approved typed-ref DTC present
 
     // Must NOT be fail-closed when contracts are present
     expect(result.decision).not.toBe("contract_required");
+    expect(result.ontologyDtcBuildReadinessGate?.status).toBe("ready-for-router");
+    expect(result.ontologyDtcBuildReadinessGate?.readyForRouter).toBe(true);
     expect(result.routingProjection.basis).not.toBe(
       "ontology-affecting-raw-intent-fail-closed",
     );
@@ -297,6 +307,13 @@ describe("FC-A — ontology-affecting intent with approved typed-ref DTC present
     expect(result.routingProjection.basis).toBe("unresolved-contract-refs");
     expect(result.contractGate.status).toBe("blocked_for_clarification");
     expect(result.decision).toBe("blocked_for_clarification");
+    expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
+    expect(result.ontologyDtcBuildReadinessGate?.checks["body-dereferenced"].valid).toBe(
+      false,
+    );
+    expect(result.ontologyDtcBuildReadinessGate?.issues.map((issue) => issue.field)).toContain(
+      "workContract",
+    );
   });
 
   test("FC-A.3: basis is approved-inline-contracts when contracts are supplied", async () => {
@@ -309,6 +326,7 @@ describe("FC-A — ontology-affecting intent with approved typed-ref DTC present
     });
 
     expect(result.routingProjection.basis).toBe("approved-inline-contracts");
+    expect(result.ontologyDtcBuildReadinessGate?.status).toBe("ready-for-router");
   });
 
   test("FC-A.4: unresolved-contract-refs basis when only raw refs are present", async () => {

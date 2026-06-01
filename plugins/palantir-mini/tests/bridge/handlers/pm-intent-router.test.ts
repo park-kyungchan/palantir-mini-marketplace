@@ -233,6 +233,14 @@ function approvedDigitalTwinContract(): DigitalTwinChangeContract {
         confidence: "exact",
       },
     ],
+    requiredBranchPolicyRef: {
+      rid: "branch-policy://palantir-math/scene3d-proposal",
+      displayName: "Scene3D proposal review policy",
+    },
+    requiredPermissionPolicyRef: {
+      rid: "permission-policy://palantir-math/scene3d-authoring",
+      displayName: "Scene3D ontology authoring permissions",
+    },
     semanticConsistencyRefs: [approvedSemanticConsistencyResult.resolverRunId],
     fillPolicy: "ontology-dtc-build",
     ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
@@ -744,6 +752,8 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
 
     expect(result.contractGate.status).toBe("pass");
     expect(result.routingProjection.basis).toBe("approved-inline-contracts");
+    expect(result.ontologyDtcBuildReadinessGate?.status).toBe("ready-for-router");
+    expect(result.ontologyDtcBuildReadinessGate?.readyForRouter).toBe(true);
     expect(result.routingProjection.hasContractFields).toBe(true);
     expect(result.routingProjection.scopePaths).toEqual([
       "ontology/data/visual3D.ts",
@@ -785,6 +795,9 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     );
     expect(result.workContractValidation?.valid).toBe(true);
     expect(result.routerBindingValidation?.valid).toBe(true);
+    expect(result.ontologyDtcBuildReadinessGate?.checks["ready-for-router"].valid).toBe(
+      true,
+    );
     expect(result.recipe?.contractBinding?.workContractRef).toBe(
       result.workContract?.contractId,
     );
@@ -793,7 +806,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     );
   });
 
-  test("mismatched WorkContract returns diagnostics without changing router blocking behavior", async () => {
+  test("mismatched WorkContract blocks ontology-affecting router dispatch", async () => {
     const project = makeTmpProject();
     const mismatchedWorkContract: WorkContract = {
       contractId: "work-contract:mismatched:scene3d",
@@ -821,9 +834,14 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       workContract: mismatchedWorkContract,
     });
 
-    expect(result.contractGate.status).toBe("pass");
-    expect(result.decision).toBe("delegate-to-ontology-steward");
+    expect(result.contractGate.status).toBe("contract_required");
+    expect(result.decision).toBe("contract_required");
+    expect(result.recipe).toBeUndefined();
     expect(result.workContractValidation?.valid).toBe(false);
+    expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
+    expect(result.ontologyDtcBuildReadinessGate?.checks["work-contract-valid"].valid).toBe(
+      false,
+    );
     expect(result.workContractValidation?.issues.map((issue) => issue.field)).toContain(
       "semanticIntentContractRef",
     );
@@ -831,6 +849,83 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       "scopePaths",
     );
     expect(result.routerBinding).toBeUndefined();
+  });
+
+  test("missing eval, branch, and permission evidence blocks router readiness", async () => {
+    const project = makeTmpProject();
+    const evidence = approvedContractEvidence();
+    const missingEvidenceDtc: DigitalTwinChangeContract = {
+      ...evidence.digitalTwinChangeContract,
+      requiredEvaluationRefs: [],
+      requiredBranchPolicyRef: undefined,
+      requiredPermissionPolicyRef: undefined,
+    };
+
+    const result = await routeIntent({
+      project,
+      intent: "Implement Scene3D ontology, geometry3D, renderer, and Visual Editor migration",
+      scopePaths: [
+        "ontology/data/visual3D.ts",
+        "ontology/changeContracts.ts",
+        "src/lib/jsxGraph3D/scene3DCompiler.ts",
+      ],
+      complexityHint: "cross-cutting",
+      semanticIntentContract: evidence.semanticIntentContract,
+      digitalTwinChangeContract: missingEvidenceDtc,
+      semanticConsistencyResult: evidence.semanticConsistencyResult,
+    });
+
+    const fields =
+      result.ontologyDtcBuildReadinessGate?.issues.map((issue) => issue.field) ?? [];
+    expect(result.decision).toBe("blocked_for_clarification");
+    expect(result.recipe).toBeUndefined();
+    expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
+    expect(result.ontologyDtcBuildReadinessGate?.checks["body-validated"].valid).toBe(
+      false,
+    );
+    expect(fields).toContain("digitalTwinChangeContract.requiredEvaluationRefs");
+    expect(fields).toContain("digitalTwinChangeContract.requiredBranchPolicyRef");
+    expect(fields).toContain("digitalTwinChangeContract.requiredPermissionPolicyRef");
+  });
+
+  test("context and tool readiness text does not authorize a missing readiness gate", async () => {
+    const project = makeTmpProject();
+    const evidence = approvedContractEvidence();
+    const toolOnlyDtc: DigitalTwinChangeContract = {
+      ...evidence.digitalTwinChangeContract,
+      requiredBranchPolicyRef: undefined,
+      requiredPermissionPolicyRef: undefined,
+      toolSurfaceReadiness:
+        "ApplicationState, RetrievalContext, and tools are available for diagnostics only.",
+      ontologyDtcBuildReadiness: {
+        ...(evidence.digitalTwinChangeContract.ontologyDtcBuildReadiness ?? {}),
+        applicationStateRefs: ["application-state:scene3d-review"],
+        retrievalContextRefs: ["retrieval-context:scene3d-docs"],
+        toolRefs: ["tool:ontology-context-query"],
+      },
+    };
+
+    const result = await routeIntent({
+      project,
+      intent: "Implement Scene3D ontology, geometry3D, renderer, and Visual Editor migration",
+      scopePaths: [
+        "ontology/data/visual3D.ts",
+        "ontology/changeContracts.ts",
+        "src/lib/jsxGraph3D/scene3DCompiler.ts",
+      ],
+      complexityHint: "cross-cutting",
+      semanticIntentContract: evidence.semanticIntentContract,
+      digitalTwinChangeContract: toolOnlyDtc,
+      semanticConsistencyResult: evidence.semanticConsistencyResult,
+    });
+
+    expect(result.decision).toBe("contract_required");
+    expect(result.recipe).toBeUndefined();
+    expect(result.ontologyDtcBuildReadinessGate?.readyForRouter).toBe(false);
+    const fields =
+      result.ontologyDtcBuildReadinessGate?.issues.map((issue) => issue.field) ?? [];
+    expect(fields).toContain("digitalTwinChangeContract.requiredBranchPolicyRef");
+    expect(fields).toContain("digitalTwinChangeContract.requiredPermissionPolicyRef");
   });
 
   test("resolvable approved prompt-front-door refs route from stored contract fields", async () => {
