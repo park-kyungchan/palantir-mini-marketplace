@@ -6,12 +6,16 @@ import {
 import handler, {
   pmSemanticWorkbenchState,
 } from "../../../bridge/handlers/pm-semantic-workbench-state";
-import type { SemanticConversationState } from "../../../lib/chatbot-studio/semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "../../../lib/chatbot-studio/semantic-conversation-state";
 import type { FDEOntologyEngineeringSession } from "../../../lib/fde-ontology-engineering/types";
 
 function conversation(): SemanticConversationState {
+  const stateId = "semantic-conversation:workbench-handler";
   return {
-    stateId: "semantic-conversation:workbench-handler",
+    stateId,
     schemaVersion: "palantir-mini/semantic-conversation-state/v1",
     prompt: {
       runtime: "codex",
@@ -42,6 +46,7 @@ function conversation(): SemanticConversationState {
       selectedSkillRefs: [],
       skillRoutingReason: "Workbench preview must not widen the DTC boundary.",
     },
+    llmControlFacing: buildLLMControlFacingState(stateId),
     contractFacing: {
       semanticIntentContractRef: "semantic:workbench",
       dtcReady: false,

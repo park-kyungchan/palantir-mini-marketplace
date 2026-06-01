@@ -210,7 +210,9 @@
         "matcher": "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router|mcp__palantir_mini__pm_intent_router|mcp__palantir_mini__.pm_intent_router|mcp__palantir-mini__pm_intent_router|mcp_palantir-mini_pm_intent_router|mcp_palantir_mini_pm_intent_router|mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__ontology_context_query|mcp__palantir_mini__.ontology_context_query|mcp__palantir-mini__ontology_context_query|mcp_palantir-mini_ontology_context_query|mcp_palantir_mini_ontology_context_query",
         "policyRef": "hook-step:pretool-ontology-routing-dtc",
         "hooks": [],
-        "surfaceStatus": "public-core"
+        "intentionalEmpty": true,
+        "nonEnforcementRationale": "Reserved lifecycle policy only: Prompt-DTC evidence is enforced by handler and contract-gate paths, not this hook group. Wire an explicit command hook before promoting this group to public-core lifecycle enforcement.",
+        "surfaceStatus": "docs-only"
       },
       {
         "matcher": "Agent",

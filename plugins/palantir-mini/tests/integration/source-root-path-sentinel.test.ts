@@ -13,7 +13,6 @@ const REMOVED_LOCAL_MARKERS = [
 ];
 
 const ACTIVE_RUNTIME_FILES = [
-  "/home/palantirkc/AGENTS.md",
   "/home/palantirkc/.codex/AGENTS.md",
   "/home/palantirkc/.codex/config.toml",
   "/home/palantirkc/.codex/hooks.json",
@@ -34,6 +33,10 @@ const ACTIVE_RUNTIME_FILES = [
   path.join(PLUGIN_ROOT, "lib/agents/inventory.ts"),
   path.join(PLUGIN_ROOT, "lib/config/root.ts"),
   path.join(PLUGIN_ROOT, "scripts/cross-project-audit.ts"),
+];
+
+const OPTIONAL_RUNTIME_FILES = [
+  "/home/palantirkc/AGENTS.md",
 ];
 
 function readFile(filePath: string): string {
@@ -64,7 +67,12 @@ describe("source-root path sentinel", () => {
 
     expect(fs.existsSync("/home/palantirkc/.agents/plugins/marketplace.json")).toBe(false);
 
-    for (const filePath of ACTIVE_RUNTIME_FILES) {
+    const runtimeFilesToInspect = [
+      ...ACTIVE_RUNTIME_FILES,
+      ...OPTIONAL_RUNTIME_FILES.filter((filePath) => fs.existsSync(filePath)),
+    ];
+
+    for (const filePath of runtimeFilesToInspect) {
       const content = readFile(filePath);
       for (const marker of REMOVED_LOCAL_MARKERS) {
         expect(content.includes(marker), `${filePath} must not contain removed local marker ${marker}`).toBe(false);

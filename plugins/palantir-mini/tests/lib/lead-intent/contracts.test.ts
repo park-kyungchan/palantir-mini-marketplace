@@ -27,6 +27,99 @@ import {
   ONTOLOGY_DTC_BUILD_POLICY,
   advanceOntologyDTCBuildSequence,
 } from "../../../lib/semantic-intent/ontology-dtc-build-sequence";
+import {
+  canonicalTerm,
+  registrySnapshot,
+  sourceSystemRef,
+  sourceSystemTerm,
+} from "../../../lib/semantic-consistency/registry";
+import { resolveSemanticConsistency } from "../../../lib/semantic-consistency/resolver";
+
+const scene3dContractSource = sourceSystemRef({
+  sourceSystemId: "scene3d-contract-fixture",
+  kind: "repo",
+  displayName: "Scene3D contract fixture",
+  authorityRank: 100,
+});
+const scene3dObject = canonicalTerm({
+  displayName: "Scene3D",
+  definition: "Additive 3D scene primitive path.",
+  ontologyKind: "ObjectType",
+  ontologyRef: "ri.ontology.main.object-type.scene3d",
+  approvalRef: "user:approved:test",
+});
+const geometry3dObject = canonicalTerm({
+  displayName: "geometry3D",
+  definition: "Geometry payload for the Scene3D primitive path.",
+  ontologyKind: "ObjectType",
+  ontologyRef: "ri.ontology.main.object-type.geometry3d",
+  approvalRef: "user:approved:test",
+});
+const authorAction = canonicalTerm({
+  displayName: "author",
+  definition: "Action authorizing Scene3D creation or update.",
+  ontologyKind: "ActionType",
+  ontologyRef: "ri.ontology.main.action-type.author-scene3d",
+  approvalRef: "user:approved:test",
+});
+const renderFunction = canonicalTerm({
+  displayName: "render",
+  definition: "Function rendering Scene3D state.",
+  ontologyKind: "Function",
+  ontologyRef: "ri.ontology.main.function.render-scene3d",
+  approvalRef: "user:approved:test",
+});
+const evaluateFunction = canonicalTerm({
+  displayName: "evaluate",
+  definition: "Function evaluating Scene3D readiness.",
+  ontologyKind: "Function",
+  ontologyRef: "ri.ontology.main.function.evaluate-scene3d",
+  approvalRef: "user:approved:test",
+});
+const approvedSemanticConsistencyResult = resolveSemanticConsistency({
+  sourceTerms: [
+    sourceSystemTerm({
+      sourceSystemRef: scene3dContractSource,
+      fieldPath: "approvedNouns[0]",
+      rawTerm: "Scene3D",
+      evidenceRefs: ["semantic-intent:test"],
+    }),
+    sourceSystemTerm({
+      sourceSystemRef: scene3dContractSource,
+      fieldPath: "approvedNouns[1]",
+      rawTerm: "geometry3D",
+      evidenceRefs: ["semantic-intent:test"],
+    }),
+    sourceSystemTerm({
+      sourceSystemRef: scene3dContractSource,
+      fieldPath: "approvedVerbs[0]",
+      rawTerm: "author",
+      evidenceRefs: ["semantic-intent:test"],
+    }),
+    sourceSystemTerm({
+      sourceSystemRef: scene3dContractSource,
+      fieldPath: "approvedVerbs[1]",
+      rawTerm: "render",
+      evidenceRefs: ["semantic-intent:test"],
+    }),
+    sourceSystemTerm({
+      sourceSystemRef: scene3dContractSource,
+      fieldPath: "approvedVerbs[2]",
+      rawTerm: "evaluate",
+      evidenceRefs: ["semantic-intent:test"],
+    }),
+  ],
+  registry: registrySnapshot({
+    sourceSystems: [scene3dContractSource],
+    canonicalTerms: [
+      scene3dObject,
+      geometry3dObject,
+      authorAction,
+      renderFunction,
+      evaluateFunction,
+    ],
+  }),
+});
 
 function approvedSemantic(): SemanticIntentContract {
   return {
@@ -38,6 +131,11 @@ function approvedSemantic(): SemanticIntentContract {
     approvedNouns: ["Scene3D", "geometry3D"],
     approvedVerbs: ["author", "render", "evaluate"],
     affectedSurfaces: ["ontology/data/visual3D.ts", "src/lib/jsxGraph3D"],
+    approvedCanonicalTermRefs: [...approvedSemanticConsistencyResult.canonicalTermRefs],
+    approvedTermMappingRefs: approvedSemanticConsistencyResult.mappings.map(
+      (mapping) => mapping.mappingId,
+    ),
+    semanticConsistencyResultRef: approvedSemanticConsistencyResult.resolverRunId,
     permissionsAndProposal: "Use a separate PR proposal before runtime edits.",
     acceptedRisks: [],
     downstreamAllowed: ["Route implementation after DigitalTwinChangeContract approval."],
@@ -71,6 +169,7 @@ function baseApprovedDigitalTwin(): DigitalTwinChangeContract {
         confidence: "exact",
       },
     ],
+    semanticConsistencyRefs: [approvedSemanticConsistencyResult.resolverRunId],
     risks: [
       {
         riskId: "risk.tool-surface",
@@ -118,7 +217,15 @@ function completeOntologyDtc(contract: DigitalTwinChangeContract): DigitalTwinCh
     5,
     "Replay additive fixtures | Observe workflow lineage | Eval release gate || ValidationPack:meta-ontology-completion",
   ).dtcDraft;
-  next = advanceOntologyDTCBuildSequence(next, 6, "ready-for-dtc").dtcDraft;
+  next = advanceOntologyDTCBuildSequence(
+    next,
+    6,
+    [
+      "ready-for-dtc",
+      approvedSemanticConsistencyResult.resolverRunId,
+      ...approvedSemanticConsistencyResult.mappings.map((mapping) => mapping.mappingId),
+    ].join(","),
+  ).dtcDraft;
   return {
     ...next,
     affectedSurfaces: originalAffectedSurfaces,
@@ -205,6 +312,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
       complexityHint: "cross-cutting",
       semanticIntentContract: approvedSemantic(),
       digitalTwinChangeContract: approvedDigitalTwin(),
+      semanticConsistencyResult: approvedSemanticConsistencyResult,
     });
 
     expect(result.status).toBe("pass");
@@ -336,6 +444,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
         functionRefs: [],
         applicationStateRefs: [],
         evaluationRefs: [],
+        semanticTermRefs: [],
         nonApplicablePrimitiveKinds: [
           "ObjectType",
           "LinkType",
@@ -343,6 +452,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
           "Function",
           "ApplicationState",
           "Eval",
+          "SemanticConsistency",
         ],
         nonApplicableEvidenceRefs: ["evidence:non-applicable:docs-only-dtc"],
         readinessVerdict: "ready-for-dtc" as const,
@@ -505,6 +615,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
       complexityHint: "cross-cutting",
       semanticIntentContract: approvedSemantic(),
       digitalTwinChangeContract: approvedDigitalTwin(),
+      semanticConsistencyResult: approvedSemanticConsistencyResult,
     });
 
     expect(projection.basis).toBe("approved-inline-contracts");

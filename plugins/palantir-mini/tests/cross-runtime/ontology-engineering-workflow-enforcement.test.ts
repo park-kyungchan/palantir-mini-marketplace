@@ -21,6 +21,16 @@ import {
 import {
   writeUniversalOntologyEntry,
 } from "../../lib/ontology-entry/entry-store";
+import {
+  canonicalTerm,
+  registrySnapshot,
+  sourceSystemRef,
+  sourceSystemTerm,
+} from "../../lib/semantic-consistency/registry";
+import { resolveSemanticConsistency } from "../../lib/semantic-consistency/resolver";
+import type {
+  SemanticConsistencyResolverInput,
+} from "../../lib/semantic-consistency/types";
 import suiteDeclaration from "../../eval-suites/ontology-engineering-cross-runtime-enforcement.json";
 
 const tmpDirs: string[] = [];
@@ -40,6 +50,100 @@ const CASE_IDS = [
   "testcase:ontology-workflow-mutation-authorized-only-after-sic-dtc",
   "testcase:ontology-workflow-pretool-hook-blocks-violations",
 ];
+const SEMANTIC_CONSISTENCY_EVIDENCE_REF =
+  "test://ontology-engineering-workflow/semantic-consistency";
+
+const workflowSemanticConsistencySource = sourceSystemRef({
+  sourceSystemId: "ontology-engineering-workflow-fixture",
+  kind: "repo",
+  displayName: "Ontology Engineering workflow fixture",
+  authorityRank: 100,
+});
+
+const workflowSemanticConsistencyTerms = [
+  canonicalTerm({
+    displayName: "FDEOntologyEngineeringSession",
+    definition: "Session-level FDE provenance for ontology engineering workflow control.",
+    ontologyKind: "ObjectType",
+    ontologyRef: "ontology://palantir-mini/object/FDEOntologyEngineeringSession",
+    approvalRef: "user:approved:ontology-engineering-workflow-test",
+  }),
+  canonicalTerm({
+    displayName: "WorkflowContract",
+    definition: "Workflow control-plane contract that carries mutation authorization state.",
+    ontologyKind: "ObjectType",
+    ontologyRef: "ontology://palantir-mini/object/WorkflowContract",
+    approvalRef: "user:approved:ontology-engineering-workflow-test",
+  }),
+  canonicalTerm({
+    displayName: "TurnCardDecisionSpec",
+    definition: "Text-renderable decision card specification for runtime-neutral review.",
+    ontologyKind: "ObjectType",
+    ontologyRef: "ontology://palantir-mini/object/TurnCardDecisionSpec",
+    approvalRef: "user:approved:ontology-engineering-workflow-test",
+  }),
+  canonicalTerm({
+    displayName: "UserDecisionRecord",
+    definition: "Recorded user decision evidence for workflow authorization.",
+    ontologyKind: "ObjectType",
+    ontologyRef: "ontology://palantir-mini/object/UserDecisionRecord",
+    approvalRef: "user:approved:ontology-engineering-workflow-test",
+  }),
+  canonicalTerm({
+    displayName: "surface",
+    definition: "Surface workflow decisions as runtime-neutral text artifacts.",
+    ontologyKind: "Function",
+    approvalRef: "user:approved:ontology-engineering-workflow-test",
+  }),
+  canonicalTerm({
+    displayName: "record",
+    definition: "Record workflow decisions into deterministic provenance.",
+    ontologyKind: "ActionType",
+    approvalRef: "user:approved:ontology-engineering-workflow-test",
+  }),
+  canonicalTerm({
+    displayName: "gate",
+    definition: "Gate routing and mutation until approved contracts and provenance exist.",
+    ontologyKind: "Function",
+    approvalRef: "user:approved:ontology-engineering-workflow-test",
+  }),
+  canonicalTerm({
+    displayName: "route",
+    definition: "Route only after semantic, digital-twin, and workflow provenance checks pass.",
+    ontologyKind: "ActionType",
+    approvalRef: "user:approved:ontology-engineering-workflow-test",
+  }),
+];
+
+function workflowSemanticConsistencyInput(): SemanticConsistencyResolverInput {
+  return {
+    sourceTerms: [
+      "FDEOntologyEngineeringSession",
+      "WorkflowContract",
+      "TurnCardDecisionSpec",
+      "UserDecisionRecord",
+      "surface",
+      "record",
+      "gate",
+      "route",
+    ].map((term) =>
+      sourceSystemTerm({
+        sourceSystemRef: workflowSemanticConsistencySource,
+        fieldPath: `approved-term:${term}`,
+        rawTerm: term,
+        evidenceRefs: [SEMANTIC_CONSISTENCY_EVIDENCE_REF],
+      }),
+    ),
+    registry: registrySnapshot({
+      sourceSystems: [workflowSemanticConsistencySource],
+      canonicalTerms: workflowSemanticConsistencyTerms,
+    }),
+  };
+}
+
+const approvedSemanticConsistencyResult = resolveSemanticConsistency(
+  workflowSemanticConsistencyInput(),
+);
 
 function makeProject(runtime: PromptRuntime): string {
   const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), `pm-oe-${runtime}-`));
@@ -100,6 +204,11 @@ function semanticContract(): SemanticIntentContract {
     downstreamAllowed: ["Route after FDE provenance and approved DTC are present."],
     downstreamForbidden: ["Do not expose or runtime-native user-input helper as contract UI."],
     clarificationQuestions: [],
+    approvedCanonicalTermRefs: [...approvedSemanticConsistencyResult.canonicalTermRefs],
+    approvedTermMappingRefs: approvedSemanticConsistencyResult.mappings.map(
+      (mapping) => mapping.mappingId,
+    ),
+    semanticConsistencyResultRef: approvedSemanticConsistencyResult.resolverRunId,
     approvalRef: "user:approved:ontology-engineering-workflow-test",
   };
 }
@@ -153,6 +262,7 @@ function digitalTwinContract(): DigitalTwinChangeContract {
         confidence: "exact",
       },
     ],
+    semanticConsistencyRefs: [approvedSemanticConsistencyResult.resolverRunId],
     requiredEvaluationRefs: [
       {
         kind: "ValidationPack",
@@ -179,6 +289,10 @@ function digitalTwinContract(): DigitalTwinChangeContract {
       evaluationRefs: [
         "project://palantir-mini/validation-pack/ontology-engineering-cross-runtime-enforcement",
       ],
+      semanticTermRefs: [
+        approvedSemanticConsistencyResult.resolverRunId,
+        ...approvedSemanticConsistencyResult.mappings.map((mapping) => mapping.mappingId),
+      ],
       readinessVerdict: "ready-for-dtc",
     },
     risks: [],
@@ -203,6 +317,7 @@ function approvedGateInput(
     sessionId: prompt.sessionId,
     semanticIntentContract: semanticContract(),
     digitalTwinChangeContract: digitalTwinContract(),
+    semanticConsistencyResolverInput: workflowSemanticConsistencyInput(),
     ...(fdeRef ? { fdeOntologyEngineeringSessionRef: fdeRef } : {}),
   };
 }
@@ -224,6 +339,7 @@ function approvedRouterInput(
     sessionId: prompt.sessionId,
     semanticIntentContract: semanticContract(),
     digitalTwinChangeContract: digitalTwinContract(),
+    semanticConsistencyResult: approvedSemanticConsistencyResult,
     ...(fdeRef ? { fdeOntologyEngineeringSessionRef: fdeRef } : {}),
   };
 }

@@ -91,7 +91,7 @@ afterEach(() => {
 });
 
 describe("prompt-dtc scoped blocking", () => {
-  test("default mode remains advisory for scoped surfaces", async () => {
+  test("default mode strengthens scoped protected surfaces to scoped-blocking", async () => {
     const project = makeTmpProject();
     await capturedPrompt(project);
 
@@ -103,9 +103,11 @@ describe("prompt-dtc scoped blocking", () => {
       }),
     );
 
-    expect(result.message).toBe("palantir-mini: prompt-DTC gate advisory");
-    expect(result.decision).toBeUndefined();
-    expect(result.hookSpecificOutput?.permissionDecision).toBeUndefined();
+    expect(result.message).toBe("palantir-mini: prompt-DTC gate BLOCKED");
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(result.reason).toContain("SCOPED-BLOCKING");
+    expect(result.reason).toContain("lead-intent contract surface");
   });
 
   test("scoped-blocking denies protected lead-intent surfaces without DTC approval", async () => {
@@ -185,7 +187,7 @@ describe("prompt-dtc scoped blocking", () => {
     expect(result.decision).toBeUndefined();
   });
 
-  test("off mode remains available but emits an auditable bypass event", async () => {
+  test("off mode does not defeat scoped protected mutation minimums", async () => {
     const project = makeTmpProject();
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "off";
     await capturedPrompt(project);
@@ -198,16 +200,14 @@ describe("prompt-dtc scoped blocking", () => {
       }),
     );
 
-    expect(result).toEqual({ message: "palantir-mini: prompt-DTC gate off" });
-    const event = readEvents(project).find(
+    expect(result.message).toBe("palantir-mini: prompt-DTC gate BLOCKED");
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("SCOPED-BLOCKING");
+    expect(result.reason).toContain("public MCP schema surface");
+    const bypassEvent = readEvents(project).find(
       (entry) => entry.payload?.errorClass === "prompt_dtc_gate_off_bypass",
     );
-    expect(event?.payload).toMatchObject({
-      mode: "off",
-      mutating: true,
-      projectRoot: project,
-      runtime: "unknown",
-    });
+    expect(bypassEvent).toBeUndefined();
   });
 
   test("scoped surface classifier covers ontology, generated, MCP, and router surfaces", () => {

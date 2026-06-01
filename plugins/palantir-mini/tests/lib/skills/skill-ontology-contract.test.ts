@@ -11,7 +11,10 @@ import {
 import {
   routeSkillOntology,
 } from "../../../lib/skills/skill-ontology-router";
-import type { SemanticConversationState } from "../../../lib/chatbot-studio/semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "../../../lib/chatbot-studio/semantic-conversation-state";
 import type { OntologyActivation } from "../../../lib/context-engineering/ontology-activation";
 
 const GOOD_SKILL = `---
@@ -60,8 +63,9 @@ ontologySkill:
 `;
 
 function conversationState(): SemanticConversationState {
+  const stateId = "semantic-conversation:test";
   return {
-    stateId: "semantic-conversation:test",
+    stateId,
     schemaVersion: "palantir-mini/semantic-conversation-state/v1",
     prompt: { runtime: "codex" },
     userFacing: {
@@ -83,6 +87,7 @@ function conversationState(): SemanticConversationState {
       selectedSkillRefs: [],
       skillRoutingReason: "candidate from user-approved meaning",
     },
+    llmControlFacing: buildLLMControlFacingState(stateId),
     contractFacing: { dtcReady: false },
     projectFacing: {
       projectRoot: "/tmp/palantir-math",

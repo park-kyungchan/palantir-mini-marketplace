@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { routeCapabilityOntology } from "../../../lib/capability/capability-router";
 import type { CapabilityContract } from "../../../lib/capability/capability-contract";
 import type { OntologyContextSeed } from "../../../lib/context-engineering/ontology-activation";
-import type { SemanticConversationState } from "../../../lib/chatbot-studio/semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "../../../lib/chatbot-studio/semantic-conversation-state";
 
 function capability(input: {
   id: string;
@@ -94,8 +97,9 @@ const SEQUENCER_MATH = capability({
 });
 
 function conversation(summary: string): SemanticConversationState {
+  const stateId = "semantic-conversation:test";
   return {
-    stateId: "semantic-conversation:test",
+    stateId,
     schemaVersion: "palantir-mini/semantic-conversation-state/v1",
     prompt: {},
     userFacing: {
@@ -122,6 +126,7 @@ function conversation(summary: string): SemanticConversationState {
       selectedCapabilityRefs: [],
       capabilityRoutingReason: "test",
     },
+    llmControlFacing: buildLLMControlFacingState(stateId),
     contractFacing: {
       dtcReady: false,
     },

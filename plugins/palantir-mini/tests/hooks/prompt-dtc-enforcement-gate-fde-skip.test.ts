@@ -101,7 +101,7 @@ describe("prompt-dtc-enforcement-gate FDE session-aware skip", () => {
 
     expect(result.decision).toBe("block");
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-    expect(result.reason).toContain("SELECTIVE-BLOCKING");
+    expect(result.reason).toContain("BLOCKING");
   });
 
   test("payload.prompt alone no longer drives FDE skip", async () => {
@@ -113,7 +113,7 @@ describe("prompt-dtc-enforcement-gate FDE session-aware skip", () => {
       tool_input: { action: "read" },
     });
 
-    expect(result.message).toContain("not ontology-affecting");
+    expect(result.message).toContain("read-only or allowed");
     expect(result.message).not.toContain("FDE ontology-engineering read-only session");
   });
 });

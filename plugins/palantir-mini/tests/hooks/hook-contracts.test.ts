@@ -23,6 +23,13 @@ const SURFACE_STATUS_VALUES = [
   "archived",
 ] as const;
 const SURFACE_STATUS_VALUE_SET = new Set<string>(SURFACE_STATUS_VALUES);
+const EMPTY_GROUP_SURFACE_STATUS_VALUES = new Set<string>([
+  "dev-only",
+  "docs-only",
+  "internal",
+  "deprecated-candidate",
+  "archived",
+]);
 
 interface HookConfig {
   readonly type?: string;
@@ -36,6 +43,8 @@ interface HookConfig {
 interface HookGroup {
   readonly policyRef?: string;
   readonly surfaceStatus?: string;
+  readonly intentionalEmpty?: boolean;
+  readonly nonEnforcementRationale?: string;
   readonly hooks?: readonly HookConfig[];
 }
 
@@ -59,6 +68,37 @@ describe("hook IO contracts", () => {
       const label = `${eventName}[${index}]`;
       expect(group.policyRef, label).toMatch(/^hook-step:/);
       expect(SURFACE_STATUS_VALUE_SET.has(group.surfaceStatus ?? ""), label).toBe(true);
+    }
+  });
+
+  test("public-core hook policy groups are backed by at least one hook", () => {
+    const hooks = loadHooks();
+    const publicCoreGroups = Object.entries(hooks.hooks ?? {}).flatMap(([eventName, eventGroups]) =>
+      eventGroups
+        .map((group, index) => ({ eventName, group, index }))
+        .filter(({ group }) => group.surfaceStatus === "public-core"),
+    );
+
+    expect(publicCoreGroups.length).toBeGreaterThan(0);
+    for (const { eventName, group, index } of publicCoreGroups) {
+      const label = `${eventName}[${index}]/${group.policyRef ?? "unknown-policy"}`;
+      expect(group.hooks?.length ?? 0, label).toBeGreaterThan(0);
+    }
+  });
+
+  test("intentionally empty hook policy groups are explicit non-enforcing placeholders", () => {
+    const hooks = loadHooks();
+    const emptyGroups = Object.entries(hooks.hooks ?? {}).flatMap(([eventName, eventGroups]) =>
+      eventGroups
+        .map((group, index) => ({ eventName, group, index }))
+        .filter(({ group }) => (group.hooks ?? []).length === 0),
+    );
+
+    for (const { eventName, group, index } of emptyGroups) {
+      const label = `${eventName}[${index}]/${group.policyRef ?? "unknown-policy"}`;
+      expect(EMPTY_GROUP_SURFACE_STATUS_VALUES.has(group.surfaceStatus ?? ""), label).toBe(true);
+      expect(group.intentionalEmpty, label).toBe(true);
+      expect(group.nonEnforcementRationale?.trim().length ?? 0, label).toBeGreaterThan(0);
     }
   });
 

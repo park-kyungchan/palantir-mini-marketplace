@@ -85,6 +85,7 @@ import type {
   PromptEnvelope,
   PromptRuntime,
 } from "../../lib/prompt-front-door";
+import type { SemanticConsistencyResolverOutput } from "../../lib/semantic-consistency/types";
 import { attachRoutingProjectionToCapsule } from "../../lib/context/context-capsule";
 import { readCurrentUniversalOntologyEntry } from "../../lib/ontology-entry/entry-store";
 import { transitionUniversalOntologyEntry } from "../../lib/ontology-entry/lifecycle";
@@ -195,6 +196,10 @@ export interface IntentRouterWorkBindingInput {
   workContract?: WorkContract;
   /** Optional inline RouterBinding for router output binding validation. */
   routerBinding?: RouterBinding;
+  /** Optional deterministic semantic consistency evidence for in-process router callers. */
+  semanticConsistencyResultRef?: string;
+  /** Optional deterministic semantic consistency resolver output for approved SIC/DTC promotion. */
+  semanticConsistencyResult?: SemanticConsistencyResolverOutput;
 }
 
 type EffectiveIntentRouterInput = IntentRouterInput & IntentRouterWorkBindingInput;
@@ -584,6 +589,9 @@ function validateWorkBindingState(
         digitalTwinChangeContractRef: input.digitalTwinChangeContractRef,
         semanticIntentContract: input.semanticIntentContract,
         digitalTwinChangeContract: input.digitalTwinChangeContract,
+        semanticConsistencyResultRef:
+          input.semanticConsistencyResultRef ?? input.semanticConsistencyResult?.resolverRunId,
+        semanticConsistencyResult: input.semanticConsistencyResult,
       })
     : undefined;
   const routerBindingValidation = routerBinding
@@ -871,8 +879,12 @@ export async function routeIntent(
     projectRoot: input.project,
     semanticIntentContractRef: effectiveInput.semanticIntentContractRef,
     digitalTwinChangeContractRef: effectiveInput.digitalTwinChangeContractRef,
+    semanticConsistencyResultRef:
+      effectiveInput.semanticConsistencyResultRef ??
+      effectiveInput.semanticConsistencyResult?.resolverRunId,
     semanticIntentContract: effectiveInput.semanticIntentContract,
     digitalTwinChangeContract: effectiveInput.digitalTwinChangeContract,
+    semanticConsistencyResult: effectiveInput.semanticConsistencyResult,
   });
   const effectiveContractGate =
     promptRouting.continuity && !promptRouting.continuity.valid
@@ -899,8 +911,12 @@ export async function routeIntent(
     projectRoot: input.project,
     semanticIntentContractRef: effectiveInput.semanticIntentContractRef,
     digitalTwinChangeContractRef: effectiveInput.digitalTwinChangeContractRef,
+    semanticConsistencyResultRef:
+      effectiveInput.semanticConsistencyResultRef ??
+      effectiveInput.semanticConsistencyResult?.resolverRunId,
     semanticIntentContract: effectiveInput.semanticIntentContract,
     digitalTwinChangeContract: effectiveInput.digitalTwinChangeContract,
+    semanticConsistencyResult: effectiveInput.semanticConsistencyResult,
   });
 
   // FAIL-CLOSED: if the routing basis is raw-intent and the intent is ontology-affecting

@@ -17,7 +17,10 @@ import {
 import { routeCapabilityOntology } from "../capability/capability-router";
 import type { KnownIssue } from "../issues/known-issue";
 import type { UniversalOntologyEntry } from "../ontology-entry/universal-entry";
-import type { SemanticConversationState } from "../chatbot-studio/semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "../chatbot-studio/semantic-conversation-state";
 import type { OntologyContextSeed } from "../context-engineering/ontology-activation";
 import {
   normalizeSkillOntologyContract,
@@ -216,8 +219,9 @@ function conversationFromEntry(
   entry: UniversalOntologyEntry,
   laneRefs: readonly string[],
 ): SemanticConversationState {
+  const stateId = `semantic-conversation:${entry.entryId}`;
   return {
-    stateId: `semantic-conversation:${entry.entryId}`,
+    stateId,
     schemaVersion: "palantir-mini/semantic-conversation-state/v1",
     prompt: {
       promptId: entry.prompt.promptId,
@@ -249,6 +253,7 @@ function conversationFromEntry(
       selectedCapabilityRefs: [],
       capabilityRoutingReason: "UniversalOntologyEntry seeded deterministic capability routing.",
     },
+    llmControlFacing: buildLLMControlFacingState(stateId),
     contractFacing: {
       dtcReady: false,
     },

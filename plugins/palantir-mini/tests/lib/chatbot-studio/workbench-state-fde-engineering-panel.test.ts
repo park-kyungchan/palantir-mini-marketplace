@@ -2,12 +2,16 @@ import { describe, expect, test } from "bun:test";
 import {
   buildSemanticWorkbenchState,
 } from "../../../lib/chatbot-studio/workbench-state";
-import type { SemanticConversationState } from "../../../lib/chatbot-studio/semantic-conversation-state";
+import {
+  buildLLMControlFacingState,
+  type SemanticConversationState,
+} from "../../../lib/chatbot-studio/semantic-conversation-state";
 import type { FDEOntologyEngineeringSession } from "../../../lib/fde-ontology-engineering/types";
 
 function conversation(): SemanticConversationState {
+  const stateId = "semantic-conversation:fde-engineering-panel";
   return {
-    stateId: "semantic-conversation:fde-engineering-panel",
+    stateId,
     schemaVersion: "palantir-mini/semantic-conversation-state/v1",
     prompt: { promptId: "prompt-1", sessionId: "session-1", runtime: "codex" },
     userFacing: {
@@ -30,6 +34,7 @@ function conversation(): SemanticConversationState {
       rejectedSkillRefs: [],
       skillRoutingReason: "test fixture",
     },
+    llmControlFacing: buildLLMControlFacingState(stateId),
     contractFacing: { dtcReady: false },
     projectFacing: {
       projectRoot: "/tmp/fde-engineering-panel",
