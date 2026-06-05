@@ -40,8 +40,6 @@ describe("runtime adapter contracts", () => {
     expect([...contract.mountedHookEvents].sort()).toEqual(Object.keys(codexHooks.hooks ?? {}).sort());
     expect(contract.unmountedHookEvents).toEqual([
       "PreToolUse",
-      "SessionStart",
-      "UserPromptSubmit",
     ]);
     for (const event of contract.unmountedHookEvents) {
       expect(codexHooks.hooks?.[event]).toBeUndefined();
@@ -49,8 +47,6 @@ describe("runtime adapter contracts", () => {
     expect(contract.unsupportedSurfaceRefs).toEqual(
       expect.arrayContaining([
         "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
-        "codex:hook-event:SessionStart:unmounted",
-        "codex:hook-event:UserPromptSubmit:unmounted",
       ]),
     );
     expect(contract.smokeEvidenceRefs).toEqual(

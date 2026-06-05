@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { decideCodexPalantirMiniActivation } from "../../../lib/codex/palantir-mini-activation-policy";
+import { createPromptEnvelope, PromptFrontDoorStore } from "../../../lib/prompt-front-door";
 
 const tmpDirs: string[] = [];
 
@@ -155,6 +156,35 @@ describe("Codex palantir-mini activation policy", () => {
 
     expect(decision.mode).toBe("silent-bypass");
     expect(decision.reasonCode).toBe("simple-non-palantir-turn");
+  });
+
+  test("short UserPromptSubmit decisions continue when prompt-front-door proves prior palantir-mini context", async () => {
+    const pluginRoot = makePluginRoot();
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pm-activation-continuation-"));
+    tmpDirs.push(projectRoot);
+    fs.mkdirSync(path.join(projectRoot, ".palantir-mini", "session"), { recursive: true });
+
+    const envelope = createPromptEnvelope({
+      rawPrompt: "palantir-mini로 self-ontology workflow를 turn-by-turn으로 진행해.",
+      sessionId: "codex-continuation-session",
+      runtime: "codex",
+      projectRoot,
+    });
+    await new PromptFrontDoorStore({ projectRoot }).saveEnvelope(envelope);
+
+    const decision = decideCodexPalantirMiniActivation({
+      eventName: "UserPromptSubmit",
+      policyEventName: "UserPromptSubmit",
+      cwd: "/home/palantirkc",
+      pluginRoot,
+      prompt: "A",
+      sessionId: "codex-continuation-session",
+      candidateProjectRoots: [projectRoot],
+    });
+
+    expect(decision.mode).toBe("active");
+    expect(decision.reasonCode).toBe("prompt-front-door-continuation");
+    expect(decision.shouldRunSharedHooks).toBe(true);
   });
 
   test("tracked palantir-mini projects activate for protected native tools", () => {

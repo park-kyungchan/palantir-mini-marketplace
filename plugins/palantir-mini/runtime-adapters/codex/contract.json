@@ -28,23 +28,21 @@
     "tests/integration/codex-skill-surface.test.ts"
   ],
   "mountedHookEvents": [
+    "SessionStart",
     "PermissionRequest",
     "PostToolUse",
     "PreCompact",
     "PostCompact",
+    "UserPromptSubmit",
     "SubagentStart",
     "SubagentStop",
     "Stop"
   ],
   "unmountedHookEvents": [
-    "PreToolUse",
-    "SessionStart",
-    "UserPromptSubmit"
+    "PreToolUse"
   ],
   "unsupportedSurfaceRefs": [
     "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
-    "codex:hook-event:SessionStart:unmounted",
-    "codex:hook-event:UserPromptSubmit:unmounted",
     "codex:claude-task-lifecycle-event-parity",
     "codex:gemini-extension-parity"
   ],
@@ -58,18 +56,19 @@
     "A source plan or source merge is not live Codex behavior until the plugin payload is reinstalled/reloaded and Codex is restarted.",
     "Mounted hook, MCP profile, and skill surface claims require smoke evidence from the installed runtime payload.",
     "Silent adapter bypass is not a no-call guarantee; true no-call policy must be configured in Codex before hook loading.",
-    "Prompt-only opt-out is not durable to prompt-less mounted events while UserPromptSubmit remains unmounted; use Codex no-call config or repo-local opt-in-only policy for that boundary.",
+    "Prompt-only opt-out is captured through UserPromptSubmit after reinstall/reload; prompt-less mounted events still require stored prompt-front-door evidence, Codex no-call config, or repo-local opt-in-only policy for durable no-call behavior.",
     "Provider identity remains metadata and must not authorize approvals or mutations."
   ],
   "smokeEvidenceRefs": [
     "tests/runtime-boundary/codex-plugin-hooks.test.ts",
     "tests/integration/codex-skill-surface.test.ts",
+    "tests/integration/codex-prompt-to-dtc-e2e.test.ts",
     "tests/lib/codex/palantir-mini-activation-policy.test.ts"
   ],
   "reloadEvidenceRefs": [
     "docs/RELOAD_PER_RUNTIME.md",
     "docs/CODEX_HOOK_ADAPTER.md"
   ],
-  "lastVerified": "2026-05-31",
+  "lastVerified": "2026-06-05",
   "unsupportedParityClaimsForbidden": true
 }

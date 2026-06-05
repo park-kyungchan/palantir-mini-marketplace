@@ -32,8 +32,7 @@ export interface RuntimeHookMountProjection {
 }
 
 export const CODEX_UNSUPPORTED_HOOK_EVENTS: readonly HookWorkflowEvent[] = [
-  "SessionStart",
-  "UserPromptSubmit",
+  "PreToolUse",
 ];
 
 export const CODEX_SCHEMA_ONLY_HOOK_EVENTS: readonly HookWorkflowEvent[] = [];

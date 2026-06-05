@@ -81,10 +81,12 @@ describe("composeApplicationState — Phase 3 PR 3.2 composer (sprint-094)", () 
     expect(state.sharedHookIntentEvents.meaning).toContain("shared hook intent");
     expect(state.codexMountedHookEvents.source).toBe("runtime-adapters/codex/contract.json");
     expect(state.codexMountedHookEvents.events).toEqual([
+      "SessionStart",
       "PermissionRequest",
       "PostToolUse",
       "PreCompact",
       "PostCompact",
+      "UserPromptSubmit",
       "SubagentStart",
       "SubagentStop",
       "Stop",

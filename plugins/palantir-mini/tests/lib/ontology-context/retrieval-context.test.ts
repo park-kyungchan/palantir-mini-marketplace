@@ -80,10 +80,12 @@ describe("composeRetrievalContext — Phase 3 PR 3.3 composer (sprint-095)", () 
     expect(state.sharedHookIntentEvents.meaning).toContain("shared hook intent");
     expect(state.codexMountedHookEvents.source).toBe("runtime-adapters/codex/contract.json");
     expect(state.codexMountedHookEvents.events).toEqual([
+      "SessionStart",
       "PermissionRequest",
       "PostToolUse",
       "PreCompact",
       "PostCompact",
+      "UserPromptSubmit",
       "SubagentStart",
       "SubagentStop",
       "Stop",

@@ -71,9 +71,11 @@ hook-intent SSoT, while `hooks/codex-hooks.json` and
 `runtime-adapters/codex/contract.json` control which Codex lifecycle events are
 mounted at all. Ontology context projections expose these as separate surfaces:
 `sharedHookIntentEvents` is policy intent, and `codexMountedHookEvents` is Codex
-runtime mounting evidence. The current Codex surface does not mount
-`PreToolUse`, `SessionStart`, or `UserPromptSubmit`; changing that requires a source
-PR, plugin reinstall, trust-state refresh, and process restart. `bun
+runtime mounting evidence. The current Codex surface mounts `SessionStart` and
+`UserPromptSubmit`; `PreToolUse` remains unmounted until prompt opt-out capture
+and read-only/review-artifact classification are reliable. Changing mounted
+lifecycle events requires a source PR, plugin reinstall, trust-state refresh,
+and process restart. `bun
 scripts/sync-codex-adapter.ts` regenerates the Codex fallback adapter/shim for
 local development. The active Codex session still needs plugin reinstall plus
 process restart to observe runtime-surface changes.
@@ -87,7 +89,8 @@ Codex-owned config/profile/plugin controls before startup, then verify the
 active surface with `/debug-config`, `/plugins`, and `/hooks` after restarting.
 This is especially important when the user's opt-out instruction exists only in
 the original prompt: prompt-less mounted events cannot reconstruct that
-instruction after `UserPromptSubmit` remains unmounted.
+instruction unless a prior `UserPromptSubmit` capture has already persisted
+prompt-front-door state for the session.
 
 ## Safe To Skip
 

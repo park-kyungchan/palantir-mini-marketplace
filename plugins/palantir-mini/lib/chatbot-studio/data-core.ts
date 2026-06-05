@@ -388,8 +388,6 @@ export function defaultChatbotStudioRuntimeProjections(): readonly ChatbotStudio
       ],
       unsupportedSurfaceRefs: [
         "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
-        "codex:hook-event:SessionStart:unmounted",
-        "codex:hook-event:UserPromptSubmit:unmounted",
       ],
     },
     {

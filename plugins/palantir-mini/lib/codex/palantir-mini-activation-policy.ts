@@ -18,6 +18,7 @@ export type CodexPalantirMiniActivationReason =
   | "meta-harness-plugin-independent"
   | "simple-non-palantir-turn"
   | "explicit-palantir-mini-opt-in"
+  | "prompt-front-door-continuation"
   | "palantir-mini-source-work"
   | "palantir-mini-mcp-tool"
   | "tracked-project-protected-tool"
@@ -33,6 +34,8 @@ export interface CodexPalantirMiniActivationInput {
   readonly toolName?: string;
   readonly toolInput?: Record<string, unknown>;
   readonly prompt?: string;
+  readonly sessionId?: string;
+  readonly candidateProjectRoots?: readonly string[];
   readonly env?: Record<string, string | undefined>;
 }
 
@@ -117,6 +120,28 @@ function findAncestorWith(start: string | undefined, dirname: string): string | 
   return undefined;
 }
 
+function safeSegment(value: string): string {
+  return value
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter(Boolean)
+    .join("-")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "unknown";
+}
+
+function uniqueAbsPaths(values: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const normalized = normalizeMaybePath(value);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result;
+}
+
 function findAncestorFile(start: string | undefined, filename: string): string | undefined {
   const initial = normalizeMaybePath(start);
   if (!initial) return undefined;
@@ -170,6 +195,71 @@ function hasExplicitOptIn(prompt: string | undefined): boolean {
   if (!prompt) return false;
   const lower = prompt.toLowerCase();
   return EXPLICIT_OPT_IN_MARKERS.some((marker) => lower.includes(marker.toLowerCase()));
+}
+
+function readJsonObject(filePath: string): Record<string, unknown> | undefined {
+  try {
+    const parsed = JSON.parse(readFileSync(filePath, "utf8"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function promptFrontDoorProjectRoots(input: CodexPalantirMiniActivationInput): string[] {
+  return uniqueAbsPaths([
+    ...(input.candidateProjectRoots ?? []),
+    input.env?.PALANTIR_MINI_PROJECT,
+    process.env.PALANTIR_MINI_PROJECT,
+    findAncestorWith(input.cwd, ".palantir-mini"),
+    input.cwd,
+    PALANTIR_MINI_MARKETPLACE_ROOT,
+  ]);
+}
+
+function hasPromptFrontDoorContinuation(input: CodexPalantirMiniActivationInput): boolean {
+  if (input.eventName !== "UserPromptSubmit") return false;
+  if (!input.sessionId || !input.prompt || input.prompt.trim().length === 0) return false;
+
+  for (const projectRoot of promptFrontDoorProjectRoots(input)) {
+    const pointerPath = path.join(
+      projectRoot,
+      ".palantir-mini",
+      "session",
+      "prompt-front-door",
+      "current",
+      `codex-${safeSegment(input.sessionId)}.json`,
+    );
+    const pointer = readJsonObject(pointerPath);
+    const pointerPromptId = typeof pointer?.promptId === "string" ? pointer.promptId : undefined;
+    const pointerSessionId = typeof pointer?.sessionId === "string" ? pointer.sessionId : undefined;
+    if (!pointerPromptId || !pointerSessionId) continue;
+
+    const envelopePath = path.join(
+      projectRoot,
+      ".palantir-mini",
+      "session",
+      "prompt-front-door",
+      "sessions",
+      safeSegment(pointerSessionId),
+      `${safeSegment(pointerPromptId)}.json`,
+    );
+    const envelope = readJsonObject(envelopePath);
+    const optOut = envelope?.palantirMiniPluginOptOut;
+    if (optOut && typeof optOut === "object" && (optOut as { explicit?: unknown }).explicit === true) {
+      continue;
+    }
+    const promptExcerpt = typeof envelope?.promptExcerpt === "string" ? envelope.promptExcerpt : undefined;
+    const envelopeProjectRoot =
+      typeof envelope?.projectRoot === "string" ? envelope.projectRoot : projectRoot;
+    if (hasExplicitOptIn(promptExcerpt) || isPalantirMiniSourceWork(envelopeProjectRoot, input.pluginRoot)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function commandText(input: Record<string, unknown> | undefined): string {
@@ -233,6 +323,10 @@ export function decideCodexPalantirMiniActivation(
 
   if (isPalantirMiniSourceWork(input.cwd, input.pluginRoot)) {
     return active("palantir-mini-source-work");
+  }
+
+  if (hasPromptFrontDoorContinuation(input)) {
+    return active("prompt-front-door-continuation");
   }
 
   const trackedProjectRoot = findAncestorWith(input.cwd, ".palantir-mini");

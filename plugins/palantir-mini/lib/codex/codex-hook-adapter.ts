@@ -209,6 +209,20 @@ function projectRootForPayload(payload: JsonObject, options: CodexAdapterOptions
   return typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
 }
 
+function stripPathMentionBoundary(value: string): string {
+  return value.replace(/[)\].,;:!?'"`>]+$/g, "");
+}
+
+function absolutePathMentions(value: string | undefined): string[] {
+  if (!value) return [];
+  const mentions: string[] = [];
+  for (const match of value.matchAll(/(?:^|[\s"'`(<])((?:\/[^\s"'`<>)|;,]+)+)/g)) {
+    const candidate = stripPathMentionBoundary(match[1] ?? "");
+    if (candidate) mentions.push(candidate);
+  }
+  return mentions;
+}
+
 function findTrackedProjectRoot(start: string): string | undefined {
   let cur = path.resolve(start);
   const root = path.parse(cur).root;
@@ -216,6 +230,40 @@ function findTrackedProjectRoot(start: string): string | undefined {
     if (existsSync(path.join(cur, ".palantir-mini"))) return cur;
     cur = path.dirname(cur);
   }
+  return undefined;
+}
+
+function projectRootFromEventsFile(eventsFile: string | undefined): string | undefined {
+  if (!eventsFile || !eventsFile.trim()) return undefined;
+  const sessionDir = path.dirname(path.resolve(eventsFile));
+  const palantirMiniDir = path.dirname(sessionDir);
+  if (path.basename(palantirMiniDir) === ".palantir-mini") {
+    const projectRoot = path.dirname(palantirMiniDir);
+    return findTrackedProjectRoot(projectRoot);
+  }
+  return findTrackedProjectRoot(sessionDir);
+}
+
+function projectRootHintForPayload(payload: JsonObject, options: CodexAdapterOptions = {}): string | undefined {
+  const resolved = resolveOptions(options);
+  const envProject = resolved.env.PALANTIR_MINI_PROJECT ?? process.env.PALANTIR_MINI_PROJECT;
+  if (envProject && findTrackedProjectRoot(envProject)) return path.resolve(envProject);
+
+  const eventsProject = projectRootFromEventsFile(
+    resolved.env.PALANTIR_MINI_EVENTS_FILE ?? process.env.PALANTIR_MINI_EVENTS_FILE,
+  );
+  if (eventsProject) return eventsProject;
+
+  const cwd = typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
+  const cwdProject = findTrackedProjectRoot(cwd);
+  if (cwdProject) return cwdProject;
+
+  const prompt = typeof payload.prompt === "string" ? payload.prompt : undefined;
+  for (const mentionedPath of absolutePathMentions(prompt)) {
+    const projectRoot = findTrackedProjectRoot(mentionedPath);
+    if (projectRoot) return projectRoot;
+  }
+
   return undefined;
 }
 
@@ -270,10 +318,15 @@ function promptFrontDoorRootCandidates(
   const resolved = resolveOptions(options);
   const cwd = typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
   const trackedRoot = findTrackedProjectRoot(cwd);
+  const projectRootHint = projectRootHintForPayload(payload, options);
   return uniqueAbsPaths([
     resolved.env.PALANTIR_MINI_PROJECT,
     process.env.PALANTIR_MINI_PROJECT,
+    projectRootFromEventsFile(resolved.env.PALANTIR_MINI_EVENTS_FILE),
+    projectRootFromEventsFile(process.env.PALANTIR_MINI_EVENTS_FILE),
+    projectRootHint,
     trackedRoot,
+    "/home/palantirkc/palantir-mini-marketplace",
     cwd,
     resolved.cwd,
     resolved.home,
@@ -879,8 +932,15 @@ export async function runCommandHook(
   const resolved = resolveOptions(options);
   const command = rewriteCommand(hook.command ?? "", resolved);
   const timeoutMs = Math.max(1, hook.timeout ?? 3000) * 1000;
-  const cwd = typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
-  const hookPayload = adaptPayloadForHookScripts(payload);
+  const projectRootHint = projectRootHintForPayload(payload, options);
+  const hookProjectRoot =
+    resolved.env.PALANTIR_MINI_PROJECT ?? process.env.PALANTIR_MINI_PROJECT ?? projectRootHint;
+  const cwd = hookProjectRoot ??
+    (typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd);
+  const hookPayload = adaptPayloadForHookScripts({
+    ...payload,
+    ...(hookProjectRoot ? { cwd: hookProjectRoot } : {}),
+  });
   const inputSchemaMismatch = validateKnownHookSchema(hook.inputSchemaRef, hookPayload);
   if (inputSchemaMismatch) {
     return {
@@ -900,6 +960,7 @@ export async function runCommandHook(
       PALANTIR_MINI_ROOT: resolved.pluginRoot,
       PALANTIR_MINI_PLUGIN_ROOT: resolved.pluginRoot,
       PLUGIN_ROOT: resolved.pluginRoot,
+      ...(hookProjectRoot ? { PALANTIR_MINI_PROJECT: hookProjectRoot } : {}),
       PALANTIR_MINI_HOST_RUNTIME: "codex",
     },
     stdin: "pipe",
@@ -1256,6 +1317,8 @@ export async function runCodexHookAdapter(
     toolName: typeof payload.tool_name === "string" ? payload.tool_name : undefined,
     toolInput,
     prompt: typeof payload.prompt === "string" ? payload.prompt : undefined,
+    sessionId: sessionIdForPayload(payload),
+    candidateProjectRoots: promptFrontDoorRootCandidates(payload, options),
     env: resolved.env,
   });
 

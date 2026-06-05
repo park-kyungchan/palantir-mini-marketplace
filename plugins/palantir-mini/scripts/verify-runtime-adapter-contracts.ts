@@ -11,7 +11,7 @@ import {
 
 const PLUGIN_ROOT = join(import.meta.dir, "..");
 const RUNTIMES: readonly RuntimeId[] = ["claude", "codex", "gemini"];
-const CODEX_UNMOUNTED_HOOK_EVENTS = ["PreToolUse", "SessionStart", "UserPromptSubmit"] as const;
+const CODEX_UNMOUNTED_HOOK_EVENTS = ["PreToolUse"] as const;
 const FORBIDDEN_SOURCE_REFS = [
   "~/.codex/plugins/cache",
   "/home/palantirkc/.codex/plugins/cache",
@@ -80,8 +80,9 @@ export function verifyRuntimeAdapterContracts(
     if (contract.unsupportedParityClaimsForbidden !== true) {
       errors.push(`${contract.runtime}: unsupportedParityClaimsForbidden must be true`);
     }
-    if (contract.lastVerified !== "2026-05-31") {
-      errors.push(`${contract.runtime}: lastVerified must be the PR5 verification date`);
+    const expectedLastVerified = contract.runtime === "codex" ? "2026-06-05" : "2026-05-31";
+    if (contract.lastVerified !== expectedLastVerified) {
+      errors.push(`${contract.runtime}: lastVerified must be ${expectedLastVerified}`);
     }
     for (const ref of refLists(contract)) {
       for (const forbidden of FORBIDDEN_SOURCE_REFS) {
