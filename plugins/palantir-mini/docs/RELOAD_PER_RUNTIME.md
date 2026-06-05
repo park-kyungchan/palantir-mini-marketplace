@@ -66,10 +66,13 @@ Diagnostic slash commands such as `/debug-config`, `/plugins`, `/mcp`, `/hooks`,
 and `/skills` can inspect the active surface, but they do not hot-reload an
 already-running session.
 
-When Codex hook configuration changes, `hooks/hooks.json` remains the hook
-intent SSoT for mounted hook events, while `hooks/codex-hooks.json` controls
-which Codex lifecycle events are mounted at all. The current Codex surface does
-not mount `PreToolUse`, `SessionStart`, or `UserPromptSubmit`; changing that requires a source
+When Codex hook configuration changes, `hooks/hooks.json` remains the shared
+hook-intent SSoT, while `hooks/codex-hooks.json` and
+`runtime-adapters/codex/contract.json` control which Codex lifecycle events are
+mounted at all. Ontology context projections expose these as separate surfaces:
+`sharedHookIntentEvents` is policy intent, and `codexMountedHookEvents` is Codex
+runtime mounting evidence. The current Codex surface does not mount
+`PreToolUse`, `SessionStart`, or `UserPromptSubmit`; changing that requires a source
 PR, plugin reinstall, trust-state refresh, and process restart. `bun
 scripts/sync-codex-adapter.ts` regenerates the Codex fallback adapter/shim for
 local development. The active Codex session still needs plugin reinstall plus

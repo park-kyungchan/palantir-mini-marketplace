@@ -19,8 +19,10 @@ uses only Codex-supported lifecycle events, regex-safe matchers, and commands
 that call `lib/codex/codex-hook-adapter.ts`. `PreToolUse`, `SessionStart`, and
 `UserPromptSubmit` are intentionally not mounted for Codex, so no palantir-mini
 startup context or prompt-front-door capture runs automatically in ordinary
-Codex sessions. Durable hook intent for mounted events is read from the
-canonical source root at `plugins/palantir-mini/hooks/hooks.json`.
+Codex sessions. Durable hook intent is read from the canonical source root at
+`plugins/palantir-mini/hooks/hooks.json`; the Codex mounted event list is a
+separate runtime surface declared by `hooks/codex-hooks.json` and
+`runtime-adapters/codex/contract.json`.
 
 ## Adapter Architecture
 
@@ -29,7 +31,7 @@ Codex runtime
   → .codex-plugin/plugin.json
       → hooks/codex-hooks.json  (regex-safe Codex entrypoints)
           → lib/codex/codex-hook-adapter.ts  (Codex adapter)
-              → hooks/hooks.json  (shared hook intent registry for mounted events)
+              → hooks/hooks.json  (shared hook intent registry)
 ```
 
 The adapter performs a **live-read** of shared `hooks/hooks.json` at runtime —
@@ -43,6 +45,11 @@ As of the Codex runtime cutover on 2026-05-31, `PreToolUse`, `SessionStart`, and
 `UserPromptSubmit` are deliberately absent from `hooks/codex-hooks.json`. Direct
 adapter tests may still pass those event names with temporary hook registries,
 but the checked-in Codex runtime surface does not mount them.
+
+Ontology context projections preserve this distinction. `activeHooks` remains a
+compatibility alias for shared hook intent. Newer callers should prefer
+`sharedHookIntentEvents` for `hooks/hooks.json` policy intent and
+`codexMountedHookEvents` for Codex-mounted lifecycle events.
 
 Codex `PermissionRequest` is a runtime wire event, not a separate palantir-mini
 policy family. When the adapter receives `PermissionRequest`, it looks up and
