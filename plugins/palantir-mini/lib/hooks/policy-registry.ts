@@ -155,8 +155,8 @@ export const HOOK_POLICY_REGISTRY: readonly HookPolicy[] = [
       { runtime: "claude", support: "native", evidence: "Claude session lifecycle hook events." },
       {
         runtime: "codex",
-        support: "manual",
-        evidence: "Codex Stop remains mounted through hooks/codex-hooks.json; SessionStart is intentionally unmounted.",
+        support: "native",
+        evidence: "Codex SessionStart and Stop are mounted through hooks/codex-hooks.json and delegated through the adapter.",
       },
     ],
   },
@@ -181,8 +181,8 @@ export const HOOK_POLICY_REGISTRY: readonly HookPolicy[] = [
       { runtime: "claude", support: "native", evidence: "Claude UserPromptSubmit hook event." },
       {
         runtime: "codex",
-        support: "unsupported",
-        evidence: "Codex UserPromptSubmit is intentionally not mounted in hooks/codex-hooks.json.",
+        support: "native",
+        evidence: "Codex UserPromptSubmit is mounted in hooks/codex-hooks.json and delegated through the adapter for prompt-front-door capture.",
       },
     ],
   },

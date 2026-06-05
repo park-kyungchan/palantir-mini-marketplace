@@ -90,10 +90,11 @@ The source adapter can silently bypass side effects after Codex starts a loaded
 hook command. A true no-call state belongs to Codex-owned configuration before
 startup, such as a profile or plugin-hook/plugin disable setting, and must be
 verified in the active runtime surface after restart.
-When a mounted Codex event does not carry the original user prompt and
-`UserPromptSubmit` is unmounted, the adapter cannot use prompt-only opt-out text
-as durable evidence for that later event. Use Codex no-call config or repo-local
-opt-in-only policy for that boundary.
+When a mounted Codex event does not carry the original user prompt, the adapter
+can only use prompt-only opt-out text as durable evidence if a prior
+`UserPromptSubmit` capture has persisted prompt-front-door state for that
+session. Use Codex no-call config or repo-local opt-in-only policy when no such
+state exists.
 
 ## Required Mental Model
 

@@ -9,7 +9,7 @@ const SHARED_HOOKS_PATH = join(PLUGIN_ROOT, "hooks", "hooks.json");
 const CODEX_RUNTIME_EVIDENCE_PATH = join(PLUGIN_ROOT, "contracts", "runtime-evidence", "codex.json");
 const TSCONFIG_PATH = join(PLUGIN_ROOT, "tsconfig.json");
 const CLAUDE_ONLY_EVENTS = ["TaskCreated", "TaskCompleted", "TeammateIdle"] as const;
-const UNMOUNTED_CODEX_EVENTS = ["PreToolUse", "SessionStart", "UserPromptSubmit"] as const;
+const UNMOUNTED_CODEX_EVENTS = ["PreToolUse"] as const;
 const SURFACE_STATUS_VALUES = [
   "public-core",
   "protected-default-off",
@@ -62,8 +62,8 @@ describe("Codex plugin hook entrypoints", () => {
     expect(doc.description).toContain("entrypoints");
     expect(doc.description).toContain("delegate");
     expect(doc.description).toContain("live-reads hooks/hooks.json");
+    expect(doc.description).toContain("SessionStart and UserPromptSubmit are mounted");
     expect(doc.description).toContain("PreToolUse is intentionally not registered");
-    expect(doc.description).toContain("SessionStart and UserPromptSubmit are intentionally not registered");
     expect(doc.surfaceStatusSchemaVersion).toBe("palantir-mini/surface-status/v1");
 
     expect(events).toEqual([
@@ -71,9 +71,11 @@ describe("Codex plugin hook entrypoints", () => {
       "PostCompact",
       "PostToolUse",
       "PreCompact",
+      "SessionStart",
       "Stop",
       "SubagentStart",
       "SubagentStop",
+      "UserPromptSubmit",
     ]);
 
     for (const groups of Object.values(doc.hooks ?? {})) {
@@ -108,7 +110,7 @@ describe("Codex plugin hook entrypoints", () => {
 });
 
 describe("runtime-specific hook registries", () => {
-  test("Codex runtime evidence records intentionally unmounted lifecycle events", () => {
+  test("Codex runtime evidence records intentionally unmounted PreToolUse only", () => {
     const doc = readJson<HooksDocument>(CODEX_HOOKS_PATH);
     const evidence = readJson<{
       unsupportedSurfaceRefs?: string[];
@@ -121,8 +123,6 @@ describe("runtime-specific hook registries", () => {
     expect(evidence.unsupportedSurfaceRefs).toEqual(
       expect.arrayContaining([
         "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
-        "codex:hook-event:SessionStart:unmounted",
-        "codex:hook-event:UserPromptSubmit:unmounted",
       ]),
     );
   });

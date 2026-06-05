@@ -37,10 +37,11 @@ The Convex backend is authorized for Cloud cutover (user directive 2026-05-13). 
 Codex loads palantir-mini hook entrypoints from `.codex-plugin/plugin.json` →
 `hooks/codex-hooks.json`. That file is intentionally small: it uses only
 mounted Codex events, regex-safe matchers, and adapter commands. It
-intentionally does not register `SessionStart` or `UserPromptSubmit`, so Codex
-sessions do not receive palantir-mini startup or prompt-submit context injection
-by default. The adapter reads `hooks/hooks.json` only for Codex events that are
-mounted in `hooks/codex-hooks.json`.
+mounts `SessionStart` and `UserPromptSubmit` for prompt-front-door continuity,
+while `PreToolUse` remains unmounted until prompt opt-out capture and
+read-only/review-artifact classification are reliable. The adapter reads
+`hooks/hooks.json` only for Codex events that are mounted in
+`hooks/codex-hooks.json`.
 Runtime fallback wiring may also exist under `~/.codex/hooks.json`, but it must
 remain a thin consumer of the plugin payload.
 
@@ -71,11 +72,11 @@ install and trust state still belong to the owning runtime.
 ## Prompt-to-DTC Front Door
 
 The prompt/DTC front-door implementation remains available for explicit
-palantir-mini workflows, direct tests, and compatibility checks. It is not
-registered as a Codex `UserPromptSubmit` hook, and the active shared
-`hooks/hooks.json` registry also carries no `UserPromptSubmit` group. Ordinary
-Codex prompts are therefore not captured automatically and no context capsule is
-persisted just because a user submitted a prompt.
+palantir-mini workflows, direct tests, and compatibility checks. It is
+registered as a Codex `UserPromptSubmit` hook through the adapter so prompt-local
+`promptId`, `promptHash`, and context-capsule evidence are available before SIC
+or DTC routing. Ordinary prompt capture is still evidence only: it does not make
+raw prompt text mutation authority and does not approve contracts by itself.
 
 When a user explicitly opts into palantir-mini workflow handling, canonical
 prompt/DTC proof is built by explicit workflow invocation:

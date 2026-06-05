@@ -16,13 +16,13 @@ The Codex runtime integrates palantir-mini hooks through the plugin manifest:
 
 `hooks/codex-hooks.json` MUST remain a delegation-only entrypoint registry. It
 uses only Codex-supported lifecycle events, regex-safe matchers, and commands
-that call `lib/codex/codex-hook-adapter.ts`. `PreToolUse`, `SessionStart`, and
-`UserPromptSubmit` are intentionally not mounted for Codex, so no palantir-mini
-startup context or prompt-front-door capture runs automatically in ordinary
-Codex sessions. Durable hook intent is read from the canonical source root at
-`plugins/palantir-mini/hooks/hooks.json`; the Codex mounted event list is a
-separate runtime surface declared by `hooks/codex-hooks.json` and
-`runtime-adapters/codex/contract.json`.
+that call `lib/codex/codex-hook-adapter.ts`. `SessionStart` and
+`UserPromptSubmit` are mounted for Codex prompt-front-door continuity.
+`PreToolUse` remains intentionally unmounted until prompt opt-out capture and
+read-only/review-artifact classification are reliable. Durable hook intent is
+read from the canonical source root at `plugins/palantir-mini/hooks/hooks.json`;
+the Codex mounted event list is a separate runtime surface declared by
+`hooks/codex-hooks.json` and `runtime-adapters/codex/contract.json`.
 
 ## Adapter Architecture
 
@@ -41,10 +41,11 @@ path. Adding or removing Codex entrypoint events still requires updating
 `hooks/codex-hooks.json` and restarting Codex so the runtime re-reads its
 session hook surface.
 
-As of the Codex runtime cutover on 2026-05-31, `PreToolUse`, `SessionStart`, and
-`UserPromptSubmit` are deliberately absent from `hooks/codex-hooks.json`. Direct
-adapter tests may still pass those event names with temporary hook registries,
-but the checked-in Codex runtime surface does not mount them.
+As of the Codex hook registry repair on 2026-06-05, `SessionStart` and
+`UserPromptSubmit` are present in `hooks/codex-hooks.json`. Direct adapter tests
+may still pass event names with temporary hook registries, but checked-in Codex
+runtime mounting is governed by `hooks/codex-hooks.json` plus reinstall/reload
+smoke evidence. `PreToolUse` remains absent from that registry.
 
 Ontology context projections preserve this distinction. `activeHooks` remains a
 compatibility alias for shared hook intent. Newer callers should prefer
@@ -90,15 +91,15 @@ the `[features].hooks` lifecycle-hook switch. Use those Codex-owned surfaces for
 runtime no-call policy; keep palantir-mini source policy scoped to deterministic
 silent behavior after the adapter starts.
 
-The current checked-in Codex registry does not mount `UserPromptSubmit`, so a
-later mounted event such as `PermissionRequest`, `PostToolUse`, `Stop`, or
-`SubagentStop` may not include the user's original prompt text. In that
-prompt-less path the adapter cannot infer a prior "do not use palantir-mini"
-instruction. Durable opt-out across those prompt-less mounted events therefore
-requires a Codex no-call profile/config, repo-local opt-in-only `AGENTS.md`
-policy, or direct payload evidence such as `payload.prompt`/prompt-front-door
-state. palantir-mini source work and palantir-mini MCP tool calls remain active
-unless one of those explicit opt-out inputs is present.
+The current checked-in Codex registry mounts `UserPromptSubmit`, so prompt-local
+opt-out and prompt-front-door evidence can be captured after plugin
+reinstall/reload. Later prompt-less mounted events still cannot reconstruct a
+missing original prompt on their own. Durable opt-out across those paths
+therefore requires stored prompt-front-door state, a Codex no-call
+profile/config, repo-local opt-in-only `AGENTS.md` policy, or direct payload
+evidence such as `payload.prompt`. palantir-mini source work and palantir-mini
+MCP tool calls remain active unless one of those explicit opt-out inputs is
+present.
 
 User-visible workflow responses should mirror that boundary. In Codex, hook
 intent is plugin-layer policy read from `hooks/hooks.json`; the Codex adapter

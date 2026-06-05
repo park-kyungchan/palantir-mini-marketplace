@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { runCodexHookAdapter } from "../../lib/codex/codex-hook-adapter";
+import {
+  extractPromptFrontDoorIdentityContext,
+  runCodexHookAdapter,
+} from "../../lib/codex/codex-hook-adapter";
 
 const tmpDirs: string[] = [];
 const savedEnv: Record<string, string | undefined> = {};
@@ -40,15 +43,15 @@ afterEach(() => {
 });
 
 describe("Codex Prompt-to-DTC hook registration", () => {
-  test("active Codex registry does not auto-capture UserPromptSubmit", async () => {
+  test("active Codex registry captures UserPromptSubmit prompt-front-door identity", async () => {
     const project = makeTmpProject();
     const adapterResult = await runCodexHookAdapter(
       "UserPromptSubmit",
       {
         cwd: project,
-        session_id: "codex-disabled-session",
-        turn_id: "turn-codex-disabled",
-        prompt: "Do not auto-capture this Codex prompt.",
+        session_id: "codex-capture-session",
+        turn_id: "turn-codex-capture",
+        prompt: "Use palantir-mini to start Prompt Front Door capture for this Codex prompt.",
       },
       {
         home: os.tmpdir(),
@@ -65,11 +68,84 @@ describe("Codex Prompt-to-DTC hook registration", () => {
       },
     );
 
-    expect(adapterResult.matchedHooks).toEqual([]);
-    expect(adapterResult.runs).toEqual([]);
-    expect(adapterResult.response).toEqual({});
+    expect(adapterResult.matchedHooks.map((hook) => hook.command)).toEqual([
+      expect.stringContaining("prompt-front-door-capture"),
+      expect.stringContaining("context-capsule-init"),
+    ]);
+    expect(adapterResult.runs.length).toBe(2);
+    const additionalContext =
+      (adapterResult.response.hookSpecificOutput as { additionalContext?: string } | undefined)
+        ?.additionalContext ?? "";
+    const identity = extractPromptFrontDoorIdentityContext(additionalContext);
+    expect(identity?.sessionId).toBe("codex-capture-session");
+    expect(identity?.runtime).toBe("codex");
     expect(
       fs.existsSync(path.join(project, ".palantir-mini", "session", "prompt-front-door")),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          project,
+          ".palantir-mini",
+          "session",
+          "prompt-front-door",
+          "current",
+          "codex-codex-capture-session.json",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  test("path-mentioned project root captures UserPromptSubmit when Codex cwd is outside the project", async () => {
+    const project = makeTmpProject();
+    const detachedCwd = fs.mkdtempSync(path.join(os.tmpdir(), "pm-codex-detached-cwd-"));
+    tmpDirs.push(detachedCwd);
+
+    const adapterResult = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: detachedCwd,
+        session_id: "codex-path-session",
+        turn_id: "turn-codex-path-capture",
+        prompt: `palantir-mini로 ${project} Ontology Engineering을 진행해.`,
+      },
+      {
+        home: os.tmpdir(),
+        pluginRoot: PLUGIN_ROOT,
+        hooksJsonPath: path.join(PLUGIN_ROOT, "hooks", "hooks.json"),
+        bunPath: process.execPath,
+        cwd: detachedCwd,
+        env: {
+          ...process.env,
+          PALANTIR_MINI_EVENTS_FILE: eventsPathFor(project),
+          PALANTIR_MINI_HOST_RUNTIME: "codex",
+        },
+      },
+    );
+
+    expect(adapterResult.matchedHooks.map((hook) => hook.command)).toEqual([
+      expect.stringContaining("prompt-front-door-capture"),
+      expect.stringContaining("context-capsule-init"),
+    ]);
+    const additionalContext =
+      (adapterResult.response.hookSpecificOutput as { additionalContext?: string } | undefined)
+        ?.additionalContext ?? "";
+    const identity = extractPromptFrontDoorIdentityContext(additionalContext);
+    expect(identity?.sessionId).toBe("codex-path-session");
+    expect(
+      fs.existsSync(
+        path.join(
+          project,
+          ".palantir-mini",
+          "session",
+          "prompt-front-door",
+          "current",
+          "codex-codex-path-session.json",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(path.join(detachedCwd, ".palantir-mini", "session", "prompt-front-door")),
     ).toBe(false);
   });
 });

@@ -34,22 +34,24 @@ describe("runtime capability matrix", () => {
 
   test("Codex mounted hook events stay separated from native vocabulary", () => {
     expect(CODEX_MOUNTED_HOOK_EVENTS).toEqual([
+      "SessionStart",
       "PermissionRequest",
       "PostToolUse",
       "PreCompact",
       "PostCompact",
+      "UserPromptSubmit",
       "SubagentStart",
       "SubagentStop",
       "Stop",
     ]);
     expect(CODEX_UNMOUNTED_HOOK_EVENTS).toEqual([
       "PreToolUse",
-      "SessionStart",
-      "UserPromptSubmit",
     ]);
     expect(runtimeCanObserveEvent("codex", "PreToolUse")).toBe(true);
     expect(runtimeHasMountedHookEvent("codex", "PreToolUse")).toBe(false);
     expect(runtimeHasUnmountedHookEvent("codex", "PreToolUse")).toBe(true);
+    expect(runtimeHasMountedHookEvent("codex", "UserPromptSubmit")).toBe(true);
+    expect(runtimeHasUnmountedHookEvent("codex", "UserPromptSubmit")).toBe(false);
   });
 
   test("Gemini exposes native Gemini lifecycle names through an adapter map", () => {

@@ -1,6 +1,40 @@
 {
   "description": "Runtime-neutral palantir-mini hook workflow intent registry. Current local install support is Codex-only; runtime-specific Claude/Gemini hook registries are intentionally absent.",
   "hooks": {
+    "SessionStart": [
+      {
+        "policyRef": "hook-step:sessionstart-cold-start-governance",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-start",
+            "timeout": 50,
+            "statusMessage": "Session start capture: append session_started and surface eager context when enabled…"
+          }
+        ],
+        "surfaceStatus": "public-core"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "policyRef": "hook-step:userprompt-front-door",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-front-door-capture",
+            "timeout": 100,
+            "statusMessage": "Prompt front door capture: promptId/promptHash → pm_semantic_intent_gate…"
+          },
+          {
+            "type": "command",
+            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" context-capsule-init",
+            "timeout": 100,
+            "statusMessage": "Persisting context capsule for prompt-local contract/routing lineage…"
+          }
+        ],
+        "surfaceStatus": "public-core"
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "*",
