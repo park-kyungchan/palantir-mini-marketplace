@@ -14,6 +14,8 @@
     "visibleMcpTools": { "available": "<volatile:boolean>" },
     "activeRules": { "available": "<volatile:boolean>" },
     "activeHooks": { "available": "<volatile:boolean>" },
+    "sharedHookIntentEvents": { "available": "<volatile:boolean>" },
+    "codexMountedHookEvents": { "available": "<volatile:boolean>" },
     "currentDirtyState": { "available": "<volatile:boolean>" },
     "otherSessionWorkSignals": { "available": "<volatile:boolean>" },
     "composedAt": "<volatile:iso8601>"
@@ -27,6 +29,8 @@
     "pluginSourceFiles": { "available": "<volatile:boolean>" },
     "rules": { "available": "<volatile:boolean>" },
     "hooks": { "available": "<volatile:boolean>" },
+    "sharedHookIntentEvents": { "available": "<volatile:boolean>" },
+    "codexMountedHookEvents": { "available": "<volatile:boolean>" },
     "skills": { "available": "<volatile:boolean>" },
     "recentLineage": { "available": "<volatile:boolean>" },
     "valueGradeMetrics": { "available": "<volatile:boolean>" },

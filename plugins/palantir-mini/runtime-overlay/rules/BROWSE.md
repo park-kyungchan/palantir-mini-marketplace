@@ -15,6 +15,6 @@ Claude-local overlay only. Full context: `~/.claude/rules/CONTEXT.md`. Invariant
 | project-agent authority + project-rule formalization | pm_rule_query byId=21 or 23 |
 | hook citation validation | pm_rule_query byId=22 |
 | auto-merge default + working-tree cleanliness + post-merge cleanup | pm_rule_query byId=25 |
-| valuable data standard + T0-T4 grading + 5-axes 14-criteria + agentic memory | pm_rule_query byId=26 |
-| pedagogy contract (project-scope) | projects/mathcrew/.claude/rules/06 |
+| valuable data standard + T0-T4 grading + 5-axes + agentic memory + cross-runtime substrate | pm_rule_query byId=26 or 27 |
+| ontology-engineering turn fan-out + evidence-domain coverage | pm_rule_query byId=28 |
 | Authoring + system internals + Brain-of-Swarms | `CONTEXT.md` |

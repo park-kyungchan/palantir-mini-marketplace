@@ -2,7 +2,7 @@
 //
 // Sprint-095 PR 3.3 (canonical plan v2 §4 row 3.3; proposal §8 Stage 3).
 // 3 headline assertions per spec.md §Tests:
-//   (1) headline             — real project root returns all 11 sub-fields with ≥7 available
+//   (1) headline             — real project root returns retrieval context with ≥7 available
 //   (2) scope-filter         — narrow scopePaths shrinks pluginSourceFiles count
 //   (3) graceful-degradation — non-existent project root returns partial state without throwing
 
@@ -13,7 +13,7 @@ import {
   type RetrievalContextProjection,
 } from "../../../lib/ontology-context/retrieval-context";
 
-// Sub-fields that carry an `available: boolean` flag (per spec §11 sub-fields).
+// Sub-fields that carry an `available: boolean` flag.
 const AVAILABILITY_BEARING_SUBFIELDS = [
   "officialResearchDocs",
   "projectDocs",
@@ -21,6 +21,8 @@ const AVAILABILITY_BEARING_SUBFIELDS = [
   "pluginSourceFiles",
   "rules",
   "hooks",
+  "sharedHookIntentEvents",
+  "codexMountedHookEvents",
   "skills",
   "recentLineage",
   "valueGradeMetrics",
@@ -38,7 +40,7 @@ function countAvailable(state: RetrievalContextProjection): number {
 }
 
 describe("composeRetrievalContext — Phase 3 PR 3.3 composer (sprint-095)", () => {
-  test("(1) headline — real project root returns all 11 sub-fields with ≥7 available", async () => {
+  test("(1) headline — real project root returns retrieval context with ≥7 available sub-fields", async () => {
     // Use this very repo as the real-project context. The repo has CLAUDE.md,
     // research/palantir-official, schemas/ontology/primitives, plugin lib,
     // rules, hooks.json, skills — so 7+ of the 11 availability-bearing
@@ -53,13 +55,15 @@ describe("composeRetrievalContext — Phase 3 PR 3.3 composer (sprint-095)", () 
     expect(state.status).toBe("composed");
     expect(state.project).toBe(projectRoot);
 
-    // All 11 sub-fields present:
+    // All core sub-fields present:
     expect(state.officialResearchDocs).toBeDefined();
     expect(state.projectDocs).toBeDefined();
     expect(state.schemaPrimitives).toBeDefined();
     expect(state.pluginSourceFiles).toBeDefined();
     expect(state.rules).toBeDefined();
     expect(state.hooks).toBeDefined();
+    expect(state.sharedHookIntentEvents).toBeDefined();
+    expect(state.codexMountedHookEvents).toBeDefined();
     expect(state.skills).toBeDefined();
     expect(state.recentLineage).toBeDefined();
     expect(state.valueGradeMetrics).toBeDefined();
@@ -69,6 +73,22 @@ describe("composeRetrievalContext — Phase 3 PR 3.3 composer (sprint-095)", () 
     // impactGraphNeighborhood is a thin reference, NOT a duplicate.
     expect(state.impactGraphNeighborhood.referenceField).toBe("impactContext");
     expect(state.impactGraphNeighborhood.axisRidCount).toBe(1);
+
+    expect(state.hooks.compatibilityNote).toContain("sharedHookIntentEvents");
+    expect(state.hooks.events).toEqual(state.sharedHookIntentEvents.events);
+    expect(state.sharedHookIntentEvents.source).toBe("hooks/hooks.json");
+    expect(state.sharedHookIntentEvents.meaning).toContain("shared hook intent");
+    expect(state.codexMountedHookEvents.source).toBe("runtime-adapters/codex/contract.json");
+    expect(state.codexMountedHookEvents.events).toEqual([
+      "PermissionRequest",
+      "PostToolUse",
+      "PreCompact",
+      "PostCompact",
+      "SubagentStart",
+      "SubagentStop",
+      "Stop",
+    ]);
+    expect(state.codexMountedHookEvents.events).not.toContain("PreToolUse");
 
     // ≥7 of the 11 availability-bearing sub-fields available.
     const availableCount = countAvailable(state);
@@ -131,6 +151,8 @@ describe("composeRetrievalContext — Phase 3 PR 3.3 composer (sprint-095)", () 
     // runtime-scoped sub-fields (mirrors PR 3.2 ApplicationState test #3).
     expect(state.rules.available).toBe(true);
     expect(state.hooks.available).toBe(true);
+    expect(state.sharedHookIntentEvents.available).toBe(true);
+    expect(state.codexMountedHookEvents.available).toBe(true);
     expect(state.skills.available).toBe(true);
     expect(state.officialResearchDocs.available).toBe(true);
     expect(state.schemaPrimitives.available).toBe(true);

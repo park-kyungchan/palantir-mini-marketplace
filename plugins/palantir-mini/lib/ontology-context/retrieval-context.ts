@@ -27,6 +27,13 @@ import * as path from "node:path";
 import pmValueGradeMetrics from "../../bridge/handlers/pm-value-grade-metrics";
 import pmWorkflowLineageQuery from "../../bridge/handlers/pm-workflow-lineage-query";
 import { resolvePalantirMiniRoot } from "../config/root";
+import {
+  composeCodexMountedHookEvents,
+  composeCompatibilityHookEventsAlias,
+  composeSharedHookIntentEvents,
+  type HookEventsCompatibilitySubField,
+  type HookEventsSubField,
+} from "./hook-events";
 
 // ─── Public types ───────────────────────────────────────────────────────────
 
@@ -67,12 +74,7 @@ export interface RulesSubField {
   readonly error?: string;
 }
 
-export interface HooksSubField {
-  readonly available: boolean;
-  readonly eventCount?: number;
-  readonly events?: ReadonlyArray<string>;
-  readonly error?: string;
-}
+export type HooksSubField = HookEventsCompatibilitySubField;
 
 export interface SkillsSubField {
   readonly available: boolean;
@@ -119,6 +121,8 @@ export interface RetrievalContextProjection {
   readonly pluginSourceFiles: PluginSourceFilesSubField;
   readonly rules: RulesSubField;
   readonly hooks: HooksSubField;
+  readonly sharedHookIntentEvents: HookEventsSubField;
+  readonly codexMountedHookEvents: HookEventsSubField;
   readonly skills: SkillsSubField;
   readonly recentLineage: RecentLineageSubField;
   readonly valueGradeMetrics: ValueGradeMetricsSubField;
@@ -346,21 +350,6 @@ function composeRules(): RulesSubField {
   }
 }
 
-function composeHooks(): HooksSubField {
-  try {
-    const hooksPath = path.join(resolvePalantirMiniRoot(), "hooks", "hooks.json");
-    const raw = fs.readFileSync(hooksPath, "utf8");
-    const parsed = JSON.parse(raw) as { hooks?: Record<string, unknown> };
-    if (!parsed.hooks || typeof parsed.hooks !== "object") {
-      return { available: false, error: "hooks.json missing `hooks` object" };
-    }
-    const events = Object.keys(parsed.hooks);
-    return { available: true, eventCount: events.length, events };
-  } catch (err) {
-    return { available: false, error: String(err) };
-  }
-}
-
 function composeSkills(): SkillsSubField {
   try {
     const skillsDir = path.join(resolvePalantirMiniRoot(), "skills");
@@ -466,7 +455,12 @@ export async function composeRetrievalContext(
   const schemaPrimitives = composeSchemaPrimitives(opts.requestedAxes);
   const pluginSourceFiles = composePluginSourceFiles(opts.scopePaths);
   const rules = composeRules();
-  const hooks = composeHooks();
+  const sharedHookIntentEvents = composeSharedHookIntentEvents();
+  const hooks = composeCompatibilityHookEventsAlias(
+    sharedHookIntentEvents,
+    "hooks",
+  );
+  const codexMountedHookEvents = composeCodexMountedHookEvents();
   const skills = composeSkills();
   const recentLineage = await composeRecentLineage(project);
   const valueGradeMetrics = await composeValueGradeMetrics(project);
@@ -484,6 +478,8 @@ export async function composeRetrievalContext(
     pluginSourceFiles,
     rules,
     hooks,
+    sharedHookIntentEvents,
+    codexMountedHookEvents,
     skills,
     recentLineage,
     valueGradeMetrics,

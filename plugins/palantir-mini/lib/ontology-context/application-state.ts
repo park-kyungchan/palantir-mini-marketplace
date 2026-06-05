@@ -27,6 +27,13 @@ import * as path from "node:path";
 import { loadCapabilityRegistry } from "../capability-registry";
 import { resolvePalantirMiniRoot } from "../config/root";
 import {
+  composeCodexMountedHookEvents,
+  composeCompatibilityHookEventsAlias,
+  composeSharedHookIntentEvents,
+  type HookEventsCompatibilitySubField,
+  type HookEventsSubField,
+} from "./hook-events";
+import {
   composeSubrepoReadOnlyApplicationState,
   type SubrepoReadOnlyApplicationState,
 } from "./subrepo-read-only-index";
@@ -85,12 +92,7 @@ export interface ActiveRulesSubField {
   readonly error?: string;
 }
 
-export interface ActiveHooksSubField {
-  readonly available: boolean;
-  readonly eventCount?: number;
-  readonly events?: ReadonlyArray<string>;
-  readonly error?: string;
-}
+export type ActiveHooksSubField = HookEventsCompatibilitySubField;
 
 export interface DirtyStateSubField {
   readonly available: boolean;
@@ -117,6 +119,8 @@ export interface ApplicationStateProjection {
   readonly visibleMcpTools: VisibleMcpToolsSubField;
   readonly activeRules: ActiveRulesSubField;
   readonly activeHooks: ActiveHooksSubField;
+  readonly sharedHookIntentEvents: HookEventsSubField;
+  readonly codexMountedHookEvents: HookEventsSubField;
   readonly currentDirtyState: DirtyStateSubField;
   readonly subrepoReadOnlyApplicationState: SubrepoReadOnlyApplicationState;
   readonly otherSessionWorkSignals: OtherSessionSignalsSubField;
@@ -305,24 +309,6 @@ function composeActiveRules(): ActiveRulesSubField {
   }
 }
 
-// ─── Active hooks composer (reads <plugin>/hooks/hooks.json events) ────────
-
-function composeActiveHooks(): ActiveHooksSubField {
-  try {
-    const pluginRoot = resolvePalantirMiniRoot();
-    const hooksPath  = path.join(pluginRoot, "hooks", "hooks.json");
-    const raw    = fs.readFileSync(hooksPath, "utf8");
-    const parsed = JSON.parse(raw) as { hooks?: Record<string, unknown> };
-    if (!parsed.hooks || typeof parsed.hooks !== "object") {
-      return { available: false, error: "hooks.json missing `hooks` object" };
-    }
-    const events = Object.keys(parsed.hooks);
-    return { available: true, eventCount: events.length, events };
-  } catch (err) {
-    return { available: false, error: String(err) };
-  }
-}
-
 // ─── Other-session work signals (heuristic) ─────────────────────────────────
 
 function composeOtherSessionSignals(project: string): OtherSessionSignalsSubField {
@@ -356,7 +342,12 @@ export async function composeApplicationState(
   const runtimeCapabilitySurface = composeRuntimeCapability(project);
   const visibleMcpTools          = await composeVisibleMcpTools();
   const activeRules              = composeActiveRules();
-  const activeHooks              = composeActiveHooks();
+  const sharedHookIntentEvents   = composeSharedHookIntentEvents();
+  const activeHooks              = composeCompatibilityHookEventsAlias(
+    sharedHookIntentEvents,
+    "activeHooks",
+  );
+  const codexMountedHookEvents   = composeCodexMountedHookEvents();
   const currentDirtyState        = composeDirtyState(project);
   const subrepoReadOnlyApplicationState = composeSubrepoReadOnlyApplicationState(project);
   const otherSessionWorkSignals  = composeOtherSessionSignals(project);
@@ -379,6 +370,8 @@ export async function composeApplicationState(
     visibleMcpTools,
     activeRules,
     activeHooks,
+    sharedHookIntentEvents,
+    codexMountedHookEvents,
     currentDirtyState,
     subrepoReadOnlyApplicationState,
     otherSessionWorkSignals,
