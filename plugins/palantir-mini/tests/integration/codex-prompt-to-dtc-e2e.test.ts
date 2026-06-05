@@ -100,6 +100,7 @@ describe("Codex Prompt-to-DTC hook registration", () => {
     const project = makeTmpProject();
     const detachedCwd = fs.mkdtempSync(path.join(os.tmpdir(), "pm-codex-detached-cwd-"));
     tmpDirs.push(detachedCwd);
+    fs.mkdirSync(path.join(detachedCwd, ".palantir-mini", "session"), { recursive: true });
 
     const adapterResult = await runCodexHookAdapter(
       "UserPromptSubmit",
@@ -117,7 +118,6 @@ describe("Codex Prompt-to-DTC hook registration", () => {
         cwd: detachedCwd,
         env: {
           ...process.env,
-          PALANTIR_MINI_EVENTS_FILE: eventsPathFor(project),
           PALANTIR_MINI_HOST_RUNTIME: "codex",
         },
       },
