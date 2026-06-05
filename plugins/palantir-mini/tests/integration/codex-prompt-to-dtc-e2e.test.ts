@@ -227,4 +227,81 @@ describe("Codex Prompt-to-DTC hook registration", () => {
     expect(envelope.promptExcerpt).toBe("A");
     expect(typeof envelope.previousPromptHash).toBe("string");
   });
+
+  test("short continuation reuses the path-mentioned project root when cwd is another tracked project", async () => {
+    const project = makeTmpProject();
+    const detachedCwd = fs.mkdtempSync(path.join(os.tmpdir(), "pm-codex-detached-continuation-"));
+    const runtimeHome = fs.mkdtempSync(path.join(os.tmpdir(), "pm-codex-runtime-home-"));
+    tmpDirs.push(detachedCwd, runtimeHome);
+    fs.mkdirSync(path.join(detachedCwd, ".palantir-mini", "session"), { recursive: true });
+
+    const options = {
+      home: runtimeHome,
+      pluginRoot: PLUGIN_ROOT,
+      hooksJsonPath: path.join(PLUGIN_ROOT, "hooks", "hooks.json"),
+      bunPath: process.execPath,
+      cwd: detachedCwd,
+      env: {
+        ...process.env,
+        PALANTIR_MINI_HOST_RUNTIME: "codex",
+      },
+    };
+
+    await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: detachedCwd,
+        session_id: "codex-path-continuation-session",
+        turn_id: "turn-codex-path-continuation-start",
+        prompt: `palantir-mini로 ${project} Ontology Engineering을 진행해.`,
+      },
+      options,
+    );
+
+    const continuationResult = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: detachedCwd,
+        session_id: "codex-path-continuation-session",
+        turn_id: "turn-codex-path-continuation-a",
+        prompt: "A",
+      },
+      options,
+    );
+
+    expect(continuationResult.matchedHooks.map((hook) => hook.command)).toEqual([
+      expect.stringContaining("prompt-front-door-capture"),
+      expect.stringContaining("context-capsule-init"),
+    ]);
+    const projectPointerPath = path.join(
+      project,
+      ".palantir-mini",
+      "session",
+      "prompt-front-door",
+      "current",
+      "codex-codex-path-continuation-session.json",
+    );
+    expect(fs.existsSync(projectPointerPath)).toBe(true);
+    expect(
+      fs.existsSync(path.join(detachedCwd, ".palantir-mini", "session", "prompt-front-door")),
+    ).toBe(false);
+
+    const pointer = JSON.parse(fs.readFileSync(projectPointerPath, "utf8")) as { promptId: string };
+    const envelope = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          project,
+          ".palantir-mini",
+          "session",
+          "prompt-front-door",
+          "sessions",
+          "codex-path-continuation-session",
+          `${pointer.promptId}.json`,
+        ),
+        "utf8",
+      ),
+    ) as { promptExcerpt: string; previousPromptHash?: string };
+    expect(envelope.promptExcerpt).toBe("A");
+    expect(typeof envelope.previousPromptHash).toBe("string");
+  });
 });

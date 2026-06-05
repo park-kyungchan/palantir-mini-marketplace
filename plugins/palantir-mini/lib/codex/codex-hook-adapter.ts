@@ -47,7 +47,7 @@
  * unsupportedParityClaimsForbidden: true
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { emit } from "../../scripts/log";
 import {
@@ -154,6 +154,7 @@ export interface PalantirMiniPluginBypass {
 }
 
 const DEFAULT_HOME = process.env.HOME || "/home/palantirkc";
+const SESSION_PROJECT_ROOT_SCHEMA_VERSION = "codex-adapter/session-project-root/v1";
 
 export const CODEX_EVENTS = new Set<string>(CODEX_NATIVE_EVENTS);
 
@@ -204,6 +205,16 @@ function diagnosticSafeSegment(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 120) || "unknown";
 }
 
+function promptFrontDoorSafeSegment(value: string): string {
+  return value
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter(Boolean)
+    .join("-")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "unknown";
+}
+
 function projectRootForPayload(payload: JsonObject, options: CodexAdapterOptions = {}): string {
   const resolved = resolveOptions(options);
   return typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
@@ -244,6 +255,68 @@ function projectRootFromEventsFile(eventsFile: string | undefined): string | und
   return findTrackedProjectRoot(sessionDir);
 }
 
+function readJsonObject(filePath: string): JsonObject | undefined {
+  try {
+    const parsed = JSON.parse(readFileSync(filePath, "utf8"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as JsonObject : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function sessionProjectRootPath(home: string, sessionId: string): string {
+  return path.join(
+    home,
+    ".palantir-mini",
+    "session",
+    "codex-adapter",
+    "session-project-roots",
+    `codex-${promptFrontDoorSafeSegment(sessionId)}.json`,
+  );
+}
+
+function readSessionProjectRootHint(payload: JsonObject, options: CodexAdapterOptions = {}): string | undefined {
+  const sessionId = sessionIdForPayload(payload);
+  if (!sessionId) return undefined;
+  const resolved = resolveOptions(options);
+  const record = readJsonObject(sessionProjectRootPath(resolved.home, sessionId));
+  const projectRoot = typeof record?.projectRoot === "string" ? path.resolve(record.projectRoot) : undefined;
+  if (!projectRoot) return undefined;
+  return findTrackedProjectRoot(projectRoot) === projectRoot ? projectRoot : undefined;
+}
+
+function rememberSessionProjectRootHint(
+  payload: JsonObject,
+  options: CodexAdapterOptions = {},
+  projectRoot: string | undefined,
+): void {
+  const sessionId = sessionIdForPayload(payload);
+  if (!sessionId || !projectRoot) return;
+  const normalizedRoot = path.resolve(projectRoot);
+  if (findTrackedProjectRoot(normalizedRoot) !== normalizedRoot) return;
+
+  const resolved = resolveOptions(options);
+  const filePath = sessionProjectRootPath(resolved.home, sessionId);
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    mkdirSync(path.dirname(filePath), { recursive: true });
+    writeFileSync(
+      tmpPath,
+      `${JSON.stringify({
+        schemaVersion: SESSION_PROJECT_ROOT_SCHEMA_VERSION,
+        runtime: "codex",
+        sessionId,
+        projectRoot: normalizedRoot,
+        updatedAt: new Date().toISOString(),
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    renameSync(tmpPath, filePath);
+  } catch {
+    // Continuity hints must never become mutation authority or block a hook run.
+  }
+}
+
 function projectRootHintForPayload(payload: JsonObject, options: CodexAdapterOptions = {}): string | undefined {
   const resolved = resolveOptions(options);
   const envProject = resolved.env.PALANTIR_MINI_PROJECT ?? process.env.PALANTIR_MINI_PROJECT;
@@ -259,6 +332,9 @@ function projectRootHintForPayload(payload: JsonObject, options: CodexAdapterOpt
     const projectRoot = findTrackedProjectRoot(mentionedPath);
     if (projectRoot) return projectRoot;
   }
+
+  const storedProject = readSessionProjectRootHint(payload, options);
+  if (storedProject) return storedProject;
 
   const cwd = typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
   const cwdProject = findTrackedProjectRoot(cwd);
@@ -1306,6 +1382,8 @@ export async function runCodexHookAdapter(
   const policyEventName = policyEventNameFor(eventName);
   const payload = deepCloneObject(inputPayload);
   payload.hook_event_name = policyEventName;
+  const payloadProjectRootHint = projectRootHintForPayload(payload, options);
+  rememberSessionProjectRootHint(payload, options, payloadProjectRootHint);
 
   const toolInput = asObject(payload.tool_input);
   const activationDecision = decideCodexPalantirMiniActivation({
