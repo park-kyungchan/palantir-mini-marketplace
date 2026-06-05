@@ -254,15 +254,15 @@ function projectRootHintForPayload(payload: JsonObject, options: CodexAdapterOpt
   );
   if (eventsProject) return eventsProject;
 
-  const cwd = typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
-  const cwdProject = findTrackedProjectRoot(cwd);
-  if (cwdProject) return cwdProject;
-
   const prompt = typeof payload.prompt === "string" ? payload.prompt : undefined;
   for (const mentionedPath of absolutePathMentions(prompt)) {
     const projectRoot = findTrackedProjectRoot(mentionedPath);
     if (projectRoot) return projectRoot;
   }
+
+  const cwd = typeof payload.cwd === "string" && payload.cwd.trim() ? payload.cwd : resolved.cwd;
+  const cwdProject = findTrackedProjectRoot(cwd);
+  if (cwdProject) return cwdProject;
 
   return undefined;
 }
