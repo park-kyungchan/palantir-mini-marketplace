@@ -148,4 +148,83 @@ describe("Codex Prompt-to-DTC hook registration", () => {
       fs.existsSync(path.join(detachedCwd, ".palantir-mini", "session", "prompt-front-door")),
     ).toBe(false);
   });
+
+  test("short UserPromptSubmit continuation captures after prior prompt-front-door state", async () => {
+    const project = makeTmpProject();
+    const options = {
+      home: os.tmpdir(),
+      pluginRoot: PLUGIN_ROOT,
+      hooksJsonPath: path.join(PLUGIN_ROOT, "hooks", "hooks.json"),
+      bunPath: process.execPath,
+      cwd: project,
+      env: {
+        ...process.env,
+        PALANTIR_MINI_PROJECT: project,
+        PALANTIR_MINI_EVENTS_FILE: eventsPathFor(project),
+        PALANTIR_MINI_HOST_RUNTIME: "codex",
+      },
+    };
+
+    await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: project,
+        session_id: "codex-continuation-session",
+        turn_id: "turn-codex-continuation-start",
+        prompt: "palantir-mini로 turn-by-turn Ontology Engineering을 진행해.",
+      },
+      options,
+    );
+
+    const continuationResult = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: project,
+        session_id: "codex-continuation-session",
+        turn_id: "turn-codex-continuation-a",
+        prompt: "A",
+      },
+      options,
+    );
+
+    expect(continuationResult.matchedHooks.map((hook) => hook.command)).toEqual([
+      expect.stringContaining("prompt-front-door-capture"),
+      expect.stringContaining("context-capsule-init"),
+    ]);
+    const additionalContext =
+      (continuationResult.response.hookSpecificOutput as { additionalContext?: string } | undefined)
+        ?.additionalContext ?? "";
+    const identity = extractPromptFrontDoorIdentityContext(additionalContext);
+    expect(identity?.sessionId).toBe("codex-continuation-session");
+
+    const pointer = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          project,
+          ".palantir-mini",
+          "session",
+          "prompt-front-door",
+          "current",
+          "codex-codex-continuation-session.json",
+        ),
+        "utf8",
+      ),
+    ) as { promptId: string };
+    const envelope = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          project,
+          ".palantir-mini",
+          "session",
+          "prompt-front-door",
+          "sessions",
+          "codex-continuation-session",
+          `${pointer.promptId}.json`,
+        ),
+        "utf8",
+      ),
+    ) as { promptExcerpt: string; previousPromptHash?: string };
+    expect(envelope.promptExcerpt).toBe("A");
+    expect(typeof envelope.previousPromptHash).toBe("string");
+  });
 });
