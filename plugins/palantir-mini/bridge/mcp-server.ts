@@ -517,7 +517,7 @@ const TOOLS: ToolSpec[] = [
     name: "pm_substrate_query",
     description:
       "Sprint-063 W4.B — consolidated substrate query for lineage, workflow, by-grade, retro, " +
-      "learn, and agent-export read paths. Mode dispatches with filter passthrough.",
+      "learn, agent-export, and post-merge read paths. Mode dispatches with filter passthrough.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -525,10 +525,13 @@ const TOOLS: ToolSpec[] = [
         project:   { type: "string" },
         mode:      {
           type: "string",
-          enum: ["lineage", "workflow", "by-grade", "retro", "learn", "agent-export"],
+          enum: ["lineage", "workflow", "by-grade", "retro", "learn", "agent-export", "post-merge"],
         },
-        filter:    { type: "object" },
-        agentName: { type: "string" },
+        filter:           { type: "object" },
+        newMergeSha:      { type: "string", description: "For mode=post-merge: new merge commit SHA. Handler-required for post-merge calls." },
+        previousMainSha:  { type: "string", description: "For mode=post-merge: previous main HEAD SHA. Optional; derived from newMergeSha^ when omitted." },
+        includeLegacyRaw: { type: "boolean", description: "Forwarded to lineage, workflow, and retro modes. Ignored by post-merge." },
+        agentName:        { type: "string" },
       },
       required: ["mode"],
     },

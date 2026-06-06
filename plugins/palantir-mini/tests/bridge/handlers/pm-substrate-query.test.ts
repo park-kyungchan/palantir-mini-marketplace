@@ -11,8 +11,18 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import pmSubstrateQuery from "../../../bridge/handlers/pm-substrate-query";
+import { TOOLS } from "../../../bridge/mcp-server";
 
 const tmpDirs: string[] = [];
+
+type MinimalToolInputSchema = {
+  required?: string[];
+  properties?: Record<string, {
+    description?: string;
+    enum?: string[];
+    type?: string;
+  }>;
+};
 
 function makeTmpProject(): string {
   const project = fs.mkdtempSync(path.join(os.tmpdir(), "pm-substrate-query-"));
@@ -62,7 +72,37 @@ afterEach(() => {
   }
 });
 
-// ─── T1: each of 6 modes dispatches to the correct delegated handler ──────────
+// ─── T0: public MCP schema exposes the handler-supported contract ───────────
+
+describe("T0: public MCP schema registry", () => {
+  test("exposes post-merge mode and flat post-merge fields", () => {
+    const tool = TOOLS.find((candidate) => candidate.name === "pm_substrate_query");
+    const schema = tool?.inputSchema as MinimalToolInputSchema | undefined;
+    const properties = schema?.properties ?? {};
+
+    expect(tool).toBeDefined();
+    expect(tool?.description).toContain("post-merge");
+    expect(schema?.required).toEqual(["mode"]);
+    expect(properties.mode?.enum).toEqual([
+      "lineage",
+      "workflow",
+      "by-grade",
+      "retro",
+      "learn",
+      "agent-export",
+      "post-merge",
+    ]);
+    expect(properties.newMergeSha?.description).toContain("Handler-required");
+    expect(properties.previousMainSha?.description).toContain("newMergeSha^");
+    expect(properties.includeLegacyRaw?.type).toBe("boolean");
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain("anyOf");
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain("oneOf");
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain("allOf");
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain('"not"');
+  });
+});
+
+// ─── T1: each of 7 modes dispatches to the correct delegated handler ──────────
 
 describe("T1: mode dispatch — result shape from delegated handler", () => {
   test("mode=lineage dispatches to replay-lineage (returns events + lineageGraph)", async () => {
@@ -171,6 +211,19 @@ describe("T1: mode dispatch — result shape from delegated handler", () => {
     expect(typeof data.markdown).toBe("string");
     expect(typeof data.matchedEventCount).toBe("number");
   });
+
+  test("mode=post-merge is accepted and reaches the post-merge handler", async () => {
+    const project = makeTmpProject();
+
+    const result = await pmSubstrateQuery({
+      project,
+      mode: "post-merge",
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.mode).toBe("post-merge");
+    expect(result.error).toMatch(/newMergeSha.*required|required.*newMergeSha/i);
+  });
 });
 
 // ─── T2: invalid mode → throws clear error ────────────────────────────────────
@@ -182,14 +235,14 @@ describe("T2: invalid mode rejects", () => {
     ).rejects.toThrow(/unknown mode.*invalid-mode/);
   });
 
-  test("error message lists all 6 valid modes", async () => {
+  test("error message lists all 7 valid modes", async () => {
     let msg = "";
     try {
       await pmSubstrateQuery({ project: "/tmp", mode: "bad" as never });
     } catch (e) {
       msg = (e as Error).message;
     }
-    for (const validMode of ["lineage", "workflow", "by-grade", "retro", "learn", "agent-export"]) {
+    for (const validMode of ["lineage", "workflow", "by-grade", "retro", "learn", "agent-export", "post-merge"]) {
       expect(msg).toContain(validMode);
     }
   });
