@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 import {
   classifyHookTool,
+  isAssignedReviewArtifactPath,
   isMcpFirstEvidenceToolName,
   isReadOnlyBashCommand,
   managedSettingsPalantirMiniMcpPattern,
@@ -192,6 +196,34 @@ describe("classifyHookTool", () => {
       "mcp__palantir_mini__commit_edits",
     ]) {
       expect(isMcpFirstEvidenceToolName(toolName)).toBe(false);
+    }
+  });
+
+  test("recognizes only markdown report artifacts in assigned output lanes", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-assigned-report-"));
+    try {
+      const promptDir = path.join(root, "_workspace", "run-1", "spawn-prompts");
+      fs.mkdirSync(promptDir, { recursive: true });
+      const agentReport = path.join(root, "_workspace", "run-1", "agent-outputs", "W1.md");
+      const workerReport = path.join(root, "_workspace", "run-1", "worker-outputs", "R1-review.md");
+      fs.writeFileSync(
+        path.join(promptDir, "index.md"),
+        [
+          `Required output: ${agentReport}`,
+          "Required output: worker-outputs/R1-review.md",
+        ].join("\n"),
+      );
+
+      expect(isAssignedReviewArtifactPath(agentReport)).toBe(true);
+      expect(isAssignedReviewArtifactPath(workerReport)).toBe(true);
+      expect(isAssignedReviewArtifactPath(path.join(root, "_workspace", "run-1", "agent-outputs", "undeclared.md"))).toBe(false);
+      expect(isAssignedReviewArtifactPath(path.join(root, "_workspace", "run-1", "agent-outputs", "report.txt"))).toBe(false);
+      expect(isAssignedReviewArtifactPath(path.join(root, "_workspace", "run-1", "notes", "report.md"))).toBe(false);
+      expect(isAssignedReviewArtifactPath(path.join(root, "_workspace", "run-1", "agent-outputs", "nested", "report.md"))).toBe(false);
+      expect(isAssignedReviewArtifactPath("/home/test/.codex/plugins/cache/pkg/_workspace/run-1/agent-outputs/W1.md")).toBe(false);
+      expect(isAssignedReviewArtifactPath(path.join(root, "plugins", "palantir-mini", "hooks", "report.md"))).toBe(false);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
     }
   });
 });

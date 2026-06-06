@@ -61,6 +61,12 @@ function makePayload(
   };
 }
 
+function declareReviewArtifact(reportFile: string): void {
+  const promptDir = path.join(TMP, "_workspace", "run-1", "spawn-prompts");
+  fs.mkdirSync(promptDir, { recursive: true });
+  fs.writeFileSync(path.join(promptDir, "index.md"), `Required output: ${reportFile}\n`);
+}
+
 beforeEach(() => {
   TMP = fs.mkdtempSync(path.join(os.tmpdir(), "pm-mcp-first-"));
   savedBypass = process.env.PALANTIR_MINI_MCP_FIRST_BYPASS;
@@ -237,6 +243,30 @@ describe("pre-edit-impact-mcp-first", () => {
     const result = await preEditImpactMcpFirst(makePayload(planFile)) as { message: string };
     expect(result.message).toContain("skipped");
     expect(result.message).toContain("synthesis path");
+  });
+
+  test("6c. SKIPPED — assigned markdown report artifact output path", async () => {
+    const reportFile = path.join(TMP, "_workspace", "run-1", "agent-outputs", "W1-report.md");
+    declareReviewArtifact(reportFile);
+    const result = await preEditImpactMcpFirst(makePayload(reportFile)) as { message: string };
+    expect(result.message).toContain("skipped");
+    expect(result.message).toContain("assigned review artifact path");
+  });
+
+  test("6d. BLOCKED — undeclared report-lane markdown remains gated", async () => {
+    const reportFile = path.join(TMP, "_workspace", "run-1", "agent-outputs", "W1-report.md");
+    const result = await preEditImpactMcpFirst(makePayload(reportFile)) as {
+      hookSpecificOutput?: { permissionDecision?: string };
+    };
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+  });
+
+  test("6e. BLOCKED — non-report workspace markdown remains gated", async () => {
+    const reportFile = path.join(TMP, "_workspace", "run-1", "source-notes.md");
+    const result = await preEditImpactMcpFirst(makePayload(reportFile)) as {
+      hookSpecificOutput?: { permissionDecision?: string };
+    };
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
   });
 
   test("7. SKIPPED — not a tracked project (no .palantir-mini/)", async () => {
