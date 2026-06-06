@@ -288,6 +288,7 @@ function approvedContractEvidence(): {
 beforeEach(() => {
   savedEnv.PALANTIR_MINI_PROJECT = process.env.PALANTIR_MINI_PROJECT;
   savedEnv.PALANTIR_MINI_EVENTS_FILE = process.env.PALANTIR_MINI_EVENTS_FILE;
+  savedEnv.HOME = process.env.HOME;
   delete process.env.PALANTIR_MINI_EVENTS_FILE;
   delete process.env.PALANTIR_MINI_PROJECT;
 });
@@ -302,6 +303,11 @@ afterEach(() => {
     delete process.env.PALANTIR_MINI_EVENTS_FILE;
   } else {
     process.env.PALANTIR_MINI_EVENTS_FILE = savedEnv.PALANTIR_MINI_EVENTS_FILE;
+  }
+  if (savedEnv.HOME === undefined) {
+    delete process.env.HOME;
+  } else {
+    process.env.HOME = savedEnv.HOME;
   }
   for (const d of tmpDirs.splice(0)) {
     fs.rmSync(d, { recursive: true, force: true });
@@ -972,6 +978,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     ]);
     expect(result.decision).toBe("delegate-to-ontology-steward");
     expect(result.workContractValidation?.valid).toBe(true);
+    expect(result.routerBindingValidation?.valid).toBe(true);
 
     const routingEvent = readEvents(project).find(
       (event) =>
@@ -983,11 +990,68 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     expect(routingEvent?.payload?.runtime).toBe(envelope.runtime);
     expect(routingEvent?.payload?.projectRoot).toBe(project);
     expect(routingEvent?.payload?.memoryLayers).toEqual(["semantic", "procedural"]);
+    expect(routingEvent?.payload?.workContractRef).toBe(result.workContractRef);
+    expect(routingEvent?.payload?.routerBindingRef).toBe(result.routerBindingRef);
     expect(routingEvent?.payload?.contractRefs).toMatchObject({
       semanticIntentContractRef: gate.contractRefs?.semanticIntentContractRef,
       digitalTwinChangeContractRef: gate.contractRefs?.digitalTwinChangeContractRef,
+      workContractRef: result.workContractRef,
+      routerBindingRef: result.routerBindingRef,
       approvalRef: "user:approved:scene3d",
     });
+  });
+
+  test("resolves approved prompt-front-door refs from home fallback when router target differs", async () => {
+    const homeProject = makeTmpProject();
+    const targetProject = makeTmpProject();
+    process.env.HOME = homeProject;
+    const rawPrompt =
+      "Research the palantir-math plan docs and prepare the 3D migration writeup before coding";
+    const envelope = await createCapturedPrompt(homeProject, rawPrompt);
+    const gate = await semanticIntentGate({
+      project: targetProject,
+      rawIntent: rawPrompt,
+      scopePaths: ["docs/proposals/swift-spinning-teapot-3d.md"],
+      complexityHint: "cross-cutting",
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      semanticIntentContract: approvedSemanticContract(),
+      digitalTwinChangeContract: approvedDigitalTwinContract(),
+      semanticConsistencyResolverInput: scene3dSemanticConsistencyInput(),
+    });
+
+    const result = await routeIntent({
+      project: targetProject,
+      intent: rawPrompt,
+      scopePaths: ["docs/proposals/swift-spinning-teapot-3d.md"],
+      complexityHint: "cross-cutting",
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      semanticConsistencyResult:
+        gate.semanticConsistencyResult ?? approvedSemanticConsistencyResult,
+    });
+
+    expect(gate.promptEnvelopeLookup).toMatchObject({
+      selectedPromptFrontDoorRoot: homeProject,
+      selectedBy: "home-fallback",
+    });
+    expect(result.promptContinuity?.valid).toBe(true);
+    expect(result.promptEnvelopeLookup).toMatchObject({
+      selectedPromptFrontDoorRoot: homeProject,
+      selectedBy: "home-fallback",
+    });
+    expect(result.contractGate.status).toBe("pass");
+    expect(result.contractRefs?.semanticIntentContractRef).toBe(
+      gate.contractRefs?.semanticIntentContractRef,
+    );
+    expect(result.routingProjection.basis).toBe("approved-inline-contracts");
+    expect(result.decision).toBe("delegate-to-ontology-steward");
+    expect(result.workContractValidation?.valid).toBe(true);
+    expect(result.routerBindingValidation?.valid).toBe(true);
   });
 
   test("malformed prompt-front-door DTC surface refs block instead of throwing", async () => {

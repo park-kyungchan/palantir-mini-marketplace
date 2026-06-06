@@ -273,6 +273,14 @@ function digitalTwinContract(): DigitalTwinChangeContract {
         confidence: "exact",
       },
     ],
+    requiredBranchPolicyRef: {
+      rid: "branch-policy://palantir-mini/ontology-engineering-workflow-test",
+      displayName: "Ontology Engineering workflow test branch policy",
+    },
+    requiredPermissionPolicyRef: {
+      rid: "permission-policy://palantir-mini/ontology-engineering-workflow-test",
+      displayName: "Ontology Engineering workflow test permission policy",
+    },
     fillPolicy: "ontology-dtc-build",
     ontologyDtcBuildSequence: Array.from({ length: 7 }, (_, index) => ({
       step: index + 1,
@@ -408,7 +416,7 @@ describe("Ontology Engineering cross-runtime enforcement eval suite", () => {
     }
   });
 
-  test("Claude and Codex share the same workflow contract path once FDE provenance exists", async () => {
+  test("Claude and Codex share the same workflow contract path while mutation stays guarded", async () => {
     const summaries = [];
     for (const runtime of ["claude", "codex"] as const) {
       const project = makeProject(runtime);
@@ -431,7 +439,7 @@ describe("Ontology Engineering cross-runtime enforcement eval suite", () => {
       expect(gate.status).toBe("pass");
       expect(route.contractGate.status).toBe("pass");
       expect(gate.workflowContract?.runtime).toBe(runtime);
-      expect(gate.workflowContract?.mutationAuthorized).toBe(true);
+      expect(gate.workflowContract?.mutationAuthorized).toBe(false);
       expect(legacyRuntimeUiKeyCount(gate)).toBe(0);
       expect(legacyRuntimeUiKeyCount(route)).toBe(0);
 

@@ -195,6 +195,14 @@ function digitalTwinContract(
     evaluationPlan:
       "Run deterministic-core, capability-routing, presenter-parity, ontology-runtime-drift.",
     requiredEvaluationRefs: validationPackRefs(),
+    requiredBranchPolicyRef: {
+      rid: "branch-policy://palantir-math/prompt-dtc-eval",
+      displayName: "Prompt-to-DTC eval branch policy",
+    },
+    requiredPermissionPolicyRef: {
+      rid: "permission-policy://palantir-math/prompt-dtc-eval",
+      displayName: "Prompt-to-DTC eval permission policy",
+    },
     touchedOntologyRefs: [
       {
         kind: "ObjectType",
