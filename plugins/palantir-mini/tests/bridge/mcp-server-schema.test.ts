@@ -535,6 +535,20 @@ describe("mcp-server ToolSpec metadata", () => {
     ]);
   });
 
+  test("pm_rule_query schema describes flat discriminator preflight", () => {
+    const tool = toolSpec("pm_rule_query");
+    const props = toolSchema("pm_rule_query").properties ?? {};
+
+    expect(tool.description).toContain("Preflight");
+    expect(tool.description).toContain("exactly one discriminator");
+    expect(tool.description).toContain("omit all three for list mode");
+    expect(props.byId?.description).toContain("Set only byId");
+    expect(props.bySlug?.description).toContain("Set only bySlug");
+    expect(props.byQuery?.description).toContain("non-empty byQuery");
+    expect(props.compact?.description).toContain("Omit byId, bySlug, and byQuery");
+    expect(toolSchema("pm_rule_query").required).toBeUndefined();
+  });
+
   test("pm_surface_contract_audit schema exposes advisory rollout controls", () => {
     const props = toolSchema("pm_surface_contract_audit").properties ?? {};
 
