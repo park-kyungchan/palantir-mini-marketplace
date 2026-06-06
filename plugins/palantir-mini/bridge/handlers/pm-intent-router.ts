@@ -60,6 +60,7 @@ import {
   assessContractGate,
   assessOntologyDtcBuildReadinessGate,
   deriveWorkContractFromContracts,
+  isOperationalCloseoutWithoutMutation,
   isOntologyAffectingIntent,
   isReadOnlyIntent,
   projectRoutingFromContracts,
@@ -568,6 +569,24 @@ function applyPromptContinuityFailure(
       issues: [...gate.semanticIntent.issues, ...continuity.issues],
     },
   };
+}
+
+function shouldApplyPromptContinuityFailure(
+  input: EffectiveIntentRouterInput,
+  gate: ContractGateResult,
+  continuity: ContractValidationResult | undefined,
+): boolean {
+  if (!continuity || continuity.valid) return false;
+  if (
+    gate.status === "not_required" &&
+    gate.contractPolicy === "ambient" &&
+    gate.allowsRouting &&
+    gate.requiredContracts.length === 0 &&
+    isOperationalCloseoutWithoutMutation(input.intent)
+  ) {
+    return false;
+  }
+  return true;
 }
 
 function promptLineagePayload(
@@ -1108,10 +1127,14 @@ export async function routeIntent(
     digitalTwinChangeContract: effectiveInput.digitalTwinChangeContract,
     semanticConsistencyResult: effectiveInput.semanticConsistencyResult,
   });
-  const effectiveContractGate =
-    promptRouting.continuity && !promptRouting.continuity.valid
-      ? applyPromptContinuityFailure(contractGate, promptRouting.continuity)
-      : contractGate;
+  const continuityFailureToApply =
+    promptRouting.continuity &&
+    shouldApplyPromptContinuityFailure(effectiveInput, contractGate, promptRouting.continuity)
+      ? promptRouting.continuity
+      : undefined;
+  const effectiveContractGate = continuityFailureToApply
+    ? applyPromptContinuityFailure(contractGate, continuityFailureToApply)
+    : contractGate;
   const fdeProvenanceRequired = requiresFDEWorkflowProvenance(effectiveInput);
   const fdeProvenanceMissing =
     effectiveContractGate.allowsRouting &&

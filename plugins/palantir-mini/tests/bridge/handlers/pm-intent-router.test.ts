@@ -690,7 +690,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     ]);
   });
 
-  test("operational ship handoff closeout with explicit no mutation ignores temporary contract refs", async () => {
+  test("operational ship handoff closeout with explicit no mutation ignores temporary refs and continuity gaps", async () => {
     const project = makeTmpProject();
     const result = await routeIntent({
       project,
@@ -699,6 +699,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
         "the approved source slice; no additional source edit or ontology mutation.",
       scopePaths: ["bridge/handlers/pm-intent-router.ts"],
       complexityHint: "multi-file",
+      runtime: "codex",
       semanticIntentContractRef: "semantic-intent:temp:ship-closeout",
       digitalTwinChangeContractRef: "digital-twin-change:temp:ship-closeout",
       workContractRef: "work-contract:temp:ship-closeout",
@@ -708,7 +709,10 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     expect(result.decision).not.toBe("contract_required");
     expect(result.decision).not.toBe("blocked_for_clarification");
     expect(result.contractGate.status).toBe("not_required");
+    expect(result.contractGate.contractPolicy).toBe("ambient");
+    expect(result.contractGate.requiredContracts).toEqual([]);
     expect(result.routingProjection.basis).toBe("raw-intent");
+    expect(result.promptContinuity?.valid).toBe(false);
   });
 
   test("actual router source fixes remain contract-gated despite closeout negation text", async () => {
