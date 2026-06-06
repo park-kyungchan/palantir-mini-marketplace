@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import {
+import workflowHandler, {
   handleOntologyEngineeringWorkflow,
 } from "../../../bridge/handlers/pm-ontology-engineering-workflow";
 import {
   readCurrentOntologyEngineeringWorkflowState,
   readOntologyEngineeringWorkflowState,
 } from "../../../lib/ontology-engineering-workflow";
+import { HANDLER_MODULES, TOOLS } from "../../../bridge/mcp-server";
 import {
   createUniversalOntologyEntry,
 } from "../../../lib/ontology-entry/universal-entry";
@@ -39,7 +40,60 @@ function writeEntry(): string {
   return writeUniversalOntologyEntry(entry).entryRef;
 }
 
+type MinimalToolInputSchema = {
+  required?: string[];
+  properties?: Record<string, { description?: string }>;
+};
+
+async function rejectedMessage(promise: Promise<unknown>): Promise<string> {
+  const err = await promise.then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  expect(err).toBeInstanceOf(Error);
+  return err instanceof Error ? err.message : "";
+}
+
 describe("pm-ontology-engineering-workflow handler", () => {
+  test("is registered with canonical projectRoot and action required publicly", () => {
+    const tool = TOOLS.find((candidate) => candidate.name === "pm_ontology_engineering_workflow");
+    const schema = tool?.inputSchema as MinimalToolInputSchema | undefined;
+
+    expect(tool).toBeDefined();
+    expect(tool?.category).toBe("ontology-engineering");
+    expect(schema?.required).toEqual(["projectRoot", "action"]);
+    expect(schema?.properties?.projectRoot?.description).toContain(
+      "Canonical absolute project root",
+    );
+    expect(schema?.properties?.project?.description).toContain("Legacy alias");
+    expect(HANDLER_MODULES["pm_ontology_engineering_workflow"]).toBe(
+      "./handlers/pm-ontology-engineering-workflow",
+    );
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain("anyOf");
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain("oneOf");
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain("allOf");
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain('"not"');
+  });
+
+  test("requires project or projectRoot with repair guidance", async () => {
+    const message = await rejectedMessage(workflowHandler({ action: "status" }));
+
+    expect(message).toContain("missing_project_root");
+    expect(message).toContain("projectRoot");
+    expect(message).toContain("project");
+    expect(message).toContain('"projectRoot":"/absolute/project/root"');
+    expect(message).toContain('"action":"status"');
+  });
+
+  test("requires sanitizedTurnSummary for turn with repair guidance", async () => {
+    const message = await rejectedMessage(workflowHandler({ action: "turn", projectRoot }));
+
+    expect(message).toContain("missing_sanitized_turn_summary");
+    expect(message).toContain("sanitizedTurnSummary");
+    expect(message).toContain('"action":"turn"');
+    expect(message).toContain('"sessionId":"fde-session:example"');
+  });
+
   test("starts workflow state from a UniversalOntologyEntry and FDE session", async () => {
     const entryRef = writeEntry();
     const result = await handleOntologyEngineeringWorkflow({
@@ -111,6 +165,17 @@ describe("pm-ontology-engineering-workflow handler", () => {
       projectRoot,
       ".palantir-mini/session/fde-ontology-engineering/current.json",
     ))).toBe(false);
+  });
+
+  test("accepts legacy project alias for direct/internal calls", async () => {
+    const status = await workflowHandler({
+      action: "status",
+      project: projectRoot,
+      emittedAt: "2026-05-22T00:01:00.000Z",
+    });
+
+    expect(status.state.projectRoot).toBe(projectRoot);
+    expect(status.state.phase).toBe("not-started");
   });
 
   test("routes turn through the internal FDE handler and drafts SIC without mutation authority", async () => {

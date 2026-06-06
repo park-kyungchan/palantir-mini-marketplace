@@ -83,6 +83,7 @@ describe("composeApplicationState — Phase 3 PR 3.2 composer (sprint-094)", () 
     expect(state.codexMountedHookEvents.events).toEqual([
       "SessionStart",
       "PermissionRequest",
+      "PreToolUse",
       "PostToolUse",
       "PreCompact",
       "PostCompact",
@@ -91,7 +92,7 @@ describe("composeApplicationState — Phase 3 PR 3.2 composer (sprint-094)", () 
       "SubagentStop",
       "Stop",
     ]);
-    expect(state.codexMountedHookEvents.events).not.toContain("PreToolUse");
+    expect(state.codexMountedHookEvents.events).toContain("PreToolUse");
 
     // ≥7 of the availability-bearing sub-fields available.
     // (Composer is "best-effort"; we allow a couple of degraded sub-fields

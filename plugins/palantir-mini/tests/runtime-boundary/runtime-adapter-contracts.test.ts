@@ -38,16 +38,13 @@ describe("runtime adapter contracts", () => {
     expect(contract.support).toBe("adapter-native");
     expect(contract.packageSurface).toBe("codex-plugin");
     expect([...contract.mountedHookEvents].sort()).toEqual(Object.keys(codexHooks.hooks ?? {}).sort());
-    expect(contract.unmountedHookEvents).toEqual([
-      "PreToolUse",
-    ]);
+    expect(contract.mountedHookEvents).toContain("PreToolUse");
+    expect(contract.unmountedHookEvents).toEqual([]);
     for (const event of contract.unmountedHookEvents) {
       expect(codexHooks.hooks?.[event]).toBeUndefined();
     }
-    expect(contract.unsupportedSurfaceRefs).toEqual(
-      expect.arrayContaining([
-        "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
-      ]),
+    expect(contract.unsupportedSurfaceRefs).not.toContain(
+      "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
     );
     expect(contract.smokeEvidenceRefs).toEqual(
       expect.arrayContaining([

@@ -167,10 +167,10 @@ const TOOLS: ToolSpec[] = [
       "does not commit edits, emit lineage events, or mutate project state.",
     inputSchema: {
       type: "object",
-      required: ["toolName"],
+      required: ["projectRoot", "toolName"],
       properties: {
-        project: { type: "string", description: "Absolute project root. Either project or projectRoot is required; enforced by handler." },
-        projectRoot: { type: "string", description: "Alias for project. Either project or projectRoot is required; enforced by handler." },
+        project: { type: "string", description: "Legacy alias for projectRoot. Direct/internal callers may pass this field; public MCP callers should use projectRoot." },
+        projectRoot: { type: "string", description: "Canonical absolute project root. Required for public MCP calls." },
         promptId: { type: "string" },
         promptHash: { type: "string" },
         toolName: { type: "string", description: "Runtime tool name being evaluated." },
@@ -245,11 +245,11 @@ const TOOLS: ToolSpec[] = [
       "around the internal FDEOntologyEngineeringSession and returns runtime-neutral workflow state.",
     inputSchema: {
       type: "object",
-      required: ["action"],
+      required: ["projectRoot", "action"],
       properties: {
         action: { type: "string", enum: ["start", "turn", "draft_sic", "status"] },
-        project: { type: "string", description: "Absolute project root." },
-        projectRoot: { type: "string", description: "Alias for project." },
+        project: { type: "string", description: "Legacy alias for projectRoot. Direct/internal callers may pass this field; public MCP callers should use projectRoot." },
+        projectRoot: { type: "string", description: "Canonical absolute project root. Required for public MCP calls." },
         universalOntologyEntryRef: { type: "string" },
         universalOntologyEntryId: { type: "string" },
         sessionId: { type: "string" },

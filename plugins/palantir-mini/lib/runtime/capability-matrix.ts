@@ -47,6 +47,7 @@ export const CODEX_NATIVE_EVENTS = [
 export const CODEX_MOUNTED_HOOK_EVENTS = [
   "SessionStart",
   "PermissionRequest",
+  "PreToolUse",
   "PostToolUse",
   "PreCompact",
   "PostCompact",
@@ -56,9 +57,7 @@ export const CODEX_MOUNTED_HOOK_EVENTS = [
   "Stop",
 ] as const;
 
-export const CODEX_UNMOUNTED_HOOK_EVENTS = [
-  "PreToolUse",
-] as const;
+export const CODEX_UNMOUNTED_HOOK_EVENTS = [] as const;
 
 export const CODEX_SCHEMA_ONLY_EVENTS = [] as const;
 

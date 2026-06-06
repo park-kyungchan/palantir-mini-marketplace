@@ -386,9 +386,7 @@ export function defaultChatbotStudioRuntimeProjections(): readonly ChatbotStudio
         "codex:source-complete-is-not-active-runtime-complete",
         "codex:requires-plugin-reinstall-reload-and-process-restart",
       ],
-      unsupportedSurfaceRefs: [
-        "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
-      ],
+      unsupportedSurfaceRefs: [],
     },
     {
       runtime: "claude",

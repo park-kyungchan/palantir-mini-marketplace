@@ -5,6 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "projectRoot",
     "toolName"
   ],
   "properties": {
@@ -13,11 +14,11 @@
     },
     "project": {
       "type": "string",
-      "description": "Absolute project root. Either project or projectRoot is required; enforced by handler."
+      "description": "Legacy alias for projectRoot. Direct/internal callers may pass this field; public MCP callers should use projectRoot."
     },
     "projectRoot": {
       "type": "string",
-      "description": "Alias for project. Either project or projectRoot is required; enforced by handler."
+      "description": "Canonical absolute project root. Required for public MCP calls."
     },
     "promptId": {
       "type": "string"

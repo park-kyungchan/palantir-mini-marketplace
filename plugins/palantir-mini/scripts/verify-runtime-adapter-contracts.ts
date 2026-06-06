@@ -11,7 +11,7 @@ import {
 
 const PLUGIN_ROOT = join(import.meta.dir, "..");
 const RUNTIMES: readonly RuntimeId[] = ["claude", "codex", "gemini"];
-const CODEX_UNMOUNTED_HOOK_EVENTS = ["PreToolUse"] as const;
+const CODEX_UNMOUNTED_HOOK_EVENTS = [] as const;
 const FORBIDDEN_SOURCE_REFS = [
   "~/.codex/plugins/cache",
   "/home/palantirkc/.codex/plugins/cache",
