@@ -690,6 +690,43 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     ]);
   });
 
+  test("operational ship handoff closeout with explicit no mutation ignores temporary contract refs", async () => {
+    const project = makeTmpProject();
+    const result = await routeIntent({
+      project,
+      intent:
+        "Commit, push, open PR, merge, refresh plugin install, and write handoff after " +
+        "the approved source slice; no additional source edit or ontology mutation.",
+      scopePaths: ["bridge/handlers/pm-intent-router.ts"],
+      complexityHint: "multi-file",
+      semanticIntentContractRef: "semantic-intent:temp:ship-closeout",
+      digitalTwinChangeContractRef: "digital-twin-change:temp:ship-closeout",
+      workContractRef: "work-contract:temp:ship-closeout",
+      routerBindingRef: "router-binding:temp:ship-closeout",
+    });
+
+    expect(result.decision).not.toBe("contract_required");
+    expect(result.decision).not.toBe("blocked_for_clarification");
+    expect(result.contractGate.status).toBe("not_required");
+    expect(result.routingProjection.basis).toBe("raw-intent");
+  });
+
+  test("actual router source fixes remain contract-gated despite closeout negation text", async () => {
+    const project = makeTmpProject();
+    const result = await routeIntent({
+      project,
+      intent:
+        "Fix router dispatch and write tests for the ship/handoff contract gap; " +
+        "no additional source edit or ontology mutation.",
+      scopePaths: ["bridge/handlers/pm-intent-router.ts"],
+      complexityHint: "multi-file",
+    });
+
+    expect(result.decision).toBe("contract_required");
+    expect(result.contractGate.status).toBe("contract_required");
+    expect(result.routingProjection.basis).toBe("ontology-affecting-raw-intent-fail-closed");
+  });
+
   test("unresolved refs block complex ontology-affecting dispatch", async () => {
     const project = makeTmpProject();
     const result = await routeIntent({

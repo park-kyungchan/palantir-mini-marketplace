@@ -473,15 +473,47 @@ const READ_ONLY_MARKERS = [
   "no edit",
 ];
 
+const OPERATIONAL_CLOSEOUT_MARKERS = [
+  "ship",
+  "closeout",
+  "commit",
+  "push",
+  "merge",
+  "pull request",
+  "open pr",
+  "handoff",
+  "plugin install",
+  "plugin refresh",
+];
+
+const SOURCE_AND_ONTOLOGY_MUTATION_NEGATION_PATTERNS = [
+  /\bno\s+(?:additional\s+)?(?:source\s+|code\s+)?edits?\s+or\s+(?:ontology\s+|runtime\s+)?mutation\b/g,
+  /\bwithout\s+(?:additional\s+)?(?:source\s+|code\s+)?edits?\s+or\s+(?:ontology\s+|runtime\s+)?mutation\b/g,
+];
+
+const SOURCE_EDIT_NEGATION_PATTERNS = [
+  /\bno\s+(?:additional\s+)?(?:source\s+|code\s+)?edits?\b/g,
+  /\bwithout\s+(?:additional\s+)?(?:source\s+|code\s+)?edits?\b/g,
+];
+
+const ONTOLOGY_MUTATION_NEGATION_PATTERNS = [
+  /\bno\s+(?:additional\s+)?(?:ontology\s+|runtime\s+)?mutation\b/g,
+  /\bwithout\s+(?:additional\s+)?(?:ontology\s+|runtime\s+)?mutation\b/g,
+];
+
+const OPERATIONAL_CLOSEOUT_IMPLEMENTATION_PATTERNS = [
+  /\bwrite\s+(?:a\s+|the\s+|new\s+)?(?:session\s+|next-session\s+)?handoff(?:\s+(?:\.md|md|document|artifact|file))?\b/g,
+];
+
 function hasAny(input: string, markers: readonly string[]): boolean {
   const lower = input.toLowerCase();
   return markers.some((marker) => lower.includes(marker));
 }
 
 const NEGATED_IMPLEMENTATION_PATTERNS = [
-  /\bno\s+(?:code\s+)?edits?\b/g,
-  /\bno\s+(?:runtime\s+)?mutation\b/g,
-  /\bwithout\s+(?:code\s+)?edits?\b/g,
+  ...SOURCE_AND_ONTOLOGY_MUTATION_NEGATION_PATTERNS,
+  ...SOURCE_EDIT_NEGATION_PATTERNS,
+  ...ONTOLOGY_MUTATION_NEGATION_PATTERNS,
   /\bdo\s+not\s+(?:edit|write|change|modify|mutate|implement|build|add|remove|delete|refactor|migrate|apply|fix)\b/g,
 ];
 
@@ -492,11 +524,49 @@ function stripNegatedImplementationPhrases(input: string): string {
   );
 }
 
-function hasNegatedImplementationPhrase(input: string): boolean {
-  return NEGATED_IMPLEMENTATION_PATTERNS.some((pattern) => {
+function hasAnyPattern(input: string, patterns: readonly RegExp[]): boolean {
+  return patterns.some((pattern) => {
     pattern.lastIndex = 0;
     return pattern.test(input);
   });
+}
+
+function hasNegatedImplementationPhrase(input: string): boolean {
+  return hasAnyPattern(input, NEGATED_IMPLEMENTATION_PATTERNS);
+}
+
+function hasSourceEditNegation(input: string): boolean {
+  return (
+    hasAnyPattern(input, SOURCE_AND_ONTOLOGY_MUTATION_NEGATION_PATTERNS) ||
+    hasAnyPattern(input, SOURCE_EDIT_NEGATION_PATTERNS)
+  );
+}
+
+function hasOntologyMutationNegation(input: string): boolean {
+  return (
+    hasAnyPattern(input, SOURCE_AND_ONTOLOGY_MUTATION_NEGATION_PATTERNS) ||
+    hasAnyPattern(input, ONTOLOGY_MUTATION_NEGATION_PATTERNS)
+  );
+}
+
+function isOperationalCloseoutWithoutMutation(input: string): boolean {
+  const lower = input.toLowerCase();
+  return (
+    hasAny(lower, OPERATIONAL_CLOSEOUT_MARKERS) &&
+    hasSourceEditNegation(lower) &&
+    hasOntologyMutationNegation(lower)
+  );
+}
+
+function stripOperationalCloseoutImplementationPhrases(
+  input: string,
+  operationalCloseoutWithoutMutation: boolean,
+): string {
+  if (!operationalCloseoutWithoutMutation) return input.toLowerCase();
+  return OPERATIONAL_CLOSEOUT_IMPLEMENTATION_PATTERNS.reduce(
+    (current, pattern) => current.replace(pattern, " "),
+    input.toLowerCase(),
+  );
 }
 
 function normalizeScope(scopePaths: readonly string[]): string {
@@ -594,9 +664,16 @@ function semanticConsistencyPromotionIssuesForContracts(input: {
 
 export function isReadOnlyIntent(intent: string): boolean {
   const lower = intent.toLowerCase();
+  const operationalCloseoutWithoutMutation = isOperationalCloseoutWithoutMutation(lower);
   const readOnly =
-    hasAny(lower, READ_ONLY_MARKERS) || hasNegatedImplementationPhrase(lower);
-  const implementation = hasAny(stripNegatedImplementationPhrases(lower), IMPLEMENTATION_MARKERS);
+    hasAny(lower, READ_ONLY_MARKERS) ||
+    hasNegatedImplementationPhrase(lower) ||
+    operationalCloseoutWithoutMutation;
+  const implementationText = stripOperationalCloseoutImplementationPhrases(
+    stripNegatedImplementationPhrases(lower),
+    operationalCloseoutWithoutMutation,
+  );
+  const implementation = hasAny(implementationText, IMPLEMENTATION_MARKERS);
   return readOnly && !implementation;
 }
 
@@ -1704,6 +1781,7 @@ function unresolvedRefIssue(field: string): ContractValidationResult {
 export function projectRoutingFromContracts(
   input: LeadIntentGateInput,
 ): ContractRoutingProjection {
+  const approvalRequired = requiresContractApproval(input);
   const rawProjection: ContractRoutingProjection = {
     basis: "raw-intent",
     intent: input.intent,
@@ -1723,7 +1801,7 @@ export function projectRoutingFromContracts(
     const semanticResult = validateSemanticIntentContract(semantic);
     const digitalTwinResult = validateDigitalTwinChangeContract(digitalTwin);
     const promotionIssues = semanticConsistencyPromotionIssuesForContracts({
-      ontologyAffecting: requiresContractApproval(input),
+      ontologyAffecting: approvalRequired,
       semanticIntentContract: semantic,
       digitalTwinChangeContract: digitalTwin,
       semanticConsistencyResultRef: input.semanticConsistencyResultRef,
@@ -1801,7 +1879,7 @@ export function projectRoutingFromContracts(
     }
   }
 
-  if (refsSatisfyRequirement(input)) {
+  if (approvalRequired && refsSatisfyRequirement(input)) {
     return {
       ...rawProjection,
       basis: "unresolved-contract-refs",
