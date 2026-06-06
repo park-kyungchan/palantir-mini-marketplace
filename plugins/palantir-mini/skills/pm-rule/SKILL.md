@@ -126,7 +126,8 @@ For `search` mode: render as ranked list of hits with snippet.
 ## Failure modes
 
 - `pm_rule_query: rule not found` (get mode) — user cited a non-existent rule ID or slug; suggest `pm_rule_query` list mode for discovery.
-- `pm_rule_query: at most ONE of { byId, bySlug, byQuery } may be set` — caller passed multiple discriminators; pick one.
+- `pm_rule_query: at most ONE of { byId, bySlug, byQuery } may be set` — caller passed multiple discriminators; keep exactly one of `byId`, `bySlug`, or `byQuery`, or omit all three for list mode.
+- `pm_rule_query: byQuery must be non-empty for search mode` — caller selected search mode with an empty query; provide a keyword string or omit `byQuery` for list mode.
 - Body file missing — rare; indicates codegen drift (run `bun run .claude/schemas/scripts/gen-rule-registry.ts` to regenerate).
 - Scope migrated but target not found — rare; follow links stop at first unresolvable step.
 

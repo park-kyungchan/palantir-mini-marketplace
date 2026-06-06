@@ -25,12 +25,30 @@ import type { PmRuleQueryArgs, PmRuleQueryResult } from "./pm-rule-query/types";
 // Backward-compat re-exports
 export type { PmRuleQueryArgs, PmRuleQueryResult, RuleSearchHit } from "./pm-rule-query/types";
 
+const DISCRIMINATOR_FIELDS = ["byId", "bySlug", "byQuery"] as const;
+
 function countDiscriminators(args: PmRuleQueryArgs): number {
-  let n = 0;
-  if (args.byId !== undefined) n++;
-  if (args.bySlug !== undefined) n++;
-  if (args.byQuery !== undefined) n++;
-  return n;
+  return activeDiscriminators(args).length;
+}
+
+function activeDiscriminators(args: PmRuleQueryArgs): string[] {
+  return DISCRIMINATOR_FIELDS.filter((field) => args[field] !== undefined);
+}
+
+function discriminatorRepairMessage(args: PmRuleQueryArgs): string {
+  return [
+    "pm_rule_query: at most ONE of { byId, bySlug, byQuery } may be set.",
+    `Received discriminators: ${activeDiscriminators(args).join(", ")}.`,
+    'Repair: use one of {"byId":10}, {"bySlug":"events-jsonl"}, {"byQuery":"events.jsonl"}, or omit all three for list mode with {}.',
+  ].join(" ");
+}
+
+function blankQueryRepairMessage(args: PmRuleQueryArgs): string {
+  return [
+    "pm_rule_query: byQuery must be non-empty for search mode.",
+    `Received byQuery: ${JSON.stringify(args.byQuery)}.`,
+    'Repair: use {"byQuery":"events.jsonl"} or omit byQuery for list mode with {}.',
+  ].join(" ");
 }
 
 export default async function pmRuleQuery(
@@ -38,9 +56,7 @@ export default async function pmRuleQuery(
 ): Promise<PmRuleQueryResult> {
   const discCount = countDiscriminators(args);
   if (discCount > 1) {
-    throw new Error(
-      "pm_rule_query: at most ONE of { byId, bySlug, byQuery } may be set",
-    );
+    throw new Error(discriminatorRepairMessage(args));
   }
 
   // Get mode — byId
@@ -64,7 +80,7 @@ export default async function pmRuleQuery(
   // Search mode — byQuery
   if (args.byQuery !== undefined) {
     if (args.byQuery.trim().length === 0) {
-      throw new Error("pm_rule_query: byQuery is required + non-empty");
+      throw new Error(blankQueryRepairMessage(args));
     }
     return runSearch(args.byQuery, args);
   }

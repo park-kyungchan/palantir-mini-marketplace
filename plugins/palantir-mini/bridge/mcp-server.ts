@@ -694,15 +694,17 @@ const TOOLS: ToolSpec[] = [
   {
     name: "pm_rule_query",
     description:
-      "Consolidated rule lookup. Provide exactly one of { byId, bySlug, byQuery } — or none for list mode. Returns mode-discriminated result: get | list | search. Replaces pm_rule_get + pm_rule_list + pm_rule_search (retired v2.26.0).",
+      "Consolidated rule lookup. Preflight: provide exactly one discriminator from { byId, bySlug, byQuery }, " +
+      "or omit all three for list mode. Returns mode-discriminated result: get | list | search. " +
+      "Replaces pm_rule_get + pm_rule_list + pm_rule_search (retired v2.26.0).",
     inputSchema: {
       type: "object",
       properties: {
-        byId:            { type: "number", description: "Get mode — fetch one rule by numeric ID." },
-        bySlug:          { type: "string", description: "Get mode — fetch one rule by kebab slug." },
-        byQuery:         { type: "string", description: "Search mode — keyword query across invariants + bodies." },
+        byId:            { type: "number", description: "Get mode discriminator. Set only byId to fetch one rule by numeric ID; omit bySlug and byQuery." },
+        bySlug:          { type: "string", description: "Get mode discriminator. Set only bySlug to fetch one rule by kebab slug; omit byId and byQuery." },
+        byQuery:         { type: "string", description: "Search mode discriminator. Set only a non-empty byQuery to search invariants and bodies; omit byId and bySlug." },
         limit:           { type: "number", description: "Search/list result cap. Search default 10, max 100." },
-        compact:         { type: "boolean", description: "List mode only — return only ruleId + slug + invariant per entry." },
+        compact:         { type: "boolean", description: "List mode only. Omit byId, bySlug, and byQuery; return only ruleId + slug + invariant per entry." },
         withFollow:      { type: "boolean", description: "Get mode — auto-follow supersededBy + scopeMigratedTo (default true)." },
         withContext:     { type: "boolean", description: "Get mode — include crossRefs neighbors' invariants (default false)." },
         scope:           { type: "string", description: "List/search filter — global | plugin:<id> | project:<id>." },

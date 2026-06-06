@@ -7,6 +7,16 @@
 import { test, expect, describe } from "bun:test";
 import pmRuleQuery from "../../bridge/handlers/pm-rule-query";
 
+async function errorMessageFor(args: Parameters<typeof pmRuleQuery>[0]): Promise<string> {
+  try {
+    await pmRuleQuery(args);
+  } catch (error) {
+    if (error instanceof Error) return error.message;
+    throw error;
+  }
+  throw new Error("expected pmRuleQuery to throw");
+}
+
 // ─── byId — get mode ─────────────────────────────────────────────────────────
 
 describe("pm_rule_query byId (get mode)", () => {
@@ -89,11 +99,17 @@ describe("pm_rule_query byQuery (search mode)", () => {
   });
 
   test("byQuery='   ' (whitespace) throws", async () => {
-    await expect(pmRuleQuery({ byQuery: "   " })).rejects.toThrow("non-empty");
+    const message = await errorMessageFor({ byQuery: "   " });
+    expect(message).toContain("byQuery must be non-empty");
+    expect(message).toContain("Received byQuery");
+    expect(message).toContain('{"byQuery":"events.jsonl"}');
+    expect(message).toContain("omit byQuery for list mode");
   });
 
   test("byQuery '' (empty) throws", async () => {
-    await expect(pmRuleQuery({ byQuery: "" })).rejects.toThrow("non-empty");
+    const message = await errorMessageFor({ byQuery: "" });
+    expect(message).toContain("byQuery must be non-empty");
+    expect(message).toContain('{"byQuery":"events.jsonl"}');
   });
 
   test("byQuery limit clamps to 100 (max)", async () => {
@@ -178,26 +194,30 @@ describe("pm_rule_query no discriminators (list mode)", () => {
 
 describe("pm_rule_query discriminator validation", () => {
   test("byId + bySlug both set throws", async () => {
-    await expect(pmRuleQuery({ byId: 10, bySlug: "events-jsonl" })).rejects.toThrow(
-      "at most ONE",
-    );
+    const message = await errorMessageFor({ byId: 10, bySlug: "events-jsonl" });
+    expect(message).toContain("at most ONE");
+    expect(message).toContain("Received discriminators: byId, bySlug");
+    expect(message).toContain('{"byId":10}');
+    expect(message).toContain('{"bySlug":"events-jsonl"}');
+    expect(message).toContain("omit all three for list mode");
   });
 
   test("byId + byQuery both set throws", async () => {
-    await expect(pmRuleQuery({ byId: 10, byQuery: "rule" })).rejects.toThrow(
-      "at most ONE",
-    );
+    const message = await errorMessageFor({ byId: 10, byQuery: "rule" });
+    expect(message).toContain("at most ONE");
+    expect(message).toContain("Received discriminators: byId, byQuery");
+    expect(message).toContain('{"byQuery":"events.jsonl"}');
   });
 
   test("bySlug + byQuery both set throws", async () => {
-    await expect(pmRuleQuery({ bySlug: "events-jsonl", byQuery: "rule" })).rejects.toThrow(
-      "at most ONE",
-    );
+    const message = await errorMessageFor({ bySlug: "events-jsonl", byQuery: "rule" });
+    expect(message).toContain("at most ONE");
+    expect(message).toContain("Received discriminators: bySlug, byQuery");
   });
 
   test("all three discriminators set throws", async () => {
-    await expect(
-      pmRuleQuery({ byId: 10, bySlug: "events-jsonl", byQuery: "rule" }),
-    ).rejects.toThrow("at most ONE");
+    const message = await errorMessageFor({ byId: 10, bySlug: "events-jsonl", byQuery: "rule" });
+    expect(message).toContain("at most ONE");
+    expect(message).toContain("Received discriminators: byId, bySlug, byQuery");
   });
 });
