@@ -549,7 +549,7 @@ function hasOntologyMutationNegation(input: string): boolean {
   );
 }
 
-function isOperationalCloseoutWithoutMutation(input: string): boolean {
+export function isOperationalCloseoutWithoutMutation(input: string): boolean {
   const lower = input.toLowerCase();
   return (
     hasAny(lower, OPERATIONAL_CLOSEOUT_MARKERS) &&
