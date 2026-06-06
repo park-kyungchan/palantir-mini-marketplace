@@ -280,6 +280,28 @@ describe("Lead Intent -> Digital Twin contracts", () => {
     ).toBe(false);
   });
 
+  test("ship handoff closeout is ambient only with explicit no source edit and no ontology mutation", () => {
+    const closeoutIntent =
+      "Commit, push, open PR, merge, refresh plugin install, and write handoff after " +
+      "the approved source slice; no additional source edit or ontology mutation.";
+
+    expect(isReadOnlyIntent(closeoutIntent)).toBe(true);
+    expect(
+      assessContractGate({
+        intent: closeoutIntent,
+        scopePaths: ["bridge/handlers/pm-intent-router.ts"],
+        complexityHint: "multi-file",
+      }).status,
+    ).toBe("not_required");
+
+    expect(
+      isReadOnlyIntent(
+        "Fix router dispatch and write tests for the ship/handoff gap; " +
+          "no additional source edit or ontology mutation.",
+      ),
+    ).toBe(false);
+  });
+
   test("read-only 3D triage does not require contracts", () => {
     const result = assessContractGate({
       intent: "Read-only triage of the palantir-math 3D swift-spinning-teapot plan and wait",
