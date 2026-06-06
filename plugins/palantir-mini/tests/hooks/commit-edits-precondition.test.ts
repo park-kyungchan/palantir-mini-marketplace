@@ -28,6 +28,12 @@ afterEach(() => {
   }
 });
 
+function declareReviewArtifact(reportFile: string): void {
+  const promptDir = path.join(TMP, "_workspace", "run-1", "spawn-prompts");
+  fs.mkdirSync(promptDir, { recursive: true });
+  fs.writeFileSync(path.join(promptDir, "index.md"), `Required output: ${reportFile}\n`);
+}
+
 describe("commitEditsPrecondition", () => {
   test("skips when tool_name is neither commit_edits nor file-edit (Bash)", async () => {
     const result = await commitEditsPrecondition({
@@ -438,8 +444,46 @@ describe("commitEditsPrecondition — v3.12.0 B2 file-edit branch", () => {
     }
   });
 
+  test("Write to assigned markdown report artifact path → ALLOW without harness contract", async () => {
+    fs.mkdirSync(path.join(TMP, ".palantir-mini"), { recursive: true });
+    const reportFile = path.join(TMP, "_workspace", "run-1", "agent-outputs", "W1-report.md");
+    declareReviewArtifact(reportFile);
+    const result = await commitEditsPrecondition({
+      tool_name: "Write",
+      cwd: TMP,
+      tool_input: { file_path: reportFile },
+    });
+    expect(result.decision).toBe("continue");
+    expect(result.message).toContain("assigned review artifact path");
+  });
+
+  test("Write to undeclared report-lane markdown path still requires harness contract", async () => {
+    fs.mkdirSync(path.join(TMP, ".palantir-mini"), { recursive: true });
+    const reportFile = path.join(TMP, "_workspace", "run-1", "agent-outputs", "W1-report.md");
+    const result = await commitEditsPrecondition({
+      tool_name: "Write",
+      cwd: TMP,
+      tool_input: { file_path: reportFile },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.message).toContain("no-harness-dir");
+  });
+
+  test("Write to non-report workspace markdown path still requires harness contract", async () => {
+    fs.mkdirSync(path.join(TMP, ".palantir-mini"), { recursive: true });
+    const reportFile = path.join(TMP, "_workspace", "run-1", "source-notes.md");
+    const result = await commitEditsPrecondition({
+      tool_name: "Write",
+      cwd: TMP,
+      tool_input: { file_path: reportFile },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.message).toContain("no-harness-dir");
+  });
+
   test("MultiEdit with PALANTIR_MINI_HARNESS_BYPASS=1 → BLOCK (env bypass denied)", async () => {
     process.env.PALANTIR_MINI_HARNESS_BYPASS = "1";
+    fs.mkdirSync(path.join(TMP, ".palantir-mini"), { recursive: true });
     const targetFile = path.join(TMP, "src", "module.ts");
     fs.mkdirSync(path.dirname(targetFile), { recursive: true });
     const result = await commitEditsPrecondition({
@@ -526,6 +570,12 @@ describe("commitEditsPrecondition — v3.12.0 B2 file-edit branch", () => {
     const home = process.env.HOME ?? "";
     if (home.length === 0 || !fs.existsSync(path.join(home, ".claude"))) {
       // skip — no ~/.claude/ to host symlink
+      return;
+    }
+    try {
+      fs.accessSync(path.join(home, ".claude"), fs.constants.W_OK);
+    } catch {
+      // skip — sandboxed runtimes may expose ~/.claude as read-only
       return;
     }
     const symlink = path.join(home, ".claude", `pm-test-symlink-${Date.now()}.ts`);

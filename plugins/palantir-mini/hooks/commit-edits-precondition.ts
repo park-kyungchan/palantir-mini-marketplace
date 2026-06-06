@@ -65,7 +65,10 @@ import { gradeCode } from "../bridge/handlers/grade-outcome/code";
 import { gradeRule } from "../bridge/handlers/grade-outcome/rule";
 import { compilePreMutationPolicy } from "../lib/governance/policy-compiler";
 import { preMutationGovernance } from "../lib/governance/pre-mutation-governance";
-import { normalizePalantirMiniMcpToolName } from "../lib/hooks/tool-classifier";
+import {
+  isAssignedReviewArtifactPath,
+  normalizePalantirMiniMcpToolName,
+} from "../lib/hooks/tool-classifier";
 
 interface HookPayload {
   cwd?:        string;
@@ -650,6 +653,13 @@ async function handleFileEditBranch(
     if (absPath.startsWith(prefix)) {
       return { message: `palantir-mini: commit-edits-precondition file-edit skipped (overlay exempt prefix=${prefix})`, decision: "continue" };
     }
+  }
+
+  if (isAssignedReviewArtifactPath(absPath)) {
+    return {
+      message: `palantir-mini: commit-edits-precondition file-edit skipped (assigned review artifact path: ${absPath})`,
+      decision: "continue",
+    };
   }
 
   if (process.env.PALANTIR_MINI_HARNESS_BYPASS === "1") {

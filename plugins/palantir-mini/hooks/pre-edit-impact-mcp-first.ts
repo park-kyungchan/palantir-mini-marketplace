@@ -59,7 +59,10 @@ import { findProjectRoot } from "./harness-base-mode-advisory";
 import { readEvents } from "../lib/event-log/read";
 import { eventsPathFor } from "../scripts/log";
 import { evaluatePreMutationImpactGate } from "../lib/governance/pre-mutation-impact-gate";
-import { isMcpFirstEvidenceToolName } from "../lib/hooks/tool-classifier";
+import {
+  isAssignedReviewArtifactPath,
+  isMcpFirstEvidenceToolName,
+} from "../lib/hooks/tool-classifier";
 import { isPlanArtifactPath } from "../lib/plan-root/resolve-plan-root";
 import {
   PROMPT_RUNTIMES,
@@ -364,6 +367,12 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
     if (isSynthesisPath(absFilePath, cwd)) {
       return {
         message: `palantir-mini: pre-edit-impact-mcp-first skipped (synthesis path: ${path.basename(absFilePath)})`,
+      };
+    }
+
+    if (isAssignedReviewArtifactPath(absFilePath)) {
+      return {
+        message: `palantir-mini: pre-edit-impact-mcp-first skipped (assigned review artifact path: ${path.basename(absFilePath)})`,
       };
     }
 

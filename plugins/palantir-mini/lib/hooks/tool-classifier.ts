@@ -2,6 +2,8 @@ import {
   getMcpToolCapability,
   type McpToolCapability,
 } from "../capability-registry/mcp-tool-capability";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 export type PalantirMiniToolOperation =
   | "apply_edit_function"
@@ -172,6 +174,57 @@ export function operationFromToolName(normalizedName: string): PalantirMiniToolO
 export function isMcpFirstEvidenceToolName(toolName: string): boolean {
   const canonicalName = normalizePalantirMiniMcpToolName(toolName);
   return MCP_FIRST_EVIDENCE_OPERATIONS.has(operationFromToolName(canonicalName));
+}
+
+export function isAssignedReviewArtifactPath(filePath: string): boolean {
+  const normalized = path.resolve(filePath).replace(/\\/g, "/").replace(/\/+/g, "/");
+  if (normalized.includes("\0")) return false;
+  if (normalized.includes("/.codex/plugins/cache/")) return false;
+  const parts = normalized.split("/").filter((part) => part.length > 0);
+  if (parts.includes("..")) return false;
+  const workspaceIndex = parts.findIndex((part) => part === "_workspace");
+  if (workspaceIndex < 0) return false;
+
+  for (let index = workspaceIndex + 2; index < parts.length - 1; index += 1) {
+    const segment = parts[index];
+    if (segment !== "agent-outputs" && segment !== "worker-outputs") continue;
+    if (index !== parts.length - 2) return false;
+    const filename = parts[index + 1] ?? "";
+    if (!filename.toLowerCase().endsWith(".md") || filename.length <= ".md".length) return false;
+    return isDeclaredReviewArtifactOutput(normalized, parts, workspaceIndex, index);
+  }
+  return false;
+}
+
+function isDeclaredReviewArtifactOutput(
+  normalizedAbsPath: string,
+  parts: string[],
+  workspaceIndex: number,
+  outputLaneIndex: number,
+): boolean {
+  const runRoot = `/${parts.slice(0, outputLaneIndex).join("/")}`;
+  const workspaceRelative = parts.slice(workspaceIndex).join("/");
+  const runRelative = parts.slice(outputLaneIndex).join("/");
+  const candidates = [normalizedAbsPath, workspaceRelative, runRelative];
+  const promptDir = path.join(runRoot, "spawn-prompts");
+  let promptEntries: string[];
+  try {
+    promptEntries = fs.readdirSync(promptDir);
+  } catch {
+    return false;
+  }
+  for (const entry of promptEntries) {
+    if (!entry.endsWith(".md")) continue;
+    const promptPath = path.join(promptDir, entry);
+    let content: string;
+    try {
+      content = fs.readFileSync(promptPath, "utf8").replace(/\\/g, "/").replace(/\/+/g, "/");
+    } catch {
+      continue;
+    }
+    if (candidates.some((candidate) => content.includes(candidate))) return true;
+  }
+  return false;
 }
 
 function extractMcpToolName(normalizedName: string): string | undefined {
