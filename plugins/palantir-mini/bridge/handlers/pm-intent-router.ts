@@ -84,6 +84,7 @@ import {
 } from "../../lib/prompt-front-door";
 import type {
   PromptContractRefs,
+  PromptContractRecord,
   PromptEnvelope,
   PromptRuntime,
 } from "../../lib/prompt-front-door";
@@ -267,6 +268,8 @@ export interface IntentRouterResult {
   routerBindingValidation?: ContractValidationResult;
   /** Prompt identity continuity validation, when prompt identity was supplied. */
   promptContinuity?: ContractValidationResult;
+  /** Prompt-front-door root selected for envelope/contract lookup. */
+  promptEnvelopeLookup?: PromptEnvelopeLookup;
   /**
    * Digest of the OntologyContextQueryResult used to enrich this routing decision.
    * Format: "gc:<graphConfidence>|rids:<axisRidCount>|caps:<totalCapabilities>|t3+:<t3PlusCount>"
@@ -478,6 +481,77 @@ function continuityFailure(field: string, message: string): ContractValidationRe
   return { valid: false, issues: [{ field, message }] };
 }
 
+type PromptEnvelopeLookupSelectedBy =
+  | "input-project"
+  | "env-project"
+  | "cwd"
+  | "home-fallback";
+
+interface PromptEnvelopeLookup {
+  suppliedProject: string;
+  selectedPromptFrontDoorRoot: string;
+  selectedBy: PromptEnvelopeLookupSelectedBy;
+  candidateRootsChecked: string[];
+}
+
+interface PromptFrontDoorStoreCandidate {
+  store: PromptFrontDoorStore;
+  projectRoot: string;
+  selectedBy: PromptEnvelopeLookupSelectedBy;
+}
+
+function promptFrontDoorCandidateStores(projectRoot: string): PromptFrontDoorStoreCandidate[] {
+  const home = process.env.HOME;
+  const candidates: Array<{ projectRoot?: string; selectedBy: PromptEnvelopeLookupSelectedBy }> = [
+    { projectRoot, selectedBy: "input-project" },
+    { projectRoot: process.env.PALANTIR_MINI_PROJECT, selectedBy: "env-project" },
+    { projectRoot: process.cwd(), selectedBy: "cwd" },
+    {
+      projectRoot: projectRoot.startsWith(`${home ?? ""}${path.sep}.claude${path.sep}`)
+        ? home
+        : undefined,
+      selectedBy: "home-fallback",
+    },
+    { projectRoot: home, selectedBy: "home-fallback" },
+  ];
+  const seen = new Set<string>();
+  return candidates
+    .filter((candidate): candidate is { projectRoot: string; selectedBy: PromptEnvelopeLookupSelectedBy } =>
+      Boolean(candidate.projectRoot && path.isAbsolute(candidate.projectRoot))
+    )
+    .map((candidate) => ({ ...candidate, projectRoot: path.resolve(candidate.projectRoot) }))
+    .filter((candidate) => {
+      if (seen.has(candidate.projectRoot)) return false;
+      seen.add(candidate.projectRoot);
+      return true;
+    })
+    .map((candidate) => ({
+      ...candidate,
+      store: new PromptFrontDoorStore({ projectRoot: candidate.projectRoot }),
+    }));
+}
+
+async function readContractRecordByRefFromCandidates<
+  TContract extends SemanticIntentContract | DigitalTwinChangeContract,
+>(
+  ref: string,
+  candidates: PromptFrontDoorStoreCandidate[],
+  selected: PromptFrontDoorStoreCandidate,
+): Promise<{
+  record: PromptContractRecord<TContract>;
+  selected: PromptFrontDoorStoreCandidate;
+} | null> {
+  const orderedCandidates = [
+    selected,
+    ...candidates.filter((candidate) => candidate.projectRoot !== selected.projectRoot),
+  ];
+  for (const candidate of orderedCandidates) {
+    const record = await candidate.store.readContractRecordByRef<TContract>(ref);
+    if (record) return { record, selected: candidate };
+  }
+  return null;
+}
+
 function applyPromptContinuityFailure(
   gate: ContractGateResult,
   continuity: ContractValidationResult,
@@ -502,13 +576,21 @@ function promptLineagePayload(
     envelope?: PromptEnvelope;
     contractRefs?: PromptContractRefs;
   },
+  workBindingState?: WorkBindingState,
 ): Record<string, unknown> {
   const semanticIntentContractRef =
     promptRouting.contractRefs?.semanticIntentContractRef ?? input.semanticIntentContractRef;
   const digitalTwinChangeContractRef =
     promptRouting.contractRefs?.digitalTwinChangeContractRef ?? input.digitalTwinChangeContractRef;
-  const workContractRef = input.workContractRef ?? input.workContract?.contractId;
+  const workContractRef =
+    workBindingState?.workContractRef ??
+    workBindingState?.workContract?.contractId ??
+    input.workContractRef ??
+    input.workContract?.contractId;
   const routerBindingRef =
+    workBindingState?.routerBindingRef ??
+    workBindingState?.routerBinding?.bindingId ??
+    workBindingState?.workContract?.routerBinding?.bindingId ??
     input.routerBindingRef ??
     input.routerBinding?.bindingId ??
     input.workContract?.routerBinding?.bindingId;
@@ -839,15 +921,35 @@ async function resolvePromptRoutingInput(
   envelope?: PromptEnvelope;
   contractRefs?: PromptContractRefs;
   continuity?: ContractValidationResult;
+  lookup: PromptEnvelopeLookup;
 }> {
-  const store = new PromptFrontDoorStore({ projectRoot: input.project });
+  const candidates = promptFrontDoorCandidateStores(input.project);
+  let selected =
+    candidates[0] ??
+    {
+      store: new PromptFrontDoorStore({ projectRoot: input.project }),
+      projectRoot: input.project,
+      selectedBy: "input-project" as const,
+    };
+  const lookup = (): PromptEnvelopeLookup => ({
+    suppliedProject: input.project,
+    selectedPromptFrontDoorRoot: selected.projectRoot,
+    selectedBy: selected.selectedBy,
+    candidateRootsChecked: candidates.map((candidate) => candidate.projectRoot),
+  });
   const runtime = isPromptRuntime(input.runtime) ? input.runtime : undefined;
   let promptId = input.promptId;
   const sessionId = input.sessionId;
 
   if (!promptId && runtime && sessionId) {
-    const current = await store.readCurrentPointer(runtime, sessionId);
-    promptId = current?.promptId;
+    for (const candidate of candidates) {
+      const current = await candidate.store.readCurrentPointer(runtime, sessionId);
+      if (current?.promptId) {
+        selected = candidate;
+        promptId = current.promptId;
+        break;
+      }
+    }
   }
 
   let envelope: PromptEnvelope | undefined;
@@ -859,7 +961,14 @@ async function resolvePromptRoutingInput(
         "promptId and sessionId are required to resolve prompt-front-door routing",
       );
     } else {
-      envelope = (await store.readEnvelope(sessionId, promptId)) ?? undefined;
+      for (const candidate of candidates) {
+        const candidateEnvelope = await candidate.store.readEnvelope(sessionId, promptId);
+        if (candidateEnvelope) {
+          selected = candidate;
+          envelope = candidateEnvelope;
+          break;
+        }
+      }
       continuity = envelope
         ? validatePromptContinuity({
             envelope,
@@ -889,16 +998,26 @@ async function resolvePromptRoutingInput(
     approvalRef: envelope?.contractRefs.approvalRef,
   };
 
-  const semanticRecord = !input.semanticIntentContract && requestedContractRefs.semanticIntentContractRef
-    ? await store.readContractRecordByRef<SemanticIntentContract>(
-        requestedContractRefs.semanticIntentContractRef,
-      )
-    : null;
-  const digitalTwinRecord = !input.digitalTwinChangeContract && requestedContractRefs.digitalTwinChangeContractRef
-    ? await store.readContractRecordByRef<DigitalTwinChangeContract>(
-        requestedContractRefs.digitalTwinChangeContractRef,
-      )
-    : null;
+  const semanticLookup =
+    !input.semanticIntentContract && requestedContractRefs.semanticIntentContractRef
+      ? await readContractRecordByRefFromCandidates<SemanticIntentContract>(
+          requestedContractRefs.semanticIntentContractRef,
+          candidates,
+          selected,
+        )
+      : null;
+  if (semanticLookup) selected = semanticLookup.selected;
+  const digitalTwinLookup =
+    !input.digitalTwinChangeContract && requestedContractRefs.digitalTwinChangeContractRef
+      ? await readContractRecordByRefFromCandidates<DigitalTwinChangeContract>(
+          requestedContractRefs.digitalTwinChangeContractRef,
+          candidates,
+          selected,
+        )
+      : null;
+  if (digitalTwinLookup) selected = digitalTwinLookup.selected;
+  const semanticRecord = semanticLookup?.record ?? null;
+  const digitalTwinRecord = digitalTwinLookup?.record ?? null;
   const semanticIntentContract = input.semanticIntentContract ?? semanticRecord?.contract;
   const digitalTwinChangeContract = input.digitalTwinChangeContract ?? digitalTwinRecord?.contract;
   const contractRefs: PromptContractRefs = {
@@ -938,6 +1057,7 @@ async function resolvePromptRoutingInput(
       ? { contractRefs }
       : {}),
     ...(continuity ? { continuity } : {}),
+    lookup: lookup(),
   };
 }
 
@@ -1209,7 +1329,7 @@ export async function routeIntent(
           workContractValid: workBindingState.workContractValidation?.valid,
           routerBindingValid: workBindingState.routerBindingValidation?.valid,
           ...ontologyDtcReadinessPayload(ontologyDtcBuildReadinessGate),
-          ...lineagePayload,
+          ...promptLineagePayload(input, promptRouting, workBindingState),
         } as Record<string, unknown>,
         toolName: "pm_intent_router",
         cwd: input.project,
@@ -1258,6 +1378,7 @@ export async function routeIntent(
       ...(promptRouting.envelope ? { promptEnvelope: promptRouting.envelope } : {}),
       ...(promptRouting.contractRefs ? { contractRefs: promptRouting.contractRefs } : {}),
       ...(promptRouting.continuity ? { promptContinuity: promptRouting.continuity } : {}),
+      promptEnvelopeLookup: promptRouting.lookup,
     };
   }
 
@@ -1361,6 +1482,7 @@ export async function routeIntent(
       ...(promptRouting.envelope ? { promptEnvelope: promptRouting.envelope } : {}),
       ...(promptRouting.contractRefs ? { contractRefs: promptRouting.contractRefs } : {}),
       ...(promptRouting.continuity ? { promptContinuity: promptRouting.continuity } : {}),
+      promptEnvelopeLookup: promptRouting.lookup,
     };
   }
 
@@ -1397,7 +1519,7 @@ export async function routeIntent(
         durationMs,
         scopeCount: routingScopeCount,
         rawScopeCount: scopeCount,
-        ...lineagePayload,
+        ...promptLineagePayload(input, promptRouting, workBindingState),
       } as Record<string, unknown>,
       toolName: "pm_intent_router",
       cwd: input.project,
@@ -1575,6 +1697,7 @@ export async function routeIntent(
     ...(promptRouting.envelope ? { promptEnvelope: promptRouting.envelope } : {}),
     ...(promptRouting.contractRefs ? { contractRefs: promptRouting.contractRefs } : {}),
     ...(promptRouting.continuity ? { promptContinuity: promptRouting.continuity } : {}),
+    promptEnvelopeLookup: promptRouting.lookup,
   };
 }
 
