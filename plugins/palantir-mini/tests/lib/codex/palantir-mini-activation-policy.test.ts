@@ -145,6 +145,85 @@ describe("Codex palantir-mini activation policy", () => {
     expect(decision.shouldRunSharedHooks).toBe(true);
   });
 
+  test("session hard opt-out suppresses source work and prompt-front-door continuation", async () => {
+    const pluginRoot = makePluginRoot();
+    const hardOptOut = {
+      explicit: true,
+      matchedMarker: "Do not use palantir-mini",
+      reason: "User prompt explicitly requested that the palantir-mini plugin not be used.",
+    } as const;
+
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pm-activation-hard-optout-"));
+    tmpDirs.push(projectRoot);
+    fs.mkdirSync(path.join(projectRoot, ".palantir-mini", "session"), { recursive: true });
+
+    const envelope = createPromptEnvelope({
+      rawPrompt: "palantir-mini로 ontology workflow를 진행해.",
+      sessionId: "codex-hard-optout-session",
+      runtime: "codex",
+      projectRoot,
+    });
+    await new PromptFrontDoorStore({ projectRoot }).saveEnvelope(envelope);
+
+    const continuationDecision = decideCodexPalantirMiniActivation({
+      eventName: "UserPromptSubmit",
+      policyEventName: "UserPromptSubmit",
+      cwd: "/home/palantirkc",
+      pluginRoot,
+      prompt: "A",
+      sessionId: "codex-hard-optout-session",
+      candidateProjectRoots: [projectRoot],
+      hardOptOut,
+    });
+    expect(continuationDecision.mode).toBe("silent-bypass");
+    expect(continuationDecision.reasonCode).toBe("session-plugin-opt-out");
+    expect(continuationDecision.shouldRunSharedHooks).toBe(false);
+
+    const sourceWorkDecision = decideCodexPalantirMiniActivation({
+      eventName: "PermissionRequest",
+      policyEventName: "PreToolUse",
+      cwd: path.join(pluginRoot, "lib", "codex"),
+      pluginRoot,
+      toolName: "apply_patch",
+      toolInput: { command: "*** Update File: lib/codex/x.ts\n@@\n" },
+      hardOptOut,
+    });
+    expect(sourceWorkDecision.mode).toBe("silent-bypass");
+    expect(sourceWorkDecision.reasonCode).toBe("session-plugin-opt-out");
+  });
+
+  test("explicit current-turn opt-in and palantir-mini MCP calls override session hard opt-out", () => {
+    const pluginRoot = makePluginRoot();
+    const hardOptOut = {
+      explicit: true,
+      matchedMarker: "palantir-mini 사용하지 말고",
+      reason: "User prompt explicitly requested that the palantir-mini plugin not be used.",
+    } as const;
+
+    const optInDecision = decideCodexPalantirMiniActivation({
+      eventName: "UserPromptSubmit",
+      policyEventName: "UserPromptSubmit",
+      cwd: "/home/palantirkc/palantir-mini-marketplace",
+      pluginRoot,
+      prompt: "Use palantir-mini for this turn.",
+      hardOptOut,
+    });
+    expect(optInDecision.mode).toBe("active");
+    expect(optInDecision.reasonCode).toBe("explicit-palantir-mini-opt-in");
+
+    const mcpDecision = decideCodexPalantirMiniActivation({
+      eventName: "PermissionRequest",
+      policyEventName: "PreToolUse",
+      cwd: "/home/palantirkc/meta-harness",
+      pluginRoot,
+      toolName: "mcp__palantir_mini__pm_semantic_intent_gate",
+      toolInput: {},
+      hardOptOut,
+    });
+    expect(mcpDecision.mode).toBe("active");
+    expect(mcpDecision.reasonCode).toBe("palantir-mini-mcp-tool");
+  });
+
   test("plain non-palantir turns stay silent", () => {
     const pluginRoot = makePluginRoot();
     const decision = decideCodexPalantirMiniActivation({

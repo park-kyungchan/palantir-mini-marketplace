@@ -7,13 +7,41 @@ import handler, {
 } from "../../../bridge/handlers/pm-pre-mutation-governance";
 import { HANDLER_MODULES, TOOLS, handleRequest } from "../../../bridge/mcp-server";
 
+const INPUT_SCHEMA_PATH = path.resolve(
+  import.meta.dir,
+  "../../../schemas/pm-pre-mutation-governance.input.schema.json",
+);
+
+type MinimalToolInputSchema = {
+  required?: string[];
+  properties?: Record<string, { description?: string }>;
+};
+
+async function rejectedMessage(promise: Promise<unknown>): Promise<string> {
+  const err = await promise.then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  expect(err).toBeInstanceOf(Error);
+  return err instanceof Error ? err.message : "";
+}
+
 describe("pm_pre_mutation_governance handler", () => {
   test("requires project or projectRoot", async () => {
-    await expect(handler({ toolName: "Read" })).rejects.toThrow(/project/);
+    const message = await rejectedMessage(handler({ toolName: "Read" }));
+
+    expect(message).toContain("missing_project_root");
+    expect(message).toContain("projectRoot");
+    expect(message).toContain("project");
+    expect(message).toContain('"projectRoot":"/absolute/project/root"');
   });
 
   test("requires toolName", async () => {
-    await expect(handler({ project: "/repo" })).rejects.toThrow(/toolName/);
+    const message = await rejectedMessage(handler({ projectRoot: "/repo" }));
+
+    expect(message).toContain("missing_tool_name");
+    expect(message).toContain("toolName");
+    expect(message).toContain('"toolName":"Read"');
   });
 
   test("default export and named handler return the same decision", async () => {
@@ -43,6 +71,21 @@ describe("pm_pre_mutation_governance handler", () => {
     expect(result.computeOnly).toBe(true);
   });
 
+  test("standalone input schema requires canonical projectRoot and toolName", () => {
+    const schema = JSON.parse(fs.readFileSync(INPUT_SCHEMA_PATH, "utf8")) as {
+      required?: string[];
+      properties?: Record<string, { description?: string }>;
+    };
+
+    expect(schema.required).toEqual(["projectRoot", "toolName"]);
+    expect(schema.properties?.projectRoot?.description).toContain("Canonical absolute project root");
+    expect(schema.properties?.project?.description).toContain("Legacy alias");
+    expect(JSON.stringify(schema)).not.toContain("anyOf");
+    expect(JSON.stringify(schema)).not.toContain("oneOf");
+    expect(JSON.stringify(schema)).not.toContain("allOf");
+    expect(JSON.stringify(schema)).not.toContain('"not"');
+  });
+
   test("returns schema-shaped deny output for missing DTC", async () => {
     const result = await handler({
       projectRoot: "/repo",
@@ -63,8 +106,14 @@ describe("pm_pre_mutation_governance handler", () => {
 
   test("is registered as a public compute-only MCP tool", async () => {
     const tool = TOOLS.find((candidate) => candidate.name === "pm_pre_mutation_governance");
+    const toolSchema = tool?.inputSchema as MinimalToolInputSchema | undefined;
     expect(tool).toBeDefined();
     expect(tool?.category).toBe("hook-validation");
+    expect(toolSchema?.required).toEqual(["projectRoot", "toolName"]);
+    expect(toolSchema?.properties?.projectRoot?.description).toContain(
+      "Canonical absolute project root",
+    );
+    expect(toolSchema?.properties?.project?.description).toContain("Legacy alias");
     expect(HANDLER_MODULES["pm_pre_mutation_governance"]).toBe(
       "./handlers/pm-pre-mutation-governance",
     );
@@ -75,10 +124,12 @@ describe("pm_pre_mutation_governance handler", () => {
       method: "tools/list",
     });
     const result = response && "result" in response
-      ? response.result as { tools: Array<{ name: string }> }
+      ? response.result as { tools: Array<{ name: string; inputSchema?: { required?: string[] } }> }
       : undefined;
+    const listedTool = result?.tools.find((candidate) => candidate.name === "pm_pre_mutation_governance");
 
-    expect(result?.tools.some((candidate) => candidate.name === "pm_pre_mutation_governance")).toBe(true);
+    expect(listedTool).toBeDefined();
+    expect(listedTool?.inputSchema?.required).toEqual(["projectRoot", "toolName"]);
   });
 
   test("tools/call dispatches the handler and does not write project events", async () => {
@@ -90,7 +141,7 @@ describe("pm_pre_mutation_governance handler", () => {
       params: {
         name: "pm_pre_mutation_governance",
         arguments: {
-          project,
+          projectRoot: project,
           toolName: "Read",
           targetFiles: ["docs/README.md"],
         },

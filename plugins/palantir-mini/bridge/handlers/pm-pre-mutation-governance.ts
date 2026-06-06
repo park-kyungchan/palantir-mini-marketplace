@@ -6,6 +6,9 @@ import {
 
 export interface PmPreMutationGovernanceArgs extends PreMutationGovernanceV2Input {}
 
+const MINIMAL_PAYLOAD_EXAMPLE =
+  '{"projectRoot":"/absolute/project/root","toolName":"Read"}';
+
 function recordFrom(rawArgs: unknown): Record<string, unknown> {
   return rawArgs !== null && typeof rawArgs === "object" && !Array.isArray(rawArgs)
     ? rawArgs as Record<string, unknown>
@@ -23,11 +26,26 @@ function hasStringArray(record: Record<string, unknown>, key: string): boolean {
 
 function validateArgs(rawArgs: unknown): PmPreMutationGovernanceArgs {
   const record = recordFrom(rawArgs);
+  const projectRoot = hasString(record, "projectRoot")
+    ? String(record["projectRoot"]).trim()
+    : hasString(record, "project")
+      ? String(record["project"]).trim()
+      : undefined;
+  const project = hasString(record, "project")
+    ? String(record["project"]).trim()
+    : undefined;
   if (!hasString(record, "project") && !hasString(record, "projectRoot")) {
-    throw new Error("pm_pre_mutation_governance: `project` or `projectRoot` is required");
+    throw new Error(
+      "pm_pre_mutation_governance: missing_project_root: `projectRoot` is required for public MCP calls. " +
+        "Legacy direct callers may pass `project`; accepted aliases are `projectRoot` and `project`. " +
+        `Minimal payload: ${MINIMAL_PAYLOAD_EXAMPLE}`,
+    );
   }
   if (!hasString(record, "toolName")) {
-    throw new Error("pm_pre_mutation_governance: `toolName` is required");
+    throw new Error(
+      "pm_pre_mutation_governance: missing_tool_name: `toolName` is required. " +
+        `Minimal payload: ${MINIMAL_PAYLOAD_EXAMPLE}`,
+    );
   }
   if (
     record["targetFiles"] !== undefined &&
@@ -54,9 +72,9 @@ function validateArgs(rawArgs: unknown): PmPreMutationGovernanceArgs {
 
   return {
     ...record,
-    toolName: String(record["toolName"]),
-    project: hasString(record, "project") ? String(record["project"]) : undefined,
-    projectRoot: hasString(record, "projectRoot") ? String(record["projectRoot"]) : undefined,
+    toolName: String(record["toolName"]).trim(),
+    project,
+    projectRoot,
     toolInput: record["toolInput"] as Record<string, unknown> | undefined,
     targetFiles: record["targetFiles"] as string[] | undefined,
     resolvedTargetFiles: record["resolvedTargetFiles"] as string[] | undefined,

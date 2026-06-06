@@ -79,6 +79,11 @@ export interface OntologyEngineeringWorkflowHandlerResult {
   readonly semanticIntentContract?: SemanticIntentContract;
 }
 
+const MINIMAL_ROOT_PAYLOAD_EXAMPLE =
+  '{"projectRoot":"/absolute/project/root","action":"status"}';
+const MINIMAL_TURN_PAYLOAD_EXAMPLE =
+  '{"projectRoot":"/absolute/project/root","action":"turn","sessionId":"fde-session:example","sanitizedTurnSummary":"Summarize the approved user meaning."}';
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -95,16 +100,28 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
   ) {
     throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, or status.");
   }
-  if (typeof value.project !== "string" && typeof value.projectRoot !== "string") {
-    throw new Error("pm_ontology_engineering_workflow requires project or projectRoot.");
+  if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
+    throw new Error(
+      "pm_ontology_engineering_workflow: missing_project_root: `projectRoot` is required for public MCP calls. " +
+        "Legacy direct callers may pass `project`; accepted aliases are `projectRoot` and `project`. " +
+        `Minimal payload: ${MINIMAL_ROOT_PAYLOAD_EXAMPLE}`,
+    );
   }
-  if (value.action === "turn" && typeof value.sanitizedTurnSummary !== "string") {
-    throw new Error("pm_ontology_engineering_workflow turn requires sanitizedTurnSummary.");
+  if (value.action === "turn" && !hasNonEmptyString(value, "sanitizedTurnSummary")) {
+    throw new Error(
+      "pm_ontology_engineering_workflow: missing_sanitized_turn_summary: `sanitizedTurnSummary` is required when action is `turn`. " +
+        `Minimal turn payload: ${MINIMAL_TURN_PAYLOAD_EXAMPLE}`,
+    );
   }
 }
 
+function hasNonEmptyString(record: Record<string, unknown>, key: string): boolean {
+  const value = record[key];
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function projectRoot(input: OntologyEngineeringWorkflowHandlerInput): string {
-  return input.projectRoot ?? input.project ?? "";
+  return input.projectRoot?.trim() || input.project?.trim() || "";
 }
 
 function sessionIdFromRef(ref: string | undefined): string | undefined {

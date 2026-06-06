@@ -1,5 +1,5 @@
 {
-  "description": "Codex-native hook entrypoints for palantir-mini. Codex must not parse hooks/hooks.json directly because that shared workflow-intent registry can contain non-Codex fields and file-glob matchers. These regex-safe entrypoints delegate to lib/codex/codex-hook-adapter.ts, which live-reads hooks/hooks.json. SessionStart and UserPromptSubmit are mounted for Codex prompt-front-door continuity. PreToolUse is intentionally not registered for Codex until prompt opt-out capture and read-only/review-artifact classification are reliable.",
+  "description": "Codex-native hook entrypoints for palantir-mini. Codex must not parse hooks/hooks.json directly because that shared workflow-intent registry can contain non-Codex fields and file-glob matchers. These regex-safe entrypoints delegate to lib/codex/codex-hook-adapter.ts, which live-reads hooks/hooks.json. SessionStart, UserPromptSubmit, and PreToolUse are mounted for Codex prompt-front-door continuity and protected mutation governance. PreToolUse remains bounded by prompt opt-out capture, read-only/review-artifact classification, and fail-closed governance hook tests.",
   "hooks": {
     "SessionStart": [
       {
@@ -23,6 +23,20 @@
             "command": "bun run \"${PLUGIN_ROOT}/lib/codex/codex-hook-adapter.ts\" PermissionRequest",
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PermissionRequest"
+          }
+        ],
+        "surfaceStatus": "public-core"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run \"${PLUGIN_ROOT}/lib/codex/codex-hook-adapter.ts\" PreToolUse",
+            "timeout": 225,
+            "statusMessage": "palantir-mini Codex adapter: PreToolUse"
           }
         ],
         "surfaceStatus": "public-core"

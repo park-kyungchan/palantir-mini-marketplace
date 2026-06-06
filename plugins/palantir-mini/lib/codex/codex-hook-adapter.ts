@@ -47,8 +47,9 @@
  * unsupportedParityClaimsForbidden: true
  */
 
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { spawn as spawnChildProcess } from "node:child_process";
 import { emit } from "../../scripts/log";
 import {
   CODEX_NATIVE_EVENTS,
@@ -59,7 +60,10 @@ import {
 } from "../runtime/capability-matrix";
 import { palantirMiniMcpToolAliasesFor } from "../hooks/tool-classifier";
 import { resolvePalantirMiniRoot } from "../config/root";
-import { detectPalantirMiniPluginOptOut } from "../ontology-engineering-response-template";
+import {
+  detectPalantirMiniPluginOptOut,
+  type PalantirMiniPluginOptOut,
+} from "../ontology-engineering-response-template";
 import { decideCodexPalantirMiniActivation } from "./palantir-mini-activation-policy";
 import {
   PROMPT_RUNTIMES,
@@ -155,6 +159,7 @@ export interface PalantirMiniPluginBypass {
 
 const DEFAULT_HOME = process.env.HOME || "/home/palantirkc";
 const SESSION_PROJECT_ROOT_SCHEMA_VERSION = "codex-adapter/session-project-root/v1";
+const SESSION_PLUGIN_OPT_OUT_SCHEMA_VERSION = "codex-adapter/session-plugin-opt-out/v1";
 
 export const CODEX_EVENTS = new Set<string>(CODEX_NATIVE_EVENTS);
 
@@ -275,6 +280,17 @@ function sessionProjectRootPath(home: string, sessionId: string): string {
   );
 }
 
+function sessionPluginOptOutPath(home: string, sessionId: string): string {
+  return path.join(
+    home,
+    ".palantir-mini",
+    "session",
+    "codex-adapter",
+    "session-plugin-opt-outs",
+    `codex-${promptFrontDoorSafeSegment(sessionId)}.json`,
+  );
+}
+
 function readSessionProjectRootHint(payload: JsonObject, options: CodexAdapterOptions = {}): string | undefined {
   const sessionId = sessionIdForPayload(payload);
   if (!sessionId) return undefined;
@@ -314,6 +330,68 @@ function rememberSessionProjectRootHint(
     renameSync(tmpPath, filePath);
   } catch {
     // Continuity hints must never become mutation authority or block a hook run.
+  }
+}
+
+function optOutForBypass(bypass: PalantirMiniPluginBypass): PalantirMiniPluginOptOut {
+  return {
+    explicit: true,
+    matchedMarker: bypass.matchedMarker,
+    reason:
+      bypass.source === "prompt-front-door"
+        ? "A prior prompt in this Codex session explicitly requested that the palantir-mini plugin not be used."
+        : "User prompt explicitly requested that the palantir-mini plugin not be used for this turn.",
+  };
+}
+
+function readSessionPluginOptOut(
+  payload: JsonObject,
+  options: CodexAdapterOptions = {},
+): PalantirMiniPluginOptOut | undefined {
+  const sessionId = sessionIdForPayload(payload);
+  if (!sessionId) return undefined;
+  const resolved = resolveOptions(options);
+  const record = readJsonObject(sessionPluginOptOutPath(resolved.home, sessionId));
+  const optOut = asObject(record?.optOut);
+  if (optOut.explicit !== true || typeof optOut.matchedMarker !== "string") return undefined;
+  return {
+    explicit: true,
+    matchedMarker: optOut.matchedMarker,
+    reason:
+      typeof optOut.reason === "string"
+        ? optOut.reason
+        : "A prior prompt in this Codex session explicitly requested that the palantir-mini plugin not be used.",
+  };
+}
+
+function rememberSessionPluginOptOut(
+  payload: JsonObject,
+  options: CodexAdapterOptions = {},
+  optOut: PalantirMiniPluginOptOut | undefined,
+): void {
+  const sessionId = sessionIdForPayload(payload);
+  if (!sessionId || !optOut?.explicit) return;
+
+  const resolved = resolveOptions(options);
+  const filePath = sessionPluginOptOutPath(resolved.home, sessionId);
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    mkdirSync(path.dirname(filePath), { recursive: true });
+    writeFileSync(
+      tmpPath,
+      `${JSON.stringify({
+        schemaVersion: SESSION_PLUGIN_OPT_OUT_SCHEMA_VERSION,
+        runtime: "codex",
+        sessionId,
+        optOut,
+        updatedAt: new Date().toISOString(),
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    renameSync(tmpPath, filePath);
+  } catch {
+    // Session opt-out continuity must never become mutation authority or block
+    // a hook run; the current prompt-level opt-out still protects this turn.
   }
 }
 
@@ -1000,6 +1078,72 @@ export function parseHookJson(stdout: string): JsonObject | undefined {
   }
 }
 
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+async function runShellCommandWithPayload(
+  command: string,
+  hookPayload: JsonObject,
+  options: {
+    cwd: string;
+    env: Record<string, string | undefined>;
+    timeoutMs: number;
+  },
+): Promise<{ stdout: string; stderr: string; exitCode: number | null; timedOut: boolean }> {
+  const payloadPath = path.join(
+    "/tmp",
+    `palantir-mini-codex-hook-payload-${process.pid}-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}.json`,
+  );
+  writeFileSync(payloadPath, stringifyJson(hookPayload), { encoding: "utf8", mode: 0o600 });
+  return await new Promise<{ stdout: string; stderr: string; exitCode: number | null; timedOut: boolean }>((resolve) => {
+    const proc = spawnChildProcess("bash", ["-lc", `${command} < ${shellQuote(payloadPath)}`], {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    let settled = false;
+
+    const settle = (exitCode: number | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        unlinkSync(payloadPath);
+      } catch {
+        // Best-effort cleanup only. Hook behavior must come from the run result.
+      }
+      resolve({ stdout, stderr, exitCode, timedOut });
+    };
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      proc.kill();
+    }, options.timeoutMs);
+
+    proc.stdout.setEncoding("utf8");
+    proc.stderr.setEncoding("utf8");
+    proc.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    proc.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    proc.on("error", (err) => {
+      stderr += stderr ? `\n${err.message}` : err.message;
+      settle(null);
+    });
+    proc.on("close", (code) => {
+      settle(code);
+    });
+  });
+}
+
 export async function runCommandHook(
   hook: HookConfig,
   payload: JsonObject,
@@ -1028,7 +1172,7 @@ export async function runCommandHook(
       schemaMismatch: inputSchemaMismatch,
     };
   }
-  const proc = Bun.spawn(["bash", "-lc", command], {
+  const runResult = await runShellCommandWithPayload(command, hookPayload, {
     cwd,
     env: {
       ...process.env,
@@ -1039,29 +1183,17 @@ export async function runCommandHook(
       ...(hookProjectRoot ? { PALANTIR_MINI_PROJECT: hookProjectRoot } : {}),
       PALANTIR_MINI_HOST_RUNTIME: "codex",
     },
-    stdin: "pipe",
-    stdout: "pipe",
-    stderr: "pipe",
+    timeoutMs,
   });
 
-  proc.stdin.write(stringifyJson(hookPayload));
-  proc.stdin.end();
-
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    proc.kill();
-  }, timeoutMs);
-
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited.catch(() => null),
-  ]);
-  clearTimeout(timer);
-
-  const run: HookRun = { hook, stdout, stderr, exitCode, timedOut };
-  if (timedOut) {
+  const run: HookRun = {
+    hook,
+    stdout: runResult.stdout,
+    stderr: runResult.stderr,
+    exitCode: runResult.exitCode,
+    timedOut: runResult.timedOut,
+  };
+  if (runResult.timedOut) {
     const hookName = command.match(/hooks\/([^"'\s/]+\.(?:ts|js))/)?.[1] ?? "unknown";
     run.timeoutObservation = {
       eventName: typeof payload.hook_event_name === "string" ? payload.hook_event_name : "unknown",
@@ -1071,7 +1203,7 @@ export async function runCommandHook(
     };
     await emitCodexAdapterTimeoutObserved(run.timeoutObservation, payload, options);
   }
-  const parsed = parseHookJson(stdout);
+  const parsed = parseHookJson(run.stdout);
   if (parsed) {
     run.parsed = parsed;
     const outputSchemaMismatch = validateKnownHookSchema(hook.outputSchemaRef, parsed);
@@ -1384,6 +1516,12 @@ export async function runCodexHookAdapter(
   payload.hook_event_name = policyEventName;
   const payloadProjectRootHint = projectRootHintForPayload(payload, options);
   rememberSessionProjectRootHint(payload, options, payloadProjectRootHint);
+  if (directBypass?.explicit) {
+    rememberSessionPluginOptOut(payload, options, optOutForBypass(directBypass));
+  }
+  const sessionOptOut = directBypass?.explicit
+    ? undefined
+    : readSessionPluginOptOut(payload, options);
 
   const toolInput = asObject(payload.tool_input);
   const activationDecision = decideCodexPalantirMiniActivation({
@@ -1398,6 +1536,7 @@ export async function runCodexHookAdapter(
     sessionId: sessionIdForPayload(payload),
     candidateProjectRoots: promptFrontDoorRootCandidates(payload, options),
     env: resolved.env,
+    hardOptOut: sessionOptOut,
   });
 
   if (activationDecision.mode === "silent-bypass") {

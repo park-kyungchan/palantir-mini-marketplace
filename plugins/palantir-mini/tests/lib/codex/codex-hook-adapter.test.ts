@@ -284,6 +284,120 @@ describe("Codex hook adapter", () => {
     expect(fs.existsSync(recordPath)).toBe(false);
   });
 
+  test("session hard opt-out keeps later short UserPromptSubmit and PermissionRequest silent", async () => {
+    const recordPath = path.join(os.tmpdir(), `pm-codex-hard-optout-${Date.now()}.jsonl`);
+    const { root, options } = makePlugin(
+      {
+        hooks: {
+          UserPromptSubmit: [
+            {
+              hooks: [{ type: "command", command: command("user-context"), timeout: 3 }],
+            },
+          ],
+          PreToolUse: [
+            {
+              matcher: "Edit|Write",
+              hooks: [{ type: "command", command: command("deny-pretool"), timeout: 3 }],
+            },
+          ],
+        },
+      },
+      { FAKE_HOOK_RECORD_PATH: recordPath },
+    );
+    tmpDirs.push(recordPath);
+
+    const first = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: root,
+        session_id: "session-hard-opt-out",
+        turn_id: "turn-hard-opt-out-1",
+        prompt: "Do not use palantir-mini for this session. Work as plain Codex.",
+      },
+      options,
+    );
+    expect(first.matchedHooks).toEqual([]);
+    expect(first.runs).toEqual([]);
+    expect(first.response).toEqual({});
+
+    const shortReply = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: root,
+        session_id: "session-hard-opt-out",
+        turn_id: "turn-hard-opt-out-2",
+        prompt: "A",
+      },
+      options,
+    );
+    expect(shortReply.matchedHooks).toEqual([]);
+    expect(shortReply.runs).toEqual([]);
+    expect(shortReply.response).toEqual({});
+
+    const permission = await runCodexHookAdapter(
+      "PermissionRequest",
+      {
+        cwd: path.join(root, "lib", "codex"),
+        session_id: "session-hard-opt-out",
+        tool_name: "apply_patch",
+        tool_input: { command: "*** Update File: lib/codex/example.ts\n@@\n" },
+      },
+      options,
+    );
+    expect(permission.matchedHooks).toEqual([]);
+    expect(permission.runs).toEqual([]);
+    expect(permission.response).toEqual({});
+    expect(fs.existsSync(recordPath)).toBe(false);
+  });
+
+  test("explicit opt-in after session hard opt-out reactivates UserPromptSubmit hooks", async () => {
+    const recordPath = path.join(os.tmpdir(), `pm-codex-hard-optin-${Date.now()}.jsonl`);
+    const { root, options } = makePlugin(
+      {
+        hooks: {
+          UserPromptSubmit: [
+            {
+              hooks: [{ type: "command", command: command("user-context"), timeout: 3 }],
+            },
+          ],
+        },
+      },
+      { FAKE_HOOK_RECORD_PATH: recordPath },
+    );
+    tmpDirs.push(recordPath);
+
+    await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: root,
+        session_id: "session-hard-opt-in",
+        turn_id: "turn-hard-opt-in-1",
+        prompt: "palantir-mini 사용하지 말고 일반 Codex로만 진행해.",
+      },
+      options,
+    );
+
+    const result = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: root,
+        session_id: "session-hard-opt-in",
+        turn_id: "turn-hard-opt-in-2",
+        prompt: "Use palantir-mini for this turn.",
+      },
+      options,
+    );
+
+    expect(result.matchedHooks.map((hook) => hook.command)).toEqual([command("user-context")]);
+    expect(result.runs).toHaveLength(1);
+    expect(result.response.hookSpecificOutput).toEqual({
+      hookEventName: "UserPromptSubmit",
+      additionalContext: "gate Use palantir-mini for this turn.",
+    });
+    const record = fs.readFileSync(recordPath, "utf8").trim();
+    expect(record).toContain("user-context");
+  });
+
   test("PermissionRequest in meta-harness bypasses shared PreToolUse hooks", async () => {
     const { root, options } = makePlugin({
       hooks: {

@@ -14,6 +14,7 @@ export type CodexPalantirMiniActivationMode =
 
 export type CodexPalantirMiniActivationReason =
   | "explicit-plugin-opt-out"
+  | "session-plugin-opt-out"
   | "repo-local-plugin-opt-out"
   | "meta-harness-plugin-independent"
   | "simple-non-palantir-turn"
@@ -37,6 +38,7 @@ export interface CodexPalantirMiniActivationInput {
   readonly sessionId?: string;
   readonly candidateProjectRoots?: readonly string[];
   readonly env?: Record<string, string | undefined>;
+  readonly hardOptOut?: PalantirMiniPluginOptOut;
 }
 
 export interface CodexPalantirMiniActivationDecision {
@@ -306,6 +308,10 @@ export function decideCodexPalantirMiniActivation(
 
   if (hasExplicitOptIn(input.prompt)) {
     return active("explicit-palantir-mini-opt-in");
+  }
+
+  if (input.hardOptOut) {
+    return silent("session-plugin-opt-out", input.hardOptOut);
   }
 
   const realPluginRoot = isRealPalantirMiniPluginRoot(input.pluginRoot);

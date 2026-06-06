@@ -36,6 +36,7 @@ describe("runtime capability matrix", () => {
     expect(CODEX_MOUNTED_HOOK_EVENTS).toEqual([
       "SessionStart",
       "PermissionRequest",
+      "PreToolUse",
       "PostToolUse",
       "PreCompact",
       "PostCompact",
@@ -44,12 +45,10 @@ describe("runtime capability matrix", () => {
       "SubagentStop",
       "Stop",
     ]);
-    expect(CODEX_UNMOUNTED_HOOK_EVENTS).toEqual([
-      "PreToolUse",
-    ]);
+    expect(CODEX_UNMOUNTED_HOOK_EVENTS).toEqual([]);
     expect(runtimeCanObserveEvent("codex", "PreToolUse")).toBe(true);
-    expect(runtimeHasMountedHookEvent("codex", "PreToolUse")).toBe(false);
-    expect(runtimeHasUnmountedHookEvent("codex", "PreToolUse")).toBe(true);
+    expect(runtimeHasMountedHookEvent("codex", "PreToolUse")).toBe(true);
+    expect(runtimeHasUnmountedHookEvent("codex", "PreToolUse")).toBe(false);
     expect(runtimeHasMountedHookEvent("codex", "UserPromptSubmit")).toBe(true);
     expect(runtimeHasUnmountedHookEvent("codex", "UserPromptSubmit")).toBe(false);
   });

@@ -94,9 +94,7 @@
           "codex:requires-plugin-reinstall-reload-and-process-restart",
           "codex:mounted-hook-manifest-smoke-required"
         ],
-        "unsupportedSurfaceRefs": [
-          "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification"
-        ],
+        "unsupportedSurfaceRefs": [],
         "fallbackObligations": [
           "Local source declarations are not live Codex runtime behavior until installed payload reload and smoke evidence exist.",
           "Provider identity remains metadata and must not authorize approvals or mutations."

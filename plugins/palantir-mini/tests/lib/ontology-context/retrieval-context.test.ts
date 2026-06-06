@@ -82,6 +82,7 @@ describe("composeRetrievalContext — Phase 3 PR 3.3 composer (sprint-095)", () 
     expect(state.codexMountedHookEvents.events).toEqual([
       "SessionStart",
       "PermissionRequest",
+      "PreToolUse",
       "PostToolUse",
       "PreCompact",
       "PostCompact",
@@ -90,7 +91,7 @@ describe("composeRetrievalContext — Phase 3 PR 3.3 composer (sprint-095)", () 
       "SubagentStop",
       "Stop",
     ]);
-    expect(state.codexMountedHookEvents.events).not.toContain("PreToolUse");
+    expect(state.codexMountedHookEvents.events).toContain("PreToolUse");
 
     // ≥7 of the 11 availability-bearing sub-fields available.
     const availableCount = countAvailable(state);

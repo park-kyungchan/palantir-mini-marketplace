@@ -31,9 +31,7 @@ export interface RuntimeHookMountProjection {
   readonly mountAuthority: "runtime-local";
 }
 
-export const CODEX_UNSUPPORTED_HOOK_EVENTS: readonly HookWorkflowEvent[] = [
-  "PreToolUse",
-];
+export const CODEX_UNSUPPORTED_HOOK_EVENTS: readonly HookWorkflowEvent[] = [];
 
 export const CODEX_SCHEMA_ONLY_HOOK_EVENTS: readonly HookWorkflowEvent[] = [];
 

@@ -30,6 +30,7 @@
   "mountedHookEvents": [
     "SessionStart",
     "PermissionRequest",
+    "PreToolUse",
     "PostToolUse",
     "PreCompact",
     "PostCompact",
@@ -38,11 +39,8 @@
     "SubagentStop",
     "Stop"
   ],
-  "unmountedHookEvents": [
-    "PreToolUse"
-  ],
+  "unmountedHookEvents": [],
   "unsupportedSurfaceRefs": [
-    "codex:hook-event:PreToolUse:unmounted-until-opt-out-and-read-only-classification",
     "codex:claude-task-lifecycle-event-parity",
     "codex:gemini-extension-parity"
   ],
