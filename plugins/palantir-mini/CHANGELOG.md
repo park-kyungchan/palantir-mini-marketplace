@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.87.0] - 2026-06-07 — Harness redesign W2b: understand-session (heart elicitation surface)
+
+### Added
+- `lib/semantic-intent/nine-axis-understand-session.ts` — the runnable elicitation surface over the nine-axis-sic engine: `nineAxisTurnCard(turnIndex)` produces a non-developer, bilingual (KO/EN) `TurnCardDecisionSpec` per turn; a functional session runner (`startNineAxisSession` / `nextCard` / `answerCard` / `isSessionComplete` / `sessionContract`) drives the 10-turn conversation end-to-end into a 9-axis SIC. Runtime-neutral — adapters render the card. (palantir-mini Ground-Up Harness Redesign, Wave 2b.)
+
+### Notes
+- Additive; per-axis non-developer rationale included. typecheck + tests green. Per-runtime adapters (Claude skill / Codex) to render the card land in W4.
+
+---
+
 ## [6.86.0] - 2026-06-07 — Harness redesign W2: 9-axis understand-phase SIC
 
 ### Added
