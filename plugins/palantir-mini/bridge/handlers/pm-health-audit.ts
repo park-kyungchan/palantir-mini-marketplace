@@ -21,9 +21,6 @@ import { emit, projectRoot as resolveProjectRoot } from "../../scripts/log";
 
 export type HealthAuditMode =
   | "handler-usage"
-  | "harness-base"
-  | "harness-component"
-  | "harness-outcome"
   | "outcome-pair"
   | "memory-layer"
   | "research-citation"
@@ -59,9 +56,6 @@ export interface PmHealthAuditAllResult {
 
 const MODULE: Record<Exclude<HealthAuditMode, "all">, string> = {
   "handler-usage":     "./pm-handler-usage-audit",
-  "harness-base":      "./pm-harness-base-mode-audit",
-  "harness-component": "./pm_harness_component_audit",
-  "harness-outcome":   "./pm-harness-outcome-replay",
   "outcome-pair":      "./pm-outcome-pair-audit",
   "memory-layer":      "./pm-memory-layer-audit",
   "research-citation": "./pm-research-citation-validate",
@@ -73,9 +67,6 @@ const MODULE: Record<Exclude<HealthAuditMode, "all">, string> = {
 
 const ALL_MODES: Array<Exclude<HealthAuditMode, "all">> = [
   "handler-usage",
-  "harness-base",
-  "harness-component",
-  "harness-outcome",
   "outcome-pair",
   "memory-layer",
   "research-citation",
@@ -108,9 +99,8 @@ export default async function pmHealthAudit(
   if (!mode || typeof mode !== "string") {
     throw new Error(
       'pm_health_audit: "mode" is required. Valid values: ' +
-      '"handler-usage" | "harness-base" | "harness-component" | "harness-outcome" | ' +
-      '"outcome-pair" | "memory-layer" | "research-citation" | "events-5d" | "strictness" | ' +
-      '"doc-drift" | "ontology-runtime" | "all"',
+      '"handler-usage" | "outcome-pair" | "memory-layer" | "research-citation" | "events-5d" | ' +
+      '"strictness" | "doc-drift" | "ontology-runtime" | "all"',
     );
   }
 

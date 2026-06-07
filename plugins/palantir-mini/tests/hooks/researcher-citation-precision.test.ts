@@ -255,7 +255,7 @@ describe("researcher-citation-precision hook", () => {
     const nonResearcherTypes = [
       "palantir-mini:implementer",
       "palantir-mini:docs-researcher",
-      "palantir-mini:harness-generator",
+      "palantir-mini:implementer",
       "palantir-mini:hook-builder",
       "palantir-mini:evaluator",
       "general-purpose",

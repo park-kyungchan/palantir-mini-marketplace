@@ -43,23 +43,23 @@ export const DEPRECATION_MAP: DeprecationEntry[] = [
   },
   {
     removed:          "verify_schema_pin",
-    replacement:      "pm_health_audit mode='schema-pin'",
+    replacement:      "pm_plugin_self_check",
     removedAtVersion: "6.0.0",
   },
   {
     removed:          "verify_codegen_headers",
-    replacement:      "pm_health_audit mode='codegen-headers'",
+    replacement:      "pm_plugin_self_check",
     removedAtVersion: "6.0.0",
   },
   // ── Former category: Harness Engineering ────────────────────────────────────
   {
     removed:          "grade_planner_output",
-    replacement:      "grade_outcome_with_rubric",
+    replacement:      "pm_plugin_self_check (harness grading removed in Wave 2E rationalization)",
     removedAtVersion: "6.0.0",
   },
   {
     removed:          "grade_classification_accuracy",
-    replacement:      "grade_outcome_with_rubric",
+    replacement:      "pm_plugin_self_check (harness grading removed in Wave 2E rationalization)",
     removedAtVersion: "6.0.0",
   },
   {
@@ -80,18 +80,18 @@ export const DEPRECATION_MAP: DeprecationEntry[] = [
   // ── Former category: Validation + Health ────────────────────────────────────
   {
     removed:          "pm_value_grade_metrics",
-    replacement:      "pm_health_audit mode='value-grade'",
+    replacement:      "pm_health_audit mode='events-5d'",
     removedAtVersion: "6.0.0",
   },
   // ── Former category: Hook Validation ────────────────────────────────────────
   {
     removed:          "validate_hook_citations",
-    replacement:      "pm_health_audit mode='hook-citations'",
+    replacement:      "pm_rule_audit",
     removedAtVersion: "6.0.0",
   },
   {
     removed:          "validate_hook_event_allowlist",
-    replacement:      "pm_health_audit mode='hook-event-allowlist'",
+    replacement:      "pm_health_audit mode='handler-usage'",
     removedAtVersion: "6.0.0",
   },
 ];

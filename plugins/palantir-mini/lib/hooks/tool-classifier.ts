@@ -8,12 +8,9 @@ import * as path from "node:path";
 export type PalantirMiniToolOperation =
   | "apply_edit_function"
   | "commit_edits"
-  | "compute_edits_dry_run"
   | "emit_event"
   | "get_ontology"
-  | "grade_outcome_with_rubric"
   | "impact_query"
-  | "negotiate_sprint_contract"
   | "ontology_context_query"
   | "ontology_schema_get"
   | "pm_health_audit"
@@ -52,9 +49,7 @@ const READ_ONLY_TOOLS = new Set([
 ]);
 
 const READ_ONLY_OPERATIONS = new Set<PalantirMiniToolOperation>([
-  "compute_edits_dry_run",
   "get_ontology",
-  "grade_outcome_with_rubric",
   "impact_query",
   "ontology_schema_get",
   "pm_health_audit",
@@ -110,12 +105,9 @@ const PALANTIR_MINI_OPERATION_BY_CANONICAL_TOOL_NAME = new Map<
 >([
   ["apply_edit_function", "apply_edit_function"],
   ["commit_edits", "commit_edits"],
-  ["compute_edits_dry_run", "compute_edits_dry_run"],
   ["emit_event", "emit_event"],
   ["get_ontology", "get_ontology"],
-  ["grade_outcome_with_rubric", "grade_outcome_with_rubric"],
   ["impact_query", "impact_query"],
-  ["negotiate_sprint_contract", "negotiate_sprint_contract"],
   ["ontology_context_query", "ontology_context_query"],
   ["ontology_schema_get", "ontology_schema_get"],
   ["pm_health_audit", "pm_health_audit"],
@@ -289,9 +281,7 @@ export function classifyHookTool(payload: HookToolPayloadLike): HookToolClassifi
 
   const ontologyContextMutation =
     operation === "ontology_context_query" && isOntologyContextQueryMutation(payload.tool_input);
-  const negotiateMutation =
-    operation === "negotiate_sprint_contract" &&
-    isNegotiateSprintContractApproveOrCounter(payload.tool_input);
+  const negotiateMutation = false;
   const bashMutation = isBash && !bashReadOnly;
   const publishOrRenderMutation =
     normalizedName.includes("publish") ||

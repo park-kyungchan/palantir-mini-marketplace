@@ -136,14 +136,12 @@ export const STUDIO_CORE_MCP_TOOL_NAMES = [
   "pm_ontology_engineering_workflow",
   "pm_intent_router",
   "pm_pre_mutation_governance",
-  "compute_edits_dry_run",
   "ontology_schema_get",
 ] as const;
 
 export const PROTECTED_ACTION_MCP_TOOL_NAMES = [
   "apply_edit_function",
   "commit_edits",
-  "negotiate_sprint_contract",
   "research_library_refresh",
 ] as const;
 
@@ -345,17 +343,6 @@ export const MCP_TOOL_CAPABILITIES: readonly McpToolCapabilityRecord[] = [
     externalEgress: false,
     classifierProjection: explicit("apply_edit_function"),
   }),
-  capability("compute_edits_dry_run", {
-    domain: "LOGIC",
-    effects: ["compute", "evaluate"],
-    mutationKind: "none",
-    requiresDtcApproval: false,
-    requiresSprintContract: false,
-    dataAction: "read-project-state",
-    releaseDeploy: false,
-    externalEgress: false,
-    classifierProjection: explicit("compute_edits_dry_run"),
-  }),
   capability("commit_edits", {
     domain: "ACTION",
     effects: ["commit-edit"],
@@ -370,39 +357,6 @@ export const MCP_TOOL_CAPABILITIES: readonly McpToolCapabilityRecord[] = [
   capability("grade_semantic_intent_contract", {
     domain: "GOVERNANCE",
     effects: ["evaluate"],
-    mutationKind: "none",
-    requiresDtcApproval: false,
-    requiresSprintContract: false,
-    dataAction: "none",
-    releaseDeploy: false,
-    externalEgress: false,
-    classifierProjection: fallback(),
-  }),
-  capability("negotiate_sprint_contract", {
-    domain: "GOVERNANCE",
-    effects: ["read", "route"],
-    mutationKind: "contract-negotiation",
-    requiresDtcApproval: false,
-    requiresSprintContract: false,
-    dataAction: "read-or-write-contract",
-    releaseDeploy: false,
-    externalEgress: false,
-    classifierProjection: explicit("negotiate_sprint_contract"),
-  }),
-  capability("grade_outcome_with_rubric", {
-    domain: "GOVERNANCE",
-    effects: ["evaluate"],
-    mutationKind: "none",
-    requiresDtcApproval: false,
-    requiresSprintContract: false,
-    dataAction: "none",
-    releaseDeploy: false,
-    externalEgress: false,
-    classifierProjection: explicit("grade_outcome_with_rubric"),
-  }),
-  capability("pm_grader_dispatch", {
-    domain: "GOVERNANCE",
-    effects: ["evaluate", "route"],
     mutationKind: "none",
     requiresDtcApproval: false,
     requiresSprintContract: false,

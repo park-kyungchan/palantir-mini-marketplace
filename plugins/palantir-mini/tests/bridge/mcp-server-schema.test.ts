@@ -52,7 +52,6 @@ const INTENT_ROUTER_PUBLIC_FIELDS = [
   "intent",
   "scopePaths",
   "complexityHint",
-  "harnessSpeciesPreference",
   "semanticIntentContractRef",
   "digitalTwinChangeContractRef",
   "semanticIntentContract",

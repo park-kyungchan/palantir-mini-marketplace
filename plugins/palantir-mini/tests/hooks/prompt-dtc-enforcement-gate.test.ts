@@ -788,33 +788,6 @@ describe("prompt-dtc-enforcement-gate", () => {
       expect(result.reason).toContain("Current prompt has no SemanticIntentContract ref");
     });
 
-    test("selective-blocking + negotiate_sprint_contract propose → no gate", async () => {
-      const project = makeTmpProject();
-      process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "selective-blocking";
-
-      const result = await promptDtcEnforcementGate(
-        payload(project, {
-          tool_name: "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract",
-          tool_input: { action: "propose", theme: "test" },
-        }),
-      );
-      expect(result.message).toContain("not ontology-affecting");
-      expect(result.decision).toBeUndefined();
-    });
-
-    test("selective-blocking + negotiate_sprint_contract approve → gates", async () => {
-      const project = makeTmpProject();
-      process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "selective-blocking";
-
-      const result = await promptDtcEnforcementGate(
-        payload(project, {
-          tool_name: "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract",
-          tool_input: { action: "approve" },
-        }),
-      );
-      expect(result.decision).toBe("block");
-    });
-
     test("selective-blocking + SIC approval within 60min → still blocks protected mutation without DTC", async () => {
       const project = makeTmpProject();
       process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "selective-blocking";
@@ -922,20 +895,6 @@ describe("prompt-dtc-enforcement-gate", () => {
         __test__.isMutatingCandidate({
           tool_name: "mcp__palantir_mini__ontology_context_query",
           tool_input: { action: "mutate" },
-        }),
-      ).toBe(true);
-      // negotiate_sprint_contract: propose → not affecting
-      expect(
-        __test__.isOntologyAffectingForSelectiveBlocking({
-          tool_name: "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract",
-          tool_input: { action: "propose" },
-        }),
-      ).toBe(false);
-      // negotiate_sprint_contract: counter → affecting
-      expect(
-        __test__.isOntologyAffectingForSelectiveBlocking({
-          tool_name: "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract",
-          tool_input: { action: "counter" },
         }),
       ).toBe(true);
     });

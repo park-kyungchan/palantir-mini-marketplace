@@ -9,6 +9,38 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ---
 
+## v6.83.0 (2026-06-07) — Wave 2 rationalization — machinery cut (~40%)
+
+### Removed — Sprint GAN harness (CUT-C)
+- **11 skills removed**: pm-harness-plan, pm-harness-sprint, pm-harness-abort, pm-harness-grade, pm-harness-analyze, pm-harness-resume, pm-harness-status, pm-harness-eval, pm-harness-list, pm-harness-rubric, pm-quick-sprint.
+- **4 agents removed**: harness-planner, harness-generator, harness-evaluator, harness-analyzer.
+- **4 MCP tools removed**: negotiate_sprint_contract, grade_outcome_with_rubric, pm_grader_dispatch, compute_edits_dry_run.
+- **13 harness hooks removed**: commit-edits-precondition, harness-base-mode-advisory, harness-analyzer-trigger, analyzer-output-injector, analyzer-marker-pickup, sprint-contract-state-sync, harness-evaluator-spawn-gate, generator-self-assessment-gate, grading-schema-validate, dry-run-gate, sprint-timeout-watchdog, sprint-iteration-cap, rubric-threshold-enforcer.
+- **Libs removed**: lib/sprint-contract, lib/closed-loop, harness ratchet/validation modules.
+- **KEPT**: commit_edits + apply_edit_function (now ungated), lib/harness/{release-evidence,failure-ledger,active-contract}.
+
+### Removed — Multi-agent orchestration hooks (CUT-D, 11 hooks)
+- teammate-idle, idle-auto-shutdown, session-duration-alarm, briefing-template-validate, task-created-granularity-gate, task-context-budget-enforcer, briefing-task-count-limit, plan-task-dag-validate, parallel-spawn-version-advisory, subagent-orchestration-audit, concurrency-cap-fix.
+
+### Removed — Enforcement governance hooks (CUT-E, 9 hooks)
+- pre-delegation-check, lead-direct-edit-watch, lead-direct-token-audit, lead-git-operation-watch, agent-decision-log, agent-decision-trail, evidence-domain-coverage-gate, ontology-engineering-turn-fan-out-gate, complex-task-detector.
+- **KEPT**: events-5d-gate + value-grade-assigner.
+
+### Removed — Multi-vendor cost dispatch (CUT-F)
+- selectSpecies + cost branch from pm_intent_router (handler itself kept, simplified).
+
+### Fixed
+- _deprecation-map.ts: corrected 5 invalid pm_health_audit mode strings.
+
+### Counts
+- MCP tools: 31 → 27 | Hooks: 100 → 67 | Handlers: 76 → 65 | Skills: 79 → 63 | Agents: 24 → 15.
+
+### Test suite
+- Full suite: 3175 pass; 4 fail = 3 pre-existing-unrelated + 1 expected Wave-3 seam (pm_rule_audit ≤10 advisory, resolved when Wave 3 removes cut-hook citations from ~/.claude/rules/).
+
+---
+
+
 ## v6.82.0 (2026-06-07) — Wave 1 rationalization — project decoupling
 
 ### Removed

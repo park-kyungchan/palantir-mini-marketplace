@@ -19,7 +19,6 @@ import type { DtcFillSequenceSession } from "../../../lib/chatbot-studio/dtc-fil
 import {
   buildLLMControlFacingState,
 } from "../../../lib/chatbot-studio/semantic-conversation-state";
-import { createHarnessRatchetProposal } from "../../../lib/harness/ratchet-proposal";
 
 
 describe("internal context and readiness records", () => {
@@ -157,20 +156,6 @@ describe("internal context and readiness records", () => {
     } finally {
       fs.rmSync(project, { recursive: true, force: true });
     }
-  });
-
-  test("creates harness ratchet proposals as internal records", () => {
-    const proposal = createHarnessRatchetProposal({
-      scope: "timeout",
-      reason: "Codex adapter timed out a hook",
-      evidenceRefs: ["hook-timeout://example"],
-      proposedChange: "Increase timeout for a governance hook",
-      rollback: "Restore previous timeout",
-    });
-
-    expect(proposal.lifecycle).toBe("internal");
-    expect(proposal.status).toBe("proposed");
-    expect(proposal.proposalId).toMatch(/^harness-ratchet:timeout:[a-f0-9]{12}$/);
   });
 
 });

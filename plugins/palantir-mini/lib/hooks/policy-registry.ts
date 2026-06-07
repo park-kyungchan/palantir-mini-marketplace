@@ -323,13 +323,6 @@ export const WORKFLOW_STEP_POLICY_REGISTRY: readonly WorkflowStepPolicy[] = [
     purpose: "Validate plugin manifest and hook registration drift after manifest edits.",
   },
   {
-    policyId: "hook-step:posttool-grade-rubric",
-    hookPolicyId: "hook-policy:post-tool-lineage",
-    event: "PostToolUse",
-    matcher: mcpMatcher("grade_outcome_with_rubric"),
-    purpose: "Trigger harness analyzer after rubric grading.",
-  },
-  {
     policyId: "hook-step:posttool-commit-edits-backprop",
     hookPolicyId: "hook-policy:post-tool-lineage",
     event: "PostToolUse",

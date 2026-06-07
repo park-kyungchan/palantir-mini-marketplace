@@ -74,7 +74,7 @@ const LAYER_EVENT_PREFIXES: Record<PropagationStep, string[]> = {
   "schema":           ["schema_", "codegen_", "pm_codegen"],
   "shared-core":      ["shared_core_", "ontology_schema_get", "get_ontology"],
   "project-ontology": ["impact_query", "pre_edit_impact", "ontology_", "semantic_change_plan", "doc_drift"],
-  "contracts":        ["sprint_contract", "negotiate_sprint_contract", "commit_edits"],
+  "contracts":        ["sprint_contract", "commit_edits"],
   "runtime":          ["edit_committed", "edit_proposed", "validation_phase_completed", "session_"],
 };
 

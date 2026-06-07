@@ -17,7 +17,6 @@ import { test, expect, describe, afterEach } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import applyRefinementTarget from "../../bridge/handlers/apply-refinement-target";
 
 // ─── Replicated pure logic from hook ─────────────────────────────────────────
 
@@ -182,82 +181,3 @@ describe("t4-promotion-trigger — extractT4Events (pure logic)", () => {
   });
 });
 
-// sprint-062 W2 SKELETON: full integration test suite deferred to sprint-063 (W6 carry-over)
-describe.skip("t4-promotion-trigger — integration with apply_refinement_target", () => {
-
-  // Test: T4 events fed to apply_refinement_target with dryRun=true → applied
-  test("T4 events → apply_refinement_target(dryRun=true) returns applied results", async () => {
-    const root = setupRoot("t4pt-integration");
-
-    const t4Events = [
-      makeT4Event({ kind: "spec",  rid: "/tmp/spec.md"  }),
-      makeT4Event({ kind: "skill", rid: "pm-ship"       }),
-    ] as unknown[];
-
-    const result = await applyRefinementTarget({
-      project:       root,
-      events:        t4Events,
-      dryRun:        true,
-      promotionTier: "shared-core",
-    });
-
-    // Both T4 events have refinementTargets → 2 groups applied
-    expect(result.applied).toBe(2);
-    expect(result.failed).toBe(0);
-    expect(result.perTargetEvidence).toHaveLength(2);
-
-    for (const ev of result.perTargetEvidence) {
-      expect(ev.verdict).toBe("applied");
-      expect(ev.reason).toContain("dry-run");
-    }
-  });
-
-  test("T4 events from events.jsonl → apply_refinement_target called correctly", async () => {
-    const root  = setupRoot("t4pt-fromfile");
-    const ePath = ensureEventsDir(root);
-
-    // Write T1 events (should be filtered out by extractT4Events)
-    writeEvent(ePath, makeT1Event() as Record<string, unknown>);
-    // Write T4 events
-    writeEvent(ePath, makeT4Event({ kind: "ontology", rid: "ri.Dataset" }) as Record<string, unknown>);
-
-    // Simulate what the hook does:
-    // 1. Read events.jsonl (done by apply_refinement_target internally when args.events absent)
-    // 2. But the hook pre-filters to T4 only and passes via args.events
-    // Here we test the integration: pre-filter + call
-    const { readEvents } = await import("../../lib/event-log/read");
-    const allEvents = readEvents(ePath);
-    const t4Events  = extractT4Events(allEvents as MinimalEvent[], TAIL_SCAN_LIMIT);
-
-    expect(t4Events).toHaveLength(1);
-    expect(t4Events[0].valueGrade).toBe("T4");
-
-    const result = await applyRefinementTarget({
-      project:       root,
-      events:        t4Events as unknown[],
-      dryRun:        true,
-      promotionTier: "shared-core",
-    });
-
-    expect(result.applied).toBe(1);
-    expect(result.perTargetEvidence[0].refinementTarget.kind).toBe("ontology");
-  });
-
-  test("dryRun is always forced true in hook simulation", async () => {
-    const root = setupRoot("t4pt-dryrun");
-    const t4Events = [
-      makeT4Event({ kind: "agent", rid: "hook-builder" }),
-    ] as unknown[];
-
-    // Simulate hook calling with dryRun=true (hook always forces this)
-    const result = await applyRefinementTarget({
-      project: root,
-      events:  t4Events,
-      dryRun:  true,  // FORCED by hook — never passes false
-    });
-
-    // Dry-run path: applied with "dry-run pass" in reason
-    expect(result.applied).toBe(1);
-    expect(result.perTargetEvidence[0].reason).toContain("dry-run pass");
-  });
-});

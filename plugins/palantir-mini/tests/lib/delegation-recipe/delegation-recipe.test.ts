@@ -45,7 +45,6 @@ describe("buildRecipe — 5 representative delegation cases", () => {
     expect(r.agentModel).toBe("sonnet");
     expect(r.mcpTools).toContain("apply_edit_function");
     expect(r.mcpTools).toContain("commit_edits");
-    expect(r.mcpTools).toContain("compute_edits_dry_run");
     expect(r.sprintArgs.mode).toBe("quick");
     // hook-builder out-of-scope must include plugin.json and agents/**
     expect(r.outOfScope).toContain(".codex-plugin/plugin.json");

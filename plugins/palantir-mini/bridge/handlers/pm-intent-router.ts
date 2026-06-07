@@ -50,10 +50,6 @@ import type {
 import type { OntologyContextQueryResult } from "./ontology-context-query";
 import { loadCapabilityRegistry } from "../../lib/capability-registry/index";
 import type { CapabilityRegistryStats } from "../../lib/capability-registry/index";
-import {
-  HARNESS_SPECIES_COST_PROFILES,
-  isFlatSubscriptionVendor,
-} from "#schemas/ontology/primitives/harness-species-cost-profile";
 import type { HarnessSpeciesVendor } from "#schemas/ontology/primitives/harness-species-cost-profile";
 import { emit } from "../../scripts/log";
 import {
@@ -160,8 +156,6 @@ export interface IntentRouterInput {
   scopePaths?: string[];
   /** Complexity hint — drives sprint mode selection. */
   complexityHint?: BuildRecipeInput["complexityHint"];
-  /** Caller-preferred harness species. When supplied and valid, overrides cost-selection. */
-  harnessSpeciesPreference?: HarnessSpeciesVendor;
   /** Approved SemanticIntentContract RID/ref. Required for complex ontology-affecting dispatch. */
   semanticIntentContractRef?: string;
   /** Approved DigitalTwinChangeContract RID/ref. Required for complex ontology-affecting dispatch. */
@@ -237,8 +231,6 @@ export interface IntentRouterResult {
   recipe?: DelegationRecipe["recipe"];
   /** Recommended harness species (cost-aware). */
   dispatchSpecies: HarnessSpeciesVendor;
-  /** 1-2 sentence cost rationale. */
-  costRationale: string;
   /** Semantic Intent / Digital Twin gate status. */
   contractGate: ContractGateResult;
   /** Ontology-DTC dispatch readiness diagnostics for ontology-affecting work. */
@@ -318,63 +310,6 @@ export interface IntentRouterResult {
   readonly graphConfidenceDispatchMode?: DispatchMode;
 }
 
-// ─── Species selection (cost-aware, rule 24 v1.2.0) ──────────────────────────
-
-/**
- * Pick the cheapest active species for the given input.
- * Default: claude-code-cli-max (flat-rate, canonical palantir-mini platform).
- * Sporadic (≤1 file, ≤10min): prefer anthropic-managed-agents (per-event cheaper).
- * When harnessSpeciesPreference is supplied and is a known vendor, use it directly.
- */
-function selectSpecies(
-  input: IntentRouterInput,
-  scopeCount: number,
-): { species: HarnessSpeciesVendor; rationale: string } {
-  // Caller-preference overrides cost selection
-  if (input.harnessSpeciesPreference) {
-    const pref = input.harnessSpeciesPreference;
-    const profile = HARNESS_SPECIES_COST_PROFILES.find((p) => p.vendor === pref);
-    const billing =
-      profile?.billingAxes.join(" + ") ?? "unknown billing axes";
-    return {
-      species: pref,
-      rationale: `Caller-preferred species '${pref}' (${billing}). Cost-selection bypassed.`,
-    };
-  }
-
-  const isBulk =
-    input.complexityHint === "cross-cutting" ||
-    input.complexityHint === "multi-file" ||
-    scopeCount >= 3;
-
-  if (!isBulk && scopeCount <= 1) {
-    // Sporadic — per-event cheaper than flat subscription at low utilization
-    const vendor: HarnessSpeciesVendor = "anthropic-managed-agents";
-    const profile = HARNESS_SPECIES_COST_PROFILES.find((p) => p.vendor === vendor);
-    const billing = profile?.billingAxes.join(" + ") ?? "session-hour + per-token";
-    return {
-      species: vendor,
-      rationale:
-        `Sporadic/single-file task (${scopeCount} path(s), hint=${input.complexityHint ?? "none"}) ` +
-        `favors ${vendor} (${billing}): per-event billing beats flat-subscription ` +
-        `amortized over low utilization (rule 24 v1.2.0 §Cost-aware dispatch).`,
-    };
-  }
-
-  // Default: flat-rate subscription for bulk/multi-file work
-  const flatVendor =
-    HARNESS_SPECIES_COST_PROFILES.find((p) => isFlatSubscriptionVendor(p.vendor))
-      ?.vendor ?? "claude-code-cli-max";
-  const flatProfile = HARNESS_SPECIES_COST_PROFILES.find((p) => p.vendor === flatVendor);
-  const billing = flatProfile?.billingAxes.join(" + ") ?? "flat-subscription";
-  return {
-    species: flatVendor,
-    rationale:
-      `Bulk/multi-file task (${scopeCount} path(s), hint=${input.complexityHint ?? "none"}) ` +
-      `favors ${flatVendor} (${billing}): flat-rate subscription eliminates per-token ` +
-      `marginal cost (3rd pricing arbitrage per CONTEXT.md §17; rule 24 v1.2.0).`,
-  };
-}
 
 // ─── Prefetch helpers (500ms hard wall, best-effort) ─────────────────────────
 
@@ -1228,11 +1163,8 @@ export async function routeIntent(
   const routingScopePaths = routingProjection.scopePaths;
   const routingScopeCount = routingScopePaths.length;
 
-  // b. Cost-aware species pick
-  const { species: dispatchSpecies, rationale: costRationale } = selectSpecies(
-    input,
-    routingScopeCount,
-  );
+  // b. Species: default to claude-code-cli-max (cost dispatch removed CUT-F)
+  const dispatchSpecies: HarnessSpeciesVendor = "claude-code-cli-max";
 
   // c. ontology_context_query — canonical context-load path (PR 3.4, sprint-096).
   //    Lazy-imported to avoid circular deps (consistent with prefetch pattern above).
@@ -1387,7 +1319,6 @@ export async function routeIntent(
       decision: blockedDecision,
       rationale: routingContractGate.reason,
       dispatchSpecies,
-      costRationale,
       contractGate: routingContractGate,
       ...(ontologyDtcBuildReadinessGate
         ? { ontologyDtcBuildReadinessGate }
@@ -1491,7 +1422,6 @@ export async function routeIntent(
       decision: blockedDecision,
       rationale: readinessContractGate.reason,
       dispatchSpecies,
-      costRationale,
       contractGate: readinessContractGate,
       ontologyDtcBuildReadinessGate,
       routingProjection,
@@ -1703,7 +1633,6 @@ export async function routeIntent(
   return {
     ...routeRecipe,
     dispatchSpecies,
-    costRationale,
     contractGate: routingContractGate,
     ...(ontologyDtcBuildReadinessGate
       ? { ontologyDtcBuildReadinessGate }

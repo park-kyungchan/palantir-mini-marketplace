@@ -9,7 +9,7 @@
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-start",
             "timeout": 50,
-            "statusMessage": "Session start capture: append session_started and surface eager context when enabled…"
+            "statusMessage": "Session start capture: append session_started and surface eager context when enabled\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -23,13 +23,13 @@
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-front-door-capture",
             "timeout": 100,
-            "statusMessage": "Prompt front door capture: promptId/promptHash → pm_semantic_intent_gate…"
+            "statusMessage": "Prompt front door capture: promptId/promptHash \u2192 pm_semantic_intent_gate\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" context-capsule-init",
             "timeout": 100,
-            "statusMessage": "Persisting context capsule for prompt-local contract/routing lineage…"
+            "statusMessage": "Persisting context capsule for prompt-local contract/routing lineage\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -48,7 +48,7 @@
             "failureMode": "fail-closed",
             "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
             "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
-            "statusMessage": "Ontology Engineering workflow gate: FDE provenance + no runtime-native question UI…"
+            "statusMessage": "Ontology Engineering workflow gate: FDE provenance + no runtime-native question UI\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -63,14 +63,14 @@
             "if": "Edit(**/plugins/palantir-mini/**)|Write(**/plugins/palantir-mini/**)|MultiEdit(**/plugins/palantir-mini/**)",
             "timeout": 15,
             "permissionDecision": "defer",
-            "statusMessage": "rule 07 §Agent file-ownership gate…"
+            "statusMessage": "rule 07 \u00a7Agent file-ownership gate\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/write-scope-runtime-enforce.ts\"",
             "timeout": 25,
             "permissionDecision": "defer",
-            "statusMessage": "write-scope-runtime-enforce: checking subagent writableRoot (canonical plan v2 §4 row 5.7 + rule 16 v4.1.0)…"
+            "statusMessage": "write-scope-runtime-enforce: checking subagent writableRoot (canonical plan v2 \u00a74 row 5.7 + rule 16 v4.1.0)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -91,32 +91,14 @@
             "if": "!**.test.ts",
             "timeout": 40,
             "async": true,
-            "statusMessage": "Checking impact…"
+            "statusMessage": "Checking impact\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" ontology-import-guard",
             "timeout": 25,
             "permissionDecision": "defer",
-            "statusMessage": "ontology-import-guard…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" commit-edits-precondition",
-            "timeout": 50,
-            "permissionDecision": "defer",
-            "failureMode": "fail-closed",
-            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
-            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
-            "statusMessage": "Harness B2 file-edit gate (rule 16 v3.4.0 §Default-On Policy)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" pre-delegation-check",
-            "if": "Edit|Write|MultiEdit",
-            "timeout": 40,
-            "permissionDecision": "defer",
-            "statusMessage": "Downstream pre-delegation gate after explicit contract proof…"
+            "statusMessage": "ontology-import-guard\u2026"
           },
           {
             "type": "command",
@@ -127,7 +109,7 @@
             "failureMode": "fail-closed",
             "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
             "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
-            "statusMessage": "MCP-first gate (rule 12 v3.10.0 §MCP-First protocol; BLOCKING sprint-062 W3-α)…"
+            "statusMessage": "MCP-first gate (rule 12 v3.10.0 \u00a7MCP-First protocol; BLOCKING sprint-062 W3-\u03b1)\u2026"
           },
           {
             "type": "command",
@@ -135,14 +117,14 @@
             "if": "Edit|Write|MultiEdit",
             "timeout": 25,
             "permissionDecision": "defer",
-            "statusMessage": "6-domain classification marker gate (sprint-062 W3-α; operating model §4.1)…"
+            "statusMessage": "6-domain classification marker gate (sprint-062 W3-\u03b1; operating model \u00a74.1)\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/lead-ontology-discovery-completeness.ts\"",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Downstream ontology discovery completeness advisory (not contract proof)…"
+            "statusMessage": "Downstream ontology discovery completeness advisory (not contract proof)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -156,37 +138,7 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" semantic-frontmatter-validate",
             "timeout": 25,
             "decision": "block",
-            "statusMessage": "Validating semantic frontmatter…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "TaskUpdate",
-        "policyRef": "hook-step:pretool-taskupdate-concurrency",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" concurrency-cap-fix",
-            "timeout": 50,
-            "statusMessage": "Checking in_progress cap (rule 12 §Task granularity)…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits",
-        "policyRef": "hook-step:pretool-commit-edits-governance",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/commit-edits-governance.ts\"",
-            "timeout": 75,
-            "permissionDecision": "defer",
-            "failureMode": "fail-closed",
-            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
-            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
-            "statusMessage": "commit-edits governance gate (PR-11 policy compiler + PR-13 merge)…"
+            "statusMessage": "Validating semantic frontmatter\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -200,53 +152,10 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" value-grade-assigner",
             "timeout": 25,
             "decision": "block",
-            "statusMessage": "rule 26 §Auto-grade — scoring envelope axes…"
+            "statusMessage": "rule 26 \u00a7Auto-grade \u2014 scoring envelope axes\u2026"
           }
         ],
         "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits|mcp__plugin_palantir-mini_palantir-mini__emit_event|mcp__palantir_mini__emit_event|mcp__palantir_mini__.emit_event|mcp__palantir-mini__emit_event|mcp_palantir-mini_emit_event|mcp_palantir_mini_emit_event",
-        "policyRef": "hook-step:pretool-agent-decision-pre",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/agent-decision-log.ts\" pre",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "rule 12 §Subagent decision audit — rationale gate…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/agent-decision-trail-enforce.ts\"",
-            "timeout": 40,
-            "permissionDecision": "defer",
-            "statusMessage": "rule 12 v3.4.0 §Subagent decision audit — trail enforcement (advisory ×5 → blocking; canonical plan v2 §4 row 5.6)…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__ontology_context_query|mcp__palantir_mini__.ontology_context_query|mcp__palantir-mini__ontology_context_query|mcp_palantir-mini_ontology_context_query|mcp_palantir_mini_ontology_context_query",
-        "policyRef": "hook-step:pretool-evidence-domain-coverage",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/evidence-domain-coverage-gate.ts\"",
-            "timeout": 40,
-            "permissionDecision": "defer",
-            "statusMessage": "evidence-domain-coverage-gate: SIC affectedSurfaces → OntologyContextSeed.supportingResearchRefs coverage check (advisory ×1 → blocking ×2; canonical plan v2 §4 row 5.15)…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router|mcp__palantir_mini__pm_intent_router|mcp__palantir_mini__.pm_intent_router|mcp__palantir-mini__pm_intent_router|mcp_palantir-mini_pm_intent_router|mcp_palantir_mini_pm_intent_router|mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__ontology_context_query|mcp__palantir_mini__ontology_context_query|mcp__palantir_mini__.ontology_context_query|mcp__palantir-mini__ontology_context_query|mcp_palantir-mini_ontology_context_query|mcp_palantir_mini_ontology_context_query",
-        "policyRef": "hook-step:pretool-ontology-routing-dtc",
-        "hooks": [],
-        "intentionalEmpty": true,
-        "nonEnforcementRationale": "Reserved lifecycle policy only: Prompt-DTC evidence is enforced by handler and contract-gate paths, not this hook group. Wire an explicit command hook before promoting this group to public-core lifecycle enforcement.",
-        "surfaceStatus": "docs-only"
       },
       {
         "matcher": "Agent",
@@ -254,46 +163,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/harness-worktree-advisory.ts\"",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Harness worktree advisory (rule 16 v4.1.0 cattle-not-pets)…"
-          },
-          {
-            "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/researcher-citation-precision.ts\"",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Researcher citation-precision advisory (Opus 4.7 multi-source synthesis nudge)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/ontology-engineering-turn-fan-out-gate.ts\"",
-            "timeout": 40,
-            "permissionDecision": "defer",
-            "statusMessage": "Ontology-engineering turn fan-out gate (rule 28 v1.0.0 advisory→blocking ladder)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/parallel-spawn-version-advisory.ts\"",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "rule 12 v3.19.0 §Parallel-spawn dispatch — version-slot + worktree-isolation advisory…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "Bash",
-        "policyRef": "hook-step:pretool-mutating-bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/lead-git-operation-watch.ts\"",
-            "if": "Bash(git commit*)|Bash(git add*)|Bash(git stash*)|Bash(git push*)",
-            "timeout": 40,
-            "async": true,
-            "statusMessage": "Downstream git-op delegation advisory (not contract proof)…"
+            "statusMessage": "Researcher citation-precision advisory (Opus 4.7 multi-source synthesis nudge)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -316,7 +189,7 @@
             "if": "Edit|Write|MultiEdit(!**.d.ts|*.test.ts)",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Suggesting verifier fan-out…"
+            "statusMessage": "Suggesting verifier fan-out\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -331,7 +204,7 @@
             "if": "Edit(**/schemas/ontology/**/primitives/**/*.ts)",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Checking semantic frontmatter…"
+            "statusMessage": "Checking semantic frontmatter\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -345,7 +218,7 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" rule-audit --mode=citation",
             "timeout": 25,
             "async": true,
-            "statusMessage": "rule-audit (citation mode)…"
+            "statusMessage": "rule-audit (citation mode)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -388,48 +261,6 @@
         "surfaceStatus": "public-core"
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric|mcp__palantir_mini__grade_outcome_with_rubric|mcp__palantir_mini__.grade_outcome_with_rubric|mcp__palantir-mini__grade_outcome_with_rubric|mcp_palantir-mini_grade_outcome_with_rubric|mcp_palantir_mini_grade_outcome_with_rubric",
-        "policyRef": "hook-step:posttool-grade-rubric",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" harness-analyzer-trigger",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "harness-analyzer trigger…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits",
-        "policyRef": "hook-step:posttool-commit-edits-backprop",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" sprint-terminal-detector",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Sprint terminal detect (P2 BackProp loop closure)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" sprint-completed-learning-synthesizer",
-            "timeout": 40,
-            "async": true,
-            "statusMessage": "Sprint learning synthesize (P1 BackProp loop closure)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" iteration-snapshot-on-pass",
-            "async": true,
-            "timeout": 40,
-            "statusMessage": "Recording iteration snapshot..."
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
         "matcher": "mcp__plugin_palantir-mini_palantir-mini__emit_event|mcp__palantir_mini__emit_event|mcp__palantir_mini__.emit_event|mcp__palantir-mini__emit_event|mcp_palantir-mini_emit_event|mcp_palantir_mini_emit_event",
         "policyRef": "hook-step:posttool-emit-event-value",
         "hooks": [
@@ -438,42 +269,28 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" outcome-pair-tracker",
             "timeout": 15,
             "async": true,
-            "statusMessage": "rule 26 §Axis B1 — outcome pair tracking…"
+            "statusMessage": "rule 26 \u00a7Axis B1 \u2014 outcome pair tracking\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" memory-layer-validator",
             "timeout": 15,
             "async": true,
-            "statusMessage": "rule 26 §Axis E — memory layer validation…"
+            "statusMessage": "rule 26 \u00a7Axis E \u2014 memory layer validation\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" t3-circuit-feeder",
             "timeout": 25,
             "async": true,
-            "statusMessage": "rule 26 §Substrate routing T3 — BackProp circuit feeder…"
+            "statusMessage": "rule 26 \u00a7Substrate routing T3 \u2014 BackProp circuit feeder\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/t4-canonical-emit-watch.ts\"",
             "timeout": 25,
             "async": true,
-            "statusMessage": "checking T4 canonical/fallback eligibility (sprint-062 W2-α)…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__apply_edit_function|mcp__palantir_mini__apply_edit_function|mcp__palantir_mini__.apply_edit_function|mcp__palantir-mini__apply_edit_function|mcp_palantir-mini_apply_edit_function|mcp_palantir_mini_apply_edit_function|mcp__plugin_palantir-mini_palantir-mini__commit_edits|mcp__palantir_mini__commit_edits|mcp__palantir_mini__.commit_edits|mcp__palantir-mini__commit_edits|mcp_palantir-mini_commit_edits|mcp_palantir_mini_commit_edits|mcp__plugin_palantir-mini_palantir-mini__emit_event|mcp__palantir_mini__emit_event|mcp__palantir_mini__.emit_event|mcp__palantir-mini__emit_event|mcp_palantir-mini_emit_event|mcp_palantir_mini_emit_event",
-        "policyRef": "hook-step:posttool-agent-decision-post",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/agent-decision-log.ts\" post",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "rule 12 §Subagent decision audit — logging decision…"
+            "statusMessage": "checking T4 canonical/fallback eligibility (sprint-062 W2-\u03b1)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -487,7 +304,7 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/agent-router-suggestion-emit.ts\"",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Agent router divergence advisory (foamy-giggling-kettle T5)…"
+            "statusMessage": "Agent router divergence advisory (foamy-giggling-kettle T5)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -498,34 +315,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" lead-direct-edit-watch",
-            "if": "!**.d.ts",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Downstream lead-direct edit threshold watch (not contract proof)…"
-          },
-          {
-            "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/impact-graph-maintain.ts\"",
             "if": "Edit|Write|MultiEdit|NotebookEdit",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Marking impact-graph dirty (sprint-061 B.W1 continuous-maintenance)…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "Write",
-        "policyRef": "hook-step:posttool-write-plan-dag",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/plan-task-dag-validate.ts\"",
-            "if": "Write(**/.palantir-mini/plan/*.md)|Write(**/.palantir-mini/plan/**/*.md)|Write(**/.claude/plans/*.md)|Write(**/.claude/plans/**/*.md)",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "rule 12 v3.19.0 §Plan-mode authoring requirement — DAG annotation advisory…"
+            "statusMessage": "Marking impact-graph dirty (sprint-061 B.W1 continuous-maintenance)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -539,7 +333,7 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" post-merge-cleanup",
             "timeout": 40,
             "async": true,
-            "statusMessage": "Post-merge cleanup (rule 25)…"
+            "statusMessage": "Post-merge cleanup (rule 25)\u2026"
           },
           {
             "type": "command",
@@ -547,7 +341,7 @@
             "if": "Bash(gh pr create*)",
             "timeout": 40,
             "permissionDecision": "defer",
-            "statusMessage": "Pre-PR dirty-gate (rule 25 v1.1.0 §Wave-split policy)…"
+            "statusMessage": "Pre-PR dirty-gate (rule 25 v1.1.0 \u00a7Wave-split policy)\u2026"
           },
           {
             "type": "command",
@@ -555,7 +349,7 @@
             "if": "Bash",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Impact-graph cascade-delete (sprint-061 B.W1)…"
+            "statusMessage": "Impact-graph cascade-delete (sprint-061 B.W1)\u2026"
           },
           {
             "type": "command",
@@ -563,35 +357,7 @@
             "if": "Bash",
             "timeout": 40,
             "async": true,
-            "statusMessage": "Impact-graph bulk-refresh on git checkout/merge/rebase/pull (sprint-061 B.W1)…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "Agent",
-        "policyRef": "hook-step:posttool-agent-orchestration-audit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/subagent-orchestration-audit.ts\"",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "rule 12 §Subagent decision audit — orchestration trace…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/task-context-budget-enforcer.ts\"",
-            "timeout": 25,
-            "decision": "block",
-            "statusMessage": "rule 12 §Task granularity — task context budget (≤15K tokens) check…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/briefing-task-count-limit.ts\"",
-            "timeout": 25,
-            "decision": "block",
-            "statusMessage": "rule 12 v3.17.0 §Tasks-per-spawn ceiling — briefing task-count check (sonnet ≤4 advisory / ≤7 blocking; opus ≤6 / ≤9)…"
+            "statusMessage": "Impact-graph bulk-refresh on git checkout/merge/rebase/pull (sprint-061 B.W1)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -606,7 +372,7 @@
             "if": "TaskUpdate",
             "timeout": 25,
             "async": true,
-            "statusMessage": "task-completed-enrichment: synthesizing withWhat for completed task (sprint-062 W6-β C5; rule 10 5-dim)…"
+            "statusMessage": "task-completed-enrichment: synthesizing withWhat for completed task (sprint-062 W6-\u03b2 C5; rule 10 5-dim)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -627,35 +393,28 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" events-5d-gate",
             "timeout": 75,
             "decision": "block",
-            "statusMessage": "Validating 5D conformance…"
+            "statusMessage": "Validating 5D conformance\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" rule-audit --mode=bottleneck",
             "timeout": 40,
             "async": true,
-            "statusMessage": "rule-audit (bottleneck mode)…"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" harness-eval-circuit-breaker",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Checking stuck harness sprints…"
+            "statusMessage": "rule-audit (bottleneck mode)\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" orphan-pair-watchdog",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Orphan-pair watchdog (rule 26 §Axis B1; threshold 5%)…"
+            "statusMessage": "Orphan-pair watchdog (rule 26 \u00a7Axis B1; threshold 5%)\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/workflow-trace-leak-detect.ts\"",
             "timeout": 25,
             "async": true,
-            "statusMessage": "Workflow trace leak scan (advisory)…"
+            "statusMessage": "Workflow trace leak scan (advisory)\u2026"
           }
         ],
         "surfaceStatus": "public-core"
@@ -670,28 +429,28 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-end-cleanup",
             "timeout": 40,
             "async": true,
-            "statusMessage": "Session-end cleanup (rule 25 v1.1.0)…"
+            "statusMessage": "Session-end cleanup (rule 25 v1.1.0)\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/impact-graph-session-end-flush.ts\"",
             "timeout": 75,
             "async": true,
-            "statusMessage": "Impact-graph session-end flush (sprint-061 B.W1)…"
+            "statusMessage": "Impact-graph session-end flush (sprint-061 B.W1)\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/t4-promotion-trigger.ts\"",
             "timeout": 100,
             "async": true,
-            "statusMessage": "T4 promotion trigger — session-end promotion digest (sprint-062 W2-α)…"
+            "statusMessage": "T4 promotion trigger \u2014 session-end promotion digest (sprint-062 W2-\u03b1)\u2026"
           },
           {
             "type": "command",
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/bypass-budget-monitor.ts\"",
             "timeout": 40,
             "async": true,
-            "statusMessage": "Bypass-budget monitor — session bypass frequency audit (sprint-062 W3-α)…"
+            "statusMessage": "Bypass-budget monitor \u2014 session bypass frequency audit (sprint-062 W3-\u03b1)\u2026"
           },
           {
             "type": "command",
@@ -711,13 +470,6 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" subagent-start",
             "timeout": 50,
             "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" briefing-template-validate",
-            "timeout": 25,
-            "decision": "block",
-            "statusMessage": "Validating briefing template…"
           }
         ],
         "surfaceStatus": "public-core"
@@ -737,34 +489,6 @@
             "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" heartbeat-validate",
             "timeout": 25,
             "async": true
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "harness-analyzer",
-        "policyRef": "hook-step:subagentstop-analyzer-output",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" analyzer-output-injector",
-            "timeout": 50,
-            "async": true,
-            "statusMessage": "Injecting analyzer output into next iter briefing…"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
-        "matcher": "harness-generator|harness-evaluator|project-implementer|implementer",
-        "policyRef": "hook-step:subagentstop-sprint-chain",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" harness-sprint-chain-suggest",
-            "timeout": 75,
-            "async": true,
-            "statusMessage": "Checking unvisited RID ratio for sprint-chain advisory…"
           }
         ],
         "surfaceStatus": "public-core"

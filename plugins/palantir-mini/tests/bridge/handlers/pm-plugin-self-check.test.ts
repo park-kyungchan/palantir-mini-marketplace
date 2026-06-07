@@ -254,8 +254,8 @@ describe("pm_plugin_self_check", () => {
     expect(result.activeChecks).toEqual(["mcp-tools"]);
     expect(result.mcpToolsRegistrationResult.status).toBe("pass");
     // v6.81.0+: ontology_context_query_legacy handler removed (Wave 0 rationalization).
-    expect(result.mcpToolsRegistrationResult.registeredToolCount).toBe(31);
-    expect(result.mcpToolsRegistrationResult.registeredHandlerModules).toBe(31);
+    expect(result.mcpToolsRegistrationResult.registeredToolCount).toBe(27);
+    expect(result.mcpToolsRegistrationResult.registeredHandlerModules).toBe(27);
     expect(result.mcpToolsRegistrationResult.missingMetadataFields).toEqual([]);
     expect(result.mcpToolsRegistrationResult.missingHandlerModules).not.toContain("ontology_schema_get");
     expect(result.mcpToolsRegistrationResult.handlerFileCount).toBeGreaterThan(22);
