@@ -114,6 +114,46 @@ export interface SemanticClarificationQuestion {
   readonly status: SemanticClarificationStatus;
 }
 
+/**
+ * The 9 semantic-intent axes (palantir-mini understand-phase heart).
+ * DATA/LOGIC/ACTION/GOVERNANCE derive from the Palantir Ontology decision model;
+ * CONTEXT/SUCCESS-EVAL/CONSTRAINTS-NONGOALS/ACTORS/MEMORY-PRIOR surface implicit intent.
+ */
+export type SicAxisKey =
+  | "data"
+  | "logic"
+  | "action"
+  | "governance"
+  | "context"
+  | "successEval"
+  | "constraintsNonGoals"
+  | "actors"
+  | "memoryPrior";
+
+export type SicAxisStatus = "open" | "filled" | "not-applicable";
+
+/** One surfaced axis of user intent. */
+export interface SicAxis {
+  /** Plain-language answer (non-developer friendly). */
+  readonly summary: string;
+  /** Evidence / typed refs captured for this axis. */
+  readonly refs: readonly string[];
+  readonly status: SicAxisStatus;
+}
+
+/** The full 9-axis SemanticIntentContract surface (understand-phase output). */
+export interface SemanticIntentAxes {
+  readonly data: SicAxis;
+  readonly logic: SicAxis;
+  readonly action: SicAxis;
+  readonly governance: SicAxis;
+  readonly context: SicAxis;
+  readonly successEval: SicAxis;
+  readonly constraintsNonGoals: SicAxis;
+  readonly actors: SicAxis;
+  readonly memoryPrior: SicAxis;
+}
+
 export interface SemanticIntentContract {
   readonly schemaVersion: typeof SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION;
   readonly contractId: string;
@@ -175,6 +215,13 @@ export interface SemanticIntentContract {
    * GRADING_RUBRIC_REGISTRY.
    */
   readonly gradeRubricRid?: GradingRubricRid;
+
+  /**
+   * 9-axis understand-phase surface (DATA/LOGIC/ACTION/GOVERNANCE + CONTEXT/
+   * SUCCESS-EVAL/CONSTRAINTS-NONGOALS/ACTORS/MEMORY-PRIOR). Additive; absent =
+   * pre-9-axis contract. Populated by the nine-axis-sic fill policy (harness redesign W2).
+   */
+  readonly axes?: SemanticIntentAxes;
 }
 
 export function isSemanticIntentContract(x: unknown): x is SemanticIntentContract {

@@ -28,6 +28,7 @@ import type {
   ProjectSurfaceRef,
   ValidationPackRef,
 } from "#schemas/ontology/primitives/ontology-engineering-ref";
+import type { SemanticIntentAxes } from "#schemas/ontology/primitives/semantic-intent-contract";
 import type { OntologyRefResolutionResult } from "./ontology-ref-resolver";
 import type { ProjectScopePolicyProjection } from "./project-scope-policy";
 
@@ -155,6 +156,7 @@ export interface SemanticIntentContract {
   downstreamAllowed: string[];
   downstreamForbidden: string[];
   clarificationQuestions: SemanticClarificationQuestion[];
+  axes?: SemanticIntentAxes;
   approvalRef?: ApprovalRef;
 }
 
