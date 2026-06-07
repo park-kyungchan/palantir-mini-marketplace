@@ -12,6 +12,7 @@ import { EIGHT_TURN_FILL_SEQUENCE, DTC_FILL_SEQUENCE, type SicTurnDescriptor, ty
 import { CONTEXT_ENGINEERING_TO_SIC_SEQUENCE } from "./context-engineering-sic-fill-sequence";
 import { FDE_FILL_SEQUENCE } from "./fde-fill-sequence";
 import { ONTOLOGY_DTC_BUILD_SEQUENCE } from "./ontology-dtc-build-sequence";
+import { NINE_AXIS_SIC_SEQUENCE } from "./nine-axis-sic-fill-sequence";
 
 // ---------------------------------------------------------------------------
 // FillPolicy type + registry
@@ -30,7 +31,8 @@ export type FillPolicy =
   | "fde-ontology-build"
   | "dtc-turn-fill"
   | "context-engineering-to-sic"
-  | "ontology-dtc-build";
+  | "ontology-dtc-build"
+  | "nine-axis-sic";
 
 /** All registered fill policies. Extend by appending — do not reorder. */
 export const FILL_POLICIES: readonly FillPolicy[] = [
@@ -39,6 +41,7 @@ export const FILL_POLICIES: readonly FillPolicy[] = [
   "dtc-turn-fill",
   "context-engineering-to-sic",
   "ontology-dtc-build",
+  "nine-axis-sic",
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -57,6 +60,7 @@ export function selectFillSequence(
   policy?: FillPolicy,
 ): readonly SicTurnDescriptor[] {
   if (policy === "context-engineering-to-sic") return CONTEXT_ENGINEERING_TO_SIC_SEQUENCE;
+  if (policy === "nine-axis-sic") return NINE_AXIS_SIC_SEQUENCE;
   if (policy === "fde-ontology-build") return FDE_FILL_SEQUENCE;
   return EIGHT_TURN_FILL_SEQUENCE;
 }

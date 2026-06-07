@@ -7,6 +7,17 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.86.0] - 2026-06-07 — Harness redesign W2: 9-axis understand-phase SIC
+
+### Added
+- 9-axis SemanticIntentContract surface (`SemanticIntentAxes` / `SicAxis` / `SicAxisKey`) on the SSoT `semantic-intent-contract` primitive (self-ontology) + runtime projection in `lib/lead-intent/contracts.ts`. Axes: DATA / LOGIC / ACTION / GOVERNANCE + CONTEXT / SUCCESS-EVAL / CONSTRAINTS-NONGOALS / ACTORS / MEMORY-PRIOR.
+- `nine-axis-sic` fill policy — a runtime-neutral, non-developer-friendly, bilingual (KO/EN) 10-turn elicitation sequence (`NINE_AXIS_SIC_SEQUENCE` + `advanceNineAxisSicSequence` + `nineAxisSicReadinessIssues`) surfacing explicit + implicit intent into the 9 axes. Registered in `fill-policy.ts`. (palantir-mini Ground-Up Harness Redesign, Wave 2 — the understand-phase heart.)
+
+### Notes
+- Additive: existing fill sequences (default-8-turn, context-engineering-to-sic, dtc-turn-fill, fde-ontology-build, ontology-dtc-build) unchanged. typecheck + new tests green.
+
+---
+
 ## [6.85.0] - 2026-06-07 — Harness redesign W1: in-plugin SSoT canonicalized
 
 ### Changed
