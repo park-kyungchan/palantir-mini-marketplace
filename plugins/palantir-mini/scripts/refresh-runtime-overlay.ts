@@ -3,13 +3,14 @@
  * refresh-runtime-overlay.ts
  *
  * Deterministic regen script for:
- *   plugins/palantir-mini/runtime-overlay/schemas-snapshot/
  *   plugins/palantir-mini/runtime-overlay/ontology-shared-core/
  *
  * Usage:
- *   bun run scripts/refresh-runtime-overlay.ts --target schemas
  *   bun run scripts/refresh-runtime-overlay.ts --target shared-core
  *   bun run scripts/refresh-runtime-overlay.ts --target all
+ *
+ * NOTE: the 'schemas' sync target was removed 2026-06-07 (harness redesign W1).
+ * runtime-overlay/schemas-snapshot/ is now CANONICAL (plugin-owned SSoT), not synced.
  *
  * Per canonical-plan-completion-handoff §C.5 chore #1.
  */
@@ -28,13 +29,6 @@ const HOME = os.homedir();
 const PALANTIR_MINI_ROOT = resolvePalantirMiniRoot();
 
 const TARGETS = {
-  schemas: {
-    sourcePath: path.join(HOME, ".claude/schemas"),
-    targetPath: path.join(PALANTIR_MINI_ROOT, "runtime-overlay", "schemas-snapshot"),
-    sourcePathAlias: "~/.claude/schemas/",
-    purpose:
-      "Plugin-owned portable @palantirKC/claude-schemas snapshot. Runtime imports resolve through #schemas/* by default. Upstream test files and runtime session state are intentionally excluded from the plugin substrate snapshot.",
-  },
   "shared-core": {
     sourcePath: path.join(HOME, "ontology/shared-core"),
     targetPath: path.join(PALANTIR_MINI_ROOT, "runtime-overlay", "ontology-shared-core"),
@@ -120,7 +114,7 @@ function readPackageVersion(sourcePath: string): string {
 // Core refresh logic
 // ---------------------------------------------------------------------------
 
-async function refreshTarget(targetKey: "schemas" | "shared-core"): Promise<void> {
+async function refreshTarget(targetKey: "shared-core"): Promise<void> {
   const cfg = TARGETS[targetKey];
   const { sourcePath, targetPath, sourcePathAlias, purpose } = cfg;
 
@@ -211,14 +205,11 @@ async function main(): Promise<void> {
 
   const target = targetFlag ?? "all";
 
-  if (!["schemas", "shared-core", "all"].includes(target)) {
-    console.error(`Unknown --target: ${target}. Use schemas|shared-core|all`);
+  if (!["shared-core", "all"].includes(target)) {
+    console.error(`Unknown --target: ${target}. Use shared-core|all`);
     process.exit(1);
   }
 
-  if (target === "schemas" || target === "all") {
-    await refreshTarget("schemas");
-  }
   if (target === "shared-core" || target === "all") {
     await refreshTarget("shared-core");
   }
