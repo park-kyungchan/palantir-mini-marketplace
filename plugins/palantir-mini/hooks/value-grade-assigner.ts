@@ -62,15 +62,12 @@
 //            sprint-060 W1.9 (P1.E1/M24/H.5: 14-criteria meta-event + coverage counter)
 //            sprint-060 W3 R1-F11/F12 (per-class metric extraction + substrate routing annotation)
 
-import * as path from "path";
 import { emit } from "../scripts/log";
 import { emitSkillSuggestion } from "../lib/skill-suggestion-emit";
 import {
   autoGradeEnvelope,
   validateRule26R5,
 } from "../bridge/handlers/emit-event";
-import { readEvents } from "../lib/event-log/read";
-import { evaluateD2Consensus } from "../lib/value-grade/consensus";
 import { normalizePalantirMiniMcpToolName } from "../lib/hooks/tool-classifier";
 import type { EventEnvelope } from "../lib/event-log/types";
 import type { AgenticMemoryLayer } from "#schemas/ontology/primitives/agentic-memory-layer";
@@ -669,28 +666,9 @@ export default async function valueGradeAssigner(
     return blockReason(p, "rule-26-t0-rejected", t0Msg);
   }
 
-  // ─── Step 7: D2 K-LLM consensus promotion T3 → T4 (W3.C2)
-  let effectiveGrade = grade;
-  if (grade === "T3") {
-    try {
-      const projectPath = p.tool_input?.project ?? cwd;
-      const eventsPath = path.join(projectPath, ".palantir-mini", "session", "events.jsonl");
-      const recentEvents = readEvents(eventsPath);
-      const d2 = evaluateD2Consensus(softenedEnvelope as Parameters<typeof evaluateD2Consensus>[0], recentEvents);
-      if (d2) {
-        // Tag envelope payload with consensusD2 marker so autoGradeEnvelope in
-        // the handler will also see T4. The tag is advisory-only at hook time
-        // (hook cannot mutate tool_input); the additionalContext signals T4.
-        effectiveGrade = "T4";
-        (envelope as Record<string, unknown>).payload = {
-          ...((envelope as Record<string, unknown>).payload as object | undefined ?? {}),
-          consensusD2: true,
-        };
-      }
-    } catch {
-      // Best-effort: consensus check failure does not affect emit.
-    }
-  }
+  // ─── Step 7 removed (W3a): rule 26 v2.0.0 dropped K≥2 multi-vendor consensus,
+  // so the T3 → T4 consensus promotion no longer applies. effectiveGrade follows grade.
+  const effectiveGrade = grade;
 
   // ─── Step 8: Instrumentation meta-event (EVERY T1..T4 path, sprint-060 W1.9)
   emitInstrumentationEvent({
