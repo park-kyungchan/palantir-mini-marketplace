@@ -7,13 +7,24 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+---
+
+## v6.80.0 (2026-06-07) — Claude install path restored + un-versioned control-plane consolidation
+
 ### Added
 
+- **Claude native install path restored** — re-adds `.claude-plugin/plugin.json` + root & plugin-level `.claude-plugin/marketplace.json` (removed in the prior Codex-only consolidation, commit `904c12d`) and the Claude-native hook registry `hooks/claude-hooks.json` (`${CLAUDE_PLUGIN_ROOT}` tokens, all Claude events incl. Task/Team lifecycle). The marketplace is dual-runtime again; Codex `.codex-plugin/` + `.agents/` surfaces are untouched. The Claude MCP server self-attributes via `PALANTIR_MINI_HOST_RUNTIME=claude`.
+  - Manifest `hooks` uses the schema-accepted relative form `./hooks/claude-hooks.json` (the legacy `${CLAUDE_PLUGIN_ROOT}/hooks/...` form is rejected by current `claude plugin validate`); two non-schema fields (`compatibleSchemaVersions`, `requiresClaudeCodeVersion`) were dropped from the Claude manifest. `claude plugin validate` passes clean.
 - **lib(fde-ontology-engineering): long-running session substrate for nondeveloper ontology engineering** — adds `FDEOntologyEngineeringSession`, `LatentIntentHypothesis`, candidate models, clarification questions, bounded recent turn summaries, and hashed `FDEOntologyTurnRecord` contracts under `lib/fde-ontology-engineering/`. Adds `session-store.ts` to create sessions from `UniversalOntologyEntry`, write snapshot/current pointers under `<project>/.palantir-mini/session/fde-ontology-engineering/`, append turn records, and keep raw user prompt text out of session snapshots. Focused tests cover creation, persistence, raw prompt avoidance, and 500+ turn support with only the latest 20 turn summaries embedded. No handler, hook, schema snapshot, generated file, public MCP, or SIC/DTC behavior change. (PR #516)
 
 ### Changed
 
+- **Version synced to 6.80.0** across `package.json`, the restored Claude manifests, and the `.codex-plugin/plugin.json` version value (value-only sync) so both runtimes report the same version.
 - **docs+manifest: PR-K release closeout** — aligns public README and Claude marketplace metadata with the shipped PR-B through PR-J control-plane surface: Lead orchestration docs, ContextEngineeringPlanV3 advisory lanes, MCP capability metadata, DTC surface pre-mutation checks, WorkContract router bindings, agent output contracts, harness ratchet release gates, Codex runtime-gap documentation, and BackPropagation ratchet proposals. Keeps runtime behavior and generated mirrors unchanged.
+
+### Removed
+
+- **`claude-code-version-check` SessionStart hook reference dropped** from the Claude registry — its handler (`hooks/claude-code-version-check.ts` + `bridge/handlers/claude-code-version-delta/*`) had been removed; native `requiresClaudeCodeVersion: ">=2.1.110"` in `plugin.json` covers Claude Code version gating.
 
 ---
 
