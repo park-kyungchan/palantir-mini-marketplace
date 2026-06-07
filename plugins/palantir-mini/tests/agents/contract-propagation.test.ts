@@ -34,16 +34,11 @@ const EXPECTED_MUTATION_CAPABLE = [
   "harness-evaluator",
   "harness-generator",
   "harness-planner",
-  "home-implementer",
   "hook-builder",
   "implementer",
-  "kosmos-implementer",
   "lead-orchestrator",
-  "mc-implementer",
   "ontology-steward",
   "plugin-maintainer",
-  "pm-implementer",
-  "project-implementer",
   "protocol-designer",
 ];
 
@@ -85,9 +80,9 @@ describe("contract-propagation: agent authority chain section", () => {
 describe("PR-G agent inventory", () => {
   const inventory = loadPluginAgentInventory(PLUGIN_ROOT);
 
-  test("parses all 24 plugin agents", () => {
-    expect(inventory.length).toBe(24);
-    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(24);
+  test("parses all 19 plugin agents", () => {
+    expect(inventory.length).toBe(19);
+    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(19);
   });
 
   test("classifies mutation-capable plugin agents", () => {

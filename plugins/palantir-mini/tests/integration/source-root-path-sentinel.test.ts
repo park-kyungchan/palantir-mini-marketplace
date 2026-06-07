@@ -26,8 +26,6 @@ const ACTIVE_RUNTIME_FILES = [
   path.join(PLUGIN_ROOT, "docs/CONVEX_CLOUD_AUTHORITY.md"),
   path.join(PLUGIN_ROOT, "docs/CONVEX_CLOUD_CUTOVER.md"),
   path.join(PLUGIN_ROOT, "skills/pm-mcp-reload/SKILL.md"),
-  path.join(PLUGIN_ROOT, "skills/pm-portable-bundle/SKILL.md"),
-  path.join(PLUGIN_ROOT, "skills/pm-restore/SKILL.md"),
   path.join(PLUGIN_ROOT, "skills/pm-ship/SKILL.md"),
   path.join(PLUGIN_ROOT, "skills/pm-ship/SKILL.md.tmpl"),
   path.join(PLUGIN_ROOT, "lib/agents/inventory.ts"),

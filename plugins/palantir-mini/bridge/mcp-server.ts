@@ -878,10 +878,6 @@ const HANDLER_MODULES: Record<string, string> = {
   validate_managed_settings_fragments: "./handlers/validate-managed-settings-fragments",
   // F. Phase 3 read-path orchestrator (1) — sprint-093 PR 3.1 canonical handler.
   ontology_context_query:              "./handlers/ontology-context-query",
-  // Internal / skill-only inventory. Not included in TOOLS or tools/list.
-  // Legacy UniversalOntologyEntry / workflowTrace flow (pre-Phase 3); kept for
-  // existing internal callers (pm-project-onboard skill, ontology-workflow trace).
-  ontology_context_query_legacy:       "./handlers/ontology-context-query-legacy",
 };
 
 function categoryForTool(toolName: string): NonNullable<ToolSpec["category"]> {
