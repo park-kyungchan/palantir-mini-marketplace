@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.89.0] - 2026-06-08 — Harness redesign W3a: zero-risk DELETE (dead/obsoleted surface)
+
+### Removed
+- `lib/agent-audit/` (decision-extractor + test) + `skills/pm-agent-audit-trail/` — dead Claude-Agent-Teams audit ceremony. Its authority (retired rule 12) is gone, it has zero live event producers, and its referenced MCP handler never existed (phantom). No code importer (only a doc-citation comment in `post-edit-verifier-suggest.ts`).
+- `lib/value-grade/consensus.ts` (+ test) + the T3→T4 consensus-promotion block (Step 7) in `hooks/value-grade-assigner.ts` — obsoleted by rule 26 v2.0.0, which dropped K≥2 multi-vendor consensus for solo-dev. `effectiveGrade` now follows `grade` (no promotion). The `D2` payload flag is retained (separate grading criterion).
+- `bridge/handlers/grade_planner_output.ts` + `bridge/handlers/grade-classification-accuracy.ts` (+ 3 tests) — dead graders: unregistered in `mcp-server`, already recorded as removed in `_deprecation-map.ts`, no code importers (sprint-GAN planner meta-rubric + retired impact-query calibration loop). Deprecation-map / deletion-readiness / append-only event-type entries retained per rule 10.
+
+### Notes
+- Part of the palantir-mini Ground-Up Harness Redesign, Wave 3 (control-surface core), sub-wave **W3a** — the genuinely zero-risk deletes. The sprint-GAN cluster (`lib/harness/*`, `harness-base-mode-advisory`, the 4 release self-checks) was split OUT of W3a after live verification showed it is REPLACE-level, not zero-risk: `harness-base-mode-advisory.ts` exports the shared `findProjectRoot` used by 7 hooks, and `release-evidence.ts` couples to the live workflow-family release gate + 2 contract tests. It will land as its own sub-wave.
+
 ## [6.88.0] - 2026-06-07 — Harness redesign W4: Claude adapter for the understand-phase
 
 ### Added
