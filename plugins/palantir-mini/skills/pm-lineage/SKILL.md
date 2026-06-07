@@ -92,7 +92,7 @@ After rendering, surface:
 /palantir-mini:pm-lineage --whenRange="2026-04-25..2026-04-30" --byWhom.identity=claude-code
 /palantir-mini:pm-lineage --eventTypes=grading_completed,sprint_contract_bound --limit=50
 /palantir-mini:pm-lineage --withWhat="dryRunRef=" --eventTypes=validation_phase_completed
-/palantir-mini:pm-lineage --projects=/home/palantirkc/projects/palantir-math,/home/palantirkc/projects/mathcrew
+/palantir-mini:pm-lineage --projects=/home/user/projects/your-project,/home/user/projects/your-app
 ```
 
 ## Authority + cross-refs

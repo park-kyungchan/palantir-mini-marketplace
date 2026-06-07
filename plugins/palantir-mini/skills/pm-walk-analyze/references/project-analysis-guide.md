@@ -79,7 +79,7 @@ Three mechanisms:
 
 ## Cross-Project Comparison Rubric
 
-When comparing palantir-math vs mathcrew:
+When comparing two registered projects (e.g. `your-project` vs `your-app`):
 
 | Dimension | What to Compare |
 |-----------|----------------|

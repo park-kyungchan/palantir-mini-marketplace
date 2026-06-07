@@ -3,7 +3,7 @@
 //   mcp__plugin_palantir-mini_palantir-mini__emit_event (advisory, async)
 //
 // Pair lifecycle tracking per rule 26 §Axis B1 (outcome-paired) +
-// rule 16 v4.0.0 §Loop step 6 (revise). For every emitted envelope:
+// the former sprint-harness policy v4.0.0 §Loop step 6 (revise). For every emitted envelope:
 //   - OPEN events (e.g. `edit_proposed`, `dry_run_computed`, `*_started`)
 //     → write marker `<sessionDir>/outcome-pairs/<pairRid>.json` keyed
 //       by lineageRefs.actionRid (or synthetic from event when missing).

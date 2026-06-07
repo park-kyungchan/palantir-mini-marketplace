@@ -12,7 +12,7 @@
 //
 // Bypass: env PALANTIR_MINI_OVERLAY_INJECTOR_DISABLE=1 (audited).
 //
-// Authority: sprint-061 A.W2.b; rule 12 §Hook v2 conventions.
+// Authority: sprint-061 A.W2.b; the former Lead-Protocol policy §Hook v2 conventions.
 // Plan: ~/.claude/plans/inherited-discovering-quill.md §4.A.W2.
 
 import * as fs from "fs";

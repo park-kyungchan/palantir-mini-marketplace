@@ -16,7 +16,7 @@
 //
 // NEVER blocks. Pass-through silently when heuristic does not match.
 //
-// Authority: sprint-061 A.W3; rule 12 v3.10.0 §MCP-First protocol (proposed).
+// Authority: sprint-061 A.W3; the former Lead-Protocol policy v3.10.0 §MCP-First protocol (proposed).
 // Plan: ~/.claude/plans/inherited-discovering-quill.md §4.A.W3.
 
 interface HookPayload {
@@ -82,7 +82,7 @@ export default async function userPromptOverlayAdvisory(
       "Complex task detected. Preserve the prompt-front-door capture and call `pm_semantic_intent_gate` with prompt identity before mutating dispatch. Then consult `mcp__plugin_palantir-mini_palantir-mini__pm_rule_query` " +
       "for rule details + `mcp__plugin_palantir-mini_palantir-mini__impact_query` " +
       "(or skill `/palantir-mini:pm-impact-quick`) for impact analysis. " +
-      "See rule 12 v3.10.0 §MCP-First protocol.";
+      "See the former Lead-Protocol policy v3.10.0 §MCP-First protocol.";
 
     return {
       message: `palantir-mini: user-prompt-overlay-advisory — complex task advisory (${reasons.join(", ")})`,

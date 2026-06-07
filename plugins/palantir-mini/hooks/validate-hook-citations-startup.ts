@@ -13,7 +13,7 @@
 //   3. Emit validation_phase_completed with errorClass="hook_citation_audit_completed".
 //   4. Never blocks — always advisory (async: true).
 //
-// Authority: rule 22 v1.0.0 §Validation trigger (new session-start path).
+// Authority: rule 08 §Hook-citation v1.0.0 §Validation trigger (new session-start path).
 // Cross-ref: bridge/handlers/validate-hook-citations.ts (same audit logic).
 
 import { emit } from "../scripts/log";
@@ -48,7 +48,7 @@ export default async function validateHookCitationsStartup(
     if (staleCount > 0) {
       // Build a concise advisory listing each stale citation.
       const lines: string[] = [
-        `=== HOOK CITATION AUDIT (rule 22 — SessionStart) ===`,
+        `=== HOOK CITATION AUDIT (rule 08 §Hook-citation — SessionStart) ===`,
         `${staleCount} stale citation(s) detected:`,
         ``,
       ];
@@ -60,7 +60,7 @@ export default async function validateHookCitationsStartup(
       }
       lines.push(``);
       lines.push(`Fix: update each hook to reference the active rule ID (or remove stale citations).`);
-      lines.push(`Detail: pm_rule_query({byId:22}) for fix protocol.`);
+      lines.push(`Detail: pm_rule_query({byId: 8 /* formerly hook-citation-validation policy, now §Hook-citation in rule 08 */}) for fix protocol.`);
       staleDetail = lines.join("\n");
     }
   } catch (err) {
@@ -83,7 +83,7 @@ export default async function validateHookCitationsStartup(
     sessionId: p.session_id,
     identity:  "monitor",
     memoryLayers: ["procedural", "semantic"],
-    reasoning: `sprint-060 W2.2 R6-F11 — SessionStart hook-citation audit per rule 22: staleCount=${staleCount}. ${auditSummary}`,
+    reasoning: `sprint-060 W2.2 R6-F11 — SessionStart hook-citation audit per rule 08 §Hook-citation: staleCount=${staleCount}. ${auditSummary}`,
     hypothesis: "Proactive session-start citation audit catches stale rule references before hooks fire, reducing silent-failure surface.",
     ...(staleCount > 0 ? {
       refinementTarget: {

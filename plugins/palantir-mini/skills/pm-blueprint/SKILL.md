@@ -2,13 +2,13 @@
 name: pm-blueprint
 category: research
 surfaceStatus: public-core
-description: "Generate a TechBlueprint for a new architecture question using the kosmos 7-agent..."
+description: "Generate a TechBlueprint for a new architecture question using a 7-agent research..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage
 effort: medium
 disable-model-invocation: false
 ---
 
-# pm-blueprint — TechBlueprint research pipeline (kosmos pattern)
+# pm-blueprint — TechBlueprint research pipeline
 
 ## When to use
 
@@ -18,8 +18,7 @@ disable-model-invocation: false
 
 ## What this does
 
-This skill proxies into the `kosmos-research` Agent Teams pipeline (which
-lives in `~/kosmos/`). palantir-mini standardizes the invocation and writes
+This skill runs a multi-agent TechBlueprint pipeline. palantir-mini standardizes the invocation and writes
 the resulting `blueprint.json` + `final-report.md` to the project's
 `.palantir-mini/session/` directory.
 
@@ -69,10 +68,9 @@ naming above.
 /palantir-mini:blueprint
 ```
 
-For full kosmos pipeline:
+For the full pipeline:
 ```
-cd ~/kosmos
-# Use the kosmos-research skill to launch T1-T12 with the 7-agent pipeline.
+# Use the pm-blueprint skill to launch T1-T12 with the 7-agent pipeline.
 # Output routed via resolveBlueprintPath() in bridge/handlers/blueprint_write.ts
 ```
 

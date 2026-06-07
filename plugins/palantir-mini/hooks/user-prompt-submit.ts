@@ -11,7 +11,7 @@
 //   - Non-blocking (hooks.json sets async: true).
 //
 // events.jsonl is NEVER touched here — inbox is separate mutable state.
-// See rule 10 (events.jsonl append-only) + rule 12 §Auto-inbox injection.
+// See rule 10 (events.jsonl append-only) + the former Lead-Protocol policy §Auto-inbox injection.
 
 import * as fs from "fs";
 import * as path from "path";

@@ -113,7 +113,7 @@ describe("pre-edit-impact-mcp-first (blocking mode)", () => {
     // No events.jsonl at all → no MCP call → block
     const result = await preEditImpactMcpFirst(makeEditPayload());
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("rule 12 v3.10.0");
+    expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("v3.10.0 §MCP-First");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("MCP-First protocol");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("mcp__palantir_mini__impact_query");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("mcp__palantir_mini__pre_edit_impact");
@@ -205,7 +205,7 @@ describe("pre-edit-impact-mcp-first (blocking mode)", () => {
     const result = await preEditImpactMcpFirst(makeEditPayload());
     expect(result.hookSpecificOutput?.permissionDecision).not.toBe("deny");
     expect(result.message).toContain("ADVISORY");
-    expect(result.additionalContext).toContain("rule 12 v3.10.0");
+    expect(result.additionalContext).toContain("v3.10.0 §MCP-First");
   });
 
   test("T10: PALANTIR_MINI_MCP_FIRST_BYPASS=1 → deny for tracked edit", async () => {

@@ -29,7 +29,7 @@
 //   7. Non-Agent tool → no-op.
 //
 // Authority:
-//   rule 12 v3.4.1 §Pre-delegation framework (researcher subagent briefing quality)
+//   the former Lead-Protocol policy v3.4.1 §Pre-delegation framework (researcher subagent briefing quality)
 //   rule 26 §Axis E (memory-mapped; procedural + semantic layers)
 //   ~/.claude/research/anthropic/opus-4-7-postmortem-2026-04-23.md
 //   Plan: mellow-plotting-oasis.md §Wave 3 W3.G
@@ -171,7 +171,7 @@ async function main(): Promise<void> {
     `\n` +
     `Reference: Opus 4.7 multi-source synthesis regression (` +
     `~/.claude/research/anthropic/opus-4-7-postmortem-2026-04-23.md).\n` +
-    `Rule 12 v3.4.1 §Pre-delegation framework.\n`;
+    `the former Lead-Protocol policy v3.4.1 §Pre-delegation framework.\n`;
 
   try {
     const eventPayload: Record<string, unknown> = {
@@ -193,7 +193,7 @@ async function main(): Promise<void> {
       reasoning:
         `researcher-citation-precision: researcher subagent spawned without citation-precision ` +
         `pattern in briefing. Opus 4.7 multi-source synthesis regression documented in postmortem ` +
-        `(2026-04-23). Rule 12 v3.4.1 §Pre-delegation framework — researcher briefing quality ` +
+        `(2026-04-23). the former Lead-Protocol policy v3.4.1 §Pre-delegation framework — researcher briefing quality ` +
         `degrades without explicit direct-quote requirement.`,
       hypothesis:
         "Lead omitted citation-precision guidance OR intentional omission for non-synthesis tasks; advisory only — non-blocking",

@@ -124,7 +124,7 @@ MathProblem (DATA)
 │  ├── hasVisualization → MathVisualization (LOGIC: link 1:1)
 │  ├── hasReview → MathReview (LOGIC: link 1:1)
 │  ├── getSolution (LOGIC: query)
-│  └── planLecture (LOGIC: function)
+│  └── planReview (LOGIC: function)
 ├─ 2. getProblemById (LOGIC: query)
 ├─ 3. listProblems (LOGIC: query)
 ├─ 4. solveProblem (ACTION: mutation)
@@ -157,7 +157,7 @@ If construct was already visited in the current breadcrumb, show:
 ```
 
 Do not recurse into visited constructs. Self-referencing links (e.g., Concept → Concept
-in mathcrew) show the cycle marker on the first encounter.
+in your-app) show the cycle marker on the first encounter.
 
 ## Research Grounding Protocol
 

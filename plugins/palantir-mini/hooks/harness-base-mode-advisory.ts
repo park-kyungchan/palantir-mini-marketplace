@@ -1,7 +1,7 @@
 // palantir-mini v3.12.0 — harness-base-mode-advisory hook (auto-bootstrap)
 // Fires on: SessionStart (advisory, async)
 //
-// Per harness-base-mode blueprint §4-P0 step 1 + rule 16 v3.4.0 §Default-On Policy:
+// Per harness-base-mode blueprint §4-P0 step 1 + the former sprint-harness policy v3.4.0 §Default-On Policy:
 // detects active project, checks whether `.palantir-mini/harness/` exists and has
 // any bound SprintContract.
 //
@@ -13,8 +13,8 @@
 //   PALANTIR_MINI_AUTO_SPRINT_DISABLE=1 is set (audited via
 //   `harness_self_grading_guard_disabled` event).
 //
-// Authority: rule 16 (3-agent-harness) §Default-On Policy (v3.4.0)
-//            rule 12 (lead-protocol) §Lead-direct harness wrapping (v3.1.0+) —
+// Authority: the former sprint-harness policy (3-agent-harness) §Default-On Policy (v3.4.0)
+//            the former Lead-Protocol policy (lead-protocol) §Lead-direct harness wrapping (v3.1.0+) —
 //            this hook auto-bootstraps the Quick Sprint contract that the
 //            Lead-direct wrapper rule depends on.
 //            ~/.claude/plans/dynamic-forging-globe.md §1.D (auto-bootstrap)
@@ -207,7 +207,7 @@ function bootstrapAttempt(
       throw writeErr; // other errors → caught by outer try
     }
 
-    // Emit via validation_phase_completed envelope (rule 16 v3.4.0 §Loop Audit envelopes pattern;
+    // Emit via validation_phase_completed envelope (the former sprint-harness policy v3.4.0 §Loop Audit envelopes pattern;
     // same as harness_gate_passed / harness_bypass_invoked / dry_run_computed). The proper
     // sprint_contract_bound event is normally emitted by negotiate_sprint_contract MCP handler;
     // here we use the validation envelope with errorClass="auto_bootstrap_completed" to keep
@@ -223,7 +223,7 @@ function bootstrapAttempt(
       cwd: projectRoot,
       sessionId,
       identity: "monitor",
-      reasoning: `harness-base-mode-advisory auto-bootstrapped default Quick Sprint contractId=${slugContractId} (dir=${sprintId}, projectSlug=${projectSlug}) in ${projectRoot} (mode=quick, iterationLimit=1, contractPath=${contractPath}). Rule 16 v3.4.0 §Default-On Policy B2 + crystalline-resilient-narwhal slug-prefixing.`,
+      reasoning: `harness-base-mode-advisory auto-bootstrapped default Quick Sprint contractId=${slugContractId} (dir=${sprintId}, projectSlug=${projectSlug}) in ${projectRoot} (mode=quick, iterationLimit=1, contractPath=${contractPath}). the former sprint-harness policy v3.4.0 §Default-On Policy B2 + crystalline-resilient-narwhal slug-prefixing.`,
     }).catch(() => { /* best-effort */ });
 
     return path.relative(projectRoot, contractPath);
@@ -324,7 +324,7 @@ export default async function harnessBaseModeAdvisory(payload: unknown): Promise
             `  ${bootstrappedRel}`,
             "Override with custom brief via /palantir-mini:pm-quick-sprint \"<brief>\" <scope>.",
             "Disable auto-bootstrap via PALANTIR_MINI_AUTO_SPRINT_DISABLE=1 (audited).",
-            "Rule 16 v3.4.0 §Default-On Policy.",
+            "the former sprint-harness policy v3.4.0 §Default-On Policy.",
           ].join("\n"),
         };
       }
@@ -362,7 +362,7 @@ export default async function harnessBaseModeAdvisory(payload: unknown): Promise
           ? "Auto-bootstrap disabled via PALANTIR_MINI_AUTO_SPRINT_DISABLE=1."
           : "Auto-bootstrap FAILED (check write permission / disk space).",
         "Manually bootstrap with /palantir-mini:pm-harness-init then /palantir-mini:pm-quick-sprint, OR /palantir-mini:pm-harness-plan for full pipeline.",
-        "Rule 16 v3.4.0 §Default-On Policy (B2).",
+        "the former sprint-harness policy v3.4.0 §Default-On Policy (B2).",
       ].join("\n"),
     };
   }
@@ -380,7 +380,7 @@ export default async function harnessBaseModeAdvisory(payload: unknown): Promise
             `Project ${projectRoot} had no bound SprintContract — created default Quick Sprint:`,
             `  ${bootstrappedRel}`,
             "Override with custom brief via /palantir-mini:pm-quick-sprint \"<brief>\" <scope>.",
-            "Rule 16 v3.4.0 §Default-On Policy.",
+            "the former sprint-harness policy v3.4.0 §Default-On Policy.",
           ].join("\n"),
         };
       }
@@ -410,7 +410,7 @@ export default async function harnessBaseModeAdvisory(payload: unknown): Promise
           ? "Auto-bootstrap disabled via PALANTIR_MINI_AUTO_SPRINT_DISABLE=1."
           : "Auto-bootstrap FAILED — check write permission / disk space.",
         "Manually run /palantir-mini:pm-quick-sprint \"<brief>\" <scope>  or /palantir-mini:pm-harness-plan.",
-        "Rule 16 v3.4.0 §Default-On Policy (B2 hard default-on).",
+        "the former sprint-harness policy v3.4.0 §Default-On Policy (B2 hard default-on).",
       ].join("\n"),
     };
   }
@@ -437,7 +437,7 @@ export default async function harnessBaseModeAdvisory(payload: unknown): Promise
 
   // ─── Advisory B: Non-default harness species warning ───
   // Detects a non-default species in the active SprintContract's taskFitness
-  // and surfaces a rationale advisory (rule 16 v4.1.0 §0; 7-species enum).
+  // and surfaces a rationale advisory (the former sprint-harness policy v4.1.0 §0; 7-species enum).
   // Non-blocking; emits species_rationale_advisory_surfaced event for audit.
   if (boundContractRel) {
     const contractAbsPath = path.join(projectRoot, boundContractRel);
@@ -446,7 +446,7 @@ export default async function harnessBaseModeAdvisory(payload: unknown): Promise
     if (nonDefaultSpecies) {
       process.stderr.write(
         [
-          `[harness-base-mode-advisory] Non-default harness species detected: ${nonDefaultSpecies}. Lead is responsible for documenting rationale in <sprint>/iterations/iteration-NNN/lead-guidance.md per rule 16 v4.1.0 §0. Cross-ref:`,
+          `[harness-base-mode-advisory] Non-default harness species detected: ${nonDefaultSpecies}. Lead is responsible for documenting rationale in <sprint>/iterations/iteration-NNN/lead-guidance.md per the former sprint-harness policy v4.1.0 §0. Cross-ref:`,
           "- 7 species: claude-code-cli (default) / claude-agent-sdk / task-specific / anthropic-managed-agents / palantir-mini-sprint-harness / gemini-enterprise-agent-platform / microsoft-foundry-agent-service",
           "- pm_dispatch_cost_estimate (W3.F sprint-049) for per-vendor arbitrage signal",
           "- ~/.claude/plans/2026-05-09-palantir-mini-economic-positioning.md §3 (Mode 1/2/3 pricing)",
@@ -465,7 +465,7 @@ export default async function harnessBaseModeAdvisory(payload: unknown): Promise
         cwd: projectRoot,
         sessionId: p.session_id,
         identity: "monitor",
-        reasoning: `harness-base-mode-advisory: non-default species "${nonDefaultSpecies}" detected in ${boundContractRel}; advisory surfaced per rule 16 v4.1.0 §0. Lead must document rationale in lead-guidance.md.`,
+        reasoning: `harness-base-mode-advisory: non-default species "${nonDefaultSpecies}" detected in ${boundContractRel}; advisory surfaced per the former sprint-harness policy v4.1.0 §0. Lead must document rationale in lead-guidance.md.`,
       }).catch(() => { /* best-effort */ });
     }
   }

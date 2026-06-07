@@ -1,7 +1,7 @@
 // palantir-mini v1.1 — SubagentStart hook handler
 // Fires on: SubagentStart (subagent begins execution)
 //
-// Emits a subagent_start event for team pipeline tracking (rule 12 §Team default + Lazy-spawn).
+// Emits a subagent_start event for team pipeline tracking (the former Lead-Protocol policy §Team default + Lazy-spawn).
 // Renamed from AgentStart → SubagentStart to match Claude Code v2.1.110+ event schema.
 //
 // Phase B3 D3: env injection from agent .md frontmatter.
@@ -280,7 +280,7 @@ export function inferCurrentSprint(cwd: string): number {
  * Returns { blocked: true, reason } when the agent should be denied.
  * Returns { blocked: false } when the agent is allowed to start.
  *
- * Criteria (rule 21 §Deprecation window mechanics):
+ * Criteria (the former project-agent-authority policy §Deprecation window mechanics):
  *   - Agent frontmatter has `deprecated: true`
  *   - Agent frontmatter has `deprecationWindowEndsSprint: N` where N <= currentSprint
  */
@@ -305,7 +305,7 @@ export function checkDeprecationGate(
     if (currentSprint <= endedSprint) return { blocked: false }; // still in window
 
     const reason =
-      `Agent '${agentName}' is RETIRED (rule 21 §Deprecation window mechanics): ` +
+      `Agent '${agentName}' is RETIRED (the former project-agent-authority policy §Deprecation window mechanics): ` +
       `deprecationWindowEndsSprint=${endedSprint}, currentSprint=${currentSprint}. ` +
       `Use 'project-implementer' instead. See agents/${agentName}.md for tombstone details.`;
     return { blocked: true, reason, endedSprint, currentSprint };
@@ -324,7 +324,7 @@ export default async function subagentStart(payload: unknown): Promise<{ message
   const resolvedAgentName = resolveAgentName(p, knownNames);
   const isHashFallback    = !p.agent_name && resolvedAgentName === "subagent-unnamed";
 
-  // PR-14a (sprint-077) — Deprecation gate (rule 21 §Deprecation window mechanics).
+  // PR-14a (sprint-077) — Deprecation gate (the former project-agent-authority policy §Deprecation window mechanics).
   // Emit project_agent_collision_detected + deny spawn for agents past their window.
   if (resolvedAgentName !== "subagent-unnamed") {
     const gate = checkDeprecationGate(resolvedAgentName, cwd);
@@ -350,7 +350,7 @@ export default async function subagentStart(payload: unknown): Promise<{ message
           identity:    "claude-code",
           agentName:   resolvedAgentName,
           memoryLayers: ["procedural"],
-          reasoning:   `Blocking spawn of retired agent '${resolvedAgentName}': deprecationWindowEndsSprint=${gate.endedSprint} expired at sprint ${gate.currentSprint}. Per rule 21 §Deprecation window mechanics, SubagentStart hook emits validation_phase_completed errorClass=project_agent_collision_detected and denies spawn. Use project-implementer for project-scoped implementation work.`,
+          reasoning:   `Blocking spawn of retired agent '${resolvedAgentName}': deprecationWindowEndsSprint=${gate.endedSprint} expired at sprint ${gate.currentSprint}. Per the former project-agent-authority policy §Deprecation window mechanics, SubagentStart hook emits validation_phase_completed errorClass=project_agent_collision_detected and denies spawn. Use project-implementer for project-scoped implementation work.`,
         });
       } catch {
         // best-effort — emit failure must not suppress the deny
@@ -420,7 +420,7 @@ export default async function subagentStart(payload: unknown): Promise<{ message
     });
     if (written) {
       boundCorrelationId = correlationId;
-      // Emit subagent_correlation_bound audit event (rule 10 §5-dim, rule 12 §Subagent decision audit invariant).
+      // Emit subagent_correlation_bound audit event (rule 10 §5-dim, the former Lead-Protocol policy §Subagent decision audit invariant).
       // Uses validation_phase_completed errorClass="subagent_correlation_bound" since the EventEnvelope
       // discriminated union does not yet carry a dedicated variant (PR 5.5 follow-up to add it).
       try {
@@ -448,7 +448,7 @@ export default async function subagentStart(payload: unknown): Promise<{ message
             `PR 5.5 sprint-116: subagent correlationId bound via per-agent isolated marker file at ` +
             `correlation-markers/${sessionIdForMarker}/${agentIdForMarker}.json. ` +
             `Eliminates concurrent-subagent misattribution race per canonical plan v2 §4 row 5.5 ` +
-            `and rule 12 §Subagent decision audit invariant. correlationId=${correlationId.slice(0, 8)}…`,
+            `and the former Lead-Protocol policy §Subagent decision audit invariant. correlationId=${correlationId.slice(0, 8)}…`,
         });
       } catch {
         // best-effort — never block subagent start

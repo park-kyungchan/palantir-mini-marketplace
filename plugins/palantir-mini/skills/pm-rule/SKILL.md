@@ -61,7 +61,7 @@ Response includes:
 ```
 /palantir-mini:pm-rule list
 /palantir-mini:pm-rule list compact
-/palantir-mini:pm-rule list scope:project:mathcrew
+/palantir-mini:pm-rule list scope:project:your-project
 ```
 
 Internal call for compact discovery:

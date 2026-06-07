@@ -197,6 +197,6 @@ describe("advisory_content", () => {
       prompt_length: 900,
     });
 
-    expect(result.additionalContext).toContain("rule 12");
+    expect(result.additionalContext).toContain("MCP-First protocol");
   });
 });

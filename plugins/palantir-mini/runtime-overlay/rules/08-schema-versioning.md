@@ -41,3 +41,7 @@ Consolidation per harness-base-mode blueprint §12 license (2026-04-29) — abso
 ## §pm-verify gates (cross-cutting)
 
 The `pm-verify` skill chains both invariants (schema pin + generated header). Run before `pm-ship` or any ontology-touching commit.
+
+## §Hook-citation validation (absorbed from rule 22)
+
+Every `rule NN` citation in a hook's source must reference an active rule; stale citations are a blocking defect (`rule-citation-validate` hook).

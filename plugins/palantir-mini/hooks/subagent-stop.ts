@@ -8,7 +8,7 @@
 //   3. parse ## Output Contract section → if absent, emit warning + pass through
 //   4. checkStateFile → emit subagent_state_validation + return decision
 //
-// See rule 12 §Phase-gate contract, lead-system-v2 §5.5.
+// See the former Lead-Protocol policy §Phase-gate contract, lead-system-v2 §5.5.
 
 import * as fs from "fs";
 import { emit } from "../scripts/log";

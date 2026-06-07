@@ -30,7 +30,7 @@
 //
 // Valid domain tokens: DATA | LOGIC | ACTION | SECURITY | LEARN | UI
 //
-// Cross-ref: rule 12 v3.10.0 + operating model §4.1 (6-domain classification)
+// Cross-ref: the former Lead-Protocol policy v3.10.0 + operating model §4.1 (6-domain classification)
 //            sprint-062 plan §Phase 4 W3-α
 
 // @domain: LOGIC
@@ -286,7 +286,7 @@ export default async function ontologyDomainClassificationValidate(
     } catch { /* best-effort */ }
 
     const denyReason = [
-      `rule 12 v3.10.0 + operating model §4.1: TypeScript file "${path.basename(absFilePath)}"`,
+      `the former Lead-Protocol policy v3.10.0 + operating model §4.1: TypeScript file "${path.basename(absFilePath)}"`,
       `in ontology/plugin domain scope MUST declare a // @domain: <TOKEN> marker`,
       `within the first ${HEADER_SCAN_LINES} lines of the file.`,
       ``,

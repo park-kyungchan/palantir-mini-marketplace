@@ -37,10 +37,10 @@
 //
 // Bypass: PALANTIR_MINI_INTENT_PROTOCOL_BYPASS=1 (audited via intent_protocol_bypass_invoked)
 //
-// sprint-063 W2.B (rule 12 v3.12.0): BLOCKING — required impact_query + context/substrate evidence
+// sprint-063 W2.B (the former Lead-Protocol policy v3.12.0): BLOCKING — required impact_query + context/substrate evidence
 //   (semantic_change_plan removed)
 //
-// Authority: sprint-063 W2.B; rule 12 v3.10.0 §MCP-First protocol;
+// Authority: sprint-063 W2.B; the former Lead-Protocol policy v3.10.0 §MCP-First protocol;
 //            rule 26 §Axis E (procedural + semantic).
 
 import * as fs from "fs";
@@ -278,7 +278,7 @@ function buildDenyReason(relPath: string, hasImpact: boolean, hasContext: boolea
   return [
     `palantir-mini Intent-to-Ontology BLOCKED: ontology discovery incomplete for ${relPath}.`,
     ``,
-    `sprint-063 W2.B (rule 12 v3.12.0): BLOCKING — required evidence missing: ${missingTools.join(" + ")}`,
+    `sprint-063 W2.B (the former Lead-Protocol policy v3.12.0): BLOCKING — required evidence missing: ${missingTools.join(" + ")}`,
     ``,
     `Call impact_query plus ontology_context_query or pm_substrate_query within 5 min BEFORE this edit.`,
     ``,
@@ -397,7 +397,7 @@ export default async function leadOntologyDiscoveryCompleteness(
         sessionId,
         identity:     "monitor",
         memoryLayers: ["procedural", "semantic"],
-        reasoning:    `lead-ontology-discovery-completeness: BLOCKED (sprint-063 W2.B) — impact_query=${discoveryResult.hasImpact} context_or_substrate=${discoveryResult.hasContext} in last ${DISCOVERY_WINDOW_MS / 60000} min for file=${relPath} in projectRoot=${projectRoot}. semantic_change_plan removed. rule 12 v3.12.0.`,
+        reasoning:    `lead-ontology-discovery-completeness: BLOCKED (sprint-063 W2.B) — impact_query=${discoveryResult.hasImpact} context_or_substrate=${discoveryResult.hasContext} in last ${DISCOVERY_WINDOW_MS / 60000} min for file=${relPath} in projectRoot=${projectRoot}. semantic_change_plan removed. the former Lead-Protocol policy v3.12.0.`,
       });
     } catch { /* best-effort */ }
 

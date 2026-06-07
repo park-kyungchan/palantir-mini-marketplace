@@ -2,7 +2,7 @@
 ruleId: 7
 slug: plugins-and-mcp
 scope: global
-version: 1.3.0
+version: 1.4.0
 invariant: "Plugin manifest (plugin.json) is authoritative for MCP server registration; per-project managed-settings.d/*.json is RBAC fragment; no duplicate MCP registration; multi-plugin collision resolution per rule 19."
 supersededBy: null
 crossRefs: [08, 19, 21]
@@ -19,7 +19,7 @@ hookCitations: [agent-ownership-validate]
 
 ## Agent file-ownership (palantir-mini plugin)
 
-Ownership is authoritative within `plugins/palantir-mini/`. `~/.claude/plugins/palantir-mini/` is a temporary Claude compatibility/install target only. Agents MUST NOT edit outside their writable set; cross-boundary tasks are split by Lead.
+Ownership is authoritative within the private marketplace source `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. Runtime plugin caches are installed payloads only. Agents MUST NOT edit outside their writable set; cross-boundary tasks are split by Lead.
 
 | Owner | Writable paths |
 |-------|----------------|

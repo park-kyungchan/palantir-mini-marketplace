@@ -10,7 +10,7 @@
 // Mode: ADVISORY only (never blocks). Heuristic: only suggest when the edit
 // targets a non-trivial code path (not events.jsonl, not docs-only patterns).
 //
-// Authority: rule 12 v3.3.0 §Briefing template + rule 16 v4.0.0 §Default-On Policy.
+// Authority: the former Lead-Protocol policy v3.3.0 §Briefing template + the former sprint-harness policy v4.0.0 §Default-On Policy.
 //            agent-system-design.md:312-314 + skill-agent-audit-v1.5.md:96-97.
 
 import * as path from "path";
@@ -79,7 +79,7 @@ export default async function postEditVerifierSuggest(
   const advisory = [
     "[verifier fan-out advisory]",
     `${meaningful.length} meaningful edit(s) committed: ${meaningful.slice(0, 3).map((f) => path.basename(f)).join(", ")}${meaningful.length > 3 ? ` (+${meaningful.length - 3} more)` : ""}.`,
-    "Per rule 12 v3.3.0 §Briefing + agent frontmatter ('use proactively after any teammate completes a task'),",
+    "Per the former Lead-Protocol policy v3.3.0 §Briefing + agent frontmatter ('use proactively after any teammate completes a task'),",
     "consider spawning verifier-correctness + verifier-adversarial in parallel for review.",
     "Lead's discretion — this advisory does not block.",
   ].join(" ");
