@@ -105,14 +105,14 @@ describe("producer-verification — doc-references edges", () => {
     const dir = tmp("pm-vr1-doc-runtime-");
     writeFileEnsuring(
       path.join(dir, "docs/FLOWS.md"),
-      "# Flows\n\nThe dispatcher is at runtime:skills/pm-harness-sprint/SKILL.md — see Phase 2.\n",
+      "# Flows\n\nThe dispatcher is at runtime:skills/pm-init/SKILL.md — see Phase 2.\n",
     );
 
     const result = await runProducerVerification({ projectRoot: dir });
 
     const docRefs = result.edges.filter((e) => e.edgeKind === "doc-references");
     const targets = docRefs.map((e) => e.toRid as string);
-    expect(targets).toContain("runtime:skills/pm-harness-sprint/SKILL.md");
+    expect(targets).toContain("runtime:skills/pm-init/SKILL.md");
   });
 
   test("doc referencing itself does not create a self-edge", async () => {

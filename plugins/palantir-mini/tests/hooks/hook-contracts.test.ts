@@ -9,9 +9,7 @@ const REQUIRED_INPUT_SCHEMA = "schemas/hooks/pretooluse.input.schema.json";
 const REQUIRED_OUTPUT_SCHEMA = "schemas/hooks/governance-hook.output.schema.json";
 const REQUIRED_FAIL_CLOSED_COMMAND_FRAGMENTS = [
   "ontology-engineering-workflow-enforcement-gate.ts",
-  "commit-edits-precondition",
   "pre-edit-impact-mcp-first",
-  "commit-edits-governance.ts",
 ] as const;
 const SURFACE_STATUS_VALUES = [
   "public-core",

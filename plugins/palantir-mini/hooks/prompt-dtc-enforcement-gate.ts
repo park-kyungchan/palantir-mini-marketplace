@@ -45,7 +45,6 @@ import {
 } from "../lib/prompt-front-door/sic-approval-cache";
 import {
   classifyHookTool,
-  isNegotiateSprintContractApproveOrCounter as isClassifiedNegotiateSprintContractApproveOrCounter,
   isOntologyContextQueryMutation as isClassifiedOntologyContextQueryMutation,
   isReadOnlyBashCommand,
 } from "../lib/hooks/tool-classifier";
@@ -209,14 +208,6 @@ function protectedMutationClassForPromptGate(
  */
 function isOntologyContextQueryMutation(payload: HookPayload): boolean {
   return isClassifiedOntologyContextQueryMutation(payload.tool_input);
-}
-
-/**
- * For selective-blocking mode: negotiate_sprint_contract is only gated when
- * action is "approve" or "counter" (not "propose" or "negotiate" which are read-path).
- */
-function isNegotiateSprintContractApproveOrCounter(payload: HookPayload): boolean {
-  return isClassifiedNegotiateSprintContractApproveOrCounter(payload.tool_input);
 }
 
 /**
@@ -975,7 +966,6 @@ export const __test__ = {
   scopedBlockingFileReason,
   isOntologyAffectingForSelectiveBlocking,
   isOntologyContextQueryMutation,
-  isNegotiateSprintContractApproveOrCounter,
   assessFDEEngineeringReadOnlySkip,
   evaluatePreMutationImpactGate,
 };

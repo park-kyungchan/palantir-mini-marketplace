@@ -199,11 +199,11 @@ const DOMAIN_AGENT: Record<RecipeDomain, { agent: string; model: AgentModel }> =
 
 const DOMAIN_MCP_TOOLS: Record<RecipeDomain, string[]> = {
   rule:              ["pm_rule_query", "pm_rule_audit", "emit_event"],
-  hook:              ["apply_edit_function", "commit_edits", "compute_edits_dry_run", "emit_event"],
-  primitive:         ["apply_edit_function", "commit_edits", "compute_edits_dry_run", "emit_event", "pm_rule_query"],
+  hook:              ["apply_edit_function", "commit_edits", "emit_event"],
+  primitive:         ["apply_edit_function", "commit_edits", "emit_event", "pm_rule_query"],
   research:          ["research_library_refresh", "emit_event", "pm_rule_query"],
-  "agent-definition":["apply_edit_function", "commit_edits", "compute_edits_dry_run", "emit_event"],
-  "mass-edit":       ["apply_edit_function", "commit_edits", "compute_edits_dry_run", "emit_event"],
+  "agent-definition":["apply_edit_function", "commit_edits", "emit_event"],
+  "mass-edit":       ["apply_edit_function", "commit_edits", "emit_event"],
 };
 
 const DOMAIN_SKILLS: Record<RecipeDomain, string[]> = {

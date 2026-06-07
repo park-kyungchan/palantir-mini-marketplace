@@ -14,9 +14,6 @@ const PLUGIN_ROOT = path.resolve(import.meta.dir, "../..");
 const AGENTS_DIR = path.join(PLUGIN_ROOT, "agents");
 
 const AGENT_FILES = [
-  "harness-planner.md",
-  "harness-generator.md",
-  "harness-evaluator.md",
   "ontology-steward.md",
 ];
 
@@ -30,10 +27,6 @@ const REQUIRED_CONTRACT_MENTIONS = [
 const EXPECTED_MUTATION_CAPABLE = [
   "agent-author",
   "docs-researcher",
-  "harness-analyzer",
-  "harness-evaluator",
-  "harness-generator",
-  "harness-planner",
   "hook-builder",
   "implementer",
   "lead-orchestrator",
@@ -81,8 +74,8 @@ describe("PR-G agent inventory", () => {
   const inventory = loadPluginAgentInventory(PLUGIN_ROOT);
 
   test("parses all 19 plugin agents", () => {
-    expect(inventory.length).toBe(19);
-    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(19);
+    expect(inventory.length).toBe(15);
+    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(15);
   });
 
   test("classifies mutation-capable plugin agents", () => {

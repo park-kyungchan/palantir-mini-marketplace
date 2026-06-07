@@ -333,63 +333,8 @@ describe("prompt-dtc-enforcement-gate: default-on effective policy", () => {
     expect(result.message).toContain("read-only or allowed");
   });
 
-  test("DTC turn path: negotiate_sprint_contract approve → gated in default selective-blocking", async () => {
-    const project = makeTmpProject();
-
-    const result = await promptDtcEnforcementGate(
-      makePayload(project, {
-        tool_name: "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract",
-        tool_input: { action: "approve" },
-      }),
-    );
-
-    expect(result.decision).toBe("block");
-    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-  });
-
-  test("DTC turn path: negotiate_sprint_contract propose → passes through in default selective-blocking", async () => {
-    const project = makeTmpProject();
-
-    const result = await promptDtcEnforcementGate(
-      makePayload(project, {
-        tool_name: "mcp__plugin_palantir-mini_palantir-mini__negotiate_sprint_contract",
-        tool_input: { action: "propose", theme: "test-sprint" },
-      }),
-    );
-
-    expect(result.decision).toBeUndefined();
-    expect(result.message).toContain("not ontology-affecting");
-  });
-
-  // ── Scope cross-check: read-only tools that should NOT be gated ───────────
-
-  test("scope cross-check: compute_edits_dry_run → not in ONTOLOGY_AFFECTING_TOOLS (read-only dry-run)", async () => {
-    const project = makeTmpProject();
-    // compute_edits_dry_run is explicitly NOT in ONTOLOGY_AFFECTING_TOOLS — it does not commit
-
-    const result = await promptDtcEnforcementGate(
-      makePayload(project, {
-        tool_name: "mcp__plugin_palantir-mini_palantir-mini__compute_edits_dry_run",
-      }),
-    );
-
-    // Should pass through as non-ontology-affecting
-    expect(result.decision).toBeUndefined();
-    expect(result.message).toContain("not ontology-affecting");
-  });
-
-  test("scope cross-check: grade_outcome_with_rubric → not in ONTOLOGY_AFFECTING_TOOLS (read-only grading)", async () => {
-    const project = makeTmpProject();
-
-    const result = await promptDtcEnforcementGate(
-      makePayload(project, {
-        tool_name: "mcp__plugin_palantir-mini_palantir-mini__grade_outcome_with_rubric",
-      }),
-    );
-
-    expect(result.decision).toBeUndefined();
-    expect(result.message).toContain("not ontology-affecting");
-  });
+  // negotiate_sprint_contract, compute_edits_dry_run, grade_outcome_with_rubric tests removed
+  // in Wave 2G rationalization — these tools were cut in Wave 2D/2E and are no longer registered.
 
   // ── SIC approval expiry edge case ─────────────────────────────────────────
 

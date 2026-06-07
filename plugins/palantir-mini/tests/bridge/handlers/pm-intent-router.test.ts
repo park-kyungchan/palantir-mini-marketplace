@@ -345,30 +345,6 @@ describe("T1 — trivial intent + single scope path", () => {
     expect(result.dispatchSpecies.length).toBeGreaterThan(0);
   });
 
-  test("trivial → costRationale is non-empty string", async () => {
-    const project = makeTmpProject();
-    const result = await routeIntent({
-      project,
-      intent: "Trivial doc edit",
-      scopePaths: ["docs/intro.md"],
-      complexityHint: "trivial",
-    });
-
-    expect(typeof result.costRationale).toBe("string");
-    expect(result.costRationale.length).toBeGreaterThan(10);
-  });
-
-  test("single path + no hint → sporadic path → anthropic-managed-agents preferred", async () => {
-    const project = makeTmpProject();
-    const result = await routeIntent({
-      project,
-      intent: "Run a quick health check on the ontology",
-      scopePaths: ["ontology/shared-core/index.ts"],
-    });
-
-    // 1 path with no hint → sporadic species preferred
-    expect(result.dispatchSpecies).toBe("anthropic-managed-agents");
-  });
 });
 
 // ─── T2: cross-cutting + 5 paths → delegate + full sprint ─────────────────────
@@ -424,17 +400,6 @@ describe("T2 — cross-cutting intent + multi-path → delegate + full sprint", 
     expect(flatRateVendors).toContain(result.dispatchSpecies);
   });
 
-  test("cross-cutting → costRationale mentions flat-rate or bulk", async () => {
-    const project = makeTmpProject();
-    const result = await routeIntent({
-      project,
-      intent: "Cross-cutting refactor of all hooks",
-      scopePaths: ["hooks/a.ts", "hooks/b.ts", "hooks/c.ts", "hooks/d.ts", "hooks/e.ts"],
-      complexityHint: "cross-cutting",
-    });
-
-    expect(result.costRationale).toMatch(/flat-rate|flat-subscription|bulk|3rd pricing/i);
-  });
 
   test("5 paths no hint → still returns full recipe with all required fields", async () => {
     const project = makeTmpProject();
@@ -446,7 +411,6 @@ describe("T2 — cross-cutting intent + multi-path → delegate + full sprint", 
 
     expect(typeof result.decision).toBe("string");
     expect(typeof result.dispatchSpecies).toBe("string");
-    expect(typeof result.costRationale).toBe("string");
     expect(Array.isArray(result.prefetchSucceeded)).toBe(true);
     expect(result.prefetchSucceeded.length).toBe(3);
   });
@@ -523,23 +487,8 @@ describe("T4 — graceful degradation when prefetch fails", () => {
 
     expect(typeof result.decision).toBe("string");
     expect(typeof result.dispatchSpecies).toBe("string");
-    expect(typeof result.costRationale).toBe("string");
   });
 
-  test("harnessSpeciesPreference overrides cost selection", async () => {
-    const project = makeTmpProject();
-    const result = await routeIntent({
-      project,
-      intent: "Cross-cutting mass edit",
-      scopePaths: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts"],
-      complexityHint: "cross-cutting",
-      harnessSpeciesPreference: "local-ollama",
-    });
-
-    expect(result.dispatchSpecies).toBe("local-ollama");
-    expect(result.costRationale).toMatch(/local-ollama/);
-    expect(result.costRationale).toMatch(/Caller-preferred/i);
-  });
 
   test("missing intent throws descriptive error", async () => {
     const project = makeTmpProject();
@@ -1300,7 +1249,6 @@ describe("T-PR3.4 — ontology_context_query canonical context-load path", () =>
     // Core routing contract: always returns valid result (fallback path)
     expect(typeof result.decision).toBe("string");
     expect(typeof result.dispatchSpecies).toBe("string");
-    expect(typeof result.costRationale).toBe("string");
     expect(Array.isArray(result.prefetchSucceeded)).toBe(true);
     expect(result.prefetchSucceeded.length).toBe(3);
     // prefetchedContext always an object

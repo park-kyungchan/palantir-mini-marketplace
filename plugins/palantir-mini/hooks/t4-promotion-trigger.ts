@@ -21,7 +21,28 @@ import * as path from "path";
 import { emit } from "../scripts/log";
 import { readEvents } from "../lib/event-log/read";
 import type { EventEnvelope } from "../lib/event-log/types";
-import applyRefinementTarget from "../bridge/handlers/apply-refinement-target";
+// apply-refinement-target handler was removed (Wave 2 lib rationalization).
+// Stub returns a no-op result so the hook can still log T4 event counts
+// without attempting to promote; Lead can invoke promotion manually.
+type ApplyRefinementTargetResult = {
+  applied: number;
+  skipped: number;
+  failed: number;
+  perTargetEvidence: Array<{
+    verdict: string;
+    refinementTarget: { kind: string; rid: string };
+    simulatorScore?: number;
+    eventCount: number;
+    reason?: string;
+  }>;
+};
+
+async function applyRefinementTarget(
+  _args: { project: string; events: unknown[]; dryRun: boolean; promotionTier: string },
+): Promise<ApplyRefinementTargetResult> {
+  // Handler removed — return zero-count result; manual Lead action required.
+  return { applied: 0, skipped: _args.events.length, failed: 0, perTargetEvidence: [] };
+}
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -104,7 +125,7 @@ async function main(): Promise<void> {
   );
 
   // Run apply_refinement_target with dryRun=true (ALWAYS — this hook never commits)
-  let result: Awaited<ReturnType<typeof applyRefinementTarget>>;
+  let result: ApplyRefinementTargetResult;
   try {
     result = await applyRefinementTarget({
       project,

@@ -223,22 +223,6 @@ const TOOLS: ToolSpec[] = [
     },
   },
   {
-    name: "compute_edits_dry_run",
-    description:
-      "Invoke an edit function and return its computed OntologyEdit[] + validation result " +
-      "WITHOUT committing. Tier-2 compute-only path. Emits edits_computed_dry_run event.",
-    inputSchema: {
-      type: "object",
-      required: ["project", "functionName"],
-      properties: {
-        project:      { type: "string", description: "Absolute project root." },
-        functionName: { type: "string", description: "Ontology function apiName." },
-        params:       { type: "object", description: "Function parameters; shape per ontology logic declaration." },
-      },
-      additionalProperties: false,
-    },
-  },
-  {
     name: "pm_ontology_engineering_workflow",
     description:
       "Public Ontology Engineering workflow state machine. Owns start -> turn -> draft_sic -> status " +
@@ -328,83 +312,6 @@ const TOOLS: ToolSpec[] = [
     },
     category: "harness-engineering" as const,
   },
-  {
-    name: "negotiate_sprint_contract",
-    description:
-      "File-based Generator↔Evaluator SprintContract negotiation. Append a round {role, action, contract?, rationale?} " +
-      "to sprint-<NNN>/contract-negotiation.md. Both sides must post APPROVED to transition status from negotiating → bound. " +
-      "Aborts after 15 rounds without agreement. Emits sprint_contract_negotiated per round + sprint_contract_bound on approval. " +
-      "v3.13.0+ stamps `projectSlug` into the bound event payload (crystalline-resilient-narwhal P-EXTRA — cross-project disambiguation).",
-    inputSchema: {
-      type: "object",
-      required: ["sprintNumber", "role", "action"],
-      properties: {
-        projectPath:   { type: "string", description: "Absolute project path (defaults to cwd)." },
-        sprintNumber:  { type: "number", description: "1-based sprint number." },
-        role:          { type: "string", enum: ["generator", "evaluator", "orchestrator"], description: "Which role is calling." },
-        action:        { type: "string", enum: ["propose", "counter", "approve", "read"], description: "What the caller is doing this round." },
-        contract:      { type: "object", description: "SprintContractDeclaration for propose/counter." },
-        rationale:     { type: "string", description: "Free-text rationale appended to the log." },
-        projectSlug:   {
-          type: "string",
-          description:
-            "v3.13.0+ optional project slug override (crystalline-resilient-narwhal P-EXTRA). " +
-            "When omitted, derived from `projectPath` via deriveProjectSlug() (package.json#name basename, scope stripped, sanitized). " +
-            "Plumbed into sprint_contract_bound event payload + stamped onto the contract.json on disk.",
-        },
-      },
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "grade_outcome_with_rubric",
-    description:
-      "AIP Evals 5-evaluator dispatcher. Given an artifact + GradingRubric (ordered Set<GradingCriterion>), dispatches each " +
-      "criterion to code/rule/model/human/hybrid grader and aggregates weighted score. Code criteria run validationExpression, " +
-      "rule criteria regex/JSONSchema inline, model/human criteria return markers for agent dispatch. Emits grading_completed event. " +
-      "v2.18.0: also emits evaluator_strictness_probe per criterion for W2 strictness audit.",
-    inputSchema: {
-      type: "object",
-      required: ["artifactPath", "rubric"],
-      properties: {
-        projectPath:   { type: "string", description: "Absolute project path." },
-        artifactPath:  { type: "string", description: "File or directory being graded (relative to project OK)." },
-        rubric:        { type: "object", description: "GradingRubric JSON: { rubricId, criteria: [GradingCriterionLite, ...] }." },
-        evidenceDir:   { type: "string", description: "Optional Playwright or scenario evidence bundle path." },
-        specPath:      { type: "string", description: "Optional spec path for model graders to ground judgment." },
-        loopId:        { type: "string", description: "FeedbackLoopRid cross-reference." },
-        sprintNumber:  { type: "number", description: "Sprint context." },
-        iteration:     { type: "number", description: "Iteration context." },
-      },
-      additionalProperties: false,
-    },
-  },
-  // ─── v3.8.1 W2.1a P1 — Separate-context model-domain grader ───
-  {
-    name: "pm_grader_dispatch",
-    description:
-      "v3.8.1 W2.1a (P1): single-criterion model-domain grader. Delegates to gradeModel(), which gates model execution by host runtime; " +
-      "Claude hosts may use a fresh Claude CLI adapter while non-Claude hosts return needs_human_review until a native grader exists. " +
-      "Eliminates self-grading bias per Prithvi 2026-03-24 (rule 16 v3.1.0 §Roles). " +
-      "Optional selfAssessmentPath augments scoringPrompt with Generator's transparency-only self-claim; grader cites " +
-      "divergence as `[selfAssessmentDivergence:aligned|generator-overconfident|generator-underconfident|uncomparable]`. " +
-      "Used by grade-outcome-with-rubric for domain=\"model\" criteria + standalone for Lead-direct inline grading.",
-    inputSchema: {
-      type: "object",
-      required: ["project", "criterion", "artifactPath"],
-      properties: {
-        project:             { type: "string", description: "Absolute project path (events.jsonl scope)." },
-        criterion:           { type: "object", description: "GradingCriterionLite — must have rubricDomain=\"model\" + scoringPrompt." },
-        artifactPath:        { type: "string", description: "File or directory being graded (relative to project OK)." },
-        specPath:            { type: "string", description: "Optional spec.md path for grader context." },
-        evidenceDir:         { type: "string", description: "Optional evidence dir (Playwright snapshots / console logs)." },
-        selfAssessmentPath:  { type: "string", description: "Optional Generator self-assessment-NNN.md path (rule 16 v3.1.0 §Roles)." },
-        sprintNumber:        { type: "number", description: "Optional sprint context for replay and audit evidence." },
-        iteration:           { type: "number", description: "Optional iteration context for replay and audit evidence." },
-      },
-      additionalProperties: false,
-    },
-  },
   // ─── C. Lead Routing — NEW (5) — sprint-063 W3.A/W3.B/W4.A/W4.B + Lead Intent gate
   {
     name: "pm_semantic_intent_gate",
@@ -448,7 +355,7 @@ const TOOLS: ToolSpec[] = [
     description:
       "Sprint-063 W3.A — full intent-router. Subsumes delegate_or_direct + dispatch_route_decide + " +
       "dispatch_to_runtime. Enforces the Lead Intent -> Digital Twin contract gate before complex " +
-      "ontology-affecting dispatch. Returns enriched recipe + cost-aware species pick + prefetched " +
+      "ontology-affecting dispatch. Returns enriched recipe + prefetched " +
       "context using the current public impact, lineage, and health surfaces.",
     inputSchema: {
       type: "object",
@@ -458,7 +365,6 @@ const TOOLS: ToolSpec[] = [
         intent:         { type: "string", description: "1-2 sentence task description." },
         scopePaths:     { type: "array",  items: { type: "string" } },
         complexityHint: { type: "string", enum: ["trivial", "single-file", "multi-file", "cross-cutting"] },
-        harnessSpeciesPreference: { type: "string" },
         semanticIntentContractRef: { type: "string" },
         digitalTwinChangeContractRef: { type: "string" },
         semanticIntentContract:   { type: "object" },
@@ -794,15 +700,11 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
     "impact_query",
     "pre_edit_impact",
     "apply_edit_function",
-    "compute_edits_dry_run",
     "pm_ontology_engineering_workflow",
     "commit_edits",
   ],
   "harness-engineering": [
     "grade_semantic_intent_contract",
-    "negotiate_sprint_contract",
-    "grade_outcome_with_rubric",
-    "pm_grader_dispatch",
   ],
   "lead-routing": [
     "pm_semantic_intent_gate",
@@ -832,7 +734,7 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
 };
 
 const HANDLER_MODULES: Record<string, string> = {
-  // A. Ontology Engineering (8)
+  // A. Ontology Engineering (9)
   emit_event:                          "./handlers/emit-event",
   get_ontology:                        "./handlers/get-ontology",
   ontology_schema_get:                 "./handlers/ontology-schema-get",
@@ -840,14 +742,10 @@ const HANDLER_MODULES: Record<string, string> = {
   pre_edit_impact:                     "./handlers/pre-edit-impact",
   pm_pre_mutation_governance:           "./handlers/pm-pre-mutation-governance",
   apply_edit_function:                 "./handlers/apply-edit-function",
-  compute_edits_dry_run:               "./handlers/compute_edits_dry_run",
   pm_ontology_engineering_workflow:     "./handlers/pm-ontology-engineering-workflow",
   commit_edits:                        "./handlers/commit-edits",
-  // B. Harness Engineering (4)
+  // B. Harness Engineering (1)
   grade_semantic_intent_contract:      "./handlers/grade-semantic-intent-contract",
-  negotiate_sprint_contract:           "./handlers/negotiate-sprint-contract",
-  grade_outcome_with_rubric:           "./handlers/grade-outcome-with-rubric",
-  pm_grader_dispatch:                  "./handlers/pm-grader-dispatch",
   // C. Lead Routing (6)
   pm_semantic_intent_gate:              "./handlers/pm-semantic-intent-gate",
   pm_intent_router:                    "./handlers/pm-intent-router",

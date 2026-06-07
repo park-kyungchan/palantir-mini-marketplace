@@ -43,11 +43,6 @@ const PLUGIN_AGENTS: ReadonlyArray<{
   maxTurns: number;
   deprecatedBy?: string;
 }> = [
-  // 4 harness agents
-  { slug: "harness-planner",       description: "Product spec author for the 3-agent harness — expands brief to spec + rubric", model: "opus",   maxTurns: 30 },
-  { slug: "harness-generator",     description: "Implementer in the 3-agent harness — builds features per spec under bound SprintContract", model: "sonnet", maxTurns: 100 },
-  { slug: "harness-evaluator",     description: "QA Engineer + Design Critic — optional 3-role variant of the harness", model: "opus",   maxTurns: 50 },
-  { slug: "harness-analyzer",      description: "Failure synthesis specialist for harness loop", model: "opus",   maxTurns: 30 },
   // 9 migrated copies (priority 5 — dormant; user-scope still wins)
   { slug: "researcher",            description: "Deep research specialist for multi-angle information gathering", model: "opus",   maxTurns: 30 },
   { slug: "docs-researcher",       description: "Opus-powered research + synthesis + write specialist", model: "opus",   maxTurns: 40 },

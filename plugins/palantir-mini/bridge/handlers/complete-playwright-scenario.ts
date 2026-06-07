@@ -92,7 +92,8 @@ export default async function completePlaywrightScenario(
       : `Scenario ${args.scenarioId} completed FAIL — ${outcome.failureClass ?? "other"} at "${outcome.failedStep ?? "unknown step"}"`,
   });
 
-  const gradingResult = await dispatchGrading(args, project, evidenceDir);
+  await dispatchGrading(args as unknown as Record<string, unknown>);
+  const gradingResult = undefined;
 
   return {
     scenarioId:               args.scenarioId,

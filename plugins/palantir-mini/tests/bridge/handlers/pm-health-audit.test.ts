@@ -64,8 +64,6 @@ describe("T1 — single-mode dispatch delegates to correct handler", () => {
 
   const modesExpectingProject = [
     "handler-usage",
-    "harness-base",
-    "harness-outcome",
     "outcome-pair",
     "memory-layer",
     "events-5d",
@@ -79,9 +77,9 @@ describe("T1 — single-mode dispatch delegates to correct handler", () => {
       const project = makeTmpProject();
       const pmHealthAudit = (await import("../../../bridge/handlers/pm-health-audit")).default;
 
-      // Build args: harness-outcome + strictness require sprintNumber; others just need project.
+      // Build args: strictness requires sprintNumber; others just need project.
       const args: Record<string, unknown> = { mode, project };
-      if (mode === "harness-outcome" || mode === "strictness") {
+      if (mode === "strictness") {
         args.sprintNumber = 1;
       }
 
@@ -107,17 +105,6 @@ describe("T1 — single-mode dispatch delegates to correct handler", () => {
       }
     });
   }
-
-  test('mode="harness-component" delegates to pm_harness_component_audit', async () => {
-    const project = makeTmpProject();
-    const pmHealthAudit = (await import("../../../bridge/handlers/pm-health-audit")).default;
-    // harness-component requires componentId
-    const result = await pmHealthAudit({ mode: "harness-component", project, componentId: "test-component" });
-    expect(result).not.toBeNull();
-    const r = result as Record<string, unknown>;
-    // Result has componentId or verdict (from harness-component handler)
-    expect(r).not.toHaveProperty("perModeDurationsMs");
-  });
 
   test('mode="research-citation" delegates to pm_research_citation_validate', async () => {
     const project = makeTmpProject();
@@ -181,7 +168,6 @@ describe("T2 — invalid mode throws clear error", () => {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       expect(msg).toMatch(/handler-usage/);
-      expect(msg).toMatch(/harness-base/);
       expect(msg).toMatch(/events-5d/);
       expect(msg).toMatch(/strictness/);
       expect(msg).toMatch(/doc-drift/);
@@ -213,7 +199,7 @@ describe("T3 — mode=all aggregates results from all sub-audits", () => {
     expect(result).toHaveProperty("perModeDurationsMs");
 
     const allModes = [
-      "handler-usage", "harness-base", "harness-component", "harness-outcome",
+      "handler-usage",
       "outcome-pair", "memory-layer", "research-citation", "events-5d", "strictness",
       "doc-drift", "ontology-runtime",
     ];
@@ -242,13 +228,12 @@ describe("T4 — mode=all partial failure records errors without aborting", () =
 
     const pmHealthAudit = (await import("../../../bridge/handlers/pm-health-audit")).default;
 
-    // harness-outcome requires sprintNumber=number; passing a string forces a handler error.
-    // We omit sprintNumber so harness-outcome errors. Other modes that don't need it proceed.
+    // strictness requires sprintNumber. We omit it so strictness may error. Other modes proceed.
     const result = await pmHealthAudit({
       mode:        "all",
       project,
       componentId: "test-cmp",
-      // No sprintNumber → harness-outcome + strictness may error
+      // No sprintNumber → strictness may error
     }) as { results: Record<string, unknown>; errors: Record<string, string>; perModeDurationsMs: Record<string, number> };
 
     // Confirm we got back the aggregate shape (not an exception thrown by the facade)
@@ -261,7 +246,7 @@ describe("T4 — mode=all partial failure records errors without aborting", () =
 
     // perModeDurationsMs present for all modes
     const allModes = [
-      "handler-usage", "harness-base", "harness-component", "harness-outcome",
+      "handler-usage",
       "outcome-pair", "memory-layer", "research-citation", "events-5d", "strictness",
       "doc-drift", "ontology-runtime",
     ];
@@ -683,7 +668,7 @@ describe("T5 — mode=all emits validation_phase_completed aggregate envelope", 
 
     expect(aggregateEnvelope).toBeDefined();
     const p = aggregateEnvelope!.payload as Record<string, unknown>;
-    expect(p.modesRun).toBe(11);
+    expect(p.modesRun).toBe(8);
     expect(typeof p.totalDurationMs).toBe("number");
     expect(p.perModeDurationsMs).toBeDefined();
   });

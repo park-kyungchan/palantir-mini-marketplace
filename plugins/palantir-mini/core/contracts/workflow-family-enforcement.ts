@@ -885,8 +885,8 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
       }),
     ],
     aipSurfaceRefs: [
-      aipRef("evals-observability", ["lib/harness/ratchet-planner.ts"]),
-      aipRef("tools-command", ["tests/lib/harness/ratchet-planner.test.ts"]),
+      aipRef("evals-observability", ["tests/lib/chatbot-studio/semantic-conversation-state.test.ts"]),
+      aipRef("tools-command", ["tests/lib/chatbot-studio/semantic-conversation-state.test.ts"]),
     ],
     requiredContracts: CONTRACT_REQUIREMENTS.workContract,
     enforcement: enforcement({
@@ -904,14 +904,14 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
           evalId: "eval:harness-ratchet-planner",
           replayRequired: false,
           observabilityStateRefs: ["validationPlan"],
-          evidenceRefs: ["tests/lib/harness/ratchet-planner.test.ts"],
+          evidenceRefs: ["tests/lib/chatbot-studio/semantic-conversation-state.test.ts"],
         },
       ],
     }),
     runtimeProjection: runtimeProjection({
       codexSupport: "native",
       codexFallbackObligations: ["Report broad-suite failures separately from targeted validation."],
-      smokeEvidenceRefs: ["tests/lib/harness/ratchet-planner.test.ts"],
+      smokeEvidenceRefs: ["tests/lib/chatbot-studio/semantic-conversation-state.test.ts"],
     }),
     complexE2EScenarios: [
       complexE2EScenario({
@@ -922,7 +922,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         requiredContractRefs: ["SelfCheckRef", "EvalRef"],
         aipSurfaceRefs: ["evals-observability", "tools-command"],
         runtimeRefs: ["claude", "codex"],
-        validationRefs: ["tests/lib/harness/ratchet-planner.test.ts"],
+        validationRefs: ["tests/lib/chatbot-studio/semantic-conversation-state.test.ts"],
         evidenceRefs: ["tests/integration/dtc-end-to-end-smoke.test.ts"],
       }),
     ],

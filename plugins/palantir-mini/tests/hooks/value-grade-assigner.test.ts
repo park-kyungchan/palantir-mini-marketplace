@@ -251,7 +251,7 @@ describe("valueGradeAssigner", () => {
   test("axis E inferred from byWhom.agentName when memoryLayers missing", async () => {
     // Envelope with all 5 dims but NO withWhat.memoryLayers
     const envelope = baseEnvelope({
-      byWhom: { identity: "claude-code", agentName: "harness-generator" },
+      byWhom: { identity: "claude-code", agentName: "implementer" },
       // Deliberately omit withWhat — tests that inferMemoryLayers kicks in
     });
     const result = await valueGradeAssigner({
@@ -402,7 +402,7 @@ describe("valueGradeAssigner", () => {
   test("propagationDepth defaults to 4 (contracts layer) for claude-code with no refinementTarget", async () => {
     // claude-code agent with no refinementTarget.kind → safe default of 4 (contracts layer).
     const envelope = baseEnvelope({
-      byWhom: { identity: "claude-code", agentName: "harness-generator" },
+      byWhom: { identity: "claude-code", agentName: "implementer" },
       withWhat: { memoryLayers: ["procedural"] as const },
     });
     const result = await valueGradeAssigner({
@@ -474,7 +474,7 @@ describe("valueGradeAssigner", () => {
     process.env.PALANTIR_MINI_VALUE_GRADE_AXIS_RELAX = "1";
     const envelope = baseEnvelope({
       // No withWhat.memoryLayers — relax mode infers ["procedural"] and suppresses gap advisory
-      byWhom: { identity: "claude-code", agentName: "harness-generator" },
+      byWhom: { identity: "claude-code", agentName: "implementer" },
     });
     const result = await valueGradeAssigner({
       tool_name: EMIT_EVENT_TOOL,
