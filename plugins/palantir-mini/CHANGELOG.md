@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.88.0] - 2026-06-07 — Harness redesign W4: Claude adapter for the understand-phase
+
+### Added
+- `skills/pm-understand` — the thin Claude-runtime adapter for the 9-axis understand-phase heart. Renders the canonical engine (`nine-axis-sic-fill-sequence.ts` + `nine-axis-understand-session.ts`) as a non-developer, bilingual (KO/EN), turn-by-turn elicitation that produces a reviewable 9-axis SemanticIntentContract. Cites the engine as source-of-truth (no re-implementation). (palantir-mini Ground-Up Harness Redesign, Wave 4 — Claude adapter; Codex adapter deferred.)
+
+---
+
 ## [6.87.0] - 2026-06-07 — Harness redesign W2b: understand-session (heart elicitation surface)
 
 ### Added
