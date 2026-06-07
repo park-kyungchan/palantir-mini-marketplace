@@ -2,7 +2,7 @@
 name: pm-walk-analyze
 category: research
 surfaceStatus: public-core
-description: "Mode B (Project Analysis): Walk real production ontology code (palantir-math,..."
+description: "Mode B (Project Analysis): Walk real production ontology code for any registered project,..."
 effort: medium
 disable-model-invocation: false
 ---
@@ -18,21 +18,23 @@ and optionally compares across projects or identifies improvements.
 
 ## Registered Projects
 
+Projects are discovered at runtime from `.palantir-mini/project-scope.json` files under registered roots. The table below shows example entries — actual projects vary by workspace.
+
 | Project | Files | Domain | Twin Maturity |
 |---------|-------|--------|---------------|
-| `~/projects/palantir-math/` | 7: data, logic, action, security, frontend, runtime, schema | Math problem solving + lecture + LEARN | Stage 5 |
-| `~/mathcrew/` | 8: data, logic, action, security, frontend, frontend-semantic-core, frontend-adapter, schema | Adaptive elementary math + 3D + LEARN | Stage 4 |
+| `~/projects/your-project/` | 7: data, logic, action, security, frontend, runtime, schema | Example domain + LEARN | Stage 5 |
+| `~/your-app/` | 8: data, logic, action, security, frontend, frontend-semantic-core, frontend-adapter, schema | Example app + 3D + LEARN | Stage 4 |
 
 ## Entry: Project Overview
 
-When user says `/palantir-walk-analyze palantir-math` or `/palantir-walk-analyze mathcrew`:
+When user says `/palantir-walk-analyze your-project` or `/palantir-walk-analyze your-app`:
 
 1. Read the project's `ontology/schema.ts` to understand scope
 2. Present project summary: entities, links, mutations, Twin Maturity
 3. Offer sub-mode selection:
 
 ```
-palantir-math — 프로젝트 개요
+your-project — 프로젝트 개요
 
 Backend:  DATA(~10 entities) LOGIC(links+derived+functions) ACTION(mutations) SEC LEARN ✅
 Frontend: 5 views, 2 agent surfaces, 1 scenario flow
@@ -103,21 +105,21 @@ runtime.ts) showing each construct sequentially.
 
 ## Sub-mode B3: Cross-Project Compare
 
-Compare the same concept in palantir-math vs mathcrew.
+Compare the same concept across two registered projects (e.g. `your-project` vs `your-app`).
 
 ```
 ## Compare: [concept] across projects
 
-### palantir-math
+### your-project
 [code block]
 [design reasoning]
 
-### mathcrew
+### your-app
 [code block]
 [design reasoning]
 
 ### Why Different
-| Aspect | palantir-math | mathcrew |
+| Aspect | your-project | your-app |
 |--------|--------------|---------|
 | [aspect] | [impl] | [impl] |
 
@@ -204,7 +206,7 @@ Read `references/flow-walk-guide.md` for connection taxonomy and axiom bridge.
 ```
 /palantir-walk-analyze flow MathProblem        → start from entity
 /palantir-walk-analyze flow solveProblem       → start from mutation
-/palantir-walk-analyze palantir-math flow X    → explicit project
+/palantir-walk-analyze your-project flow X    → explicit project
 Option 6 from project overview menu
 ```
 

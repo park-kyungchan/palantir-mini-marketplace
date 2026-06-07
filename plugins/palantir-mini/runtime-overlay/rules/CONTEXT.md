@@ -2,11 +2,11 @@
 ruleId: 0
 slug: context-meta
 scope: global
-version: 3.2.0
+version: 3.3.0
 tier: T2
 invariant: "Canonical onboarding context for the rules/ system. AI agents read this first to grasp how all other rules work, how to author new ones, and why the system is sized the way it is."
 supersededBy: null
-crossRefs: [01, 02, 07, 08, 10, 12, 16]
+crossRefs: [01, 02, 07, 08, 10, 25, 26, 27]
 hookCitations: [session-start]
 mandatoryLoad: true
 audience: [claude-lead, claude-implementer, claude-researcher, palantir-mini-agents, codex-runtime, external-ai]
@@ -219,24 +219,25 @@ This file is **Claude-native only**. Other native runtimes on this machine (Code
 
 | Runtime | Global overlay | Hooks | Memory | Skills |
 |---------|----------------|-------|--------|--------|
-| **Claude** | `~/.claude/CLAUDE.md` + `~/.claude/rules/**` | palantir-mini hook intent from `plugins/palantir-mini/hooks/**` via the Claude compatibility install | `~/.claude/projects/**/memory/**` | plugin source from `plugins/palantir-mini` + `~/.claude/skills/**` |
-| **Codex** | `~/.codex/AGENTS.md` | `~/.codex/hooks/**` (3) | `~/.codex/{memories,sessions,history.jsonl,state_5.sqlite}` | `~/.codex/skills/**` + shared `~/.agents/skills/**` |
+| **Claude** | `~/.claude/CLAUDE.md` + `~/.claude/rules/**` | palantir-mini hook intent from `palantir-mini@palantir-mini-marketplace` via the Claude plugin install | `~/.claude/projects/**/memory/**` | `palantir-mini@palantir-mini-marketplace` + `~/.claude/skills/**` |
+| **Codex** | `~/.codex/AGENTS.md` + `~/AGENTS.md` | plugin `hooks/codex-hooks.json` plus `~/.codex/hooks.json` fallback -> palantir-mini adapter; see plugin docs for gaps | `~/.codex/{memories,sessions,history.jsonl}` | `palantir-mini@palantir-mini-marketplace` + shared `~/.agents/skills/**` |
+| **Gemini** | `~/.gemini/GEMINI.md` | private `palantir-mini` Gemini extension when installed | runtime-native | `~/.gemini/extensions/palantir-mini/` + shared `~/.agents/skills/**` |
 | **Universal** | `~/AGENTS.md` (thin delegation only) | — | — | `~/.agents/skills/**` (shared) |
 
 **Shared spine (single source of truth; both runtimes consume)**:
 
-- **palantir-mini plugin** — canonical source at `plugins/palantir-mini/`. Codex `config.toml` points its MCP server to this source and launches the same `bridge/mcp-server.ts`. `~/.claude/plugins/palantir-mini/` is a temporary Claude compatibility/install target only. DO NOT fork the plugin install.
+- **palantir-mini plugin** — canonical source at private GitHub marketplace `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. Claude and Codex consume `palantir-mini@palantir-mini-marketplace`; Gemini consumes `park-kyungchan/palantir-mini-gemini-extension`. Runtime plugin caches are installed payloads, not semantic forks.
 - **`~/ontology/shared-core/`** — import surface for both runtimes.
 - **`~/.claude/schemas/**`** — ontology primitives; `pm-codegen` is the sole codegen authority.
 - **`~/.claude/research/**`** — evidence library; read-shared.
 - **`.palantir-mini/session/events.jsonl`** (per-project) — append-only substrate; BOTH runtimes append, `byWhom.agent` self-attributes entries.
 
-**Claude-side palantir-mini-centric discipline**: When Claude operates, it does so through palantir-mini MCP handlers + hooks as the primary substrate, not ad-hoc tool use. Numbered rules + hook-inlined excerpts (§8) enforce this. Codex operates through a lighter subset (3 hooks + MCP client); Claude holds the fullest substrate and is the canonical enforcement side.
+**Claude-side palantir-mini-centric discipline**: When Claude operates, it does so through palantir-mini MCP handlers + hooks as the primary substrate, not ad-hoc tool use. Numbered rules + hook-inlined excerpts (§8) enforce this. Codex operates through plugin-provided MCP plus the Codex hook entrypoint and adapter; `TaskCreated`, `TaskCompleted`, and `TeammateIdle` remain native gaps, while `SubagentStart` and `SubagentStop` are adapter-wired but payload-sensitive until smoke evidence proves full parity.
 
 **Cross-runtime edit rule of thumb**:
 - `~/.claude/**` (excluding plugin) → Claude-only.
-- `plugins/palantir-mini/**` → BOTH affected (coordinate runtime wrappers if MCP surface changes).
-- `~/.claude/plugins/palantir-mini/**` → Claude compatibility/install target only; do not edit as semantic source.
+- private `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/**` → all runtimes affected (coordinate runtime wrappers if MCP surface changes).
+- runtime plugin caches under `~/.claude/plugins/cache/**`, `~/.codex/plugins/cache/**`, and `~/.gemini/extensions/palantir-mini/**` → installed payloads only; do not edit as semantic source.
 - `~/.codex/**` → Codex-only; Claude hooks must not depend.
 - `~/ontology/`, `~/.claude/schemas/`, `~/.claude/research/`, `~/AGENTS.md` → both runtimes; rule 08 schema versioning governs breaking changes.
 
@@ -244,7 +245,7 @@ This file is **Claude-native only**. Other native runtimes on this machine (Code
 
 ## §14 — First-time agent entry point
 
-If this is your first rule document this session: (1) Rules are enforced by hooks, not suggestions; (2) `CORE.md` has 1-line invariants for every rule; (3) For any detail, `pm_rule_query({ byId: <id> })`; (4) Edits under `plugins/palantir-mini/hooks/**` → rule 07 §file-ownership first; (5) Every event emission → 5-dim envelope (rule 10); (6) Every task → DELETE/ADD/KEEP/VERIFY + 1 owning file + ≤15K ctx (rule 12 §Task granularity); (7) Spawning teammates → lazy-spawn (rule 12) + no `model:` override (rule 12); (8) In doubt → `BROWSE.md` routes queries.
+If this is your first rule document this session: (1) Rules are enforced by hooks, not suggestions; (2) `CORE.md` has 1-line invariants for every rule; (3) For any detail, `pm_rule_query({ byId: <id> })`; (4) Edits under `plugins/palantir-mini/hooks/**` → rule 07 §file-ownership first; (5) Every event emission → 5-dim envelope (rule 10); (6) In doubt → `BROWSE.md` routes queries.
 
 ## §15 — Glossary
 
@@ -276,13 +277,6 @@ If this is your first rule document this session: (1) Rules are enforced by hook
 - Treating Managed Agents as a harness species (it's a meta-harness *containing* a pre-built species).
 - Conflating Agent Teams with a harness species (it's an extension of Claude Code CLI harness).
 
-**New rule slugs (v3.0.0)**:
-- **multi-plugin-precedence** (rule 19): plugin > user > repo scope resolution; exact-name collision at same scope fails loud.
-- **swarm-orchestration-mode** (rule 20): mode ladder Lead-direct < Quick Sprint < Full Sprint < Agent Teams < explicit species.
-- **project-agent-authority** (rule 21): plugin-scope agent wins name collision; project agent deprecation window.
-- **hook-citation-validation** (rule 22): every "rule NN" citation in hook source must be an active rule.
-- **project-rule-formalization** (rule 23): project-scope rules require standard frontmatter.
-- **lead-dispatch-router** (rule 24): Brain-of-Swarms canonical dispatch flowchart.
 
 **Propagation terms** (rule 01 v2.1.0 + rule 10 v2.1.0):
 - **propagation step**: one layer transition in the authority chain: `research | schema | shared-core | project-ontology | contracts | runtime`.
@@ -292,8 +286,8 @@ If this is your first rule document this session: (1) Rules are enforced by hook
 
 - Blueprints: `~/.claude/plans/2026-04-22-rules-redesign-blueprint.md` (PR #123 — initial 3-tier design); `~/.claude/plans/2026-04-28-harness-base-mode-blueprint.md` §12 (2026-04-29 destructive cleanup license + 6 rule retirements); `~/.claude/plans/glistening-hugging-reddy.md` §2 (Wave R execution proposal).
 - Rule primitive source: `~/.claude/schemas/ontology/primitives/rule.ts`.
-- MCP handlers: `plugins/palantir-mini/bridge/handlers/pm-rule-*.ts`.
-- Enforcement hooks: `plugins/palantir-mini/hooks/rule-audit.ts` (consolidated mode-dispatch).
+- MCP handlers: private palantir-mini plugin source `bridge/handlers/pm-rule-*.ts`.
+- Enforcement hooks: private palantir-mini plugin source `hooks/rule-audit.ts` (consolidated mode-dispatch).
 - Authority reference: `~/.claude/CLAUDE.md` §Authority Chain.
 
 ## §17 — Brain-of-Swarms layer model
@@ -319,7 +313,7 @@ palantir-mini is the Ontology-First Brain for multi-harness agent swarms (CLAUDE
 
 **4-vendor convergence (April 2026)**: Anthropic Managed Agents (April 8) + OpenAI Agents SDK (April 15) + Microsoft Foundry Agent Service + Google Gemini Enterprise Agent Platform (April 22) — within 16 days, 4 vendors publicly converged on "harness is the product." palantir-mini's positioning is *layer-above*: it dispatches *across* vendor harnesses (now 7 species per §15); it does NOT compete to be a harness itself. The economic pivot opens a 3rd pricing arbitrage — BYO-Claude-Code-CLI-via-Max-flat-rate — outside both the rented-runtime model (Anthropic/Google/Microsoft) and BYO-sandbox model (OpenAI). See `~/.claude/research/harness-engineering-2026/the-new-stack-4-vendor-harness-pricing-split-2026-04.md` for vendor-by-vendor pricing matrix.
 
-**Cross-refs**: rule 16 (sprint species governance), rule 19 (multi-plugin precedence within species), rule 20 (orchestration mode selection), rule 24 (dispatch flowchart).
+**Cross-refs**: rule 07 (plugin authority), rule 10 (events substrate), rule 27 (cross-runtime substrate).
 
 ## §18 — ForwardProp/BackwardProp audit substrate
 
@@ -335,12 +329,12 @@ W6 MCP handlers provide explicit audit trails for the propagation chain (rule 01
 - Run `propagation_audit_forward` before cross-layer schema promotions or ontology refactors.
 - Run `propagation_audit_backward` when runtime behavior diverges from ontology expectations.
 - `propagationDepth` field on event rows (rule 10 v2.1.0) feeds chain reconstruction in these handlers.
-- **Cross-refs**: rule 01 v2.1.0 §ForwardProp/BackwardProp Audit, rule 10 v2.1.0 §propagationDepth.
+- **Cross-refs**: rule 01 v2.1.0 §ForwardProp/BackwardProp Audit, rule 10 v2.2.0 §propagationDepth.
 
 ---
 
-**Author**: Lead opus[1m] | initial 2026-04-22 v1.0.0 (Track R companion to rules-redesign blueprint PR #123). Updated 2026-04-29 v2.0.0 (post-§12 consolidation: 13→7 numbered rules per harness-base-mode blueprint). Updated 2026-05-01 v3.0.0 (cosmic-hatching-pizza W4: +6 rules 19-24, §15 glossary expansion, §17 Brain-of-Swarms, §18 FwdProp/BwdProp audit substrate). Updated 2026-05-04 v3.1.0 (palantirkc sprint-001-quick: §19 Appendix moved here from CORE.md to satisfy T1 25-LOC ceiling). Updated 2026-05-06 v3.2.0 (sprint-047 W2.C: §15 species 5→7 + §17 4-vendor convergence paragraph). Updated 2026-05-09 v3.2.1 (sprint-060 W3 R6-F16: species 4/6/7 "Operationally inactive" marker in §15 + §17).
+**Author**: Lead opus[1m] | initial 2026-04-22 v1.0.0 (Track R companion to rules-redesign blueprint PR #123). Updated 2026-04-29 v2.0.0 (post-§12 consolidation: 13→7 numbered rules per harness-base-mode blueprint). Updated 2026-05-01 v3.0.0 (cosmic-hatching-pizza W4: +6 rules 19-24, §15 glossary expansion, §17 Brain-of-Swarms, §18 FwdProp/BwdProp audit substrate). Updated 2026-05-04 v3.1.0 (palantirkc sprint-001-quick: §19 Appendix moved here from CORE.md to satisfy T1 25-LOC ceiling). Updated 2026-05-06 v3.2.0 (sprint-047 W2.C: §15 species 5→7 + §17 4-vendor convergence paragraph). Updated 2026-05-09 v3.2.1 (sprint-060 W3 R6-F16: species 4/6/7 "Operationally inactive" marker in §15 + §17). Updated 2026-06-07 v3.3.0 (Wave 3 solo-dev rationalization: 17→8 active rules; retire 12,16,19,20,21,22,23,24,28; fold 22 into 08; update §14/§15/§17/§18/§19).
 
 ## §19 — Appendix: rule retirements + permanent gaps
 
-Retired 2026-04-29 (per harness-base-mode blueprint §12 license): 06+13+14+15 → 12; 11 → 08; 09 → 02. Permanent gaps: 03/04/05/17/18. Precedence at conflict: higher-numbered wins; CLAUDE.md outranks rules; schemas outrank on structure. (Moved from CORE.md 2026-05-04 — CORE.md trimmed from 27 LOC to 25 LOC to clear T1 ceiling.)
+Retired 2026-04-29 (per harness-base-mode blueprint §12 license): 06+13+14+15 → 12; 11 → 08; 09 → 02. Retired 2026-06-07 (solo-dev rationalization Wave 3): 12+16+19+20+21+23+24+28 → dropped; 22 folded into 08. Permanent gaps: 03/04/05/12/16/17/18/19/20/21/22/23/24/28. Precedence at conflict: higher-numbered wins; CLAUDE.md outranks rules; schemas outrank on structure.

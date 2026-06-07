@@ -68,7 +68,7 @@ Report to the user:
 
 - **File already exists**: skip + add to `filesSkipped`. Do NOT overwrite. Emit an advisory message naming the skipped file.
 - **Project root does not exist**: create it via `fs.mkdirSync(projectRoot, { recursive: true })` before calling the helper. Warn the user that a new project root was created.
-- **Education-domain project** (mathcrew, palantir-math): do NOT use this skill to write their `.palantir-mini/project-scope.json`. Those projects have explicit domain-specific scopes. If the user requests onboarding for an education project, advise them to use their project's own scope file instead.
+- **Project with custom scope** (e.g. a project that already has a domain-specific `.palantir-mini/project-scope.json`): do NOT use this skill to overwrite their scope. Those projects have explicit domain-specific scopes. If the user requests onboarding for such a project, advise them to use their project's own scope file instead.
 - **`writableRoot` override**: if the project's files live under a subdirectory (e.g. `packages/app`), pass that as `writableRoot`. The scaffold will record it in both `project-scope.json` and `ontology-index/00-bootstrap.json`.
 
 ## Boundaries

@@ -10,7 +10,7 @@
 // Authority: rule 02 (research-retrieval) v3.2.0 §Plans index drift detection
 //
 // STUB: full implementation by hook-builder agent. This stub satisfies:
-//   - hookCitations entry in rule 02 frontmatter (rule 22 citation-validate)
+//   - hookCitations entry in rule 02 frontmatter (rule 08 §Hook-citation citation-validate)
 //   - SessionStart event emission contract (rule 10 5-dim)
 //   - Advisory-only gate (no blocking; exit 0 always)
 

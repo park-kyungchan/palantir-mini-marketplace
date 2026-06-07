@@ -10,7 +10,7 @@
 // ALL inbox-*.json files under <cwd>/.palantir-mini/session/.
 // Eliminates 100% of defect #9 stale-replay incidents.
 //
-// See plan §Layer 3 hook #6, rule 12 §Inbox read-flag + TaskCompleted auto-clean,
+// See plan §Layer 3 hook #6, the former Lead-Protocol policy §Inbox read-flag + TaskCompleted auto-clean,
 // defect #9 in the 9-defect resolution table.
 
 import * as fs from "fs";

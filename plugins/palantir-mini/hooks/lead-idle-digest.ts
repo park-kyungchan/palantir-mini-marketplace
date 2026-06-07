@@ -12,7 +12,7 @@
 //   inbox message to Lead summarizing pending idles since last flush.
 //   The flush is best-effort: if writing fails, next call retries.
 //
-// See plan §Layer 3 hook #2, rule 12 §Idle cost management.
+// See plan §Layer 3 hook #2, the former Lead-Protocol policy §Idle cost management.
 
 import * as fs from "fs";
 import * as path from "path";

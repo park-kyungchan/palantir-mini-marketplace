@@ -12,8 +12,8 @@ Load this first before applying mode-specific logic.
          |
 ~/.claude/schemas/ontology/    (Meta-Level code — HOW)
          |
-~/projects/palantir-math/ontology/      (Production example 1 — WHAT)
-~/mathcrew/ontology/            (Production example 2 — WHAT)
+~/projects/your-project/ontology/      (Production example 1 — WHAT)
+~/your-app/ontology/            (Production example 2 — WHAT)
          |
 Mode A: user builds exercises   |  Mode B: user walks real code
 ```
@@ -57,12 +57,12 @@ Read the project's ontology files as needed for the selected sub-mode.
 /palantir-walk-build scene N          → Mode A: Scene N
 /palantir-walk-build 도서관            → Mode A: library domain
 /palantir-walk-build DH-DATA-01       → Block Walk (constant lookup)
-/palantir-walk-analyze palantir-math  → Mode B: project overview
-/palantir-walk-analyze mathcrew data  → Mode B: Entity Walk (data.ts)
-/palantir-walk-analyze mathcrew logic → Mode B: Domain Walk (logic.ts)
+/palantir-walk-analyze your-project  → Mode B: project overview
+/palantir-walk-analyze your-app data  → Mode B: Entity Walk (data.ts)
+/palantir-walk-analyze your-app logic → Mode B: Domain Walk (logic.ts)
 /palantir-walk-analyze compare Student → Mode B: Cross-Project Compare
 /palantir-walk-analyze chain TeachingScene → Mode B: Authority Chain Walk
-/palantir-walk-analyze improve mathcrew → Mode B: Improvement Scan
+/palantir-walk-analyze improve your-app → Mode B: Improvement Scan
 /palantir-walk-analyze flow MathProblem → Mode B: Flow Walk from construct
 ```
 
@@ -80,8 +80,8 @@ Read the project's ontology files as needed for the selected sub-mode.
 | Intermediate | `data/schema.ts` | DATA domain rules — most concrete |
 | Advanced | `semantics.ts` | Full semantic model — deepest layer |
 | **Mode B: Project Analysis** | | |
-| Entity Walk | `palantir-math data` | Walk entities one by one with design rationale |
-| Domain Walk | `mathcrew logic` | Walk an entire domain file |
+| Entity Walk | `your-project data` | Walk entities one by one with design rationale |
+| Domain Walk | `your-app logic` | Walk an entire domain file |
 | Cross-Project | `compare [entity]` | Same concept in two projects |
 | Authority Chain | `chain [entity]` | Research → schema → ontology → runtime |
 | Improvement | `improve [project]` | Find gaps, drift, missing LEARN |

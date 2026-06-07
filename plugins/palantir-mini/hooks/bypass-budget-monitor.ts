@@ -17,8 +17,8 @@
 //        with refinementTarget pointing to investigation need.
 //   6. Always returns decision: "continue" (Stop hook never blocks).
 //
-// Cross-ref: rule 12 v3.10.0 §MCP-First protocol
-//            rule 16 §Default-On Policy (harness bypass auditing)
+// Cross-ref: the former Lead-Protocol policy v3.10.0 §MCP-First protocol
+//            the former sprint-harness policy §Default-On Policy (harness bypass auditing)
 //            sprint-062 plan §Phase 4 W3-α
 
 // @domain: LOGIC

@@ -13,7 +13,7 @@
 // Authority: plan inherited-discovering-quill.md §4.A.W5
 //            rule 02 §Memory (MEMORY.md memory system; session cache block pattern)
 //            rule 10 §append-only invariant (events.jsonl only; MEMORY.md is external)
-//            rule 12 §Hook v2 conventions (timeout seconds; advisory async: true)
+//            the former Lead-Protocol policy §Hook v2 conventions (timeout seconds; advisory async: true)
 
 import { emit } from "../scripts/log";
 import { reflectMemoryToCache } from "../lib/runtime-overlay/memory-reflect";

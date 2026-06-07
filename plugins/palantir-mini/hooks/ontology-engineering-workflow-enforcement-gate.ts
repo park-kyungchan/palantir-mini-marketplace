@@ -5,7 +5,7 @@
 // 2. SIC/DTC authoring and routing for Ontology Engineering require prior FDE workflow provenance.
 // 3. Mutations to Ontology Engineering workflow surfaces require mutationAuthorized=true.
 //
-// Authority: rule 28 v1.0.0, rule 12 lead protocol, rule 16 work contract binding.
+// Authority: the former turn-fan-out policy v1.0.0, the former Lead-Protocol policy lead protocol, the former sprint-harness policy work contract binding.
 
 import * as fs from "node:fs";
 import * as path from "node:path";

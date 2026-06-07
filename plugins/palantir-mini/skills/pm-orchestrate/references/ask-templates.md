@@ -109,8 +109,8 @@ Use at the START of orchestration when the user's task is ambiguous.
 
 ## Guidelines for Writing Question Options
 
-1. **Use plain language** — "A feature that records lecture sessions in the DB"
-   not "startLecture mutation with Lecture entity persistence"
+1. **Use plain language** — "A feature that records user activity in the DB"
+   not "startActivity mutation with ActivityRecord entity persistence"
 
 2. **Max 4 options per question** — supports 2-4 options.
    If more items need decisions, split across multiple questions.

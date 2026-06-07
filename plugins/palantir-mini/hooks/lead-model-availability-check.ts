@@ -16,11 +16,11 @@
 //   6. If probe succeeds → write cache; no event emitted.
 //   7. Best-effort: missing CLI / network failure → silent skip; never block.
 //
-// Fallback chain (rule 12 v3.9.0 §3-tier fallback, authored by parallel W1.11):
+// Fallback chain (the former Lead-Protocol policy v3.9.0 §3-tier fallback, authored by parallel W1.11):
 //   opus[1m] → opus → sonnet[1m] → sonnet
 //
 // Authority:
-//   rule 12 (lead-protocol) — §Model policy + §3-tier fallback (v3.9.0)
+//   the former Lead-Protocol policy (lead-protocol) — §Model policy + §3-tier fallback (v3.9.0)
 //   rule 26 §R5 — validation_phase_completed.passed=false requires refinementTarget
 //   rule 26 §Axis E — memoryLayers procedural + semantic
 //   Architecture review: ~/.claude/plans/2026-05-07-palantir-mini-architecture-review.md §5.J.3 (M21)
@@ -47,7 +47,7 @@ const FAILURE_KEYWORDS: readonly string[] = [
 ];
 
 /**
- * Fallback chain per rule 12 v3.9.0 §3-tier fallback.
+ * Fallback chain per the former Lead-Protocol policy v3.9.0 §3-tier fallback.
  * Index 0 = primary Lead model; each subsequent entry is the next fallback tier.
  */
 const FALLBACK_CHAIN: readonly string[] = [
@@ -305,7 +305,7 @@ async function main(): Promise<void> {
         refinementTarget: {
           kind:            "event-type-add",
           filePathOrRid:   path.join(os.homedir(), ".claude", "settings.json"),
-          description:     `Lead model '${modelId}' probe failed — update settings.json to '${fallback ?? "sonnet"}' or set LEAD_MODEL_OVERRIDE. rule 12 §Model policy + §3-tier fallback.`,
+          description:     `Lead model '${modelId}' probe failed — update settings.json to '${fallback ?? "sonnet"}' or set LEAD_MODEL_OVERRIDE. the former Lead-Protocol policy §Model policy + §3-tier fallback.`,
           confidenceLevel: "high",
         },
       });
@@ -317,7 +317,7 @@ async function main(): Promise<void> {
       `palantir-mini: lead-model-availability-check WARNING`,
       `  Lead model '${modelId}' probe failed: ${probeResult.failureReason ?? "unavailable"}`,
       fallback !== null
-        ? `  Suggested fallback: '${fallback}' (rule 12 §3-tier fallback chain: ${FALLBACK_CHAIN.join(" → ")})`
+        ? `  Suggested fallback: '${fallback}' (the former Lead-Protocol policy §3-tier fallback chain: ${FALLBACK_CHAIN.join(" → ")})`
         : `  No further fallback available (already at end of chain).`,
       `  Update ~/.claude/settings.json or set LEAD_MODEL_OVERRIDE=<model> (emergency).`,
     ].join("\n");
@@ -334,7 +334,7 @@ async function main(): Promise<void> {
   }
 
   // 6. Probe succeeded — intentionally NO emit on success path.
-  // Emit only on failure or tier-fallback per rule 12 v3.9.0 §3-tier model fallback chain.
+  // Emit only on failure or tier-fallback per the former Lead-Protocol policy v3.9.0 §3-tier model fallback chain.
   // sprint-062 W0-α: success path silence is correct; this comment documents the intent
   // to distinguish it from "forgot to emit" (kind-1 description vs implementation drift fix).
   const result: HookResult = {

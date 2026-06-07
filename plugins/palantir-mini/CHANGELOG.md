@@ -9,6 +9,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ---
 
+## v6.84.0 (2026-06-07) — Wave 3-side plugin sync + skill genericization
+
+- Genericized 9 skill docs (project-name examples → project-agnostic placeholders).
+- Cleaned 24 hook `.ts` forward-citations to retired rules (12/16/19/20/21/22/23/24/28) — resolves pm_rule_audit (advisory 32→0). Rule 22 citations repointed to rule 08 §Hook-citation (folded).
+- Synced `runtime-overlay/rules/` snapshot to the leaned 8-rule overlay (rule-registry.ts regenerated; 8 cut-rule copies removed; kept rules + meta refreshed).
+- Updated 3 citation-assertion tests to match new phrasing.
+- Companion to home-repo Wave 3 (PR #590) overlay rewrite 17→8.
+
+---
+
 ## v6.83.0 (2026-06-07) — Wave 2 rationalization — machinery cut (~40%)
 
 ### Removed — Sprint GAN harness (CUT-C)

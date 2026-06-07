@@ -23,7 +23,7 @@
 //
 // NEVER blocks. Pass-through silently when heuristic does not match.
 //
-// Authority: sprint-063 W2.B; rule 12 v3.10.0 §MCP-First protocol;
+// Authority: sprint-063 W2.B; the former Lead-Protocol policy v3.10.0 §MCP-First protocol;
 //            rule 26 §Axis E (procedural + semantic).
 
 import { emit } from "../scripts/log";

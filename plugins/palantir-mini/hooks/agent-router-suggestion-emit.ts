@@ -9,8 +9,8 @@
 // This is an ADVISORY-ONLY hook — it never blocks routing.
 //
 // Authority:
-//   rule 12 v3.13.0 §Lead routing canonical (pm_intent_router = single dispatch entry)
-//   rule 12 §Pre-delegation analysis framework (router-suggested wins over static map)
+//   the former Lead-Protocol policy v3.13.0 §Lead routing canonical (pm_intent_router = single dispatch entry)
+//   the former Lead-Protocol policy §Pre-delegation analysis framework (router-suggested wins over static map)
 //   rule 26 §Axis E — procedural memory layer (hook implementation)
 
 import { emit } from "../scripts/log";
@@ -105,7 +105,7 @@ async function main(): Promise<void> {
   const divergenceReason =
     `Static recipe chose '${recipeAgent}' but capability router top-scored '${routerSuggestedAgent}' ` +
     `(score ${topSuggested.score}). This may indicate the static 6-domain map is stale ` +
-    `relative to the current agent capability registry (rule 12 §Pre-delegation analysis framework).`;
+    `relative to the current agent capability registry (the former Lead-Protocol policy §Pre-delegation analysis framework).`;
 
   // NOTE: "agent_routing_divergence_advised" is not in the EventEnvelope type union.
   // Emitting as validation_phase_completed with errorClass="agent-routing-divergence-advised"
@@ -125,7 +125,7 @@ async function main(): Promise<void> {
       reasoning:
         `Router scored a different agent (${routerSuggestedAgent}, score=${topSuggested.score}) ` +
         `than the static recipe map chose (${recipeAgent}). Advisory only — routing already completed. ` +
-        `Per rule 12 v3.13.0 §Lead routing canonical: router suggestion already won in the handler; ` +
+        `Per the former Lead-Protocol policy v3.13.0 §Lead routing canonical: router suggestion already won in the handler; ` +
         `this event records the divergence for BackPropagation refinement of the static map.`,
       memoryLayers: ["procedural"],
     });

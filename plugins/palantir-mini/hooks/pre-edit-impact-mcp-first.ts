@@ -4,7 +4,7 @@
 // palantir-mini v4.15.0 — pre-edit-impact-mcp-first hook (sprint-063 W2.B)
 // Fires on: PreToolUse(Edit|Write|MultiEdit) — BLOCKING by default (promoted from advisory sprint-062 W3)
 //
-// PURPOSE: MCP-First discipline enforcement (rule 12 v3.10.0 §MCP-First protocol).
+// PURPOSE: MCP-First discipline enforcement (the former Lead-Protocol policy v3.10.0 §MCP-First protocol).
 // Before editing a file in a tracked palantir-mini project, checks whether Lead
 // called impact_query / pre_edit_impact / get_ontology / pm-impact-quick
 // with matching RID/path evidence in the last 5 minutes.
@@ -46,7 +46,7 @@
 //   lead-direct-edit-watch → task-context-budget-enforcer → pre-edit-impact-mcp-first
 //   (if prior hooks deny, this blocking hook never fires — correct short-circuit behaviour).
 //
-// Cross-ref: rule 12 v3.10.0 §MCP-First protocol
+// Cross-ref: the former Lead-Protocol policy v3.10.0 §MCP-First protocol
 //            rule 26 §Axis B1 (outcome-paired; lead_mcp_first_compliance pairs open→close)
 //            sprint-062 plan §Phase 4 W3-α (blocking promotion)
 
@@ -482,7 +482,7 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
           sessionId,
           identity:    "monitor",
           memoryLayers: ["procedural", "episodic"],
-          reasoning:   `pre-edit-impact-mcp-first: Lead called impact_query/pre_edit_impact/get_ontology/pm-impact-quick with matching RID/path evidence within last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. MCP-first protocol satisfied (rule 12 v3.10.0 §MCP-First protocol). sprint-063 W2.B.`,
+          reasoning:   `pre-edit-impact-mcp-first: Lead called impact_query/pre_edit_impact/get_ontology/pm-impact-quick with matching RID/path evidence within last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. MCP-first protocol satisfied (the former Lead-Protocol policy v3.10.0 §MCP-First protocol). sprint-063 W2.B.`,
         });
       } catch { /* best-effort */ }
       return {
@@ -498,7 +498,7 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
       `mcp__plugin_palantir-mini_palantir-mini__pre_edit_impact({"proposedFiles": ["${relPath}"], "project": "<projectRoot>"})`,
     ].join("\n  OR: ");
     const denyReason = [
-      `rule 12 v3.10.0 §MCP-First protocol: no impact_query/pre_edit_impact/`,
+      `the former Lead-Protocol policy v3.10.0 §MCP-First protocol: no impact_query/pre_edit_impact/`,
       `get_ontology/pm-impact-quick call with matching RID/path evidence detected for`,
       `file "${relPath}" in last 5 min.`,
       ``,
@@ -524,11 +524,11 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
         sessionId,
         identity:    "monitor",
         memoryLayers: ["procedural", "episodic"],
-        reasoning:   `pre-edit-impact-mcp-first: BLOCKED — no impact_query/pre_edit_impact/get_ontology/pm-impact-quick call with matching RID/path evidence found in last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. Sprint-062 W3-α promoted to blocking; sprint-063 W2.B removed semantic_change_plan (rule 12 v3.10.0).`,
+        reasoning:   `pre-edit-impact-mcp-first: BLOCKED — no impact_query/pre_edit_impact/get_ontology/pm-impact-quick call with matching RID/path evidence found in last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. Sprint-062 W3-α promoted to blocking; sprint-063 W2.B removed semantic_change_plan (the former Lead-Protocol policy v3.10.0).`,
         refinementTarget: {
           kind:            "rule-conformance-policy",
           filePathOrRid:   relPath,
-          description:     "no MCP impact analysis call with matching RID/path evidence detected before file edit; rule 12 v3.10.0 §MCP-First protocol requires impact_query/pre_edit_impact/get_ontology call within 5 min; semantic_change_plan removed sprint-063 W2.B",
+          description:     "no MCP impact analysis call with matching RID/path evidence detected before file edit; the former Lead-Protocol policy v3.10.0 §MCP-First protocol requires impact_query/pre_edit_impact/get_ontology call within 5 min; semantic_change_plan removed sprint-063 W2.B",
           confidenceLevel: "high",
         },
       });

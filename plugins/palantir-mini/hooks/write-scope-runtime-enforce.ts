@@ -2,7 +2,7 @@
 // Verifies Edit/Write/MultiEdit target paths against the calling subagent's
 // declared writable root.
 //
-// Per canonical plan v2 §4 row 5.7 + rule 16 v4.1.0 §Roles worktree isolation.
+// Per canonical plan v2 §4 row 5.7 + the former sprint-harness policy v4.1.0 §Roles worktree isolation.
 //
 // Resolution order for writable root:
 //   1. If CLAUDE_WORKTREE_PATH env var is set → use that path as writable root.
@@ -19,7 +19,7 @@
 //
 // Authority:
 //   canonical plan v2 §4 row 5.7
-//   rule 16 v4.1.0 §Roles (isolation: "worktree" on generator-tier agents)
+//   the former sprint-harness policy v4.1.0 §Roles (isolation: "worktree" on generator-tier agents)
 //   Lance Martin "Scaling Managed Agents" 2026-04-08 (cattle-not-pets principle)
 
 import * as fs   from "fs";
@@ -258,7 +258,7 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
       memoryLayers: ["procedural"],
       reasoning:
         `write-scope-runtime-enforce: bypass via PALANTIR_MINI_WRITE_SCOPE_BYPASS=1 (agent=${agentName}, tool=${toolName}). ` +
-        `Audited per canonical plan v2 §4 row 5.7 + rule 16 v4.1.0 §Roles worktree isolation.`,
+        `Audited per canonical plan v2 §4 row 5.7 + the former sprint-harness policy v4.1.0 §Roles worktree isolation.`,
     }).catch(() => {});
     return {
       message:  `write-scope-runtime-enforce: BYPASS (env, agent=${agentName})`,
@@ -354,10 +354,10 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
     reasoning:
       `write-scope-runtime-enforce: subagent "${agentName}" attempted to write paths outside its writableRoot. ` +
       `writableRoot="${writableRoot}", violations=[${violations.join(", ")}], strikeCount=${strikeCount}. ` +
-      `Canonical plan v2 §4 row 5.7 + rule 16 v4.1.0 §Roles worktree isolation.`,
+      `Canonical plan v2 §4 row 5.7 + the former sprint-harness policy v4.1.0 §Roles worktree isolation.`,
     refinementTarget: {
       kind:            "rule-conformance-policy",
-      filePathOrRid:   "rule 16 v4.1.0 §Roles worktree isolation",
+      filePathOrRid:   "the former sprint-harness policy v4.1.0 §Roles worktree isolation",
       description:
         `Subagent "${agentName}" attempted to write outside writableRoot "${writableRoot}" ` +
         `(violation(s): ${violations.slice(0, 2).join("; ")}${violations.length > 2 ? ` +${violations.length - 2} more` : ""}; strike ${strikeCount})`,
@@ -387,7 +387,7 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
           `with the correct worktree path or update project-scope.json#writableRoot.`,
           ``,
           `Bypass: PALANTIR_MINI_WRITE_SCOPE_BYPASS=1 (audited).`,
-          `Cross-ref: canonical plan v2 §4 row 5.7 + rule 16 v4.1.0 §Roles worktree isolation.`,
+          `Cross-ref: canonical plan v2 §4 row 5.7 + the former sprint-harness policy v4.1.0 §Roles worktree isolation.`,
         ].join("\n"),
       },
     };
@@ -406,7 +406,7 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
     ...violations.map((v) => `  - ${v}`),
     ``,
     `=== RULE ===`,
-    `Canonical plan v2 §4 row 5.7 + rule 16 v4.1.0 §Roles:`,
+    `Canonical plan v2 §4 row 5.7 + the former sprint-harness policy v4.1.0 §Roles:`,
     `"harness-generator and implementer-tier subagents spawn with isolation: 'worktree'"`,
     `"A subagent running in an auto-created .claude/worktrees/<name>/ git worktree must not`,
     `write files outside its worktree (or declared writableRoot)."`,
@@ -418,14 +418,14 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
     `  - Using ~ expansion that resolves to the home repo root`,
     ``,
     `=== REMEDIATION ===`,
-    `1. Ensure Agent() spawns carry isolation: "worktree" (rule 16 v4.1.0 §Roles).`,
+    `1. Ensure Agent() spawns carry isolation: "worktree" (the former sprint-harness policy v4.1.0 §Roles).`,
     `2. Check that the subagent uses relative paths or paths relative to its CWD.`,
     `3. If out-of-tree writes are legitimately needed, update project-scope.json#writableRoot`,
     `   or spawn the subagent without worktree isolation with explicit Lead reasoning.`,
     ``,
     `Bypass for emergency only: PALANTIR_MINI_WRITE_SCOPE_BYPASS=1 (audited).`,
     ``,
-    `Cross-ref: canonical plan v2 §4 row 5.7 + rule 16 v4.1.0 §Roles worktree isolation`,
+    `Cross-ref: canonical plan v2 §4 row 5.7 + the former sprint-harness policy v4.1.0 §Roles worktree isolation`,
   ].join("\n");
 
   process.stderr.write(`[palantir-mini/write-scope-runtime-enforce] BLOCK\n${blockReason}\n`);
@@ -452,10 +452,10 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
       `write-scope-runtime-enforce BLOCK: strikeCount=${strikeCount} > threshold=${ADVISORY_THRESHOLD} ` +
       `for agent="${agentName}" attempting writes outside writableRoot="${writableRoot}". ` +
       `Violations=[${violations.join(", ")}]. ` +
-      `Canonical plan v2 §4 row 5.7 + rule 16 v4.1.0 §Roles worktree isolation.`,
+      `Canonical plan v2 §4 row 5.7 + the former sprint-harness policy v4.1.0 §Roles worktree isolation.`,
     refinementTarget: {
       kind:            "rule-conformance-policy",
-      filePathOrRid:   "rule 16 v4.1.0 §Roles worktree isolation",
+      filePathOrRid:   "the former sprint-harness policy v4.1.0 §Roles worktree isolation",
       description:
         `Blocking "${agentName}" after ${strikeCount} write-scope violations exceeding threshold ${ADVISORY_THRESHOLD}. ` +
         `writableRoot="${writableRoot}" — escalated from advisory to blocking.`,

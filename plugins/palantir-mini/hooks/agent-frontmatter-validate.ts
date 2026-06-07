@@ -8,7 +8,7 @@
 //   - ~/.claude/agents/*.md
 //
 // Required frontmatter: name, description, tools, model
-// Forbidden: initialPrompt (bypasses Lead briefing — see rule 12 §Agent frontmatter)
+// Forbidden: initialPrompt (bypasses Lead briefing — see the former Lead-Protocol policy §Agent frontmatter)
 // Recommended (warn-only): maxTurns, memory
 //
 // Exit 2 (via decision: "block") when any non-conformant file is found.
@@ -173,7 +173,7 @@ export default async function agentFrontmatterValidate(payload: unknown): Promis
       if (r.forbiddenPresent.length > 0) parts.push(`forbidden field(s) present: ${r.forbiddenPresent.join(", ")}`);
       blockLines.push(`  - ${r.file}: ${parts.join("; ")}`);
     }
-    const base = `palantir-mini agent-frontmatter-validate: ${nonConformant.length} non-conformant agent .md file(s):\n${blockLines.join("\n")}\nFix per rule 12 §Agent frontmatter standard.`;
+    const base = `palantir-mini agent-frontmatter-validate: ${nonConformant.length} non-conformant agent .md file(s):\n${blockLines.join("\n")}\nFix per the former Lead-Protocol policy §Agent frontmatter standard.`;
     const { withRuleExcerpt } = await import("../scripts/rule-excerpt");
     const reason = await withRuleExcerpt(base, 12);
     process.stderr.write(`[palantir-mini/agent-frontmatter-validate] ${reason}\n`);
