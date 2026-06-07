@@ -3,7 +3,7 @@ import {
   PORTABLE_PALANTIR_REFERENCE_PACK,
   getReferenceEntry,
   validatePortableReferencePack,
-} from "../../../lib/education/palantir-reference-pack";
+} from "../../../lib/reference/palantir-reference-pack";
 
 describe("portable Palantir reference pack", () => {
   test("covers every Lecture Delivery Kernel v0 authority domain", () => {

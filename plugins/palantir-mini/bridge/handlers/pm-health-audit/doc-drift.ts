@@ -8,7 +8,7 @@ import {
   type ProjectOntologyIndex,
 } from "../../../lib/capability/project-ontology-index";
 import { validateCapabilityContract } from "../../../lib/capability/capability-contract";
-import { PORTABLE_PALANTIR_REFERENCE_PACK, validatePortableReferencePack } from "../../../lib/education/palantir-reference-pack";
+import { PORTABLE_PALANTIR_REFERENCE_PACK, validatePortableReferencePack } from "../../../lib/reference/palantir-reference-pack";
 import { loadProjectScope } from "../../../lib/project-scope/loader";
 import {
   normalizeSkillOntologyContract,
@@ -324,7 +324,7 @@ function knownIssueSignals(project: string, registry: LoadedSkillRegistry): Heal
 
 function referencePackSignals(root: string): HealthDocDriftSignal[] {
   const signals = validatePortableReferencePack().map((issue) =>
-    signal("reference-pack-contract", "lib/education/palantir-reference-pack.ts", "portable reference pack should validate", issue, "fail")
+    signal("reference-pack-contract", "lib/reference/palantir-reference-pack.ts", "portable reference pack should validate", issue, "fail")
   );
   const paths = [
     PORTABLE_PALANTIR_REFERENCE_PACK.routing.browse,
@@ -340,7 +340,7 @@ function referencePackSignals(root: string): HealthDocDriftSignal[] {
     if (fs.existsSync(path.join(root, target))) continue;
     signals.push(signal(
       "reference-pack-target-missing",
-      "lib/education/palantir-reference-pack.ts",
+      "lib/reference/palantir-reference-pack.ts",
       `${target} should resolve inside the plugin runtime overlay`,
       "missing",
       "fail",

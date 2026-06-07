@@ -770,15 +770,6 @@ const TOOLS: ToolSpec[] = [
         includeEvalRuns:     { type: "boolean", description: "Default false. Adds recent Convex evalRuns when Cloud is reachable and not in stub mode." },
         evalRunsProjectSlug: { type: "string", description: "Optional project slug for evalRuns filtering; defaults to the project path basename." },
         evalRunsLimit:       { type: "number", description: "Maximum recent evalRuns to include when includeEvalRuns=true. Default 20." },
-        includeCurriculumContext: {
-          type: "boolean",
-          description: "Default false. Adds reference-only curriculum retrieval hints when generated v2 packs are present.",
-        },
-        curriculumQueryTerms: {
-          type: "array",
-          items: { type: "string" },
-          description: "Optional terms to seed includeCurriculumContext retrieval.",
-        },
         includeDTCContext:   { type: "boolean", description: "Default true. Includes DTC fill readiness diagnostics when prompt-linked DTC context is available." },
         fdeOntologyEngineeringSession: {
           type: "object",

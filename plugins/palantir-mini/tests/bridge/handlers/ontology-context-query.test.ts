@@ -14,7 +14,6 @@ import * as os from "node:os";
 import * as path from "node:path";
 import handler from "../../../bridge/handlers/ontology-context-query";
 import { TOOLS } from "../../../bridge/mcp-server";
-import { CURRICULUM_V2_SCHEMA_VERSION } from "../../../lib/education/curriculum-context-pack";
 import type { FDEOntologyEngineeringSession } from "../../../lib/fde-ontology-engineering/types";
 import {
   fdeOntologyEngineeringSessionRef,
@@ -35,75 +34,6 @@ function writeJsonl(filePath: string, rows: readonly unknown[]): void {
     `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`,
     "utf8",
   );
-}
-
-function writeCurriculumFixturePack(projectRoot: string): void {
-  const packRoot = path.join(
-    projectRoot,
-    "docs",
-    "2022-math-curriculum",
-    "agent-ready",
-    "ontology-engineering",
-    "v2",
-  );
-  writeJsonl(path.join(packRoot, "manifests", "objects.jsonl"), [
-    {
-      schema_version: CURRICULUM_V2_SCHEMA_VERSION,
-      object_id: "fixture.curriculum.quadratic",
-      collection_id: "fixture.curriculum",
-      object_type: "AchievementStandard",
-      title: "Quadratic functions",
-      display_text: "Students model and interpret quadratic functions.",
-      normalized_text: "Model quadratic functions and compare intercepts.",
-      source_span_refs: ["fixture.curriculum.span.quadratic"],
-      trust: {
-        role: "reference_only",
-        ssot_status: "not_promoted",
-        authority_tier: "official_source",
-        confidence: 0.9,
-        human_review_status: "not_reviewed",
-        defect_refs: [],
-      },
-      retrieval_tags: ["quadratic-functions", "contract-authoring"],
-      related_object_ids: [],
-    },
-  ]);
-  writeJsonl(path.join(packRoot, "manifests", "source-spans.jsonl"), [
-    {
-      schema_version: CURRICULUM_V2_SCHEMA_VERSION,
-      object_id: "fixture.curriculum.span.quadratic",
-      object_type: "SourceSpan",
-      collection_id: "fixture.curriculum",
-      title: "Quadratic source span",
-      source_document: "Fixture curriculum",
-      source_path: "docs/source.pdf",
-      source_page_start: 12,
-      source_page_end: 13,
-      derived_path: "docs/fixture/quadratic.md",
-      derived_line_start: 4,
-      derived_line_end: 8,
-      authority_tier: "official_source",
-      extraction_notes: [],
-    },
-  ]);
-  writeJsonl(path.join(packRoot, "manifests", "retrieval-bundles.jsonl"), [
-    {
-      schema_version: CURRICULUM_V2_SCHEMA_VERSION,
-      object_id: "fixture.curriculum.bundle.contract-authoring",
-      object_type: "RetrievalBundle",
-      collection_id: "fixture.curriculum",
-      title: "Contract authoring",
-      purpose: "contract-authoring",
-      recommended_questions: ["Which representation is needed?"],
-      candidate_nouns: ["quadratic function"],
-      candidate_verbs: ["model"],
-      non_goal_warnings: ["reference only"],
-      evidence_object_refs: ["fixture.curriculum.quadratic"],
-      source_span_refs: ["fixture.curriculum.span.quadratic"],
-      qa_risk_refs: [],
-      confidence: 0.88,
-    },
-  ]);
 }
 
 function makeFDEProjectionSession(projectRoot: string, sessionId = "fde-session:ocq-test"): FDEOntologyEngineeringSession {
@@ -237,8 +167,6 @@ describe("ontology_context_query — canonical Phase 3 handler (sprint-093 PR 3.
       expect(result.evalContext).toBeDefined();
       expect(result.evalContext?.status).toBe("pending-later-pr");
 
-      expect(result.curriculumContext).toBeUndefined();
-
       // Derived fields (5).
       expect(typeof result.graphConfidence).toBe("number");
       expect(result.graphConfidence).toBeGreaterThanOrEqual(0);
@@ -296,44 +224,8 @@ describe("ontology_context_query — canonical Phase 3 handler (sprint-093 PR 3.
     expect(tool).toBeDefined();
     expect(typeof tool?.description).toBe("string");
     expect((tool?.description ?? "").length).toBeGreaterThan(40);
-    expect(
-      ((tool?.inputSchema as { properties?: Record<string, unknown> })?.properties ?? {})
-        .includeCurriculumContext,
-    ).toBeDefined();
   });
 
-  test("(4) includeCurriculumContext=true returns reference-only curriculum hints", async () => {
-    const projectRoot = fs.mkdtempSync(
-      path.join(os.tmpdir(), "pm-ontology-ctx-q-curriculum-"),
-    );
-    try {
-      writeCurriculumFixturePack(projectRoot);
-
-      const result = await handler({
-        project: projectRoot,
-        includeImpact: false,
-        includeLineage: false,
-        includeCapabilities: false,
-        includeRisks: false,
-        includeEvals: false,
-        includeCurriculumContext: true,
-        curriculumQueryTerms: ["quadratic"],
-      });
-
-      expect(result.curriculumContext).toBeDefined();
-      expect(result.curriculumContext?.matchedObjects[0]?.objectId).toBe(
-        "fixture.curriculum.quadratic",
-      );
-      expect(result.curriculumContext?.retrievalBundles[0]?.purpose).toBe(
-        "contract-authoring",
-      );
-      expect(result.curriculumContext?.sourceSpans[0]?.spanId).toBe(
-        "fixture.curriculum.span.quadratic",
-      );
-    } finally {
-      fs.rmSync(projectRoot, { recursive: true, force: true });
-    }
-  });
 });
 
 // ─── DTC Fill Readiness Diagnostics (Sprint 97 W4, dtc-T4-bridge-ocq) ────────

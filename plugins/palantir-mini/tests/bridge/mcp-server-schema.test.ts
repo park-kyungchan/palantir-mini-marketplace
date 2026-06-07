@@ -80,8 +80,6 @@ const ONTOLOGY_CONTEXT_QUERY_PUBLIC_FIELDS = [
   "evalRunsProjectSlug",
   "evalRunsLimit",
   "projectsRoot",
-  "includeCurriculumContext",
-  "curriculumQueryTerms",
   "includeDTCContext",
   "fdeOntologyEngineeringSession",
   "fdeOntologyEngineeringSessionRef",
@@ -296,9 +294,6 @@ describe("mcp-server prompt identity schemas", () => {
     expect(props.includeDTCContext?.type).toBe("boolean");
     expect(props.fdeOntologyEngineeringSession?.type).toBe("object");
     expect(props.fdeOntologyEngineeringSessionRef?.type).toBe("string");
-    expect(props.includeCurriculumContext?.type).toBe("boolean");
-    expect(props.curriculumQueryTerms?.type).toBe("array");
-    expect(props.curriculumQueryTerms?.items?.type).toBe("string");
   });
 
   test("Context Engineering MCP descriptions do not claim Ontology primitive authority", () => {
