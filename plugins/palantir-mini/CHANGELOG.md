@@ -9,6 +9,18 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ---
 
+## v6.81.0 (2026-06-07) — Wave 0 rationalization — zero-risk surface cuts
+
+### Removed
+
+- **skills**: `pm-delegate-or-direct`, `pm-delegate-or-direct-quick`, `pm-portable-bundle`, `pm-rehydrate`, `pm-restore` — dead/deprecated skills deleted.
+- **agents**: `home-implementer.md`, `kosmos-implementer.md`, `mc-implementer.md`, `pm-implementer.md`, `project-implementer.md` — deprecated project-specific implementer agents removed; generic `implementer.md` retained.
+- **handler**: `bridge/handlers/ontology-context-query-legacy.ts` — legacy handler + paired test + HANDLER_MODULES map entry removed (GUARD confirmed no runtime callers outside the allowed whitelist).
+- **seed**: `runtime-overlay/schemas-snapshot/ontology/seeds/skill-definitions.ts` — pruned `pm-portable-bundle`, `pm-rehydrate`, `pm-restore` entries to match filesystem.
+
+---
+
+
 ## v6.80.0 (2026-06-07) — Claude install path restored + un-versioned control-plane consolidation
 
 ### Added

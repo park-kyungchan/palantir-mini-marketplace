@@ -253,10 +253,9 @@ describe("pm_plugin_self_check", () => {
     expect(result.mode).toBe("public-mcp");
     expect(result.activeChecks).toEqual(["mcp-tools"]);
     expect(result.mcpToolsRegistrationResult.status).toBe("pass");
-    // v6.80.0+: public retention surface includes events_log_rotate.
-    // HANDLER_MODULES also includes one legacy/internal module mapping.
+    // v6.81.0+: ontology_context_query_legacy handler removed (Wave 0 rationalization).
     expect(result.mcpToolsRegistrationResult.registeredToolCount).toBe(31);
-    expect(result.mcpToolsRegistrationResult.registeredHandlerModules).toBe(32);
+    expect(result.mcpToolsRegistrationResult.registeredHandlerModules).toBe(31);
     expect(result.mcpToolsRegistrationResult.missingMetadataFields).toEqual([]);
     expect(result.mcpToolsRegistrationResult.missingHandlerModules).not.toContain("ontology_schema_get");
     expect(result.mcpToolsRegistrationResult.handlerFileCount).toBeGreaterThan(22);

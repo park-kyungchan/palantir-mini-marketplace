@@ -399,16 +399,16 @@ describe("Sprint 97 DTC governance invariants (structural)", () => {
     expect(template).toContain("validationPlan");
   });
 
-  test("plugin version is 6.79.0 in package.json", () => {
+  test("plugin version is 6.81.0 in package.json", () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, "package.json"), "utf8"));
-    expect(pkg.version).toBe("6.79.0");
+    expect(pkg.version).toBe("6.81.0");
   });
 
-  test("plugin version is 6.79.0 in .codex-plugin/plugin.json", () => {
+  test("plugin version is 6.81.0 in .codex-plugin/plugin.json", () => {
     const manifest = JSON.parse(
       fs.readFileSync(path.join(PLUGIN_ROOT, ".codex-plugin", "plugin.json"), "utf8")
     );
-    expect(manifest.version).toBe("6.79.0");
+    expect(manifest.version).toBe("6.81.0");
   });
 
   test("CHANGELOG has v6.78.0 release heading", () => {

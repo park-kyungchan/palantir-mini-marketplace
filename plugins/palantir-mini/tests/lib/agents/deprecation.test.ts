@@ -170,45 +170,7 @@ description: Deprecated but no sprint set.
   });
 });
 
-// ─── Real retired agents in plugin agents/ dir ───────────────────────────────
 
-describe("retired agents in plugin dir", () => {
-  const PLUGIN_AGENTS_DIR = path.resolve(__dirname, "../../../agents");
-  const RETIRED_AGENTS    = ["pm-implementer", "mc-implementer", "kosmos-implementer", "home-implementer"];
-
-  for (const agentName of RETIRED_AGENTS) {
-    test(`${agentName}.md has [RETIRED v6.0.0] tombstone in description`, () => {
-      const agentPath = path.join(PLUGIN_AGENTS_DIR, `${agentName}.md`);
-      expect(fs.existsSync(agentPath)).toBe(true);
-      const content = fs.readFileSync(agentPath, "utf8");
-      expect(content).toContain("[RETIRED v6.0.0");
-    });
-
-    test(`${agentName}.md has deprecated: true`, () => {
-      const agentPath = path.join(PLUGIN_AGENTS_DIR, `${agentName}.md`);
-      const content   = fs.readFileSync(agentPath, "utf8");
-      expect(readFrontmatterField(content, "deprecated")).toBe("true");
-    });
-  }
-
-  test("checkDeprecationGate blocks pm-implementer via real plugin agents dir", () => {
-    // Use the real plugin root so readAgentMd resolves via PALANTIR_MINI_PLUGIN_ROOT
-    const pluginRoot = path.resolve(__dirname, "../../..");
-    const origPluginRoot = process.env.PALANTIR_MINI_PLUGIN_ROOT;
-    process.env.PALANTIR_MINI_PLUGIN_ROOT = pluginRoot;
-    try {
-      // Use a cwd that has no local .claude/agents/ (so it falls through to plugin dir)
-      const result = checkDeprecationGate("pm-implementer", os.tmpdir());
-      expect(result.blocked).toBe(true);
-    } finally {
-      if (origPluginRoot === undefined) {
-        delete process.env.PALANTIR_MINI_PLUGIN_ROOT;
-      } else {
-        process.env.PALANTIR_MINI_PLUGIN_ROOT = origPluginRoot;
-      }
-    }
-  });
-});
 
 // ─── inferCurrentSprint ───────────────────────────────────────────────────────
 

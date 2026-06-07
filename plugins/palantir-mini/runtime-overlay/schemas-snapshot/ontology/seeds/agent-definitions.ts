@@ -64,11 +64,7 @@ const PLUGIN_AGENTS: ReadonlyArray<{
   { slug: "code-grader",           description: "Shell-expression rubric scoring — sonnet-tier code-domain criterion evaluator", model: "sonnet", maxTurns: 20 },
   { slug: "model-grader",          description: "claude -p rubric scoring — sonnet-tier model-domain criterion evaluator", model: "sonnet", maxTurns: 20 },
   { slug: "scrapling-fetcher",     description: "Haiku-tier cost-optimized web fetch agent — pure content delivery", model: "haiku",  maxTurns: 10 },
-  // 5 retroactive variants (Phase B0 v3.0.0 — preserves user-scope callable names post-deletion)
-  { slug: "pm-implementer",        description: "palantir-math repo specialist for .claude/ control-plane changes", model: "sonnet", maxTurns: 35 },
-  { slug: "mc-implementer",        description: "mathcrew repo specialist for .claude/ greenfield setup", model: "sonnet", maxTurns: 40 },
-  { slug: "kosmos-implementer",    description: "kosmos repo specialist for .claude/ control-plane changes", model: "sonnet", maxTurns: 40 },
-  { slug: "home-implementer",      description: "palantirkc home-repo control-plane specialist", model: "sonnet", maxTurns: 35 },
+
   // (Deprecated documentation-writer agent entry removed 2026-05-04 in
   // palantirkc-sprint-002-quick PR-D follow-up: the .md file had been absent
   // on disk; the agent itself was retired 2026-05-03 nifty-mixing-diffie Phase
