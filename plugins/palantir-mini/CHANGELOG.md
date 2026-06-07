@@ -9,6 +9,26 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ---
 
+## v6.82.0 (2026-06-07) — Wave 1 rationalization — project decoupling
+
+### Removed
+
+- **lib/education/**: deleted curriculum/, lecture/, and readiness/ modules (project-coupled education logic).
+- **eval-suites**: deleted `eval-suites/lecture-delivery-kernel-v0.json` (education-specific eval suite).
+- **co-located tests**: removed paired tests for lib/education modules.
+- **handler opt-ins**: removed `includeCurriculumContext` / `curriculumQueryTerms` parameters from `ontology_context_query` handler and MCP tool schema.
+
+### Relocated
+
+- **lib/reference/**: `palantir-reference-pack.ts` moved from `lib/education/` to `lib/reference/` (generic; doc-drift handler repointed).
+
+### Changed
+
+- **workflow-family**: `applicationAndChatbotAuthoring` genericized — retrieval-context now imports from `lib/ontology-context/retrieval-context.ts`; education eval/wording removed.
+- **tests**: version-consistency test made version-agnostic (checks package.json vs manifest parity rather than hardcoded version string).
+
+---
+
 ## v6.81.0 (2026-06-07) — Wave 0 rationalization — zero-risk surface cuts
 
 ### Removed

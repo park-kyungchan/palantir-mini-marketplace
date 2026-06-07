@@ -20,10 +20,7 @@ import {
   buildLLMControlFacingState,
 } from "../../../lib/chatbot-studio/semantic-conversation-state";
 import { createHarnessRatchetProposal } from "../../../lib/harness/ratchet-proposal";
-import {
-  EDUCATION_READINESS_DEFAULTS,
-  educationReadinessChecklist,
-} from "../../../lib/education/readiness";
+
 
 describe("internal context and readiness records", () => {
   test("creates internal context capsules without public MCP exposure", () => {
@@ -176,12 +173,6 @@ describe("internal context and readiness records", () => {
     expect(proposal.proposalId).toMatch(/^harness-ratchet:timeout:[a-f0-9]{12}$/);
   });
 
-  test("education readiness defaults defer the palantir-math pilot", () => {
-    expect(EDUCATION_READINESS_DEFAULTS.deferredPilots).toContain(
-      "palantir-math ontology pilot",
-    );
-    expect(educationReadinessChecklist()).toContain("validation:semantic-loop");
-  });
 });
 
 describe("attachDtcFillStateToCapsule", () => {

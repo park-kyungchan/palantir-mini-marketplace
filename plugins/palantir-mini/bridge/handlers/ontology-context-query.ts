@@ -48,10 +48,6 @@ import {
 import pmWorkflowLineageQuery from "./pm-workflow-lineage-query";
 import { queryRecentEvalRuns, getConvexClient } from "../../lib/impact-graph/convex-client";
 import type { AIPEvaluationRunDeclaration } from "#schemas/ontology/primitives/aip-evaluation";
-import {
-  queryCurriculumContext,
-  type CurriculumContextBundle,
-} from "../../lib/education/curriculum-context-query";
 import { readDTCApprovalFromCache } from "../../lib/prompt-front-door/sic-approval-cache";
 import { resolveDTCToolSurfaceTerms } from "../../lib/lead-intent/ontology-ref-resolver";
 import { DTC_FILL_SEQUENCE } from "../../lib/semantic-intent/fill-sequence";
@@ -107,10 +103,6 @@ export interface OntologyContextQueryInput {
   readonly evalRunsLimit?: number;
   /** Optional projectsRoot forwarded to pm_workflow_lineage_query discovery (default uses registered + discovered). */
   readonly projectsRoot?: string;
-  /** Opt-in reference-only curriculum retrieval substrate. Default false. */
-  readonly includeCurriculumContext?: boolean;
-  /** Optional query terms to seed curriculum reference retrieval. */
-  readonly curriculumQueryTerms?: ReadonlyArray<string>;
   /**
    * Include DTC fill readiness diagnostics in the response (default true).
    * When false OR when no DTC context is available, dtcFillReadinessDiagnostics
@@ -275,11 +267,6 @@ export interface OntologyContextQueryResult {
    * Omitted (not null) when opt-out or Cloud unreachable. Per canonical plan v2 §4 row 5.4b.
    */
   readonly evalRunsContext?: EvalRunsContextProjection;
-  /**
-   * Present only when includeCurriculumContext=true and reference packs are available.
-   * Reference-only hints; never approves SemanticIntentContract fields.
-   */
-  readonly curriculumContext?: CurriculumContextBundle;
   /**
    * Present only when includeDTCContext !== false AND a DTC is available
    * (via SIC approval cache lookup or inline contract on input).
@@ -800,7 +787,6 @@ export async function ontologyContextQuery(
   const includeEvals     = input.includeEvals       !== false;
   // opt-in: only true when explicitly requested
   const doIncludeEvalRuns = input.includeEvalRuns === true;
-  const doIncludeCurriculumContext = input.includeCurriculumContext === true;
   // includeDTCContext defaults true (opposite of opt-in pattern; backward-compat
   // callers that omit the field receive diagnostics when DTC is available).
   const doIncludeDTCContext = input.includeDTCContext !== false;
@@ -854,17 +840,6 @@ export async function ontologyContextQuery(
     evalRunsContext = await buildEvalRunsContext(projectSlug, limit);
   }
 
-  let curriculumContext: CurriculumContextBundle | undefined;
-  if (doIncludeCurriculumContext) {
-    curriculumContext = queryCurriculumContext({
-      projectRoot,
-      ...(input.curriculumQueryTerms !== undefined ? { queryTerms: input.curriculumQueryTerms } : {}),
-      ...(input.scopePaths !== undefined ? { scopePaths: input.scopePaths } : {}),
-      ...(input.requestedAxes !== undefined ? { requestedAxes: input.requestedAxes } : {}),
-      includeWarnings: true,
-    });
-  }
-
   // DTC fill readiness diagnostics — surfaced at routing time (Sprint 97 W4).
   const dtcFillReadinessDiagnostics = await buildDtcFillReadinessDiagnostics(
     projectRoot,
@@ -912,7 +887,6 @@ export async function ontologyContextQuery(
     ...(lineageContext            !== undefined ? { lineageContext            } : {}),
     ...(evalContext               !== undefined ? { evalContext               } : {}),
     ...(evalRunsContext           !== undefined ? { evalRunsContext           } : {}),
-    ...(curriculumContext         !== undefined ? { curriculumContext         } : {}),
     ...(dtcFillReadinessDiagnostics !== undefined ? { dtcFillReadinessDiagnostics } : {}),
     ...(fdeOntologyEngineeringSession !== undefined
       ? { fdeOntologyEngineeringSession }
@@ -940,7 +914,6 @@ export async function ontologyContextQuery(
     ...(lineageContext            !== undefined ? { lineageContext            } : {}),
     ...(evalContext               !== undefined ? { evalContext               } : {}),
     ...(evalRunsContext           !== undefined ? { evalRunsContext           } : {}),
-    ...(curriculumContext         !== undefined ? { curriculumContext         } : {}),
     ...(dtcFillReadinessDiagnostics !== undefined ? { dtcFillReadinessDiagnostics } : {}),
     ...(fdeOntologyEngineeringProjection !== undefined
       ? { fdeOntologyEngineeringProjection }

@@ -1082,7 +1082,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
     phases: [
       phase({
         phaseId: "app-chatbot:application-state-design",
-        entryCondition: "A chatbot, workbench, education kernel, or app-facing authoring surface is requested.",
+        entryCondition: "A chatbot, workbench, or app-facing authoring surface is requested.",
         exitCondition: "Application variables, retrieval context, and user-visible state are declared.",
         allowedTransitions: ["app-chatbot:authoring-validation"],
         blockingGates: ["application-state-authority"],
@@ -1105,19 +1105,11 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
     aipSurfaceRefs: [
       aipRef("application-state-variables", ["lib/chatbot-studio/application-state.ts"]),
       aipRef("chatbots-as-functions", ["lib/chatbot-studio/semantic-conversation-state.ts"]),
-      aipRef("retrieval-context", ["lib/education/curriculum-context-query.ts"]),
+      aipRef("retrieval-context", ["lib/ontology-context/retrieval-context.ts"]),
     ],
     requiredContracts: CONTRACT_REQUIREMENTS.sicAndDtc,
     enforcement: enforcement({
-      evals: [
-        {
-          evalId: "eval:lecture-delivery-kernel-v0",
-          suiteRef: "eval-suites/lecture-delivery-kernel-v0.json",
-          replayRequired: false,
-          observabilityStateRefs: ["lectureSequence", "applicationStateProjection"],
-          evidenceRefs: ["tests/evals/lecture-delivery-kernel-v0.test.ts"],
-        },
-      ],
+      evals: [],
     }),
     runtimeProjection: runtimeProjection({
       codexSupport: "manual",
@@ -1128,7 +1120,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
       complexE2EScenario({
         scenarioId: "complex-e2e:application-state-to-chatbot-authoring-validation",
         workflowFamily: "applicationAndChatbotAuthoring",
-        title: "Application state and retrieval context flow into chatbot or education authoring validation.",
+        title: "Application state and retrieval context flow into chatbot authoring validation.",
         coveredPhaseIds: [
           "app-chatbot:application-state-design",
           "app-chatbot:authoring-validation",
@@ -1141,7 +1133,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         ],
         runtimeRefs: ["claude", "codex"],
         validationRefs: ["tests/lib/chatbot-studio/semantic-conversation-state.test.ts"],
-        evidenceRefs: ["tests/evals/lecture-delivery-kernel-v0.test.ts"],
+        evidenceRefs: ["tests/lib/chatbot-studio/semantic-conversation-state.test.ts"],
       }),
     ],
   }),

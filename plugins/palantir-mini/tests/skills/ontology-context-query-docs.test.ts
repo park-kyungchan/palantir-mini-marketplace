@@ -23,7 +23,5 @@ describe("skill docs use public ontology_context_query schema", () => {
     const content = readSkill("pm-project-onboard");
 
     expect(content).not.toContain("includeDocumentContext");
-    expect(content).toContain("includeCurriculumContext");
-    expect(content).toContain("curriculumQueryTerms");
   });
 });
