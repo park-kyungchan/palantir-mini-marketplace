@@ -114,17 +114,17 @@ export * from "./skill-definition";
 // Import via shared-core; never import these paths directly from consumer
 // projects (rule 08 authority chain).
 export * from "./failure-category";
-export * from "./sprint-completed";
-export * from "./failure-mode-synthesized";
+
+
 
 // --- v1.33 ontology-promotion primitives (S3a — spicy-knitting-garden) ---
 // 3 primitives promoted from palantir-math project-local types to canonical
 // schema surface, enabling W5-A consumer surface migration.
 // Import via shared-core; never import these paths directly from consumer
 // projects (rule 08 authority chain).
-export * from "./canvas-layout-stage";
-export * from "./delegation-token";
-export * from "./scene-coupling-v4";
+
+
+
 
 // --- v1.34 propagation-audit substrate (cosmic-hatching-pizza W6 — distributed-wishing-manatee) ---
 // 3 primitives backing the ForwardProp/BackwardProp audit MCP surface:
@@ -198,7 +198,7 @@ export * from "./research-source-manifest";
 // agent-system-design}.md.
 // Import via shared-core; never import this path directly from consumer
 // projects (rule 08 authority chain).
-export * from "./canonical-source-registry";
+
 
 // --- v1.42 sprint-047 W2.A — Claude Harness Infra primitives (4) ---
 // 3 new + 1 extension. Backs the Claude Harness 5-Wave pivot
@@ -379,19 +379,19 @@ import { aipLogicFunctionFoundryEquivalent as _foundryEquiv_aip_logic_function }
 import { aipModeAndSkillFoundryEquivalent as _foundryEquiv_aip_mode_and_skill } from "./aip-mode-and-skill";
 import { approvalRefFoundryEquivalent as _foundryEquiv_approval_ref } from "./approval-ref";
 import { automationDeclarationFoundryEquivalent as _foundryEquiv_automation_declaration } from "./automation-declaration";
-import { canonicalSourceRegistryFoundryEquivalent as _foundryEquiv_canonical_source_registry } from "./canonical-source-registry";
-import { canvasLayoutStageFoundryEquivalent as _foundryEquiv_canvas_layout_stage } from "./canvas-layout-stage";
+
+
 import { capabilityTokenFoundryEquivalent as _foundryEquiv_capability_token } from "./capability-token";
 import { categoryFoundryEquivalentFoundryEquivalent as _foundryEquiv_category_foundry_equivalent } from "./category-foundry-equivalent";
 import { claudeCodeVersionFoundryEquivalent as _foundryEquiv_claude_code_version } from "./claude-code-version";
 import { codegenHeaderContractFoundryEquivalent as _foundryEquiv_codegen_header_contract } from "./codegen-header-contract";
 import { deadCodeMarkerFoundryEquivalent as _foundryEquiv_dead_code_marker } from "./dead-code-marker";
-import { delegationTokenFoundryEquivalent as _foundryEquiv_delegation_token } from "./delegation-token";
+
 import { digitalTwinChangeContractFoundryEquivalent as _foundryEquiv_digital_twin_change_contract } from "./digital-twin-change-contract";
 import { derivedPropertyFoundryEquivalent as _foundryEquiv_derived_property } from "./derived-property";
 import { dispatchContractFoundryEquivalent as _foundryEquiv_dispatch_contract } from "./dispatch-contract";
 import { failureCategoryFoundryEquivalent as _foundryEquiv_failure_category } from "./failure-category";
-import { failureModeSynthesizedFoundryEquivalent as _foundryEquiv_failure_mode_synthesized } from "./failure-mode-synthesized";
+
 import { feedbackLoopFoundryEquivalent as _foundryEquiv_feedback_loop } from "./feedback-loop";
 import { feedbackLoopClosedFoundryEquivalent as _foundryEquiv_feedback_loop_closed } from "./feedback-loop-closed";
 import { fileComplexityBudgetFoundryEquivalent as _foundryEquiv_file_complexity_budget } from "./file-complexity-budget";
@@ -402,7 +402,7 @@ import { gradingCriterionFoundryEquivalent as _foundryEquiv_grading_criterion } 
 import { gradingRubricFoundryEquivalent as _foundryEquiv_grading_rubric } from "./grading-rubric";
 import { handsManifestFoundryEquivalent as _foundryEquiv_hands_manifest } from "./hands-manifest";
 import { harnessAgentFoundryEquivalent as _foundryEquiv_harness_agent } from "./harness-agent";
-import { harnessComponentFoundryEquivalent as _foundryEquiv_harness_component } from "./harness-component";
+
 import { harnessSpeciesCostProfileFoundryEquivalent as _foundryEquiv_harness_species_cost_profile } from "./harness-species-cost-profile";
 import { harnessSpeciesEnumFoundryEquivalent as _foundryEquiv_harness_species_enum } from "./harness-species-enum";
 import { hookEventAllowlistFoundryEquivalent as _foundryEquiv_hook_event_allowlist } from "./hook-event-allowlist";
@@ -439,13 +439,13 @@ import { researchSourceManifestFoundryEquivalent as _foundryEquiv_research_sourc
 import { retryPolicyFoundryEquivalent as _foundryEquiv_retry_policy } from "./retry-policy";
 import { ruleFoundryEquivalent as _foundryEquiv_rule } from "./rule";
 import { scenarioSandboxFoundryEquivalent as _foundryEquiv_scenario_sandbox } from "./scenario-sandbox";
-import { sceneCouplingV4FoundryEquivalent as _foundryEquiv_scene_coupling_v4 } from "./scene-coupling-v4";
+
 import { semanticRidFoundryEquivalent as _foundryEquiv_semantic_rid } from "./semantic-rid";
 import { semanticIntentContractFoundryEquivalent as _foundryEquiv_semantic_intent_contract } from "./semantic-intent-contract";
 import { sharedPropertyTypeFoundryEquivalent as _foundryEquiv_shared_property_type } from "./shared-property-type";
 import { skillDefinitionFoundryEquivalent as _foundryEquiv_skill_definition } from "./skill-definition";
 import { sourceExecutorFoundryEquivalent as _foundryEquiv_source_executor } from "./source-executor";
-import { sprintCompletedFoundryEquivalent as _foundryEquiv_sprint_completed } from "./sprint-completed";
+
 import { sprintContractFoundryEquivalent as _foundryEquiv_sprint_contract } from "./sprint-contract";
 import { structFoundryEquivalent as _foundryEquiv_struct } from "./struct";
 import { valueGradeFoundryEquivalent as _foundryEquiv_value_grade } from "./value-grade";
@@ -478,19 +478,19 @@ export const FOUNDRY_EQUIVALENTS_REGISTRY: Readonly<
   "aip-mode-and-skill": _foundryEquiv_aip_mode_and_skill,
   "approval-ref": _foundryEquiv_approval_ref,
   "automation-declaration": _foundryEquiv_automation_declaration,
-  "canonical-source-registry": _foundryEquiv_canonical_source_registry,
-  "canvas-layout-stage": _foundryEquiv_canvas_layout_stage,
+
+
   "capability-token": _foundryEquiv_capability_token,
   "category-foundry-equivalent": _foundryEquiv_category_foundry_equivalent,
   "claude-code-version": _foundryEquiv_claude_code_version,
   "codegen-header-contract": _foundryEquiv_codegen_header_contract,
   "dead-code-marker": _foundryEquiv_dead_code_marker,
-  "delegation-token": _foundryEquiv_delegation_token,
+
   "digital-twin-change-contract": _foundryEquiv_digital_twin_change_contract,
   "derived-property": _foundryEquiv_derived_property,
   "dispatch-contract": _foundryEquiv_dispatch_contract,
   "failure-category": _foundryEquiv_failure_category,
-  "failure-mode-synthesized": _foundryEquiv_failure_mode_synthesized,
+
   "feedback-loop": _foundryEquiv_feedback_loop,
   "feedback-loop-closed": _foundryEquiv_feedback_loop_closed,
   "file-complexity-budget": _foundryEquiv_file_complexity_budget,
@@ -501,7 +501,7 @@ export const FOUNDRY_EQUIVALENTS_REGISTRY: Readonly<
   "grading-rubric": _foundryEquiv_grading_rubric,
   "hands-manifest": _foundryEquiv_hands_manifest,
   "harness-agent": _foundryEquiv_harness_agent,
-  "harness-component": _foundryEquiv_harness_component,
+
   "harness-species-cost-profile": _foundryEquiv_harness_species_cost_profile,
   "harness-species-enum": _foundryEquiv_harness_species_enum,
   "hook-event-allowlist": _foundryEquiv_hook_event_allowlist,
@@ -538,13 +538,13 @@ export const FOUNDRY_EQUIVALENTS_REGISTRY: Readonly<
   "retry-policy": _foundryEquiv_retry_policy,
   rule: _foundryEquiv_rule,
   "scenario-sandbox": _foundryEquiv_scenario_sandbox,
-  "scene-coupling-v4": _foundryEquiv_scene_coupling_v4,
+
   "semantic-rid": _foundryEquiv_semantic_rid,
   "semantic-intent-contract": _foundryEquiv_semantic_intent_contract,
   "shared-property-type": _foundryEquiv_shared_property_type,
   "skill-definition": _foundryEquiv_skill_definition,
   "source-executor": _foundryEquiv_source_executor,
-  "sprint-completed": _foundryEquiv_sprint_completed,
+
   "sprint-contract": _foundryEquiv_sprint_contract,
   struct: _foundryEquiv_struct,
   "value-grade": _foundryEquiv_value_grade,

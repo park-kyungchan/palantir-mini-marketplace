@@ -7,6 +7,17 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.85.0] - 2026-06-07 — Harness redesign W1: in-plugin SSoT canonicalized
+
+### Changed
+- Promote `runtime-overlay/schemas-snapshot/` to the canonical, plugin-owned, LLM-agnostic runtime SSoT. Removed the `schemas` sync target from `scripts/refresh-runtime-overlay.ts` so the snapshot is no longer regenerated from upstream `~/.claude/schemas` (retired, pending consumer-check). Added `CANONICAL.md` marker. (palantir-mini Ground-Up Harness Redesign, Wave 1.)
+
+### Removed
+- Dropped 8 dead ontology primitives (0 importers): canonical-source-registry, canvas-layout-stage, delegation-token, failure-mode-synthesized, harness-component, scene-coupling-v4, semantic-frontmatter, sprint-completed.
+
+### Added
+- `runtime-overlay/schemas-snapshot/BROWSE.md` + `INDEX.md` — least-context navigation/catalog for the in-plugin SSoT.
+
 ---
 
 ## v6.84.1 (2026-06-07) — Claude hook-load fix (manifest double-load)
