@@ -1,5 +1,5 @@
 {
-  "description": "Runtime-neutral palantir-mini hook workflow intent registry. Current local install support is Codex-only; runtime-specific Claude/Gemini hook registries are intentionally absent.",
+  "description": "Claude Code hook registry (the Claude-runtime adapter) — auto-loaded by Claude from the plugin's hooks/hooks.json path. Do NOT also reference it from manifest.hooks in plugin.json: the standard hooks/hooks.json loads automatically, so a manifest reference double-loads the same file and fails the hook loader. Maps Claude lifecycle events to the shared runtime-neutral hook logic; the Codex runtime's equivalent registry is hooks/codex-hooks.json.",
   "hooks": {
     "SessionStart": [
       {

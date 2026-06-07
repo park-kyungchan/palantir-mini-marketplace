@@ -9,6 +9,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ---
 
+## v6.84.1 (2026-06-07) — Claude hook-load fix (manifest double-load)
+
+- Removed `"hooks": "./hooks/hooks.json"` from `.claude-plugin/plugin.json`. Current Claude Code auto-loads the standard `hooks/hooks.json`, so the manifest reference double-loaded the same file → "Duplicate hooks file detected" hook-load failure. Completes #89, which renamed `claude-hooks.json` → `hooks.json` but left the now-redundant `manifest.hooks` pointer.
+- Documented `hooks/hooks.json` as the Claude-runtime hook registry in its `description` field (warns against re-adding the manifest reference, preventing regression). Codex registry remains `hooks/codex-hooks.json`.
+
+---
+
 ## v6.84.0 (2026-06-07) — Wave 3-side plugin sync + skill genericization
 
 - Genericized 9 skill docs (project-name examples → project-agnostic placeholders).
