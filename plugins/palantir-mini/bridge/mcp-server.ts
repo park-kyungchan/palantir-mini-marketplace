@@ -312,6 +312,56 @@ const TOOLS: ToolSpec[] = [
     },
     category: "harness-engineering" as const,
   },
+  {
+    name: "grade_outcome_with_rubric",
+    description:
+      "W3e-1 — runtime-neutral rubric outcome grader. Scores an artifact against a " +
+      "GradingRubric (AIP Evals taxonomy). Deterministic domains (rule/hybrid/human) " +
+      "scored in-process; code domain runs validationExpression as a shell command; " +
+      "model domain delegates to pm_grader_dispatch (adapter-selected spawn). Emits " +
+      "evaluator_strictness_probe per model criterion + grading_completed. Domains " +
+      "simulator/visual are skipped (no neutral backend). Accepts inline `rubric` or a " +
+      "registered `rubricId`.",
+    inputSchema: {
+      type: "object",
+      required: ["artifactPath"],
+      properties: {
+        projectPath: { type: "string", description: "Absolute project path (defaults to CWD)." },
+        rubricId: { type: "string", description: "Registered rubric id (GRADING_RUBRIC_REGISTRY)." },
+        rubric: { type: "object", description: "Inline rubric { rubricId, criteria[] }.", additionalProperties: true },
+        artifactPath: { type: "string", description: "The artifact/output being graded." },
+        evidence: { type: "object", description: "Evidence bag for rule-domain checks.", additionalProperties: true },
+        sprintNumber: { type: "number" },
+        iteration: { type: "number" },
+        loopId: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+    category: "harness-engineering" as const,
+  },
+  {
+    name: "pm_grader_dispatch",
+    description:
+      "W3e-1 — runtime-neutral model-grader dispatch. Dispatches ONE model-domain " +
+      "criterion to a FRESH grader subprocess (eliminates self-grading bias, rule 16 §Roles). " +
+      "The spawn (claude -p / codex exec) is the adapter binding selected via " +
+      "PALANTIR_MINI_HOST_RUNTIME; effort routed by criterion tier. Never throws — " +
+      "binary-unavailable / timeout / malformed output degrade to score=0.",
+    inputSchema: {
+      type: "object",
+      required: ["criterionId", "scoringPrompt"],
+      properties: {
+        projectPath: { type: "string", description: "Absolute project path (defaults to CWD)." },
+        criterionId: { type: "string" },
+        scoringPrompt: { type: "string", description: "LLM-judge prompt (placeholders pre-resolved by caller)." },
+        tier: { type: "string", enum: ["none", "low", "normal", "high", "critical"] },
+        scale: { type: "string", enum: ["0-1", "0-10", "pass-fail"] },
+        timeoutMs: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+    category: "harness-engineering" as const,
+  },
   // ─── C. Lead Routing — NEW (5) — sprint-063 W3.A/W3.B/W4.A/W4.B + Lead Intent gate
   {
     name: "pm_semantic_intent_gate",
@@ -705,6 +755,8 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
   ],
   "harness-engineering": [
     "grade_semantic_intent_contract",
+    "grade_outcome_with_rubric",
+    "pm_grader_dispatch",
   ],
   "lead-routing": [
     "pm_semantic_intent_gate",
@@ -744,8 +796,10 @@ const HANDLER_MODULES: Record<string, string> = {
   apply_edit_function:                 "./handlers/apply-edit-function",
   pm_ontology_engineering_workflow:     "./handlers/pm-ontology-engineering-workflow",
   commit_edits:                        "./handlers/commit-edits",
-  // B. Harness Engineering (1)
+  // B. Harness Engineering (3)
   grade_semantic_intent_contract:      "./handlers/grade-semantic-intent-contract",
+  grade_outcome_with_rubric:           "./handlers/grade-outcome-with-rubric",
+  pm_grader_dispatch:                  "./handlers/pm-grader-dispatch",
   // C. Lead Routing (6)
   pm_semantic_intent_gate:              "./handlers/pm-semantic-intent-gate",
   pm_intent_router:                    "./handlers/pm-intent-router",
