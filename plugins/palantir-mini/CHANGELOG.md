@@ -7,6 +7,17 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.101.0] - 2026-06-08 — Harness redesign W3d-2a: route nine-axis-sic in the gate + first self-Ontology instance (M-SELF #1)
+
+### Fixed
+- **`bridge/handlers/pm-semantic-intent-gate.ts`** — added an `else if (input.fillPolicy === "nine-axis-sic")` branch to the SIC fill dispatch (sibling to `fde-ontology-build`/`context-engineering-to-sic`), calling `advanceNineAxisSicSequence` + `nineAxisSicReadinessIssues`. This fixes a **LIVE misroute bug**: `nine-axis-sic` (a registered `FillPolicy` since W2) silently fell through to the legacy 8-turn path — the gate had **zero** nine-axis refs — so the 10-turn 9-axis sequence was applied with 8-turn semantics (axis answers mis-stuffed into `affectedSurfaces`/`approvedNouns`/`approvedVerbs`, a wrong-turn `semantic_intent_contract_finalized` at T7, and silent `RangeError` no-ops at T8/T9). The branch produces `fillResult` exactly like `context-engineering-to-sic` (a `SemanticIntentContract` carrying `axes` — a pre-existing optional field; no persisted-shape/schemaVersion change) plus a fail-closed `nine_axis_sic_incomplete` emit at T9. **Pure-additive** — no existing caller/test passes `nine-axis-sic`; full-suite **0 new regressions** (21 pre-existing unchanged, 3084 pass). The nine-axis happy-path finalization emit is intentionally deferred to W3d-2b (default flip), matching the `context-engineering-to-sic` posture.
+
+### Added
+- **`runtime-overlay/schemas-snapshot/ontology/self/`** (NEW) — first **M-SELF** self-Ontology instances: pm's own control surface registered as typed Palantir primitive instances. `*_TYPE_REGISTRY.register` for pm's own surface had been **0 hits** across the whole snapshot (the latency the milestone un-latents). Ships `semantic-intent-contract.objecttype.ts` (`SemanticIntentContract` modeled AS an `ObjectType`; the 9 understand axes → `Struct` Properties), `sic-axis.struct.ts` (the `SicAxis` `{summary,refs,status}` Struct each axis Property resolves to, registered in `STRUCT_REGISTRY`), `index.ts` (barrel; importing it self-registers every instance), and `BROWSE.md`. Compile-time drift guards keep the model in lockstep with the primitive (`satisfies readonly SicAxisKey[]` + an exhaustiveness check; a `keyof SicAxis` field guard). Registration is inert until the barrel is imported — no runtime path touched. register-grep now **1** (was 0).
+- Tests: `tests/bridge/handlers/pm-semantic-intent-gate-nine-axis-policy.test.ts` (routing regression guard — proves the fix vs the legacy fall-through), `tests/ontology/self/semantic-intent-contract-objecttype.test.ts` (registration smoke — proves register-grep > 0).
+
+Schema-snapshot bump → **1.68.0** (the `self/` instance tree is a rule-08-semver'd addition to `@palantirKC/claude-schemas`). M-SELF k/N counter → **1/3** (effort README §M-SELF). No primitive type changed.
+
 ## [6.100.0] - 2026-06-08 — Harness redesign W3d-4a: collapse DtcRuntime onto PromptRuntime
 
 ### Changed

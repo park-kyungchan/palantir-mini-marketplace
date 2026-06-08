@@ -1,5 +1,23 @@
 # Ontology Schema Changelog
 
+## 1.68.0 — Self-Ontology: first registered pm-surface instances (M-SELF #1) — 2026-06-08
+
+### Added
+
+- `ontology/self/` (NEW tree) — pm's own control surface modeled AS typed Palantir
+  primitive **instances** (harness-redesign W3d-2a; milestone M-SELF). The primitive
+  *types* already shipped under `ontology/primitives/`, but `*_TYPE_REGISTRY.register`
+  for pm's own surface was **0** across the snapshot — this tree turns the vocabulary
+  on itself.
+  - `self/semantic-intent-contract.objecttype.ts` — `SemanticIntentContract`
+    (prim-learn-25) as an `ObjectType`; primaryKey `contractId`, title `confirmedIntent`,
+    the 9 understand axes as `Struct` Properties. Registers into `OBJECT_TYPE_REGISTRY`.
+  - `self/sic-axis.struct.ts` — `SicAxis` `{summary, refs, status}` as a `Struct`,
+    registered into `STRUCT_REGISTRY`; the shape each axis Property resolves to.
+  - `self/index.ts` (barrel — importing it self-registers every instance) + `self/BROWSE.md`.
+- Instances only; **no primitive type changed**. Registration is inert until the barrel
+  is imported. Compile-time drift guards keep the model in lockstep with the primitives.
+
 ## 1.51.0 — Prompt-to-DTC canonical contract primitives — 2026-05-10
 
 ### Added
