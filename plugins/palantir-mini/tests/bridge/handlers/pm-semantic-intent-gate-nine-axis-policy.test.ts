@@ -35,6 +35,17 @@ function makeDraftContract(intent: string): SemanticIntentContract {
   return draftSemanticIntentContract({ intent });
 }
 
+function readEvents(project: string): Array<Record<string, any>> {
+  const eventsPath = path.join(project, ".palantir-mini", "session", "events.jsonl");
+  if (!fs.existsSync(eventsPath)) return [];
+  return fs
+    .readFileSync(eventsPath, "utf8")
+    .trim()
+    .split("\n")
+    .filter((l) => l.trim().length > 0)
+    .map((l) => JSON.parse(l));
+}
+
 test("nine-axis-sic + turn=0 → fillResult populated, nextQuestion is NINE_AXIS T1 (not legacy)", async () => {
   const project = makeTmpProject();
   const contract = makeDraftContract("nine-axis start");
@@ -116,4 +127,48 @@ test("nine-axis-sic out-of-bounds turn → fillResult absent (non-fatal, no thro
 
   expect(result.fillResult).toBeUndefined();
   // Handler should not throw.
+});
+
+test("nine-axis-sic full T0–T9 fill → semantic_intent_contract_finalized emitted at T9 (W3d-2b)", async () => {
+  const project = makeTmpProject();
+  // One non-empty answer per turn: T0 = intent, T1–T9 = one axis each.
+  const answers = [
+    "build a grading dashboard",            // T0 → rawIntent/confirmedIntent
+    "Student, Assignment, Grade",           // T1 → axes.data
+    "weighted average per rubric",          // T2 → axes.logic
+    "publish final grades to students",     // T3 → axes.action
+    "teacher approves before publish",      // T4 → axes.governance
+    "rubric.md, gradebook.csv",             // T5 → axes.context
+    "every student has a final grade",      // T6 → axes.successEval
+    "do not expose other students' grades", // T7 → axes.constraintsNonGoals
+    "teacher runs it, admin authorizes",    // T8 → axes.actors
+    "prior term's rubric decision",         // T9 → axes.memoryPrior
+  ];
+
+  let contract: SemanticIntentContract = makeDraftContract("nine-axis full fill");
+  let result: Awaited<ReturnType<typeof semanticIntentGate>> | undefined;
+  for (let turn = 0; turn < answers.length; turn++) {
+    result = await semanticIntentGate({
+      project,
+      rawIntent: "nine-axis full fill",
+      fillPolicy: "nine-axis-sic",
+      turn,
+      turnUserInput: answers[turn],
+      semanticIntentContract: contract,
+    });
+    contract = result.fillResult!.contract as SemanticIntentContract;
+  }
+
+  // T9 with all axes filled → readiness complete → finalization emit.
+  expect(result!.fillResult!.appliedTurn).toBe(9);
+  expect(result!.fillResult!.fillComplete).toBe(true);
+
+  const finalized = readEvents(project).find(
+    (e) =>
+      e.type === "validation_phase_completed" &&
+      e.payload?.errorClass === "semantic_intent_contract_finalized",
+  );
+  expect(finalized).toBeDefined();
+  expect(finalized!.payload?.fillPolicy).toBe("nine-axis-sic");
+  expect(finalized!.payload?.verdict).toBe("filled");
 });

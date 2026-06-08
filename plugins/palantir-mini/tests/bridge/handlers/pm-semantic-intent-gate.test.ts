@@ -855,6 +855,7 @@ describe("pm_semantic_intent_gate", () => {
       promptHash: envelope.promptHash,
       sessionId: envelope.sessionId,
       runtime: envelope.runtime,
+      fillPolicy: "default-8-turn", // W3d-2b: pin to legacy 8-turn (default flipped to nine-axis)
       turn: 1,
       turnUserInput: "lib/context-engineering/context-plan-builder.ts",
     });
@@ -1349,6 +1350,7 @@ describe("pm_semantic_intent_gate — 8-turn fill sequence integration", () => {
       rawIntent: "Implement 8-turn fill for SIC",
       scopePaths: ["lib/semantic-intent/fill-sequence.ts"],
       complexityHint: "multi-file",
+      fillPolicy: "default-8-turn", // W3d-2b: pin to legacy 8-turn (default flipped to nine-axis)
       turn: 0,
     });
     const contractAfterT0 = t0.fillResult?.contract ?? t0.draftContracts?.semanticIntent;
@@ -1358,6 +1360,7 @@ describe("pm_semantic_intent_gate — 8-turn fill sequence integration", () => {
       rawIntent: "Implement 8-turn fill for SIC",
       scopePaths: ["lib/semantic-intent/fill-sequence.ts"],
       complexityHint: "multi-file",
+      fillPolicy: "default-8-turn", // W3d-2b: this test guards the legacy T1 affectedSurfaces-append mechanic
       turn: 1,
       turnUserInput: "lib/semantic-intent/fill-sequence.ts",
       semanticIntentContract: contractAfterT0,
@@ -1402,6 +1405,7 @@ describe("pm_semantic_intent_gate — 8-turn fill sequence integration", () => {
       project,
       rawIntent: "Implement fill sequence",
       complexityHint: "multi-file",
+      fillPolicy: "default-8-turn", // W3d-2b: pin to legacy 8-turn (default flipped to nine-axis)
       turn: 7,
       semanticIntentContract: baseSic as unknown as SemanticIntentContract,
     });
@@ -1448,6 +1452,7 @@ describe("pm_semantic_intent_gate — 8-turn fill sequence integration", () => {
       project,
       rawIntent: "Implement fill sequence",
       complexityHint: "multi-file",
+      fillPolicy: "default-8-turn", // W3d-2b: pin to legacy 8-turn (default flipped to nine-axis)
       turn: 7,
       semanticIntentContract: incompleteSic as unknown as SemanticIntentContract,
     });

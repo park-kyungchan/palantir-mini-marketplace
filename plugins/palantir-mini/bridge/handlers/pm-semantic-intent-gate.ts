@@ -1960,8 +1960,14 @@ export async function semanticIntentGate(
     const baseContract =
       input.semanticIntentContract ?? draftContracts?.semanticIntent;
     if (baseContract) {
+      // W3d-2b DEFAULT FLIP: an absent fillPolicy now routes to the 9-axis
+      // understand-heart (was the legacy 8-turn path). Legacy 8-turn stays reachable
+      // via explicit "default-8-turn" (the final `else` below). DTC policies are
+      // handled above (this block is the non-DTC `else`); `selectFillSequence` keeps
+      // its own absent→8-turn contract (a separate, MAJOR-bump-protected surface).
+      const effectiveFillPolicy: FillPolicy = input.fillPolicy ?? "nine-axis-sic";
       // ADDITIVE: deterministic Context Engineering -> SIC path.
-      if (input.fillPolicy === "context-engineering-to-sic") {
+      if (effectiveFillPolicy === "context-engineering-to-sic") {
         try {
           const seq = CONTEXT_ENGINEERING_TO_SIC_SEQUENCE;
           const descriptor = seq[input.turn];
@@ -2015,7 +2021,7 @@ export async function semanticIntentGate(
         } catch (err) {
           void err;
         }
-      } else if (input.fillPolicy === "fde-ontology-build") {
+      } else if (effectiveFillPolicy === "fde-ontology-build") {
       // ADDITIVE: FDE 9-step path
         try {
           const seq = FDE_FILL_SEQUENCE;
@@ -2045,12 +2051,12 @@ export async function semanticIntentGate(
           // FDE fill errors are non-fatal; result returned without fdeFillResult.
           void err;
         }
-      } else if (input.fillPolicy === "nine-axis-sic") {
-      // ADDITIVE: 9-axis understand-heart path (T0 intent + 9 axes = 10 turns).
-      // Fixes the prior misroute where "nine-axis-sic" fell through to the legacy
-      // 8-turn path below (the gate had zero nine-axis refs). Produces fillResult
-      // exactly like the context-engineering-to-sic SIC policy. The nine-axis
-      // finalization emit is intentionally deferred to W3d-2b (default flip).
+      } else if (effectiveFillPolicy === "nine-axis-sic") {
+      // 9-axis understand-heart path (T0 intent + 9 axes = 10 turns). Reached by an
+      // explicit "nine-axis-sic" fillPolicy OR — since W3d-2b — by an ABSENT fillPolicy
+      // (the flipped default). Produces fillResult exactly like context-engineering-to-sic,
+      // plus a fail-closed incomplete emit at T9 and (W3d-2b) a finalization emit on
+      // completion so the lineage row survives the default flip.
         try {
           const seq = NINE_AXIS_SIC_SEQUENCE;
           const descriptor = seq[input.turn];
@@ -2067,9 +2073,10 @@ export async function semanticIntentGate(
           );
           const issues = nineAxisSicReadinessIssues(advanced);
           const complete = issues.length === 0;
+          const isLastTurn = input.turn === seq.length - 1;
           const nextDescriptor = seq[input.turn + 1];
           let fillIncomplete: string | undefined;
-          if (input.turn === seq.length - 1 && !complete) {
+          if (isLastTurn && !complete) {
             fillIncomplete =
               "nine_axis_sic_incomplete: 9-axis readiness is incomplete after T9 (" +
               issues.map((i) => i.field).join(", ") +
@@ -2091,6 +2098,40 @@ export async function semanticIntentGate(
                 reasoning:
                   `pm_semantic_intent_gate nine-axis-sic T${input.turn} ended without readiness; ` +
                   `contractId=${advanced.contractId} — SIC approval must fail closed`,
+                memoryLayers: ["semantic", "procedural"],
+              });
+            } catch {
+              // Non-fatal emit.
+            }
+          } else if (isLastTurn && complete) {
+            // W3d-2b: finalization emit — mirrors the legacy 8-turn
+            // `semantic_intent_contract_finalized` so the contract-finalized lineage
+            // row still fires once nine-axis is the flipped default (else absent-policy
+            // callers would silently stop emitting it — a rule-10 regression).
+            try {
+              await emit({
+                type: "validation_phase_completed",
+                payload: {
+                  passed: true,
+                  errorClass: "semantic_intent_contract_finalized",
+                  contractId: advanced.contractId,
+                  verdict: "filled",
+                  fillSequenceLength: advanced.fillSequence?.length ?? 0,
+                  fillComplete: true,
+                  rawIntent: advanced.rawIntent,
+                  fillPolicy: "nine-axis-sic",
+                  projectRoot: input.project,
+                  promptId: input.promptId,
+                  sessionId: input.sessionId,
+                } as Record<string, unknown>,
+                toolName: "pm_semantic_intent_gate",
+                cwd: input.project,
+                reasoning:
+                  `pm_semantic_intent_gate: SemanticIntentContract finalized after 9-axis fill; ` +
+                  `contractId=${advanced.contractId} — all 9 axes + intent filled (T9 complete)`,
+                hypothesis:
+                  "A complete 9-axis fill yields a contract with intent + all axes filled, " +
+                  "enabling downstream gate assessment under the W3d-2b default-nine-axis policy.",
                 memoryLayers: ["semantic", "procedural"],
               });
             } catch {
@@ -2169,6 +2210,7 @@ export async function semanticIntentGate(
                 fillSequenceLength: advanced.fillSequence?.length ?? 0,
                 fillComplete: complete,
                 rawIntent: advanced.rawIntent,
+                fillPolicy: "default-8-turn", // W3d-2b: symmetry with the nine-axis finalization row (retro can distinguish the two paths)
                 projectRoot: input.project,
                 promptId: input.promptId,
                 sessionId: input.sessionId,
