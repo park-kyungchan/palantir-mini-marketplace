@@ -13,6 +13,7 @@
 
 import type { CapabilityContract } from "../capability/capability-contract";
 import { resolveHostRuntimeIdentity } from "../runtime/identity";
+import { CLAUDE_CAPABILITY_SOURCE } from "./sources/claude-source";
 
 export interface CapabilitySourceContext {
   /** Plugin root the source scans (resolvePalantirMiniRoot()). */
@@ -29,19 +30,20 @@ export interface CapabilitySource {
 }
 
 /**
- * Resolve the active capability sources for a runtime identity. Wired to the
- * Claude source in Step 3 (sources/claude-source.ts registers via
- * registerCapabilitySource); returns [] until then so this declaration is inert.
+ * Resolve the active capability sources for the host runtime identity. Mirrors
+ * lib/runtime/tool-profile.ts:resolveToolProfile — a direct CLAUDE_* default
+ * (NOT a registration side-effect, so it is never inert-until-imported).
+ * Codex/Gemini capability sources land with their adapters (W4+).
  */
-const REGISTERED_SOURCES = new Map<string, CapabilitySource>();
-
-export function registerCapabilitySource(runtime: string, source: CapabilitySource): void {
-  REGISTERED_SOURCES.set(runtime, source);
-}
-
 export function resolveCapabilitySources(
   identity: string = resolveHostRuntimeIdentity(undefined, "claude-code"),
 ): readonly CapabilitySource[] {
-  const source = REGISTERED_SOURCES.get(identity);
-  return source ? [source] : [];
+  switch (identity) {
+    case "claude-code":
+      return [CLAUDE_CAPABILITY_SOURCE];
+    // Codex/Gemini sources are added with their adapters (W4+); until then the
+    // Claude source is the sole discovery surface for every host.
+    default:
+      return [CLAUDE_CAPABILITY_SOURCE];
+  }
 }
