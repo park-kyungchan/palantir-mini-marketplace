@@ -6,10 +6,9 @@ import {
   loadProjectOntologyIndex,
   PROJECT_ONTOLOGY_INDEX_SCHEMA_VERSION,
 } from "../../../lib/capability/project-ontology-index";
-import type { CapabilityContract } from "../../../lib/capability/capability-contract";
+import type { CapabilityContract, SkillOntologyContract } from "../../../lib/capability/capability-contract";
 import type { KnownIssue } from "../../../lib/issues/known-issue";
 import type { ProjectScopeDefinition } from "../../../lib/project-scope/loader";
-import type { SkillOntologyContract } from "../../../lib/skills/skill-ontology-contract";
 
 function writeJson(filePath: string, value: unknown): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });

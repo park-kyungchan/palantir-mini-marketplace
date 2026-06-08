@@ -5,7 +5,7 @@ import * as path from "node:path";
 import { createUniversalOntologyEntry } from "../../../lib/ontology-entry/universal-entry";
 import { queryOntologyContext } from "../../../lib/ontology-context/query";
 import type { KnownIssue } from "../../../lib/issues/known-issue";
-import type { SkillOntologyContract } from "../../../lib/skills/skill-ontology-contract";
+import type { SkillOntologyContract } from "../../../lib/capability/capability-contract";
 
 const PALANTIR_MATH_EXPERT: SkillOntologyContract = {
   skillId: "palantir-math-expert",

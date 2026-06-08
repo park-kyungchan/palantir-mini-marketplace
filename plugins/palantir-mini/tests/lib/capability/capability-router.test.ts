@@ -197,4 +197,56 @@ describe("CapabilityRouter", () => {
     ]);
     expect(result.requiredDtc).toBe(true);
   });
+
+  // Migrated from the deleted skill-ontology-router test (W3e-2 Step 6): the
+  // unified capability router must still reject on a matching negative example.
+  test("rejects a capability whose negative example matches the approved meaning", () => {
+    const result = routeCapabilityOntology({
+      projectRoot: "/tmp/palantir-math",
+      semanticConversationState: conversation("seq-data.json을 컴파일해줘"),
+      ontologyContext: context({
+        nouns: ["SeqData"],
+        verbs: ["compile"],
+        surfaces: ["approved solution.md", "seq-data.json"],
+      }),
+      availableCapabilities: [PALANTIR_MATH_EXPERT, SEQUENCER_MATH],
+    });
+
+    const expertDecision = result.decisions.find(
+      (decision) => decision.capabilityId === "palantir-math-expert",
+    );
+    expect(expertDecision?.decision).toBe("rejected");
+    expect(expertDecision?.rejectedReasons).toContain("negative example matched");
+    expect(result.selectedCapabilities.map((item) => item.capabilityId)).not.toContain(
+      "palantir-math-expert",
+    );
+  });
+
+  // Migrated from the deleted skill-ontology-router test (W3e-2 Step 6): an
+  // explicit candidate skill ref must still boost the matching capability. The
+  // capability router reads skillFacing.candidateSkillRefs (skillId === capabilityId).
+  test("boosts a capability matched by an explicit candidate skill ref", () => {
+    const base = conversation("an ambiguous request with no strong ontology tokens");
+    const withCandidate: SemanticConversationState = {
+      ...base,
+      skillFacing: {
+        ...base.skillFacing,
+        candidateSkillRefs: [{ skillId: "palantir-math-expert" }],
+      },
+    };
+    const result = routeCapabilityOntology({
+      projectRoot: "/tmp/palantir-math",
+      semanticConversationState: withCandidate,
+      ontologyContext: context({ nouns: [], verbs: [], surfaces: [] }),
+      availableCapabilities: [PALANTIR_MATH_EXPERT, SEQUENCER_MATH],
+    });
+
+    const expertDecision = result.decisions.find(
+      (decision) => decision.capabilityId === "palantir-math-expert",
+    );
+    expect(expertDecision?.matchedReasons).toContain("candidate capability ref matched");
+    expect(result.selectedCapabilities.map((item) => item.capabilityId)).toContain(
+      "palantir-math-expert",
+    );
+  });
 });

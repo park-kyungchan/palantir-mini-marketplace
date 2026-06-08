@@ -1,14 +1,15 @@
 import * as path from "path";
 import {
   SKILL_ONTOLOGY_SCHEMA_VERSION,
-  isSkillOntologyCategory,
   normalizeSkillOntologyContract,
   validateSkillOntologyContract,
-  type SkillOntologyCategory,
-  type SkillOntologyContract,
-  type SkillIntentMatcher,
   type SkillOntologyValidationIssue,
 } from "./skill-ontology-contract";
+import type {
+  CapabilityDomainTag,
+  SkillOntologyContract,
+  SkillIntentMatcher,
+} from "../capability/capability-contract";
 
 type FrontmatterValue = string | boolean | readonly string[];
 type FrontmatterRecord = Record<string, FrontmatterValue>;
@@ -211,7 +212,7 @@ function inferSkillId(skillPath: string): string {
   return base.trim().length > 0 ? base : "unknown-skill";
 }
 
-function inferCategory(markdown: string, skillPath: string): SkillOntologyCategory {
+function inferCategory(markdown: string, skillPath: string): CapabilityDomainTag {
   const hint = `${skillPath}\n${markdown}`.toLowerCase();
   if (hint.includes("vc-scenario") || hint.includes("visual scenario")) return "visual-scenario";
   if (hint.includes("sequencer")) return "sequencer-compile";
@@ -225,9 +226,11 @@ function explicitCategory(
   ontologySkill: FrontmatterRecord,
   markdown: string,
   skillPath: string,
-): SkillOntologyCategory {
+): CapabilityDomainTag {
+  // Free-form category (W3e-2): a SKILL.md may declare any domain tag; absent one,
+  // fall back to the Claude SKILL.md text-matching heuristic. No closed-enum gate.
   const value = stringValue(ontologySkill, "category");
-  if (value !== undefined && isSkillOntologyCategory(value)) return value;
+  if (value !== undefined) return value;
   return inferCategory(markdown, skillPath);
 }
 

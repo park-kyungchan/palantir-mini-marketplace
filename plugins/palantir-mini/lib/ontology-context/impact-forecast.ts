@@ -2,7 +2,6 @@ import { walkForward } from "../impact-graph/registry-loader";
 import { projectScopePolicyForFiles } from "../lead-intent/project-scope-policy";
 import type { UniversalOntologyEntry } from "../ontology-entry/universal-entry";
 import type { CapabilityContract } from "../capability/capability-contract";
-import type { SkillOntologyContract } from "../skills/skill-ontology-contract";
 
 export interface OntologyImpactForecast {
   readonly directSurfaceRefs: readonly string[];
@@ -16,14 +15,6 @@ function unique(values: readonly (string | undefined)[]): string[] {
   )));
 }
 
-function surfaceRefsFromSkills(skills: readonly SkillOntologyContract[]): string[] {
-  return unique(skills.flatMap((skill) => [
-    ...(skill.readSurfaces ?? []),
-    ...(skill.writeSurfaces ?? []),
-    ...skill.actionBoundary.mutationSurfaces,
-  ]));
-}
-
 function surfaceRefsFromCapabilities(capabilities: readonly CapabilityContract[]): string[] {
   return unique(capabilities.flatMap((capability) => [
     ...capability.readSurfaces,
@@ -35,14 +26,11 @@ function surfaceRefsFromCapabilities(capabilities: readonly CapabilityContract[]
 export function forecastOntologyImpact(input: {
   readonly entry: UniversalOntologyEntry;
   readonly projectRoot: string;
-  readonly selectedSkills: readonly SkillOntologyContract[];
   readonly selectedCapabilities?: readonly CapabilityContract[];
 }): OntologyImpactForecast {
-  const skillSurfaces = surfaceRefsFromSkills(input.selectedSkills);
   const capabilitySurfaces = surfaceRefsFromCapabilities(input.selectedCapabilities ?? []);
   const directSurfaceRefs = unique([
     ...input.entry.ontologySeed.surfaceHints,
-    ...skillSurfaces,
     ...capabilitySurfaces,
   ]);
   const policy = projectScopePolicyForFiles(directSurfaceRefs, input.projectRoot);
@@ -62,7 +50,7 @@ export function forecastOntologyImpact(input: {
   const confidence: OntologyImpactForecast["confidence"] =
     directSurfaceRefs.length === 0
       ? "low"
-      : policy.matches.length > 0 || graphSurfaces.length > 0 || input.selectedSkills.length > 0
+      : policy.matches.length > 0 || graphSurfaces.length > 0
         || (input.selectedCapabilities?.length ?? 0) > 0
         ? "high"
         : "medium";

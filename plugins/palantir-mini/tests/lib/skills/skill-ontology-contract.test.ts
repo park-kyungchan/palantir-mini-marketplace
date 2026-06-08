@@ -2,20 +2,11 @@ import { describe, expect, test } from "bun:test";
 import {
   parseSkillOntologyContractResult,
 } from "../../../lib/skills/skill-ontology-parser";
-import {
-  normalizeSkillOntologyContract,
-  type SkillOntologyContract,
-  type SkillIntentMatcher,
-  type SkillOntologyCategory,
-} from "../../../lib/skills/skill-ontology-contract";
-import {
-  routeSkillOntology,
-} from "../../../lib/skills/skill-ontology-router";
-import {
-  buildLLMControlFacingState,
-  type SemanticConversationState,
-} from "../../../lib/chatbot-studio/semantic-conversation-state";
-import type { OntologyActivation } from "../../../lib/context-engineering/ontology-activation";
+import { normalizeSkillOntologyContract } from "../../../lib/skills/skill-ontology-contract";
+import type {
+  SkillOntologyContract,
+  SkillIntentMatcher,
+} from "../../../lib/capability/capability-contract";
 
 const GOOD_SKILL = `---
 name: palantir-math-expert
@@ -62,59 +53,9 @@ ontologySkill:
 - bun test tests/lib/skills/skill-ontology-contract.test.ts
 `;
 
-function conversationState(): SemanticConversationState {
-  const stateId = "semantic-conversation:test";
-  return {
-    stateId,
-    schemaVersion: "palantir-mini/semantic-conversation-state/v1",
-    prompt: { runtime: "codex" },
-    userFacing: {
-      preferredLanguage: "ko",
-      userExpertise: "non_programmer",
-      plainRequestSummary: "Problem 15 lecture trace review handoff",
-      confirmedNonGoals: [],
-      unresolvedQuestions: [],
-    },
-    ontologyFacing: {
-      activatedObjectRefs: ["LectureProblem", "MathLectureTrace"],
-      activatedActionRefs: ["derive"],
-      activatedSurfaceRefs: [],
-      activatedLaneRefs: [],
-      forbiddenSurfaceRefs: ["Presenter runtime rewrite"],
-    },
-    skillFacing: {
-      candidateSkillRefs: [{ skillId: "palantir-math-expert" }],
-      selectedSkillRefs: [],
-      skillRoutingReason: "candidate from user-approved meaning",
-    },
-    llmControlFacing: buildLLMControlFacingState(stateId),
-    contractFacing: { dtcReady: false },
-    projectFacing: {
-      projectRoot: "/tmp/palantir-math",
-      projectScopeLaneIds: [],
-      requiredValidationPacks: [],
-    },
-    lifecycle: "semantic-approved",
-  };
-}
-
-function ontologyActivation(): OntologyActivation {
-  return {
-    semanticIntentContractRef: "semantic:test",
-    approvedNouns: ["LectureProblem", "MathLectureTrace"],
-    approvedVerbs: ["derive", "validate"],
-    affectedSurfaces: ["src/lib/learningTrace"],
-    forbiddenSurfaces: ["Presenter runtime rewrite"],
-    ontologyRefs: ["LectureProblem", "MathLectureTrace"],
-    actionRefs: ["derive"],
-    evaluationDirection: "directional-only",
-    toolBoundaryDirection: "directional-only",
-  };
-}
-
 function minimalContract(input: {
   skillId: string;
-  category: SkillOntologyCategory;
+  category: string;
   inputArtifacts: readonly string[];
   optionalInputs?: readonly string[];
   outputArtifacts: readonly string[];
@@ -242,161 +183,6 @@ describe("SkillOntologyContract", () => {
     );
     expect(result.issues.map((issue) => issue.issueId)).toContain(
       "skill-ontology.missing-mutation-policy",
-    );
-  });
-
-  test("routes skills by approved ontology refs and explicit candidate skill refs", () => {
-    const contract = parseSkillOntologyContractResult(
-      GOOD_SKILL,
-      "/tmp/palantir-math/.claude/skills/palantir-math-expert/SKILL.md",
-    ).contract;
-
-    const result = routeSkillOntology({
-      projectRoot: "/tmp/palantir-math",
-      semanticConversationState: conversationState(),
-      ontologyActivation: ontologyActivation(),
-      availableSkills: [contract],
-    });
-
-    expect(result.selectedSkills.map((skill) => skill.skillId)).toEqual([
-      "palantir-math-expert",
-    ]);
-    expect(result.decisions[0]?.matchedReasons).toContain("candidate skill ref matched");
-    expect(result.requiredDtc).toBe(true);
-    expect(result.rejectedSkills).toEqual([]);
-  });
-
-  test("keeps weak or negative intent matches out of selected routing", () => {
-    const contract = parseSkillOntologyContractResult(
-      GOOD_SKILL,
-      "/tmp/palantir-math/.claude/skills/palantir-math-expert/SKILL.md",
-    ).contract;
-    const state = conversationState();
-    const activation = {
-      ...ontologyActivation(),
-      approvedNouns: ["SeqData"],
-      approvedVerbs: ["compile"],
-      ontologyRefs: ["SeqData"],
-      actionRefs: ["compile"],
-    };
-
-    const result = routeSkillOntology({
-      projectRoot: "/tmp/palantir-math",
-      semanticConversationState: {
-        ...state,
-        userFacing: {
-          ...state.userFacing,
-          plainRequestSummary: "seq-data.json을 컴파일해줘",
-        },
-        skillFacing: {
-          candidateSkillRefs: [],
-          selectedSkillRefs: [],
-          skillRoutingReason: "raw request only",
-        },
-      },
-      ontologyActivation: activation,
-      availableSkills: [contract],
-    });
-
-    expect(result.selectedSkills).toEqual([]);
-    expect(result.decisions[0]?.decision).toBe("rejected");
-    expect(result.rejectedSkills[0]?.reason).toContain("negative example matched");
-  });
-
-  test("separates first-time authoring outputs from compile prerequisites", () => {
-    const expert = minimalContract({
-      skillId: "palantir-math-expert",
-      category: "problem-authoring",
-      inputArtifacts: ["raw math problem", "teacher intent"],
-      optionalInputs: ["existing solution.md for revision"],
-      outputArtifacts: ["solution.md"],
-      nouns: ["Problem", "SolutionStep"],
-      verbs: ["author", "정리"],
-      negativeExamples: ["seq-data.json을 컴파일해줘"],
-    });
-    const sequencer = minimalContract({
-      skillId: "sequencer-math",
-      category: "sequencer-compile",
-      inputArtifacts: ["solution.md"],
-      optionalInputs: ["trials.md when present"],
-      outputArtifacts: ["seq-data.json"],
-      nouns: ["SeqData", "SeqStep"],
-      verbs: ["compile", "컴파일"],
-      negativeExamples: ["solution.md 의미만 작성해줘"],
-    });
-    const state = conversationState();
-
-    const authoring = routeSkillOntology({
-      projectRoot: "/tmp/palantir-math",
-      semanticConversationState: {
-        ...state,
-        userFacing: {
-          ...state.userFacing,
-          plainRequestSummary: "이 문제를 수업에서 설명할 수 있게 정리해줘",
-        },
-        ontologyFacing: {
-          ...state.ontologyFacing,
-          activatedObjectRefs: ["Problem", "SolutionStep"],
-          activatedActionRefs: ["author", "정리"],
-          activatedSurfaceRefs: [],
-        },
-        skillFacing: {
-          candidateSkillRefs: [],
-          selectedSkillRefs: [],
-          skillRoutingReason: "lifecycle authoring check",
-        },
-      },
-      ontologyActivation: {
-        ...ontologyActivation(),
-        approvedNouns: ["Problem", "SolutionStep"],
-        approvedVerbs: ["author", "정리"],
-        affectedSurfaces: [],
-        ontologyRefs: ["Problem", "SolutionStep"],
-        actionRefs: ["author", "정리"],
-      },
-      availableSkills: [expert, sequencer],
-    });
-
-    expect(authoring.selectedSkills.map((skill) => skill.skillId)).toEqual([
-      "palantir-math-expert",
-    ]);
-
-    const compile = routeSkillOntology({
-      projectRoot: "/tmp/palantir-math",
-      semanticConversationState: {
-        ...state,
-        userFacing: {
-          ...state.userFacing,
-          plainRequestSummary: "approved solution.md를 seq-data.json으로 컴파일해줘",
-        },
-        ontologyFacing: {
-          ...state.ontologyFacing,
-          activatedObjectRefs: ["SeqData", "SeqStep"],
-          activatedActionRefs: ["compile", "컴파일"],
-          activatedSurfaceRefs: ["solution.md"],
-        },
-        skillFacing: {
-          candidateSkillRefs: [],
-          selectedSkillRefs: [],
-          skillRoutingReason: "lifecycle compile check",
-        },
-      },
-      ontologyActivation: {
-        ...ontologyActivation(),
-        approvedNouns: ["SeqData", "SeqStep"],
-        approvedVerbs: ["compile", "컴파일"],
-        affectedSurfaces: ["solution.md"],
-        ontologyRefs: ["SeqData", "SeqStep"],
-        actionRefs: ["compile", "컴파일"],
-      },
-      availableSkills: [expert, sequencer],
-    });
-
-    expect(compile.selectedSkills.map((skill) => skill.skillId)).toEqual([
-      "sequencer-math",
-    ]);
-    expect(compile.decisions[0]?.matchedReasons).toContain(
-      "input artifact lifecycle matcher matched",
     );
   });
 });

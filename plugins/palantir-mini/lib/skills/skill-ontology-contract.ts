@@ -1,75 +1,16 @@
 import type { SkillOntologyRef } from "../chatbot-studio/semantic-conversation-state";
+import type {
+  SkillArtifactLifecycle,
+  SkillIntentMatcher,
+  SkillOntologyContract,
+} from "../capability/capability-contract";
 
 export const SKILL_ONTOLOGY_SCHEMA_VERSION = "palantir-mini/skill-ontology/v1";
 
-export const SKILL_ONTOLOGY_CATEGORIES = [
-  "problem-authoring",
-  "sequencer-compile",
-  "visual-scenario",
-  "concept-authoring",
-  "debug-triage",
-  "presenter-readiness",
-] as const;
-
-export type SkillOntologyCategory = typeof SKILL_ONTOLOGY_CATEGORIES[number];
-
-export interface SkillArtifactLifecycle {
-  readonly prerequisites: readonly string[];
-  readonly optionalInputs: readonly string[];
-  readonly creates: readonly string[];
-  readonly mutates: readonly string[];
-}
-
-export interface SkillIntentMatcher {
-  readonly matcherId: string;
-  readonly naturalLanguageExamples: readonly string[];
-  readonly nouns: readonly string[];
-  readonly verbs: readonly string[];
-  readonly projectScopeLanes: readonly string[];
-  readonly prerequisites?: readonly string[];
-  readonly optionalExistingArtifacts?: readonly string[];
-  readonly createsArtifacts?: readonly string[];
-  readonly consumesArtifacts?: readonly string[];
-  readonly requiredArtifacts?: readonly string[];
-  readonly negativeExamples?: readonly string[];
-}
-
-export interface SkillOntologyContract {
-  readonly skillId: string;
-  readonly skillPath: string;
-  readonly displayName: string;
-  readonly category: SkillOntologyCategory;
-
-  readonly userFacingPurpose: string;
-  readonly leadFacingPurpose: string;
-
-  readonly inputOntology: {
-    readonly objectRefs: readonly string[];
-    readonly requiredArtifacts: readonly string[];
-    readonly artifactLifecycle: SkillArtifactLifecycle;
-    readonly allowedRawInputs: readonly string[];
-  };
-
-  readonly outputOntology: {
-    readonly objectRefs: readonly string[];
-    readonly artifactRefs: readonly string[];
-    readonly validationPacks: readonly string[];
-  };
-
-  readonly actionBoundary: {
-    readonly mayMutateProjectFiles: boolean;
-    readonly mutationSurfaces: readonly string[];
-    readonly requiresDtcApproval: boolean;
-    readonly requiresTeacherApproval: boolean;
-  };
-
-  readonly nonGoals: readonly string[];
-  readonly failureModes: readonly string[];
-  readonly intentMatchers: readonly SkillIntentMatcher[];
-  readonly readSurfaces?: readonly string[];
-  readonly writeSurfaces?: readonly string[];
-  readonly knownIssueRefs?: readonly string[];
-}
+// SkillArtifactLifecycle / SkillIntentMatcher / SkillOntologyContract now live in
+// lib/capability/capability-contract (folded W3e-2 Step 4) so lib/capability no
+// longer imports lib/skills. The closed SKILL_ONTOLOGY_CATEGORIES enum was removed
+// — `category` is a free-form CapabilityDomainTag, validated by no gate.
 
 export interface SkillOntologyValidationIssue {
   readonly issueId: string;
@@ -81,10 +22,6 @@ export interface SkillOntologyValidationIssue {
 export interface SkillOntologyValidationResult {
   readonly valid: boolean;
   readonly issues: readonly SkillOntologyValidationIssue[];
-}
-
-export function isSkillOntologyCategory(value: string): value is SkillOntologyCategory {
-  return (SKILL_ONTOLOGY_CATEGORIES as readonly string[]).includes(value);
 }
 
 function uniqueStrings(values: readonly string[]): string[] {
@@ -191,15 +128,6 @@ export function validateSkillOntologyContract(
       field: "skillPath",
       severity: "fail",
       message: "SkillOntologyContract must retain the source SKILL.md path.",
-    });
-  }
-
-  if (!isSkillOntologyCategory(contract.category)) {
-    issues.push({
-      issueId: "skill-ontology.invalid-category",
-      field: "category",
-      severity: "fail",
-      message: `Skill category '${contract.category}' is not in the allowed ontology category set.`,
     });
   }
 
