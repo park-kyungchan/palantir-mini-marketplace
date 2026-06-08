@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.97.0] - 2026-06-08 — Harness redesign W3c-2: tool-classifier → injected ToolCapabilityProfile
+
+### Added
+- **`lib/runtime/tool-profile.ts`** (NEW) — neutral `ToolCapabilityProfile { readOnlyTools, protectedMutationTools }` carrying a host runtime's concrete tool-name vocabulary, plus `CLAUDE_TOOL_PROFILE` (the Claude adapter's read-only/protected-mutation tool sets) and `resolveToolProfile(identity?)` (host-resolved via `resolveHostRuntimeIdentity`, defaults to the Claude profile). Future Codex/Gemini adapters supply their own profiles instead of editing the neutral classifier.
+
+### Changed
+- **`lib/hooks/tool-classifier.ts`** — extracted the two module-level Claude tool-name `Set`s (`READ_ONLY_TOOLS` = read/grep/glob/ls/notebookread; `PROTECTED_MUTATION_TOOLS` = edit/write/multiedit/notebookedit/agent) into the injected profile. `classifyHookTool(payload, profile = resolveToolProfile())` now consults `profile.readOnlyTools` / `profile.protectedMutationTools`; the neutral pm-MCP-operation sets (`READ_ONLY_OPERATIONS` / `PROTECTED_MUTATION_OPERATIONS`) and all other exports are untouched. The default param keeps all **17 importers byte-stable** (no-arg calls resolve the host profile → Claude on this host); no signature break.
+
+Second sub-wave of W3c (verified split; ratified design A — profile injection over a full action-class enum). `mcp-first-compliance.ts` deliberately held out of this wave: its edit-tool heuristic uses **raw capitalized payload casing** (`Edit`/`Write`/`MultiEdit`) — a distinct vocabulary from the classifier's normalized-lowercase sets — and its consumers are orphan (`pm-recap`) + CLI; it de-Claudes with the recovery-session family instead. No schema primitive touched. typecheck green; affected tests pass (tool-classifier + governance ×4 = 85/85); full-suite stash-baseline-diff confirms **0 new regressions** (21 pre-existing failures unchanged, 3073 pass).
+
 ## [6.96.0] - 2026-06-08 — Harness redesign W3c-1: identity-literal → resolved host runtime (rule 27)
 
 ### Changed
