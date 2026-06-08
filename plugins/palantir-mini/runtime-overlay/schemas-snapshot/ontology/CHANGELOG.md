@@ -1,5 +1,33 @@
 # Ontology Schema Changelog
 
+## 1.69.0 — Self-Ontology: Executor ActionType + McpTool ObjectType (M-SELF #2+#3) — 2026-06-08
+
+### Added
+
+- `ontology/self/executor.actiontype.ts` (NEW) — `Executor`, a Tier-2 Function-Backed
+  ActionType modeling pm's neutral Hands-layer sandbox executor. **First registered
+  self ActionType**: `ACTION_TYPE_REGISTRY.register`-grep over `self/` goes 0 → 1. Wraps
+  an EditFunction (`editFunctionName: "pm.sandbox.executor.applyEditSteps"`, forward-named
+  — no lib import uphill) and commits resulting `OntologyEdit[]` atomically via
+  `commitEdits`; `approvalPolicy: "policy-approval"` (DTC-gate-strict), `branchPolicy:
+  "branch-required"` (worktree isolation), `sideEffects: []`. A LOCAL `EXEC_STEP_KINDS`
+  vocabulary guard (`"shell" | "edit"`) mirrors the M-SELF #1 exemplar's two-directional
+  `as const satisfies` + `[Canonical] extends [member]` no-drift idiom.
+- `ontology/self/mcp-tool.objecttype.ts` (NEW) — ONE `McpTool` ObjectType + **29 tool
+  instances** (`MCP_TOOL_INSTANCES`), the snapshot-owned seed of pm's LIVE MCP bridge
+  surface (identity-only; descriptor metadata stays the runtime projection at
+  `lib/capability-registry/mcp-tool-capability.ts`). Count is LIVE-grounded: bridge has
+  **29** tools (27 prior + W3e-1's `grade_outcome_with_rubric` + `pm_grader_dispatch`);
+  the bridge's in-file section-header comments (14/8/5) are stale — TOOLS.length is the SSoT.
+- `ontology/self/index.ts` barrel exports both + `ontology/self/BROWSE.md` registered-
+  instances table updated (M-SELF counter 1 → 3: 2 ObjectType + 1 ActionType + 1 Struct).
+- Registration test `tests/ontology/self/executor-registration.test.ts` proves both
+  registrations + the Tier-2 contract + 29 unique instances, and carries a **drift guard**
+  cross-checking the seed against the live `bridge/mcp-server.ts` TOOLS array.
+
+MINOR (additive instances; no primitive *type* changed, no breaking change). 0 new
+regressions (env-clean stash-baseline-diff IDENTICAL fail-set = 8 pre-existing).
+
 ## 1.68.0 — Self-Ontology: first registered pm-surface instances (M-SELF #1) — 2026-06-08
 
 ### Added

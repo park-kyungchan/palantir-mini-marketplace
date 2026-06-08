@@ -5,19 +5,19 @@
   },
   "metadata": {
     "description": "Ontology-First Brain for multi-harness agent swarms \u2014 typed Prompt-to-DTC control plane with FDE turn quality checks, structured DTC surfaces, Lead orchestration docs, MCP capability metadata, WorkContract router bindings, agent output contracts, harness ratchet release gates, Codex runtime-gap docs, and BackPropagation ratchet proposals.",
-    "version": "6.105.0"
+    "version": "6.106.0"
   },
   "plugins": [
     {
       "name": "palantir-mini",
       "source": "./",
       "description": "Ontology-First Brain for multi-harness agent swarms \u2014 typed Prompt-to-DTC contract authoring, structured DTC surface policy, Lead orchestration, MCP capability metadata, WorkContract router bindings, agent output contracts, harness ratchet release gates, Codex runtime-gap docs, and BackPropagation ratchet proposals.",
-      "version": "6.105.0",
+      "version": "6.106.0",
       "author": {
         "name": "palantirKC"
       },
       "category": "ontology-tooling"
     }
   ],
-  "version": "6.105.0"
+  "version": "6.106.0"
 }
