@@ -19,9 +19,6 @@ export type CapabilitySourceKind =
  */
 export type CapabilityDomainTag = string;
 
-/** @deprecated W3e-2 — use {@link CapabilityDomainTag}. Transitional alias removed in e2c. */
-export type CapabilityCategory = CapabilityDomainTag;
-
 export interface CapabilityArtifactLifecycle {
   readonly prerequisites: readonly string[];
   readonly optionalInputs: readonly string[];
