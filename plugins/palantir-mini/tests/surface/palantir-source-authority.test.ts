@@ -6,7 +6,10 @@ import {
   AIP_FDE_LOCAL_SURFACE_CONTRACT_SCHEMA_VERSION,
   type AipFdeLocalSurfaceContract,
 } from "../../core/contracts/aip-fde-local-surface";
-import { validatePalantirSourceAuthority } from "../../lib/research/palantir-source-authority";
+import {
+  DEFAULT_PALANTIR_SOURCE_AUTHORITY_CONFIG,
+  validatePalantirSourceAuthority,
+} from "../../lib/research/palantir-source-authority";
 
 const TEMP_ROOTS: string[] = [];
 
@@ -169,5 +172,77 @@ describe("Palantir source authority validator", () => {
     expect(result.issues.map((item) => item.issueId)).toContain(
       "palantir-authority.local-research-path-not-in-manifest",
     );
+  });
+
+  describe("injectable config", () => {
+    test("omitting config equals passing the exported default config", () => {
+      const surface = makeBaseSurface();
+      const withoutConfig = validatePalantirSourceAuthority(surface);
+      const withDefault = validatePalantirSourceAuthority(
+        surface,
+        DEFAULT_PALANTIR_SOURCE_AUTHORITY_CONFIG,
+      );
+
+      expect(withDefault).toEqual(withoutConfig);
+      expect(withoutConfig.status).toBe("pass");
+    });
+
+    test("custom officialUrlHostname overrides the default www.palantir.com check", () => {
+      // The base surface uses an https://www.palantir.com URL -> passes by default.
+      expect(validatePalantirSourceAuthority(makeBaseSurface()).status).toBe("pass");
+
+      // With a custom official hostname, the default URL is no longer official.
+      const result = validatePalantirSourceAuthority(
+        makeBaseSurface(),
+        { officialUrlHostname: "docs.internal.example.com" },
+      );
+      expect(result.status).toBe("fail");
+      expect(result.issues.map((item) => item.issueId)).toContain(
+        "palantir-authority.invalid-external-url",
+      );
+    });
+
+    test("custom surfacesRequiringAuthority can make validation not-required", () => {
+      // Default: tools-function/security-governance require authority refs.
+      expect(validatePalantirSourceAuthority(makeBaseSurface()).status).toBe("pass");
+
+      // Custom required set excludes the surface's refs -> authority not required.
+      const result = validatePalantirSourceAuthority(
+        makeBaseSurface(),
+        { surfacesRequiringAuthority: ["application-state-variables"] },
+      );
+      expect(result.status).toBe("not-required");
+      expect(result.checkedRefCount).toBe(0);
+      expect(result.issues).toEqual([]);
+    });
+
+    test("custom localResearchPathPrefixes accept a non-default research root", () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-palantir-custom-"));
+      TEMP_ROOTS.push(root);
+      // A research file that does NOT match the default ~/.claude/research/palantir-* shape.
+      const officialRoot = path.join(root, "vendor-research", "palantir-official");
+      const docPath = path.join(officialRoot, "foundry", "tools.md");
+      fs.mkdirSync(path.dirname(docPath), { recursive: true });
+      fs.writeFileSync(docPath, "# Tools\n", "utf8");
+      fs.writeFileSync(
+        path.join(officialRoot, "_manifest.json"),
+        JSON.stringify({ docs: [{ path: "foundry/tools.md", status: "fetched" }] }, null, 2),
+        "utf8",
+      );
+
+      const surface = makeBaseSurface(docPath);
+
+      // Default prefixes reject this path shape.
+      expect(
+        validatePalantirSourceAuthority(surface).issues.map((item) => item.issueId),
+      ).toContain("palantir-authority.invalid-local-research-path");
+
+      // Injected prefix + official-root suffix make the custom path valid.
+      const result = validatePalantirSourceAuthority(surface, {
+        localResearchPathPrefixes: [root],
+        officialRootSuffixSegments: ["vendor-research", "palantir-official"],
+      });
+      expect(result.status).toBe("pass");
+    });
   });
 });

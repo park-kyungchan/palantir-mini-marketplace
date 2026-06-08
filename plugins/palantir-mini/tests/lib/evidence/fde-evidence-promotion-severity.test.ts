@@ -3,7 +3,10 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { evaluateFDEEvidencePromotionSeverity } from "../../../lib/evidence/evidence-source-policy";
+import {
+  DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG,
+  evaluateFDEEvidencePromotionSeverity,
+} from "../../../lib/evidence/evidence-source-policy";
 
 function makeProject(): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-fde-evidence-severity-"));
@@ -146,5 +149,63 @@ describe("FDE evidence promotion severity", () => {
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  describe("injectable config", () => {
+    test("omitting config equals passing the exported default config", () => {
+      const root = makeProject();
+      try {
+        const input = {
+          projectRoot: root,
+          sourcePath: "./docs/source.md",
+          phase: "dtc-ready" as const,
+          use: "authority" as const,
+        };
+        const withoutConfig = evaluateFDEEvidencePromotionSeverity(input);
+        const withDefault = evaluateFDEEvidencePromotionSeverity(
+          input,
+          DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG,
+        );
+
+        expect(withDefault).toEqual(withoutConfig);
+        expect(withoutConfig.severity).toBe("fail");
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    test("custom projectDocSegments flow through to the policy decision", () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-fde-evidence-cfg-"));
+      try {
+        fs.mkdirSync(path.join(root, "handbook"), { recursive: true });
+        fs.writeFileSync(path.join(root, "handbook", "source.md"), "# source\n");
+
+        // Default config does not treat "handbook/" as project docs -> unsupported.
+        const withDefault = evaluateFDEEvidencePromotionSeverity({
+          projectRoot: root,
+          sourcePath: "./handbook/source.md",
+          phase: "dtc-ready",
+          use: "authority",
+        });
+        expect(withDefault.policyDecision.allowed).toBe(false);
+        expect(withDefault.severity).toBe("none");
+
+        // Injected segment list makes "handbook/" a recognised project doc -> authority fails.
+        const withCustom = evaluateFDEEvidencePromotionSeverity(
+          {
+            projectRoot: root,
+            sourcePath: "./handbook/source.md",
+            phase: "dtc-ready",
+            use: "authority",
+          },
+          { projectDocSegments: ["handbook"] },
+        );
+        expect(withCustom.policyDecision.allowed).toBe(true);
+        expect(withCustom.policyDecision.kind).toBe("project-doc");
+        expect(withCustom.severity).toBe("fail");
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    });
   });
 });

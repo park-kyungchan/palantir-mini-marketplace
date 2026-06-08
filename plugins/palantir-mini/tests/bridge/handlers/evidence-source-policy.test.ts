@@ -5,6 +5,7 @@ import * as path from "node:path";
 
 import {
   classifyEvidenceSource,
+  DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG,
   isReferenceEvidenceAllowed,
 } from "../../../lib/evidence/evidence-source-policy";
 
@@ -116,5 +117,84 @@ describe("evidence source policy", () => {
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  describe("injectable config", () => {
+    test("omitting config is identical to the exported default config", () => {
+      const input = { projectRoot, sourcePath: "docs/architecture.md" };
+      const withoutConfig = classifyEvidenceSource(input);
+      const withDefault = classifyEvidenceSource(input, DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG);
+
+      expect(withDefault).toEqual(withoutConfig);
+    });
+
+    test("custom homeDocsRoot overrides the default home-doc root", () => {
+      // Default behavior: /home/palantirkc/docs is a home-doc.
+      expect(classifyEvidenceSource({
+        projectRoot,
+        sourcePath: "/home/palantirkc/docs/proposals/fde-gap.md",
+      }).kind).toBe("home-doc");
+
+      // Custom root: the historical default path is no longer recognised as a home-doc...
+      expect(classifyEvidenceSource(
+        { projectRoot, sourcePath: "/home/palantirkc/docs/proposals/fde-gap.md" },
+        { homeDocsRoot: "/srv/reference-docs" },
+      ).kind).toBe("unsupported");
+
+      // ...while the injected root is.
+      const custom = classifyEvidenceSource(
+        { projectRoot, sourcePath: "/srv/reference-docs/proposals/fde-gap.md" },
+        { homeDocsRoot: "/srv/reference-docs" },
+      );
+      expect(custom.allowed).toBe(true);
+      expect(custom.kind).toBe("home-doc");
+    });
+
+    test("custom projectDocSegments override the default project-doc directories", () => {
+      // Default: "docs" is a project-doc segment.
+      expect(classifyEvidenceSource({
+        projectRoot,
+        sourcePath: "docs/architecture.md",
+      }).kind).toBe("project-doc");
+
+      // Custom segment list (drops "docs", adds "handbook").
+      expect(classifyEvidenceSource(
+        { projectRoot, sourcePath: "docs/architecture.md" },
+        { projectDocSegments: ["handbook"] },
+      ).kind).toBe("unsupported");
+
+      expect(classifyEvidenceSource(
+        { projectRoot, sourcePath: "handbook/architecture.md" },
+        { projectDocSegments: ["handbook"] },
+      ).kind).toBe("project-doc");
+    });
+
+    test("custom docExtensions gate which file types qualify", () => {
+      // Default: .md is an accepted doc extension.
+      expect(classifyEvidenceSource({
+        projectRoot,
+        sourcePath: "docs/architecture.md",
+      }).allowed).toBe(true);
+
+      // Custom extensions exclude .md.
+      expect(classifyEvidenceSource(
+        { projectRoot, sourcePath: "docs/architecture.md" },
+        { docExtensions: [".rst"] },
+      ).allowed).toBe(false);
+
+      expect(classifyEvidenceSource(
+        { projectRoot, sourcePath: "docs/architecture.rst" },
+        { docExtensions: [".rst"] },
+      ).allowed).toBe(true);
+    });
+
+    test("partial config merges over defaults (unspecified fields keep default behavior)", () => {
+      // Only override curriculumSegments; docFilenames default must still apply.
+      const result = classifyEvidenceSource(
+        { projectRoot, sourcePath: "nested/BROWSE.md" },
+        { curriculumSegments: ["lessons"] },
+      );
+      expect(result.kind).toBe("project-doc");
+    });
   });
 });
