@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.106.0] - 2026-06-08 — Harness redesign W3e-3a: self-Ontology Executor ActionType + McpTool ObjectType (M-SELF #2+#3)
+
+### Added
+- **`runtime-overlay/schemas-snapshot/ontology/self/executor.actiontype.ts`** — `Executor`, a Tier-2 Function-Backed ActionType modeling pm's neutral Hands-layer sandbox executor. **First registered self ActionType** (`ACTION_TYPE_REGISTRY.register`-grep over `self/` 0 → 1). Wraps an EditFunction (forward-named, no lib import) and commits via `commitEdits`; DTC-gate-strict + worktree-isolated + no opaque side effects. Local `EXEC_STEP_KINDS` two-directional vocabulary guard (mirrors the M-SELF #1 exemplar).
+- **`runtime-overlay/schemas-snapshot/ontology/self/mcp-tool.objecttype.ts`** — ONE `McpTool` ObjectType + **29 tool instances** (snapshot-owned seed of pm's LIVE bridge surface; identity-only). Count LIVE-grounded: bridge has **29** (NOT 27 — W3e-1 added `grade_outcome_with_rubric` + `pm_grader_dispatch`; bridge section-header comments 14/8/5 are stale, TOOLS.length is SSoT).
+- Barrel + BROWSE.md updated (M-SELF counter 1 → 3); registration test with a **drift guard** cross-checking the seed against the live bridge TOOLS array.
+- **Ontology schema** `runtime-overlay/schemas-snapshot/package.json` 1.68.0 → **1.69.0** + `ontology/CHANGELOG.md` entry (rule 08 — additive primitive INSTANCES).
+
+Ontology-first: the typed Executor/McpTool MEANING ships here; the runtime sandbox impl (`lib/sandbox/`) is **W3e-3b**, downstream. **0 new regressions** (env-clean stash-baseline-diff IDENTICAL fail-set = 8 pre-existing; 3129 pass, +5 new self tests). M-SELF counter 1 → 3.
+
 ## [6.105.0] - 2026-06-08 — Harness redesign W3e-2: tool-registry unify (adapter-driven capability discovery)
 
 > **Breaking-internal (lib types only; external MCP/hook/schema surface UNCHANGED → MINOR, not MAJOR).** The skill projection types (`SkillOntologyContract` / `SkillIntentMatcher` / `SkillArtifactLifecycle`) moved package; `SkillOntologyContract.category` changed type. No tool, hook, schema primitive, or generated artifact changed — `pm_plugin_self_check` public-mcp count unchanged; M-SELF counter unchanged (neutralization, not self-Ontology).
