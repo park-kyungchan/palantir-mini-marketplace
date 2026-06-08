@@ -365,6 +365,30 @@ export const MCP_TOOL_CAPABILITIES: readonly McpToolCapabilityRecord[] = [
     externalEgress: false,
     classifierProjection: fallback(),
   }),
+  capability("grade_outcome_with_rubric", {
+    domain: "GOVERNANCE",
+    effects: ["evaluate"],
+    mutationKind: "none",
+    requiresDtcApproval: false,
+    requiresSprintContract: false,
+    dataAction: "none",
+    releaseDeploy: false,
+    // delegates the model path to pm_grader_dispatch (which carries the egress flag).
+    externalEgress: false,
+    classifierProjection: fallback(),
+  }),
+  capability("pm_grader_dispatch", {
+    domain: "GOVERNANCE",
+    effects: ["evaluate"],
+    mutationKind: "none",
+    requiresDtcApproval: false,
+    requiresSprintContract: false,
+    dataAction: "none",
+    releaseDeploy: false,
+    // spawns a fresh grader subprocess (claude -p / codex exec).
+    externalEgress: true,
+    classifierProjection: fallback(),
+  }),
   capability("pm_semantic_intent_gate", {
     domain: "GOVERNANCE",
     effects: ["evaluate", "route"],
