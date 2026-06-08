@@ -7,6 +7,17 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.92.0] - 2026-06-08 — Harness redesign W3 sprint-GAN-2: remove release-gate self-check ceremony + lib/harness remnants
+
+### Removed
+- **4 sprint-release-gate self-checks** from `pm_plugin_self_check` (broad-test-ratchet, eval-suite-artifacts, adversarial-verifier-evidence, outcome-replay-evidence) + their `PmPluginSelfCheckResult` fields. These enforced the sprint-GAN broad-suite ratchet + changed-surface evidence ceremony; solo-hostile release gating obsoleted by the runtime-neutral harness model (blueprint G5).
+- **`lib/harness/{failure-ledger,release-evidence}.ts`** + their tests — backing modules for the removed checks. `lib/harness/` is now empty and gone.
+
+### Changed
+- `core/contracts/workflow-family-enforcement.ts` — dropped the `release-evidence` blocking gate + the `self-check:release-evidence` self-check from the releaseAndShipping family; removed the orphaned `self-check:broad-test-ratchet` self-check from validationEvalAndHarness; repointed evidence/validation refs off the deleted `tests/lib/harness/release-evidence.test.ts` to neutral existing tests. The KEEP `self-check:workflow-family-release-gate` + the live `lib/release/workflow-family-release-gate.ts` are untouched.
+
+Second half of the W3 sprint-GAN REPLACE sub-wave (blueprint G5); completes lib/harness removal. typecheck green; 29/29 affected self-check + contract tests pass.
+
 ## [6.91.0] - 2026-06-08 — Harness redesign W3 sprint-GAN-1: extract findProjectRoot, drop auto-bootstrap advisory hook
 
 ### Changed

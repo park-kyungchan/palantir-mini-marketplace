@@ -890,15 +890,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
     ],
     requiredContracts: CONTRACT_REQUIREMENTS.workContract,
     enforcement: enforcement({
-      selfChecks: [
-        {
-          checkId: "self-check:broad-test-ratchet",
-          mode: "pm_plugin_self_check",
-          determinism: "advisory-only",
-          releaseBlocking: false,
-          evidenceRefs: ["bridge/handlers/pm-plugin-self-check/check-broad-test-ratchet.ts"],
-        },
-      ],
+      selfChecks: [],
       evals: [
         {
           evalId: "eval:harness-ratchet-planner",
@@ -935,7 +927,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         entryCondition: "A scoped change is ready to ship.",
         exitCondition: "Release gates, excluded scope, and recovery plan are known.",
         allowedTransitions: ["release-shipping:pr-closeout"],
-        blockingGates: ["release-evidence", "git-status-pathscope"],
+        blockingGates: ["git-status-pathscope"],
         allowedTools: ["pm_plugin_self_check", "git status"],
         forbiddenTools: ["direct-main-push"],
         requiredEvidenceRefs: ["verificationCommands", "excludedScope"],
@@ -955,7 +947,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
       }),
     ],
     aipSurfaceRefs: [
-      aipRef("security-governance", ["tests/lib/harness/release-evidence.test.ts"]),
+      aipRef("security-governance", ["tests/scripts/validate-pr-contract-boundary.test.ts"]),
       aipRef("tools-command", ["tests/scripts/validate-pr-contract-boundary.test.ts"]),
     ],
     requiredContracts: CONTRACT_REQUIREMENTS.workContract,
@@ -973,13 +965,6 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         },
       ],
       selfChecks: [
-        {
-          checkId: "self-check:release-evidence",
-          mode: "targeted-release-tests",
-          determinism: "enforced",
-          releaseBlocking: true,
-          evidenceRefs: ["tests/lib/harness/release-evidence.test.ts"],
-        },
         {
           checkId: "self-check:workflow-family-release-gate",
           mode: "release",
@@ -1003,7 +988,7 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
         requiredContractRefs: ["ReleaseGateRef", "WorkContract"],
         aipSurfaceRefs: ["security-governance", "tools-command"],
         runtimeRefs: ["claude", "codex"],
-        validationRefs: ["tests/lib/harness/release-evidence.test.ts"],
+        validationRefs: ["tests/core/workflow-family-release-gate.test.ts"],
         evidenceRefs: ["tests/scripts/validate-pr-contract-boundary.test.ts"],
       }),
     ],
