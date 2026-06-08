@@ -7,6 +7,19 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.108.0] - 2026-06-08 — Harness redesign W3f-1: convex Minimal cut (runtime OFF via stub)
+
+### Changed
+- **`lib/impact-graph/convex-client.ts` is now stub-only.** Deleted the `RealConvexClient` class + its WAL/URL machinery (`resolveConvexUrl`/`isCloudMode`/`resolveWalPath`/`walAppend`/`walReadAll`/`walTruncate`/`_emitWalDrainedEvent`/`WalEntry`/`WAL_BATCH_SIZE`/`PLUGIN_ROOT`); `getConvexClient()` always returns `StubConvexClient` (Convex Cloud mirror OFF). The full public surface (interface types + every `export async function` wrapper + `normalize` + `resetConvexClient`) is preserved, so the 11 importers (incremental-updater, 5 impact-graph hooks, 2 scripts, ontology-context-query) compile + degrade gracefully unchanged.
+
+### Removed
+- **`lib/convex-mirror/`** (only a test imported `computeParityDelta`) + **`skills/pm-convex-mirror-verify/`** (SKILL.md only — no runtime handler ever existed) + the now-invalid real-client tests (`tests/lib/impact-graph/convex-client.test.ts`, `convex-client-wal.test.ts`, `tests/skills/pm-convex-mirror-verify.test.ts`).
+
+### Kept (deferred — NOT in scope)
+- `sqlite-cache.deprecated.ts` remains the LIVE local read backend for impact-query (LIVE deps refuted the driver's "delete sqlite" — that needs a separate backend-repoint wave). The schemas-snapshot convex codegen strip (manifest 2.0.0 MAJOR + rule-08 staged rollout) + `convex/` dir deletion are DEFERRED. context-engineering convex-backend recommendation strings -> W3f-2.
+
+Minimal cut per user decision 2026-06-08 (grounding verdict `cleanDelete:false`). **0 new regressions** (env-clean stash-baseline-diff IDENTICAL fail-set = 8 pre-existing). No schema-snapshot bump. Lead-orchestrated; opus subagent implemented (new working method 2026-06-08).
+
 ## [6.107.0] - 2026-06-08 — Harness redesign W3e-3b: neutral Executor/Sandbox runtime lib (Hands layer)
 
 ### Added
