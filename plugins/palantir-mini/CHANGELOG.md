@@ -7,6 +7,15 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.96.0] - 2026-06-08 — Harness redesign W3c-1: identity-literal → resolved host runtime (rule 27)
+
+### Changed
+- **`lib/ontology-workflow/emit.ts`** — dropped the hardcoded `identity: "claude-code"` from all 4 emit calls (`workflow_trace_opened` / `_transitioned` / `_closed` + `dtc_fill_turn_advanced`). These route through `scripts/log.ts`'s `emit()`, whose private `resolveRuntimeIdentity(env)` already resolves `byWhom.identity` from `env.identity ?? env.runtime ?? PALANTIR_MINI_HOST_RUNTIME ?? "claude-code"`; the literal was *short-circuiting* that env resolution. Removing it lets each runtime self-attribute (rule 27) while still defaulting to `claude-code` when nothing is set. Best-effort `.catch` contract preserved (resolution never throws).
+- **`lib/event-log/timing.ts`** — `tool_invocation_completed` (plugin-self handler telemetry) now stamps `byWhom.identity` via `resolveHostRuntimeIdentity(undefined, "claude-code")` instead of the literal, so `PALANTIR_MINI_HOST_RUNTIME` overrides while the unset-env default stays `claude-code` (keeps `tests/lib/event-log/timing.test.ts:99` green). `CLAUDE_SESSION_ID` sessionId fallback unchanged (separate concern, out of scope).
+- **`lib/codegen/descender-gen/helpers.ts`** — `emitCodegenEvent` stamps `byWhom.identity` via `resolveHostRuntimeIdentity(undefined, "claude-code")` (kept `agentName: "codegen-runner"`). No signature change — the survey's param-threading suggestion was avoided as over-engineering (inline resolve achieves rule-27 neutrality with zero call-site churn).
+
+First sub-wave of W3c. Survey-verification (ultracode fan-out, HEAD c78e591) corrected the survey: the cited seam `lib/runtime/identity.ts::resolveRuntimeIdentity` does **not** exist (the env-defaulting resolver is private in `scripts/log.ts`; the public seam is `resolveHostRuntimeIdentity`, which defaults to `"unknown"` bare — hence the explicit `"claude-code"` fallback). Scope held to the 3 homogeneous identity-literal files; `correlation/marker.ts` deferred with the undecided G6 subagent apparatus (its read-side is already consumer-less). No schema primitive touched (no schemas-snapshot bump). typecheck green; affected tests pass (timing+emit 18/18, pm-intent-router 37/37); full-suite stash-baseline-diff confirms **0 new regressions** (21 pre-existing environment-specific failures unchanged).
+
 ## [6.95.0] - 2026-06-08 — Harness redesign W3b-2b: recipe-builder → neutral DispatchDecision
 
 ### Removed

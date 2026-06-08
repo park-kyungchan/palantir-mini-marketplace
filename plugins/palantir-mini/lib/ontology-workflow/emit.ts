@@ -93,7 +93,6 @@ export async function openOntologyWorkflowTrace(
     toolName: "ontology_workflow_trace",
     cwd: input.projectRoot,
     sessionId: input.sessionId,
-    identity: "claude-code",
     reasoning:
       input.reasoning ??
       `openOntologyWorkflowTrace mode=${trace.mode} traceId=${trace.traceId} — rule 01 §ForwardProp; PR-10 of foamy-giggling-kettle plan closes the trace-emit gap (Agent D's LARGEST GAP)`,
@@ -138,7 +137,6 @@ export async function transitionOntologyWorkflowTrace(
     toolName: "ontology_workflow_trace",
     cwd: input.projectRoot,
     sessionId: input.sessionId,
-    identity: "claude-code",
     reasoning:
       input.reasoning ??
       `transitionOntologyWorkflowTrace ${input.trace.mode}→${input.nextMode} traceId=${merged.traceId} — rule 01 §ForwardProp; per PR-10 spec wire pattern`,
@@ -183,7 +181,6 @@ export async function closeOntologyWorkflowTrace(
     toolName: "ontology_workflow_trace",
     cwd: input.projectRoot,
     sessionId: input.sessionId,
-    identity: "claude-code",
     reasoning:
       input.reasoning ??
       `closeOntologyWorkflowTrace outcome=${input.outcome} mode=${merged.mode} traceId=${merged.traceId} — rule 01 §BackwardProp; closes PR-10 trace lifecycle`,
@@ -230,7 +227,6 @@ export async function emitDtcFillTurnAdvanced(
     toolName: "dtc_fill_workflow",
     cwd: input.projectRoot,
     sessionId: input.sessionId,
-    identity: "claude-code",
     reasoning:
       input.reasoning ??
       `emitDtcFillTurnAdvanced step=${input.dtcStep} field=${input.advancedField} — Sprint 97 W1; rule 10 5-dim BackProp substrate for DTC fill sequence reconstruction`,
