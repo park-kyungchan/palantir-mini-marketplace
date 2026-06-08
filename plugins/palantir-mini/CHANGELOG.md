@@ -7,6 +7,11 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.90.0] - 2026-06-08 — Fix: Claude hooks.json uses ${CLAUDE_PLUGIN_ROOT} (revert #89 regression)
+
+### Fixed
+- `hooks/hooks.json` — reverted all 47 `${PALANTIR_MINI_PLUGIN_ROOT}` references back to `${CLAUDE_PLUGIN_ROOT}`. PR #89 swapped to the custom var to work around an "empty CLAUDE_PLUGIN_ROOT" symptom, but nothing in the Claude runtime sets `PALANTIR_MINI_PLUGIN_ROOT` (not settings env, not managed-settings.d, not a session hook), so every Claude hook expanded to `/scripts/run.ts` / `/hooks/…gate.ts` and failed `Module not found`. The real cause of the original empty expansion was the duplicate manifest.hooks pointer (double hook-load), already fixed independently by #90. With the double-load gone, `${CLAUDE_PLUGIN_ROOT}` expands correctly in hook command strings — same pattern the plugin's own MCP server (plugin.json) and the vercel plugin's hooks both use successfully. Codex's `codex-hooks.json` continues to use `${PLUGIN_ROOT}` (set by the Codex adapter) and is unchanged.
+
 ## [6.89.0] - 2026-06-08 — Harness redesign W3a: zero-risk DELETE (dead/obsoleted surface)
 
 ### Removed
