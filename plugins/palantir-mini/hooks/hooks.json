@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-start",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" session-start",
             "timeout": 50,
             "statusMessage": "Session start capture: append session_started and surface eager context when enabled\u2026"
           }
@@ -21,13 +21,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" prompt-front-door-capture",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" prompt-front-door-capture",
             "timeout": 100,
             "statusMessage": "Prompt front door capture: promptId/promptHash \u2192 pm_semantic_intent_gate\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" context-capsule-init",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" context-capsule-init",
             "timeout": 100,
             "statusMessage": "Persisting context capsule for prompt-local contract/routing lineage\u2026"
           }
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/ontology-engineering-workflow-enforcement-gate.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/ontology-engineering-workflow-enforcement-gate.ts\"",
             "timeout": 40,
             "permissionDecision": "defer",
             "failureMode": "fail-closed",
@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/agent-ownership-validate.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-ownership-validate.ts\"",
             "if": "Edit(**/plugins/palantir-mini/**)|Write(**/plugins/palantir-mini/**)|MultiEdit(**/plugins/palantir-mini/**)",
             "timeout": 15,
             "permissionDecision": "defer",
@@ -67,7 +67,7 @@
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/write-scope-runtime-enforce.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/write-scope-runtime-enforce.ts\"",
             "timeout": 25,
             "permissionDecision": "defer",
             "statusMessage": "write-scope-runtime-enforce: checking subagent writableRoot (canonical plan v2 \u00a74 row 5.7 + rule 16 v4.1.0)\u2026"
@@ -81,13 +81,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" pre-edit-ontology",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" pre-edit-ontology",
             "if": "Edit(**/ontology/**)",
             "timeout": 50
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" pre-edit-impact-check",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" pre-edit-impact-check",
             "if": "!**.test.ts",
             "timeout": 40,
             "async": true,
@@ -95,14 +95,14 @@
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" ontology-import-guard",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" ontology-import-guard",
             "timeout": 25,
             "permissionDecision": "defer",
             "statusMessage": "ontology-import-guard\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" pre-edit-impact-mcp-first",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" pre-edit-impact-mcp-first",
             "if": "Edit|Write|MultiEdit",
             "timeout": 25,
             "permissionDecision": "defer",
@@ -113,7 +113,7 @@
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/ontology-domain-classification-validate.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/ontology-domain-classification-validate.ts\"",
             "if": "Edit|Write|MultiEdit",
             "timeout": 25,
             "permissionDecision": "defer",
@@ -121,7 +121,7 @@
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/lead-ontology-discovery-completeness.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/lead-ontology-discovery-completeness.ts\"",
             "timeout": 25,
             "async": true,
             "statusMessage": "Downstream ontology discovery completeness advisory (not contract proof)\u2026"
@@ -135,7 +135,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" semantic-frontmatter-validate",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" semantic-frontmatter-validate",
             "timeout": 25,
             "decision": "block",
             "statusMessage": "Validating semantic frontmatter\u2026"
@@ -149,7 +149,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" value-grade-assigner",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" value-grade-assigner",
             "timeout": 25,
             "decision": "block",
             "statusMessage": "rule 26 \u00a7Auto-grade \u2014 scoring envelope axes\u2026"
@@ -163,7 +163,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/researcher-citation-precision.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/researcher-citation-precision.ts\"",
             "timeout": 25,
             "async": true,
             "statusMessage": "Researcher citation-precision advisory (Opus 4.7 multi-source synthesis nudge)\u2026"
@@ -179,13 +179,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" post-edit-propagate",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" post-edit-propagate",
             "if": "Edit(**/src/**)",
             "timeout": 75
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" post-edit-verifier-suggest",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" post-edit-verifier-suggest",
             "if": "Edit|Write|MultiEdit(!**.d.ts|*.test.ts)",
             "timeout": 25,
             "async": true,
@@ -200,7 +200,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" semantic-frontmatter-validate",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" semantic-frontmatter-validate",
             "if": "Edit(**/schemas/ontology/**/primitives/**/*.ts)",
             "timeout": 25,
             "async": true,
@@ -215,7 +215,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" rule-audit --mode=citation",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" rule-audit --mode=citation",
             "timeout": 25,
             "async": true,
             "statusMessage": "rule-audit (citation mode)\u2026"
@@ -229,7 +229,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" doc-edit-drift",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" doc-edit-drift",
             "timeout": 50
           }
         ],
@@ -241,7 +241,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" generated-header-check",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" generated-header-check",
             "if": "Write(**/*.ts)",
             "timeout": 25
           }
@@ -254,7 +254,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" manifest-validate",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" manifest-validate",
             "timeout": 25
           }
         ],
@@ -266,28 +266,28 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" outcome-pair-tracker",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" outcome-pair-tracker",
             "timeout": 15,
             "async": true,
             "statusMessage": "rule 26 \u00a7Axis B1 \u2014 outcome pair tracking\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" memory-layer-validator",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" memory-layer-validator",
             "timeout": 15,
             "async": true,
             "statusMessage": "rule 26 \u00a7Axis E \u2014 memory layer validation\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" t3-circuit-feeder",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" t3-circuit-feeder",
             "timeout": 25,
             "async": true,
             "statusMessage": "rule 26 \u00a7Substrate routing T3 \u2014 BackProp circuit feeder\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/t4-canonical-emit-watch.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/t4-canonical-emit-watch.ts\"",
             "timeout": 25,
             "async": true,
             "statusMessage": "checking T4 canonical/fallback eligibility (sprint-062 W2-\u03b1)\u2026"
@@ -301,7 +301,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/agent-router-suggestion-emit.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-router-suggestion-emit.ts\"",
             "timeout": 25,
             "async": true,
             "statusMessage": "Agent router divergence advisory (foamy-giggling-kettle T5)\u2026"
@@ -315,7 +315,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/impact-graph-maintain.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/impact-graph-maintain.ts\"",
             "if": "Edit|Write|MultiEdit|NotebookEdit",
             "timeout": 25,
             "async": true,
@@ -330,14 +330,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" post-merge-cleanup",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" post-merge-cleanup",
             "timeout": 40,
             "async": true,
             "statusMessage": "Post-merge cleanup (rule 25)\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" pre-pr-dirty-gate",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" pre-pr-dirty-gate",
             "if": "Bash(gh pr create*)",
             "timeout": 40,
             "permissionDecision": "defer",
@@ -345,7 +345,7 @@
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/impact-graph-cascade-delete.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/impact-graph-cascade-delete.ts\"",
             "if": "Bash",
             "timeout": 25,
             "async": true,
@@ -353,7 +353,7 @@
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/impact-graph-bulk-refresh.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/impact-graph-bulk-refresh.ts\"",
             "if": "Bash",
             "timeout": 40,
             "async": true,
@@ -368,7 +368,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/task-completed-enrichment.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/task-completed-enrichment.ts\"",
             "if": "TaskUpdate",
             "timeout": 25,
             "async": true,
@@ -384,34 +384,34 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" pre-compact-state",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" pre-compact-state",
             "timeout": 100,
             "decision": "block"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" events-5d-gate",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" events-5d-gate",
             "timeout": 75,
             "decision": "block",
             "statusMessage": "Validating 5D conformance\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" rule-audit --mode=bottleneck",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" rule-audit --mode=bottleneck",
             "timeout": 40,
             "async": true,
             "statusMessage": "rule-audit (bottleneck mode)\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" orphan-pair-watchdog",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" orphan-pair-watchdog",
             "timeout": 25,
             "async": true,
             "statusMessage": "Orphan-pair watchdog (rule 26 \u00a7Axis B1; threshold 5%)\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/workflow-trace-leak-detect.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/workflow-trace-leak-detect.ts\"",
             "timeout": 25,
             "async": true,
             "statusMessage": "Workflow trace leak scan (advisory)\u2026"
@@ -426,35 +426,35 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" session-end-cleanup",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" session-end-cleanup",
             "timeout": 40,
             "async": true,
             "statusMessage": "Session-end cleanup (rule 25 v1.1.0)\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/impact-graph-session-end-flush.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/impact-graph-session-end-flush.ts\"",
             "timeout": 75,
             "async": true,
             "statusMessage": "Impact-graph session-end flush (sprint-061 B.W1)\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/t4-promotion-trigger.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/t4-promotion-trigger.ts\"",
             "timeout": 100,
             "async": true,
             "statusMessage": "T4 promotion trigger \u2014 session-end promotion digest (sprint-062 W2-\u03b1)\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/hooks/bypass-budget-monitor.ts\"",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/bypass-budget-monitor.ts\"",
             "timeout": 40,
             "async": true,
             "statusMessage": "Bypass-budget monitor \u2014 session bypass frequency audit (sprint-062 W3-\u03b1)\u2026"
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" stop-validate",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" stop-validate",
             "timeout": 75
           }
         ],
@@ -467,7 +467,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" subagent-start",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" subagent-start",
             "timeout": 50,
             "async": true
           }
@@ -481,12 +481,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" subagent-stop",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" subagent-stop",
             "timeout": 50
           },
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" heartbeat-validate",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" heartbeat-validate",
             "timeout": 25,
             "async": true
           }
@@ -500,7 +500,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${PALANTIR_MINI_PLUGIN_ROOT}/scripts/run.ts\" post-compact",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" post-compact",
             "timeout": 100
           }
         ],
