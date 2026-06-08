@@ -76,7 +76,7 @@ function evaluateRuleCriterion(
   const evalObs = session.evalObservability;
 
   switch (criterionId) {
-    case "criterion:submission_criteria_quality": {
+    case "submission_criteria_quality": {
       // Passed only when no action reports deferred human review items.
       const needsReview = actions.flatMap(
         (a) => a.submissionCriteriaNeedsHumanReview ?? [],
@@ -93,7 +93,7 @@ function evaluateRuleCriterion(
       };
     }
 
-    case "criterion:application_state_determinism": {
+    case "application_state_determinism": {
       // Passed when at least one chatbot declares applicationStateVariables.
       const hasAppState = chatbots.some(
         (c) => (c.applicationStateVariables?.length ?? 0) > 0,
@@ -110,7 +110,7 @@ function evaluateRuleCriterion(
       };
     }
 
-    case "criterion:citation_and_evidence_quality": {
+    case "citation_and_evidence_quality": {
       // Passed when at least one chatbot has citationPolicy ≠ "none".
       const anyRequired = chatbots.some(
         (c) => c.citationPolicy === "required" || c.citationPolicy === "optional",
@@ -127,7 +127,7 @@ function evaluateRuleCriterion(
       };
     }
 
-    case "criterion:palantir_mcp_omcp_boundary_control": {
+    case "palantir_mcp_omcp_boundary_control": {
       // Passed when palantirMcpInScope XOR ontologyMcpInScope, or both with
       // a taskKind classification that is not "mixed" (mixed requires both).
       if (mcpBoundary == null) {
@@ -152,7 +152,7 @@ function evaluateRuleCriterion(
       };
     }
 
-    case "criterion:osdk_resource_scoping": {
+    case "osdk_resource_scoping": {
       // Passed when branchRelease.resourcesChanged is non-empty.
       if (
         branchRelease == null ||
@@ -169,7 +169,7 @@ function evaluateRuleCriterion(
       };
     }
 
-    case "criterion:auditability_and_observability": {
+    case "auditability_and_observability": {
       // Passed when evalObs.auditSessionTraceEvidence is non-empty AND
       // at least one chatbot has sessionTraceAvailable=true.
       const hasTrace = (evalObs?.auditSessionTraceEvidence?.length ?? 0) > 0;
@@ -186,7 +186,7 @@ function evaluateRuleCriterion(
       };
     }
 
-    case "criterion:release_and_change_management": {
+    case "release_and_change_management": {
       // Passed when branchName present, reviewersRequired non-empty, rollbackPlan present.
       const hasBranch = Boolean(branchRelease?.branchName);
       const hasReviewers = (branchRelease?.reviewersRequired?.length ?? 0) > 0;
@@ -203,7 +203,7 @@ function evaluateRuleCriterion(
       };
     }
 
-    case "criterion:post_rename_naming_compliance": {
+    case "post_rename_naming_compliance": {
       // Passed when no chatbot has legacyNamingFindings.
       const legacyCount = chatbots.reduce(
         (acc, c) => acc + (c.legacyNamingFindings?.length ?? 0),

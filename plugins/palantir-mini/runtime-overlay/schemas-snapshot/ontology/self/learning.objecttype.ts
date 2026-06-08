@@ -7,9 +7,9 @@
  *
  * Count provenance: this is a runtime-seeded ObjectType — concrete learnings are captured
  * per session (pm-learn) as BackwardProp evidence, not derived from a static source. The
- * TYPE registration plus the 8 session bottleneck-learnings seeded into
+ * TYPE registration plus the 9 session bottleneck-learnings seeded into
  * `LEARNING_INSTANCES` (user directive 2026-06-08 "bottleneck -> register in Ontology")
- * are the deliverable; the paired registration test asserts the type resolves and the 8
+ * are the deliverable; the paired registration test asserts the type resolves and the 9
  * instances resolve + count + carry no duplicate ids (no filesystem drift guard — the seed
  * IS the authority; learnings append as the self-model accrues evidence).
  *
@@ -33,7 +33,7 @@ export const LEARNING_OBJECT_TYPE_RID = objectTypeRid(
  * stored-fact surface is the LEARN record — `decision`, `evidenceRefs`, `memoryLayer`
  * (working/episodic/semantic/procedural), and `refines` (process/tooling/understanding).
  * Concrete learnings are runtime-seeded (captured per session); the registered INSTANCES
- * below seed the first 8 session bottleneck-learnings as BackwardProp evidence.
+ * below seed the first 9 session bottleneck-learnings as BackwardProp evidence.
  */
 export const LEARNING_OBJECT_TYPE: ObjectTypeDeclaration = {
   rid: LEARNING_OBJECT_TYPE_RID,
@@ -66,11 +66,11 @@ export interface LearningInstance {
 }
 
 /**
- * Learning instances — the 8 session bottleneck-learnings registered as a BackwardProp
+ * Learning instances — the 9 session bottleneck-learnings registered as a BackwardProp
  * seed (user directive 2026-06-08 "bottleneck -> register in Ontology"). Each carries a
  * kebab-case `learningId` PK, a one-line `decision`, a session/PR `evidenceRefs` string,
  * the agentic `memoryLayer` (procedural|semantic), and what it `refines`
- * (process|tooling|understanding). The paired registration test asserts these 8 resolve,
+ * (process|tooling|understanding). The paired registration test asserts these 9 resolve,
  * count, and carry no duplicate ids; further learnings are captured per session (pm-learn)
  * and appended here as the self-model accrues BackwardProp evidence.
  */
@@ -147,8 +147,18 @@ export const LEARNING_INSTANCES: readonly LearningInstance[] = [
     memoryLayer: "procedural",
     refines: "tooling",
   },
+  {
+    learningId: "fde-rubric-grader-zeroes-rule-domain-criteria",
+    decision:
+      "the FDE rubric-grader's criterion-prefix switch zeroed every rule-domain criterion, " +
+      "under-scoring a genuinely-good ontology (~0.44 vs ~0.81); found by grading pm's OWN " +
+      "self-Ontology (recursive dogfood) and fixed Wave 8",
+    evidenceRefs: "dogfood Wave 7 + PR Wave 8",
+    memoryLayer: "procedural",
+    refines: "tooling",
+  },
 ];
 
-// Register the Learning ObjectType (the type). The 8 instances above are data the
+// Register the Learning ObjectType (the type). The 9 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(LEARNING_OBJECT_TYPE);

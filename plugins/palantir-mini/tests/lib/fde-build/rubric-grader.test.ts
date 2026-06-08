@@ -146,6 +146,36 @@ describe("gradeFDEReadiness — mission-filled session", () => {
     expect(modelCriteria.every((c) => c.score === 8)).toBe(true);
   });
 
+  // Regression: criterion:-prefix switch-label mismatch zeroed every rule-domain
+  // criterion. Registered RIDs are bare ("release_and_change_management"); the
+  // evaluateRuleCriterion switch matched the prefixed form and fell through to the
+  // conservative default (passed=false). A fully-satisfied rule criterion must PASS.
+  test("populated rule criterion (release_and_change_management) scores passed=true", async () => {
+    const session: FDEOntologyBuildSession = {
+      ...makeEmptySession(),
+      sessionRid: "session:test:branch-release-filled",
+      branchRelease: {
+        branchName: "ontology/supplier-approval",
+        reviewersRequired: ["Procurement Lead"],
+        rollbackPlan: "Revert branch merge; restore prior ontology snapshot.",
+        resourcesChanged: ["object:Supplier", "action:ApproveSupplier"],
+      },
+    };
+    const result = await gradeFDEReadiness({ session });
+    const release = result.perCriterion.find(
+      (c) => c.criterionId === "release_and_change_management",
+    );
+    expect(release).toBeDefined();
+    expect(release!.passed).toBe(true);
+    expect(release!.score).toBe(1);
+
+    // osdk_resource_scoping is satisfied by resourcesChanged too.
+    const osdk = result.perCriterion.find(
+      (c) => c.criterionId === "osdk_resource_scoping",
+    );
+    expect(osdk!.passed).toBe(true);
+  });
+
   test("weightedContribution = normalizedScore * weight (4 decimal precision)", async () => {
     const session = makeEmptySession();
     const result = await gradeFDEReadiness({ session });
