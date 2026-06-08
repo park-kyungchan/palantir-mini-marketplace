@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.73.0 — 2026-06-09 (self-Ontology Wave 4: register ActionType verbs + Function bound-logic)
+
+Additive MINOR (rule 08 — additive ActionType + Function instances, no edits to existing primitives). self-Ontology Wave 4 —
+register 21 ActionType verbs + 76 Function bound-logic (incl 34 hidden sub-mode handlers); ACTION_TYPE_REGISTRY 1->~22;
+Functions registered. Adds `ontology/self/action-types.ts` + `ontology/self/functions.ts`, re-exported from
+`ontology/self/index.ts` (side-effect self-registers into `ACTION_TYPE_REGISTRY` + the Function registry). Paired drift
+tests under plugin `tests/ontology/self/`. No edits to existing primitives.
+
 ## v1.72.1 — 2026-06-09
 
 fix: PluginManifest self-Ontology seed no longer pins volatile version (CLAUDE.md section 6); keeps structural drift guards; restores 8-fail baseline.

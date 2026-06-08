@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.113.0] - 2026-06-09 — self-Ontology Wave 4: register ActionType verbs + Function bound-logic
+
+### Added
+- **self-Ontology Wave 4 — register 21 ActionType verbs + 76 Function bound-logic (incl 34 hidden sub-mode handlers); ACTION_TYPE_REGISTRY 1->~22; Functions registered.** Adds `runtime-overlay/schemas-snapshot/ontology/self/action-types.ts` + `self/functions.ts`, re-exported from `self/index.ts` (side-effect self-registers into `ACTION_TYPE_REGISTRY` + the Function registry), with paired `tests/ontology/self/action-types-registration.test.ts` + `functions-registration.test.ts` drift tests. With Waves 1-3 (~30 ObjectTypes + 33 LinkTypes), the plugin now self-models its control-plane verbs and bound logic in addition to its surfaces and relationships. Schema-snapshot bumped one MINOR (additive ActionType + Function instances, rule 08) — see schemas-snapshot CHANGELOG v1.73.0.
+
+**0 new regressions** (tsc `--noEmit` green; clean-HEAD baseline + Wave-4-only confirmed identical fail count). Lead-orchestrated; opus subagent implemented.
+
 ## [6.112.1] - 2026-06-09
 
 ### Fixed
