@@ -55,7 +55,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { emit } from "../scripts/log";
-import { findProjectRoot } from "./harness-base-mode-advisory";
+import { findProjectRoot } from "../lib/project/find-root";
 import { readEvents } from "../lib/event-log/read";
 import { eventsPathFor } from "../scripts/log";
 import { evaluatePreMutationImpactGate } from "../lib/governance/pre-mutation-impact-gate";

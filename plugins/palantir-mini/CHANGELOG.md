@@ -7,6 +7,17 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.91.0] - 2026-06-08 — Harness redesign W3 sprint-GAN-1: extract findProjectRoot, drop auto-bootstrap advisory hook
+
+### Changed
+- **Extracted `findProjectRoot` to a neutral util** (`lib/project/find-root.ts`). It walks upward for the `.palantir-mini/` cross-runtime session marker (rule 27), so project-root detection is runtime-neutral and no longer lives inside a sprint hook. Repointed all 7 importing hooks (bypass-budget-monitor, write-scope-runtime-enforce, prompt-dtc-enforcement-gate, orphan-pair-watchdog, lead-ontology-discovery-completeness, prompt-front-door-capture, pre-edit-impact-mcp-first). Logic unchanged.
+
+### Removed
+- **`hooks/harness-base-mode-advisory.ts`** — the sprint-GAN auto-bootstrap hook (created a default "Quick Sprint" SprintContract on SessionStart, B2 hard default-on). Unregistered in both hooks.json and codex-hooks.json; solo-hostile sprint ceremony obsoleted by the runtime-neutral harness model. Its `harnessDirExists`/`findBoundContract` exports had no external importers.
+- **`lib/harness/active-contract.ts`** + its test — the SprintContract locator, consumed only by the removed advisory hook.
+
+First half of the W3 sprint-GAN REPLACE sub-wave (blueprint G5). The release-gate self-checks + `lib/harness/{failure-ledger,release-evidence}.ts` follow in sprint-GAN-2. typecheck green; 136/136 affected hook tests pass.
+
 ## [6.90.1] - 2026-06-08 — chore: sync version fields (PR #96 bumped only plugin.json)
 
 ### Fixed

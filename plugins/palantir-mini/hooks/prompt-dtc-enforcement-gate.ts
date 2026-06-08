@@ -11,7 +11,7 @@
 
 import * as path from "node:path";
 import { emit } from "../scripts/log";
-import { findProjectRoot } from "./harness-base-mode-advisory";
+import { findProjectRoot } from "../lib/project/find-root";
 import { readCurrentFDEOntologyEngineeringSession } from "../lib/fde-ontology-engineering/session-store";
 import {
   PROMPT_RUNTIMES,

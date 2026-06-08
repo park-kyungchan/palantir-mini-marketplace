@@ -78,7 +78,7 @@ import {
 // pm-semantic-intent-gate, pm-intent-router) for status transitions AFTER the initial capture.
 // Capture itself uses emit() directly for the user_prompt_submitted event.
 import { emit } from "../scripts/log";
-import { findProjectRoot } from "./harness-base-mode-advisory";
+import { findProjectRoot } from "../lib/project/find-root";
 
 interface HookPayload {
   readonly session_id?: string;
