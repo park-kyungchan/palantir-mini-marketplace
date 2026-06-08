@@ -253,6 +253,7 @@ describe("mcp-server prompt identity schemas", () => {
       "dtc-turn-fill",
       "context-engineering-to-sic",
       "ontology-dtc-build",
+      "nine-axis-sic", // W3d-2b: the flipped default is now discoverable in the tool schema
     ]);
   });
 

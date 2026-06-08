@@ -37,8 +37,9 @@ describe("FillPolicy union and FILL_POLICIES registry", () => {
     expect(FILL_POLICIES).toContain("ontology-dtc-build");
   });
 
-  it("FILL_POLICIES has exactly 5 entries", () => {
-    expect(FILL_POLICIES.length).toBe(5);
+  it("FILL_POLICIES has exactly 6 entries", () => {
+    // 6 since nine-axis-sic was added in W2 (the "5" was stale); corrected in W3d-2b.
+    expect(FILL_POLICIES.length).toBe(6);
   });
 
   it("FILL_POLICIES contains all pre-existing variants", () => {

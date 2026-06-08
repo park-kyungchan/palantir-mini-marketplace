@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.102.0] - 2026-06-08 — Harness redesign W3d-2b: flip the absent-fillPolicy default to nine-axis
+
+### Changed
+- **`bridge/handlers/pm-semantic-intent-gate.ts`** — the SIC fill dispatch now computes `effectiveFillPolicy = input.fillPolicy ?? "nine-axis-sic"` and branches on it, so an **absent `fillPolicy` routes to the 9-axis understand-heart** (was the legacy 8-turn path). Legacy 8-turn stays reachable via explicit `"default-8-turn"`; DTC policies (handled above) and `selectFillSequence` (a separate, MAJOR-bump-protected surface that keeps its own absent→8-turn contract) are unaffected. The nine-axis branch gained a **finalization emit**: at T9 with full readiness it emits `semantic_intent_contract_finalized` (mirroring the legacy 8-turn T7 emit) so the rule-10 lineage row survives the default flip rather than silently stopping. A `fillPolicy` discriminator was added to **both** finalization rows so BackwardProp/retro can tell the two paths apart.
+- **`bridge/mcp-server.ts`** — the `pm_semantic_intent_gate` tool schema now lists `"nine-axis-sic"` in the `fillPolicy` enum and its description reflects the flipped default (absent = 9-axis; `"default-8-turn"` = explicit legacy). The model-facing half of the flip.
+
+### Fixed
+- Corrected the stale `FILL_POLICIES has exactly 5 entries` assertion (×2 test files) to **6** — `nine-axis-sic` has been a registered policy since W2 (these were 2 of the pre-existing baseline failures).
+
+### Tests
+- Migrated the 4 no-fillPolicy gate integration tests that assert legacy 8-turn behavior to explicit `fillPolicy: "default-8-turn"` (one was passing vacuously under the flip — a silent coverage loss caught in adversarial review). Added explicit before/after default-routing assertions (absent→nine-axis `axes.data`; `default-8-turn`→legacy `affectedSurfaces`) and a full T0–T9 nine-axis integration test asserting the `semantic_intent_contract_finalized` lineage row fires at T9.
+
+Behavior change (default routing). **0 new regressions** (stash-baseline-diff IDENTICAL apart from the 2 corrected `exactly 5` rows; 3088 pass). No schema primitive touched; M-SELF counter unchanged (neutralization, not a new self instance). 3-lens adversarial review findings all addressed.
+
 ## [6.101.0] - 2026-06-08 — Harness redesign W3d-2a: route nine-axis-sic in the gate + first self-Ontology instance (M-SELF #1)
 
 ### Fixed
