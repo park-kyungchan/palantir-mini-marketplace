@@ -95,7 +95,6 @@
     "ontology/primitives/hands-manifest.ts": "99f37ca026cc0e79ba51c74d64486df4df4678a39b4af2413c7b741ccd324c50",
     "ontology/primitives/harness-agent.ts": "7fece4ed135986edf96a76cad6269257d2f2a30259e7a9937fdf5b6e6c9d0eaa",
     "ontology/primitives/harness-component.ts": "55937f0f0cd72a6684a6c2b1b387bc1e43c4a470ac885ef77952cf80629ecc13",
-    "ontology/primitives/harness-species-cost-profile.ts": "8aa6a9d2dccc242fb919b292183db8362d9c079958956980edc93ca7d677beec",
     "ontology/primitives/harness-species-enum.ts": "d83d46a34468a693f642cb20d6b1ed60ef8c6d4f5adb800ad8f4103f4f5131c8",
     "ontology/primitives/hook-event-allowlist.ts": "c7474de5394fb817c74d03df4599204796591bf092cdef0ad4e3d839ed916daf",
     "ontology/primitives/hook.ts": "85c722861f40e3bbee2bd8f1984f6de836cb480a5962eab4f90170da6397b7f9",

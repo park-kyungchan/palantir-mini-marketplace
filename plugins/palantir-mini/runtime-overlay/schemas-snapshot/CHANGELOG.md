@@ -8,6 +8,15 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.69.0 — 2026-06-08 (harness redesign W3b-2a: remove harness-species-cost-profile primitive)
+
+Removal (breaking, but no surviving code consumer — only doc-comment cross-refs in sprint-contract /
+dispatch-contract / harness-species-enum remain). Drops `ontology/primitives/harness-species-cost-profile.ts`
+(`HarnessSpeciesVendor` / `HarnessSpeciesCostProfileDeclaration` / `HARNESS_SPECIES_COST_PROFILES`) — vendor
+cost/model profiling is a runtime-adapter concern, not the neutral SSoT. Pruned from the primitives barrel,
+foundry-equivalent map, package.json exports, and MANIFEST.json. Sole code consumer (`pm_intent_router`
+dispatchSpecies) removed in the same plugin release (6.94.0).
+
 ## v1.68.0 — 2026-06-08 (harness redesign W3b-1: remove claude-code-version primitive)
 
 Removal (breaking, but no surviving consumer). Drops `ontology/primitives/claude-code-version.ts`
