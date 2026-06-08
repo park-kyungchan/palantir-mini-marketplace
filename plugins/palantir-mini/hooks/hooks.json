@@ -296,20 +296,6 @@
         "surfaceStatus": "public-core"
       },
       {
-        "matcher": "mcp__plugin_palantir-mini_palantir-mini__pm_intent_router|mcp__palantir_mini__pm_intent_router|mcp__palantir_mini__.pm_intent_router|mcp__palantir-mini__pm_intent_router|mcp_palantir-mini_pm_intent_router|mcp_palantir_mini_pm_intent_router",
-        "policyRef": "hook-step:posttool-router-suggestion",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-router-suggestion-emit.ts\"",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "Agent router divergence advisory (foamy-giggling-kettle T5)\u2026"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit",
         "policyRef": "hook-step:posttool-edit-watch",
         "hooks": [

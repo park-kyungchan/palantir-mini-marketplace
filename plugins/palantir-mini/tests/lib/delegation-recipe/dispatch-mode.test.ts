@@ -1,5 +1,6 @@
 // palantir-mini — tests/lib/delegation-recipe/dispatch-mode.test.ts
-// Covers pickDispatchModeFromConfidence thresholds, boundaries, and downgrade rule.
+// Covers pickDispatchModeFromConfidence thresholds, boundaries, and downgrade rule,
+// plus buildRecipe's flat dispatchMode/risk fields (W3b-2b neutral DispatchDecision).
 // Sprint-098 PR 3.6: graphConfidence threshold routing per canonical plan v2 §4 row 3.6.
 
 import { test, expect, describe } from "bun:test";
@@ -77,22 +78,15 @@ describe("pickDispatchModeFromConfidence — boundary values", () => {
   });
 });
 
-// ─── buildRecipe integration: dispatchMode field on recipe ──────────────────
+// ─── buildRecipe integration: flat dispatchMode + risk on DispatchDecision ────
 
 /**
- * Minimal OntologyContextQueryResult stub sufficient for buildRecipe PR 3.6 path.
- * Does not cover all fields — only what buildRecipe actually reads.
+ * Minimal OntologyContextQueryResult stub sufficient for buildRecipe's PR 3.6
+ * path — buildRecipe only reads graphConfidence + missingEdges.
  */
 function makeOntologyContext(opts: {
   graphConfidence: number;
   missingEdges?: Array<{ fromRid: string; toRid: string; edgeKind: string }>;
-  perRidImpact?: Array<{
-    rid: string;
-    forwardCount: number;
-    backwardCount: number;
-    graphConfidence: number;
-    recommendedAgentUse: "lead-direct" | "targeted-verification" | "bounded-explorer" | "none";
-  }>;
 }): OntologyContextQueryResult {
   return {
     graphConfidence: opts.graphConfidence,
@@ -115,17 +109,11 @@ function makeOntologyContext(opts: {
       researchDocuments: [],
       schemaVersion: null,
     },
-    impactContext: opts.perRidImpact
-      ? {
-          axisRids: opts.perRidImpact.map((r) => r.rid),
-          perRidImpact: opts.perRidImpact,
-        }
-      : undefined,
   } as unknown as OntologyContextQueryResult;
 }
 
-describe("buildRecipe — dispatchMode field (PR 3.6 integration)", () => {
-  test("high confidence ontologyContext → recipe.dispatchMode=lead-direct", () => {
+describe("buildRecipe — dispatchMode + risk (PR 3.6 integration)", () => {
+  test("high confidence ontologyContext → dispatchMode=lead-direct, risk=low", () => {
     const ctx = makeOntologyContext({ graphConfidence: 0.9, missingEdges: [] });
     const result = buildRecipe({
       intent: "Add new hook for emit tracking",
@@ -133,42 +121,24 @@ describe("buildRecipe — dispatchMode field (PR 3.6 integration)", () => {
       complexityHint: "single-file",
       ontologyContext: ctx,
     });
-    expect(result.recipe).toBeDefined();
-    expect(result.recipe!.dispatchMode).toBe("lead-direct");
-    expect(result.recipe!.verificationScope).toBeUndefined();
-    expect(result.recipe!.boundedExplorers).toBeUndefined();
+    expect(result.decision).toBe("delegate");
+    expect(result.dispatchMode).toBe("lead-direct");
+    expect(result.risk).toBe("low");
   });
 
-  test("medium confidence ontologyContext → recipe.dispatchMode=targeted-verification + verificationScope", () => {
-    const ctx = makeOntologyContext({
-      graphConfidence: 0.55,
-      missingEdges: [],
-      perRidImpact: [
-        { rid: "file:hooks/a.ts", forwardCount: 1, backwardCount: 0, graphConfidence: 0.55, recommendedAgentUse: "targeted-verification" },
-        { rid: "file:hooks/b.ts", forwardCount: 2, backwardCount: 1, graphConfidence: 0.6, recommendedAgentUse: "targeted-verification" },
-      ],
-    });
+  test("medium confidence ontologyContext → dispatchMode=targeted-verification, risk=medium", () => {
+    const ctx = makeOntologyContext({ graphConfidence: 0.55, missingEdges: [] });
     const result = buildRecipe({
       intent: "Update hook handler",
       scopePaths: [".claude/plugins/palantir-mini/hooks/handler.ts"],
       complexityHint: "single-file",
       ontologyContext: ctx,
     });
-    expect(result.recipe!.dispatchMode).toBe("targeted-verification");
-    expect(result.recipe!.verificationScope).toBeDefined();
-    // Both RIDs have gc < 0.7, so both should appear in verificationScope
-    expect(result.recipe!.verificationScope).toContain("file:hooks/a.ts");
-    expect(result.recipe!.verificationScope).toContain("file:hooks/b.ts");
-    expect(result.recipe!.boundedExplorers).toBeUndefined();
-    expect(result.recipe!.delegationExecutionPlan?.leadRole).toBe("orchestrator");
-    expect(result.recipe!.delegationExecutionPlan?.parallelReadOnlyAgents.length).toBe(1);
-    expect(result.recipe!.delegationExecutionPlan?.parallelReadOnlyAgents[0]?.writeScope).toEqual([]);
-    expect(result.recipe!.delegationExecutionPlan?.sequentialWorkers[0]?.dependsOn).toEqual([
-      "parallel-readonly-verifier-001",
-    ]);
+    expect(result.dispatchMode).toBe("targeted-verification");
+    expect(result.risk).toBe("medium");
   });
 
-  test("low confidence ontologyContext → recipe.dispatchMode=bounded-explorer + boundedExplorers", () => {
+  test("low confidence ontologyContext → dispatchMode=bounded-explorer, risk=high", () => {
     const missingEdges = Array.from({ length: 8 }, (_, i) => ({
       fromRid: `rule:${i}`,
       toRid: `file:hook-${i}.ts`,
@@ -181,22 +151,11 @@ describe("buildRecipe — dispatchMode field (PR 3.6 integration)", () => {
       complexityHint: "multi-file",
       ontologyContext: ctx,
     });
-    expect(result.recipe!.dispatchMode).toBe("bounded-explorer");
-    expect(result.recipe!.boundedExplorers).toBeDefined();
-    expect(result.recipe!.boundedExplorers!.length).toBeGreaterThan(0);
-    expect(result.recipe!.boundedExplorers!.length).toBeLessThanOrEqual(3);
-    expect(result.recipe!.verificationScope).toBeUndefined();
-    expect(result.recipe!.delegationExecutionPlan?.parallelReadOnlyAgents.length).toBe(
-      result.recipe!.boundedExplorers!.length,
-    );
-    expect(
-      result.recipe!.delegationExecutionPlan?.parallelReadOnlyAgents.every(
-        (agentTask) => agentTask.writeScope.length === 0,
-      ),
-    ).toBe(true);
+    expect(result.dispatchMode).toBe("bounded-explorer");
+    expect(result.risk).toBe("high");
   });
 
-  test("high confidence with missingEdges>5 → recipe.dispatchMode=targeted-verification (downgrade)", () => {
+  test("high confidence with missingEdges>5 → dispatchMode downgraded to targeted-verification", () => {
     const missingEdges = Array.from({ length: 8 }, (_, i) => ({
       fromRid: `file:a-${i}.ts`,
       toRid: `file:b-${i}.ts`,
@@ -209,22 +168,24 @@ describe("buildRecipe — dispatchMode field (PR 3.6 integration)", () => {
       complexityHint: "multi-file",
       ontologyContext: ctx,
     });
-    expect(result.recipe!.dispatchMode).toBe("targeted-verification");
+    expect(result.dispatchMode).toBe("targeted-verification");
+    expect(result.risk).toBe("medium");
   });
 
-  test("no ontologyContext → dispatchMode absent from recipe", () => {
+  test("no ontologyContext → dispatchMode defaults to lead-direct, risk=low", () => {
     const result = buildRecipe({
       intent: "Edit rule 10 to add propagation depth field",
       scopePaths: [".claude/rules/10-events-jsonl.md"],
       complexityHint: "single-file",
     });
-    expect(result.recipe!.dispatchMode).toBeUndefined();
-    expect(result.recipe!.verificationScope).toBeUndefined();
-    expect(result.recipe!.boundedExplorers).toBeUndefined();
-    expect(result.recipe!.delegationExecutionPlan).toBeUndefined();
+    expect(result.decision).toBe("delegate");
+    expect(result.dispatchMode).toBe("lead-direct");
+    expect(result.risk).toBe("low");
   });
 
-  test("trivial + ≤3 files returns lead-direct early, no dispatchMode", () => {
+  test("trivial + ≤3 files → lead-direct at the safe floor (graph confidence is moot)", () => {
+    // Low-confidence ctx supplied, but the trivial shortcut keeps dispatchMode/risk
+    // at the floor because nothing is delegated.
     const ctx = makeOntologyContext({ graphConfidence: 0.3 });
     const result = buildRecipe({
       intent: "Trivial single-word typo fix",
@@ -232,59 +193,8 @@ describe("buildRecipe — dispatchMode field (PR 3.6 integration)", () => {
       complexityHint: "trivial",
       ontologyContext: ctx,
     });
-    // trivial shortcircuits before recipe is built
     expect(result.decision).toBe("lead-direct");
-    expect(result.recipe).toBeUndefined();
-  });
-});
-
-describe("boundedExplorers chunking invariants", () => {
-  test("8 missingEdges → 2 explorer chunks (5 + 3)", () => {
-    const missingEdges = Array.from({ length: 8 }, (_, i) => ({
-      fromRid: `file:from-${i}.ts`,
-      toRid: `file:to-${i}.ts`,
-      edgeKind: "dep",
-    }));
-    const ctx = makeOntologyContext({ graphConfidence: 0.2, missingEdges });
-    const result = buildRecipe({
-      intent: "Low confidence multi-file refactor",
-      scopePaths: [".claude/plugins/palantir-mini/lib/"],
-      complexityHint: "multi-file",
-      ontologyContext: ctx,
-    });
-    const explorers = result.recipe!.boundedExplorers!;
-    expect(explorers.length).toBe(2);
-    expect(explorers[0]!.focus).toBe("edges 1-5");
-    expect(explorers[1]!.focus).toBe("edges 6-8");
-  });
-
-  test("15 missingEdges → capped at 3 explorers max", () => {
-    const missingEdges = Array.from({ length: 15 }, (_, i) => ({
-      fromRid: `file:x-${i}.ts`,
-      toRid: `file:y-${i}.ts`,
-      edgeKind: "dep",
-    }));
-    const ctx = makeOntologyContext({ graphConfidence: 0.2, missingEdges });
-    const result = buildRecipe({
-      intent: "Large low-confidence change",
-      scopePaths: [".claude/plugins/palantir-mini/lib/"],
-      complexityHint: "cross-cutting",
-      ontologyContext: ctx,
-    });
-    const explorers = result.recipe!.boundedExplorers!;
-    expect(explorers.length).toBeLessThanOrEqual(3);
-  });
-
-  test("0 missingEdges with low confidence → bounded-explorer with empty scope", () => {
-    const ctx = makeOntologyContext({ graphConfidence: 0.1, missingEdges: [] });
-    const result = buildRecipe({
-      intent: "Unknown entity refactor",
-      scopePaths: [".claude/plugins/palantir-mini/lib/unknown/"],
-      complexityHint: "multi-file",
-      ontologyContext: ctx,
-    });
-    expect(result.recipe!.dispatchMode).toBe("bounded-explorer");
-    expect(result.recipe!.boundedExplorers).toBeDefined();
-    expect(result.recipe!.boundedExplorers!.length).toBe(0);
+    expect(result.dispatchMode).toBe("lead-direct");
+    expect(result.risk).toBe("low");
   });
 });
