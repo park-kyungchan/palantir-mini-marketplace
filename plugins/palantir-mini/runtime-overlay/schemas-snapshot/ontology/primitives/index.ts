@@ -52,6 +52,13 @@ export * from "./link-type";
 export * from "./object-type";
 export * from "./property-type";
 
+// --- Role primitive (prim-security-NN) — GOVERNANCE/ACTORS gap closure ---
+// principal->permission grant the prior RBAC surface (marking / object-security
+// / property-security / capability-token) lacked. Explicitly NON-overlapping
+// with CapabilityToken: Role = the principal-permission binding; token = the
+// issued grant artifact minted from it. See role.ts file comment.
+export * from "./role";
+
 // --- v1.13 governance primitives (A1.1 - A1.12) ---
 export * from "./research-document";
 export * from "./memory-index-entry";

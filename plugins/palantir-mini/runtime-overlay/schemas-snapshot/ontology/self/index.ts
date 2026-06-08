@@ -246,6 +246,31 @@ export {
   type WorkflowTraceInstance,
 } from "./workflow-trace.objecttype";
 
+// Self-Ontology Role instances (principal->permission grants). Re-exporting
+// these decls also runs roles.ts as a side-effect import, self-registering all
+// 7 Roles (5 agent file-ownership + 2 capability-split) into ROLE_REGISTRY.
+export {
+  HOOK_BUILDER_ROLE,
+  HOOK_BUILDER_ROLE_RID,
+  PLUGIN_MAINTAINER_ROLE,
+  PLUGIN_MAINTAINER_ROLE_RID,
+  PROTOCOL_DESIGNER_ROLE,
+  PROTOCOL_DESIGNER_ROLE_RID,
+  TASK_OWNER_ROLE,
+  TASK_OWNER_ROLE_RID,
+  SHARED_LIB_ROLE,
+  SHARED_LIB_ROLE_RID,
+  READ_ONLY_CAPABILITY_ROLE,
+  READ_ONLY_CAPABILITY_ROLE_RID,
+  MUTATING_CAPABILITY_ROLE,
+  MUTATING_CAPABILITY_ROLE_RID,
+  READ_ONLY_AGENT_IDS,
+  MUTATING_AGENT_IDS,
+  ROLE_DECLARATIONS,
+  ROLE_INSTANCES,
+  type RoleInstance,
+} from "./roles";
+
 // Self-Ontology LinkTypes (W3f). Re-exporting these decls also runs links.ts as a
 // side-effect import, self-registering all 33 LinkTypes into LINK_TYPE_REGISTRY.
 export {
