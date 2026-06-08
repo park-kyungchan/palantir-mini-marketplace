@@ -13,7 +13,7 @@ import type {
   SicFillSource,
   SicFillStep,
   SicWithFillFields,
-} from "./fill-sequence";
+} from "./sic-fill-types";
 import type { SemanticIntentContract } from "../lead-intent/contracts";
 
 // ---------------------------------------------------------------------------

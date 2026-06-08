@@ -7,6 +7,17 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.99.0] - 2026-06-08 — Harness redesign W3d-1: extract neutral SIC fill base types
+
+### Added
+- **`lib/semantic-intent/sic-fill-types.ts`** (NEW) — the 4 neutral SIC fill base types (`SicFillSource`, `SicFillStep`, `SicWithFillFields`, `SicTurnDescriptor`) moved verbatim out of the legacy 8-turn module `fill-sequence.ts`. The 9-axis understand HEART (`nine-axis-sic-fill-sequence.ts`) + the context-engineering and fde sequences consumed these from the legacy module (the "trapped base types" problem); extracting them to a heart-owned module lets the legacy 8-turn path be retired/cut over (W3d-2) without the HEART dragging it along by type imports.
+
+### Changed
+- **`lib/semantic-intent/fill-sequence.ts`** — replaced the in-place type definitions with an `import type` from `./sic-fill-types` + a back-compat `export type … from "./sic-fill-types"` re-export, so its own `EIGHT_TURN_FILL_SEQUENCE`/`isFillComplete`/`advanceFillSequence` and the other importers (grade-rubric, fill-policy, the gate) keep resolving unchanged.
+- **`nine-axis-sic-fill-sequence.ts`, `context-engineering-sic-fill-sequence.ts`, `fde-fill-sequence.ts`** — repointed their base-type imports from `./fill-sequence` to the canonical `./sic-fill-types`.
+
+First sub-wave of **W3d** (understand-SIC gate cutover). **Pure type-relocation** — erased at compile, no runtime value / function / persisted-shape change (`SicFillStep` serializes identically). MUST land before the gate cutover (W3d-2). No schema primitive touched. typecheck green (the full gate for a type move); affected tests pass (semantic-intent + gate, 73/74 — the 1 fail = pre-existing `FILL_POLICIES has exactly 5 entries`); full-suite **0 new regressions** (21 pre-existing failures unchanged, 3076 pass).
+
 ## [6.98.0] - 2026-06-08 — Harness redesign W3c-3: path-roots → resolveExternalRoots()
 
 ### Added

@@ -20,7 +20,7 @@ import type {
   SicFillStep,
   SicTurnDescriptor,
   SicWithFillFields,
-} from "./fill-sequence";
+} from "./sic-fill-types";
 
 export const NINE_AXIS_SIC_POLICY = "nine-axis-sic" as const;
 
