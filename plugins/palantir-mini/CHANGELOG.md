@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.100.0] - 2026-06-08 — Harness redesign W3d-4a: collapse DtcRuntime onto PromptRuntime
+
+### Changed
+- **`lib/lead-intent/dtc-grading-rubric.ts`** — `DtcRuntime` is now a type alias of the canonical `PromptRuntime` (`lib/prompt-front-door/envelope.ts`) instead of a separately-declared `"claude"|"codex"|"cursor"|"gemini"|"unknown"` union. The two were byte-identical 5-member unions; collapsing them removes the duplicate so they can never drift, and matches the gate call-site that passes `input.runtime: PromptRuntime` straight into the DTC grading context. The exported name `DtcRuntime` is kept (zero external importers — it lives in exactly this file — so no consumer churn).
+
+First half of **W3d-4** (dtc-grader neutralization). Type-alias collapse only — **regression-neutral by construction** (identical union). The remaining d4-B (replace the `identity:"claude-code"` literal at the Codex-runtime emit branch with `resolveHostRuntimeIdentity()`) is a behavior change deferred to ship with an explicit Codex-runtime assertion. No schema primitive touched. typecheck green; dtc-grading tests pass (8/8).
+
 ## [6.99.0] - 2026-06-08 — Harness redesign W3d-1: extract neutral SIC fill base types
 
 ### Added

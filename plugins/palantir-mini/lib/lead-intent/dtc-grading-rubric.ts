@@ -24,6 +24,7 @@ import {
   type GradingRubricRid,
 } from "#schemas/ontology/primitives/grading-rubric";
 import type { DigitalTwinChangeContract } from "./contracts";
+import type { PromptRuntime } from "../prompt-front-door/envelope";
 
 // =============================================================================
 // Runtime type aliases
@@ -32,7 +33,12 @@ import type { DigitalTwinChangeContract } from "./contracts";
 /** A DTC that has completed the fill-sequence (all prose fields populated). */
 export type DtcWithFillFields = DigitalTwinChangeContract;
 
-export type DtcRuntime = "claude" | "codex" | "cursor" | "gemini" | "unknown";
+/**
+ * Alias of the canonical {@link PromptRuntime} (byte-identical 5-member union). The
+ * standalone DtcRuntime union is collapsed onto PromptRuntime so the two can never drift
+ * (W3d-4a); the gate passes `input.runtime: PromptRuntime` straight into the DTC context.
+ */
+export type DtcRuntime = PromptRuntime;
 
 // =============================================================================
 // Helper: is this DTC ontology-affecting?
