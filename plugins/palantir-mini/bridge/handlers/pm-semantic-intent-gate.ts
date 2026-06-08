@@ -139,6 +139,11 @@ import type { FillPolicy } from "../../lib/semantic-intent/fill-policy";
 import { selectFillSequence } from "../../lib/semantic-intent/fill-policy";
 import { FDE_FILL_SEQUENCE, advanceFDEFillSequence } from "../../lib/semantic-intent/fde-fill-sequence";
 import {
+  NINE_AXIS_SIC_SEQUENCE,
+  advanceNineAxisSicSequence,
+  nineAxisSicReadinessIssues,
+} from "../../lib/semantic-intent/nine-axis-sic-fill-sequence";
+import {
   CONTEXT_ENGINEERING_TO_SIC_SEQUENCE,
   advanceContextEngineeringToSicSequence,
   isContextEngineeringToSicReady,
@@ -2038,6 +2043,69 @@ export async function semanticIntentGate(
           };
         } catch (err) {
           // FDE fill errors are non-fatal; result returned without fdeFillResult.
+          void err;
+        }
+      } else if (input.fillPolicy === "nine-axis-sic") {
+      // ADDITIVE: 9-axis understand-heart path (T0 intent + 9 axes = 10 turns).
+      // Fixes the prior misroute where "nine-axis-sic" fell through to the legacy
+      // 8-turn path below (the gate had zero nine-axis refs). Produces fillResult
+      // exactly like the context-engineering-to-sic SIC policy. The nine-axis
+      // finalization emit is intentionally deferred to W3d-2b (default flip).
+        try {
+          const seq = NINE_AXIS_SIC_SEQUENCE;
+          const descriptor = seq[input.turn];
+          if (!descriptor) {
+            throw new RangeError(
+              `nine-axis-sic: turn ${input.turn} out of bounds (max ${seq.length - 1})`,
+            );
+          }
+          const advanced: SicWithFillFields = advanceNineAxisSicSequence(
+            baseContract,
+            input.turn,
+            input.turnUserInput,
+            undefined,
+          );
+          const issues = nineAxisSicReadinessIssues(advanced);
+          const complete = issues.length === 0;
+          const nextDescriptor = seq[input.turn + 1];
+          let fillIncomplete: string | undefined;
+          if (input.turn === seq.length - 1 && !complete) {
+            fillIncomplete =
+              "nine_axis_sic_incomplete: 9-axis readiness is incomplete after T9 (" +
+              issues.map((i) => i.field).join(", ") +
+              ").";
+            try {
+              await emit({
+                type: "validation_phase_completed",
+                payload: {
+                  passed: false,
+                  errorClass: "nine_axis_sic_incomplete",
+                  turn: input.turn,
+                  fillSequenceLength: advanced.fillSequence?.length ?? 0,
+                  missing: issues.map((i) => i.field),
+                  contractId: advanced.contractId,
+                  advisory: false,
+                } as Record<string, unknown>,
+                toolName: "pm_semantic_intent_gate",
+                cwd: input.project,
+                reasoning:
+                  `pm_semantic_intent_gate nine-axis-sic T${input.turn} ended without readiness; ` +
+                  `contractId=${advanced.contractId} — SIC approval must fail closed`,
+                memoryLayers: ["semantic", "procedural"],
+              });
+            } catch {
+              // Non-fatal emit.
+            }
+          }
+          fillResult = {
+            appliedTurn: input.turn,
+            question: descriptor.question,
+            contract: advanced,
+            fillComplete: complete,
+            ...(fillIncomplete ? { fillIncomplete } : {}),
+            ...(nextDescriptor ? { nextQuestion: nextDescriptor.question } : {}),
+          };
+        } catch (err) {
           void err;
         }
       } else {
