@@ -22,26 +22,32 @@ ObjectType/ActionType/… instances are the **SSoT**. The DATA/LOGIC/ACTION/GOVE
 | Question | Read |
 |----------|------|
 | pm's understand-phase meaning contract, as a registered ObjectType | `semantic-intent-contract.objecttype.ts` |
+| pm's Hands-layer Executor (sandbox), as a registered Tier-2 ActionType | `executor.actiontype.ts` |
+| pm's MCP tool surface (29 tools), as a registered ObjectType + instances | `mcp-tool.objecttype.ts` |
 | The embedded record shape each axis Property resolves to | `sic-axis.struct.ts` (Struct → STRUCT_REGISTRY) |
 | What's registered + how importing triggers registration | `index.ts` (barrel; importing self-registers every instance) |
-| The primitive *types* these instances inhabit | `../primitives/object-type.ts`, `../primitives/struct.ts`, `../primitives/semantic-intent-contract.ts` |
+| The primitive *types* these instances inhabit | `../primitives/object-type.ts`, `../primitives/action-type.ts`, `../primitives/struct.ts`, `../primitives/semantic-intent-contract.ts` |
 
 ## Registered instances (M-SELF counter)
 
 | Kind | Instance | RID | Source surface |
 |------|----------|-----|----------------|
 | ObjectType | `SemanticIntentContract` | `pm.self.ontology/object-type/semantic-intent-contract` | understand-phase SIC (prim-learn-25); the 9 axes → `Struct` Properties |
+| ObjectType | `McpTool` | `pm.self.ontology/object-type/mcp-tool` | pm's MCP bridge surface — 29 tool instances (`MCP_TOOL_INSTANCES`); identity-only, descriptor metadata is the runtime projection |
+| ActionType | `Executor` (Tier-2) | `pm.self.ontology/action-type/executor` | the neutral Hands-layer sandbox executor; wraps an EditFunction, commits via `commitEdits` (DTC-gate-strict, worktree-isolated) |
 | Struct | `SicAxis` | `pm.self.ontology/struct/sic-axis` | the `{summary, refs, status}` shape every axis Property resolves to |
 
 _Counter is tracked authoritatively in the effort `README.md` §M-SELF (k/N). Each
 neutralized wave (W3d/e/f) adds ≥1 instance as a HARD rule-25 §Wave-split DoD gate._
 
 ## Roadmap (binary DoD)
+- **W3e-3a — DONE** ✅ — `Executor` Tier-2 ActionType + `McpTool` ObjectType (29 tool
+  instances) registered (this wave). Residual (future): per-tool Action/Function
+  declarations; the runtime sandbox impl `lib/sandbox/` is **W3e-3b** (downstream of
+  this ontology-first declaration).
 - **W3.5 consolidation** — add `self/links.ts` (LinkTypes between self ObjectTypes);
   run the dogfood: `ONTOLOGY_DTC_BUILD_SEQUENCE` ready-for-dtc over the self-model +
   `propagation_audit_forward` with pm as the subject.
-- **W3e** — model the executor/sandbox as an ActionType + the MCP tools as an
-  `McpTool` ObjectType + per-tool Action/Function.
 - **W3f** — first `self/links.ts` LinkTypes.
 
 ## Verification

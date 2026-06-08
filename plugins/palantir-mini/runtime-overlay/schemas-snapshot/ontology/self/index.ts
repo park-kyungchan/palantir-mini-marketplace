@@ -7,9 +7,11 @@
  * each instance module, which self-registers into the primitive registries.
  *
  * M-SELF counter (effort README §M-SELF): instances accrue one per neutralized
- * wave (W3d/e/f). Today: 1 ObjectType + its 1 embedded Struct. W3.5 wires
- * `self/links.ts` (LinkTypes) and runs the dogfood (ONTOLOGY_DTC_BUILD_SEQUENCE
- * ready-for-dtc + propagation_audit_forward with pm as subject).
+ * wave (W3d/e/f). Today: 2 ObjectType (SemanticIntentContract, McpTool) + 1
+ * ActionType (Executor) + 1 embedded Struct (SicAxis). W3e-3a added the Executor
+ * ActionType + the McpTool ObjectType (29 tool instances). W3f wires `self/links.ts`
+ * (LinkTypes) and runs the dogfood (ONTOLOGY_DTC_BUILD_SEQUENCE ready-for-dtc +
+ * propagation_audit_forward with pm as subject).
  *
  * @owner palantirkc-ontology
  */
@@ -22,3 +24,13 @@ export {
   SEMANTIC_INTENT_CONTRACT_OBJECT_TYPE,
   SEMANTIC_INTENT_CONTRACT_OBJECT_TYPE_RID,
 } from "./semantic-intent-contract.objecttype";
+export {
+  EXECUTOR_ACTION_TYPE,
+  EXECUTOR_ACTION_TYPE_RID,
+} from "./executor.actiontype";
+export {
+  MCP_TOOL_OBJECT_TYPE,
+  MCP_TOOL_OBJECT_TYPE_RID,
+  MCP_TOOL_INSTANCES,
+  type McpToolInstance,
+} from "./mcp-tool.objecttype";
