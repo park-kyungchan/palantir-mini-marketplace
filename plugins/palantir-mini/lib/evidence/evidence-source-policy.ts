@@ -57,9 +57,50 @@ export interface FDEEvidencePromotionSeverityDecision {
   readonly reason: string;
 }
 
-const HOME_DOCS_ROOT = "/home/palantirkc/docs";
-const DOC_FILENAMES = new Set(["BROWSE.md", "INDEX.md", "CLAUDE.md", "AGENTS.md", "GEMINI.md"]);
-const DOC_EXTENSIONS = new Set([".md", ".mdx", ".txt", ".json", ".yaml", ".yml"]);
+/**
+ * Injectable policy literals. Defaults preserve the historical hardcoded behavior
+ * exactly; callers may override any subset and absent fields fall back to defaults.
+ */
+export interface EvidenceSourcePolicyConfig {
+  /** Absolute root for long-term reference docs (was hardcoded HOME_DOCS_ROOT). */
+  readonly homeDocsRoot: string;
+  /** Basenames recognised as project documentation regardless of directory. */
+  readonly docFilenames: readonly string[];
+  /** File extensions accepted as documentation evidence (lowercase, leading dot). */
+  readonly docExtensions: readonly string[];
+  /** Path segments that mark a project-scoped documentation directory. */
+  readonly projectDocSegments: readonly string[];
+  /** Path segments that mark curriculum/MYP reference evidence. */
+  readonly curriculumSegments: readonly string[];
+  /** Substrings (path-style) that mark curriculum/MYP reference evidence. */
+  readonly curriculumPathMarkers: readonly string[];
+}
+
+export const DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG: EvidenceSourcePolicyConfig = {
+  homeDocsRoot: "/home/palantirkc/docs",
+  docFilenames: ["BROWSE.md", "INDEX.md", "CLAUDE.md", "AGENTS.md", "GEMINI.md"],
+  docExtensions: [".md", ".mdx", ".txt", ".json", ".yaml", ".yml"],
+  projectDocSegments: ["docs", "ontology", ".palantir-mini"],
+  curriculumSegments: ["agent-ready", "curriculum"],
+  curriculumPathMarkers: ["/docs/2022-math-curriculum/", "/docs/myp-"],
+};
+
+function resolveConfig(
+  config?: Partial<EvidenceSourcePolicyConfig>,
+): EvidenceSourcePolicyConfig {
+  if (!config) return DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG;
+  return {
+    homeDocsRoot: config.homeDocsRoot ?? DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG.homeDocsRoot,
+    docFilenames: config.docFilenames ?? DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG.docFilenames,
+    docExtensions: config.docExtensions ?? DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG.docExtensions,
+    projectDocSegments:
+      config.projectDocSegments ?? DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG.projectDocSegments,
+    curriculumSegments:
+      config.curriculumSegments ?? DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG.curriculumSegments,
+    curriculumPathMarkers:
+      config.curriculumPathMarkers ?? DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG.curriculumPathMarkers,
+  };
+}
 
 function normalizeAbsolute(projectRoot: string, sourcePath: string): string {
   const base = path.resolve(projectRoot);
@@ -71,7 +112,11 @@ function isWithin(child: string, parent: string): boolean {
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
-function isProjectDoc(normalizedPath: string, projectRoot: string): boolean {
+function isProjectDoc(
+  normalizedPath: string,
+  projectRoot: string,
+  cfg: EvidenceSourcePolicyConfig,
+): boolean {
   if (!isWithin(normalizedPath, projectRoot)) return false;
 
   const relative = path.relative(projectRoot, normalizedPath);
@@ -79,11 +124,9 @@ function isProjectDoc(normalizedPath: string, projectRoot: string): boolean {
   const basename = path.basename(normalizedPath);
 
   return (
-    DOC_FILENAMES.has(basename) ||
-    segments.includes("docs") ||
-    segments.includes("ontology") ||
-    segments.includes(".palantir-mini")
-  ) && DOC_EXTENSIONS.has(path.extname(normalizedPath).toLowerCase());
+    cfg.docFilenames.includes(basename) ||
+    cfg.projectDocSegments.some((segment) => segments.includes(segment))
+  ) && cfg.docExtensions.includes(path.extname(normalizedPath).toLowerCase());
 }
 
 function decision(
@@ -113,17 +156,19 @@ function decision(
   };
 }
 
-export function classifyEvidenceSource(input: EvidenceSourcePolicyInput): EvidenceSourcePolicyDecision {
+export function classifyEvidenceSource(
+  input: EvidenceSourcePolicyInput,
+  config?: Partial<EvidenceSourcePolicyConfig>,
+): EvidenceSourcePolicyDecision {
+  const cfg = resolveConfig(config);
   const projectRoot = path.resolve(input.projectRoot);
   const normalizedPath = normalizeAbsolute(projectRoot, input.sourcePath);
-  const homeDocsRoot = path.resolve(HOME_DOCS_ROOT);
+  const homeDocsRoot = path.resolve(cfg.homeDocsRoot);
   const relativeProject = path.relative(projectRoot, normalizedPath).split(path.sep);
 
   if (
-    relativeProject.includes("agent-ready") ||
-    relativeProject.includes("curriculum") ||
-    normalizedPath.includes("/docs/2022-math-curriculum/") ||
-    normalizedPath.includes("/docs/myp-")
+    cfg.curriculumSegments.some((segment) => relativeProject.includes(segment)) ||
+    cfg.curriculumPathMarkers.some((marker) => normalizedPath.includes(marker))
   ) {
     return decision(
       projectRoot,
@@ -149,7 +194,7 @@ export function classifyEvidenceSource(input: EvidenceSourcePolicyInput): Eviden
     );
   }
 
-  if (isWithin(normalizedPath, homeDocsRoot) && DOC_EXTENSIONS.has(path.extname(normalizedPath).toLowerCase())) {
+  if (isWithin(normalizedPath, homeDocsRoot) && cfg.docExtensions.includes(path.extname(normalizedPath).toLowerCase())) {
     return decision(
       projectRoot,
       true,
@@ -160,7 +205,7 @@ export function classifyEvidenceSource(input: EvidenceSourcePolicyInput): Eviden
     );
   }
 
-  if (isProjectDoc(normalizedPath, projectRoot)) {
+  if (isProjectDoc(normalizedPath, projectRoot, cfg)) {
     return decision(
       projectRoot,
       true,
@@ -181,14 +226,18 @@ export function classifyEvidenceSource(input: EvidenceSourcePolicyInput): Eviden
   );
 }
 
-export function isReferenceEvidenceAllowed(input: EvidenceSourcePolicyInput): boolean {
-  return classifyEvidenceSource(input).allowed;
+export function isReferenceEvidenceAllowed(
+  input: EvidenceSourcePolicyInput,
+  config?: Partial<EvidenceSourcePolicyConfig>,
+): boolean {
+  return classifyEvidenceSource(input, config).allowed;
 }
 
 export function evaluateFDEEvidencePromotionSeverity(
   input: FDEEvidencePromotionSeverityInput,
+  config?: Partial<EvidenceSourcePolicyConfig>,
 ): FDEEvidencePromotionSeverityDecision {
-  const policyDecision = classifyEvidenceSource(input);
+  const policyDecision = classifyEvidenceSource(input, config);
   const use = input.use ?? "reference";
 
   if (!policyDecision.allowed || policyDecision.ssotStatus !== "not_promoted") {

@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.109.0] - 2026-06-08 — Harness redesign W3f-2 Wave 1: policy-literal injectable
+
+### Changed
+- **`lib/evidence/evidence-source-policy.ts` + `lib/research/palantir-source-authority.ts` literals are now INJECTABLE.** Hardcoded docRoots/evidenceKinds extracted verbatim into exported `DEFAULT_*` configs; public functions take an optional `config?: Partial<...>` merged over the defaults. Behavior is byte-identical when config is omitted (defaults = the prior literals), so all call sites + the type-only `EvidenceSourcePolicyDecision` consumers are unchanged. Neutralizes the baked-in palantir-source policy literals (W3 de-Claude/neutralization) without renaming any public type.
+
+**0 new regressions** (env-clean stash-baseline-diff IDENTICAL fail-set = 8 pre-existing). No schema-snapshot bump. Lead-orchestrated; opus subagent implemented.
+
 ## [6.108.0] - 2026-06-08 — Harness redesign W3f-1: convex Minimal cut (runtime OFF via stub)
 
 ### Changed
