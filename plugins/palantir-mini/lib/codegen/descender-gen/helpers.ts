@@ -7,6 +7,7 @@ import * as path from "path";
 import { appendEventAtomic } from "../../event-log/append";
 import type { EventEnvelope, EventId, SessionId, CommitSha } from "../../event-log/types";
 import { resolvePalantirMiniRoot } from "../../config/root";
+import { resolveHostRuntimeIdentity } from "../../runtime/identity";
 
 export function defaultSchemaRoot(): string {
   return path.join(resolvePalantirMiniRoot(), "runtime-overlay", "schemas-snapshot", "ontology");
@@ -65,7 +66,7 @@ export async function emitCodegenEvent(
       toolName:  "descender-gen",
       cwd:       project,
     },
-    byWhom: { identity: "claude-code", agentName: "codegen-runner" },
+    byWhom: { identity: resolveHostRuntimeIdentity(undefined, "claude-code"), agentName: "codegen-runner" },
     payload,
   } as Omit<EventEnvelope, "sequence">;
 

@@ -22,6 +22,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
 import { appendEventAtomic } from "./append";
+import { resolveHostRuntimeIdentity } from "../runtime/identity";
 import type {
   CommitSha,
   EventEnvelope,
@@ -136,7 +137,7 @@ export async function emitToolInvocationCompleted(
       cwd:       process.cwd(),
     },
     byWhom: {
-      identity: "claude-code",
+      identity: resolveHostRuntimeIdentity(undefined, "claude-code"),
     },
     withWhat: {
       reasoning: input.success
