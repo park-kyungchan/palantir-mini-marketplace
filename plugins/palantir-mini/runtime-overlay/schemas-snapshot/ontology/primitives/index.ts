@@ -12,8 +12,8 @@
  *                            capability-token, marking-declaration,
  *                            automation-declaration, webhook-declaration,
  *                            scenario-sandbox, aip-logic-function
- *   v1.13 governance (12)  — research-document, memory-index-entry,
- *                            claude-code-version, hook-event-allowlist,
+ *   v1.13 governance (11)  — research-document, memory-index-entry,
+ *                            hook-event-allowlist,
  *                            plugin-manifest, project-schema-pin,
  *                            file-complexity-budget, dead-code-marker,
  *                            lineage-conformance-policy,
@@ -55,7 +55,6 @@ export * from "./property-type";
 // --- v1.13 governance primitives (A1.1 - A1.12) ---
 export * from "./research-document";
 export * from "./memory-index-entry";
-export * from "./claude-code-version";
 export * from "./hook-event-allowlist";
 export * from "./plugin-manifest";
 export * from "./project-schema-pin";
@@ -383,7 +382,6 @@ import { automationDeclarationFoundryEquivalent as _foundryEquiv_automation_decl
 
 import { capabilityTokenFoundryEquivalent as _foundryEquiv_capability_token } from "./capability-token";
 import { categoryFoundryEquivalentFoundryEquivalent as _foundryEquiv_category_foundry_equivalent } from "./category-foundry-equivalent";
-import { claudeCodeVersionFoundryEquivalent as _foundryEquiv_claude_code_version } from "./claude-code-version";
 import { codegenHeaderContractFoundryEquivalent as _foundryEquiv_codegen_header_contract } from "./codegen-header-contract";
 import { deadCodeMarkerFoundryEquivalent as _foundryEquiv_dead_code_marker } from "./dead-code-marker";
 
@@ -482,7 +480,6 @@ export const FOUNDRY_EQUIVALENTS_REGISTRY: Readonly<
 
   "capability-token": _foundryEquiv_capability_token,
   "category-foundry-equivalent": _foundryEquiv_category_foundry_equivalent,
-  "claude-code-version": _foundryEquiv_claude_code_version,
   "codegen-header-contract": _foundryEquiv_codegen_header_contract,
   "dead-code-marker": _foundryEquiv_dead_code_marker,
 

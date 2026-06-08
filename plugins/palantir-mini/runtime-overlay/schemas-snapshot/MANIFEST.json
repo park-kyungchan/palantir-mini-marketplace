@@ -66,7 +66,6 @@
     "ontology/primitives/canvas-layout-stage.ts": "885a671e9b958e0591a2093269ea561ad8c2c9f06c7ca169bf858dda08383642",
     "ontology/primitives/capability-token.ts": "60c219b7d9ea95b039268c51535288d34a1b304805be59bfd818221eecafc811",
     "ontology/primitives/category-foundry-equivalent.ts": "b02723f1529468ab482097037ae66446ba8bd12f3bbd911209ee1f6a9557fafc",
-    "ontology/primitives/claude-code-version.ts": "0e9bac2fb08c0c259ac1df1e917e31750e6181056fd5fcf40965b7f9836e701d",
     "ontology/primitives/codegen-header-contract.ts": "135a342a1aed7f9b776be772514e5a49ef9c8010d64bb61c931cdb1166a6c6af",
     "ontology/primitives/commit.ts": "5368396f0426119bc4d132b767ae002482f2761f954154afd34300f159622610",
     "ontology/primitives/context-capsule.ts": "db24b37130919554b9ba2587ae88fd1d8c860a38b1eb634403bf1a7ba6400a51",

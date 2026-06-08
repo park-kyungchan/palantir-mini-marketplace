@@ -38,7 +38,6 @@
         "v13Governance": [
           "ontology/primitives/research-document.ts",
           "ontology/primitives/memory-index-entry.ts",
-          "ontology/primitives/claude-code-version.ts",
           "ontology/primitives/hook-event-allowlist.ts",
           "ontology/primitives/plugin-manifest.ts",
           "ontology/primitives/project-schema-pin.ts",

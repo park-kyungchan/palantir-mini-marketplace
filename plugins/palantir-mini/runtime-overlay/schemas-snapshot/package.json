@@ -34,7 +34,6 @@
     "./ontology/primitives": "./ontology/primitives/index.ts",
     "./ontology/primitives/research-document": "./ontology/primitives/research-document.ts",
     "./ontology/primitives/memory-index-entry": "./ontology/primitives/memory-index-entry.ts",
-    "./ontology/primitives/claude-code-version": "./ontology/primitives/claude-code-version.ts",
     "./ontology/primitives/hook-event-allowlist": "./ontology/primitives/hook-event-allowlist.ts",
     "./ontology/primitives/plugin-manifest": "./ontology/primitives/plugin-manifest.ts",
     "./ontology/primitives/project-ontology-index": "./ontology/primitives/project-ontology-index.ts",

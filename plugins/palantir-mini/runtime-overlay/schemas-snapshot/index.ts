@@ -29,7 +29,6 @@ export * from "./ontology/primitives/aip-logic-function";
 // v1.13 governance primitives (A1.1 - A1.12)
 export * from "./ontology/primitives/research-document";
 export * from "./ontology/primitives/memory-index-entry";
-export * from "./ontology/primitives/claude-code-version";
 export * from "./ontology/primitives/hook-event-allowlist";
 export * from "./ontology/primitives/plugin-manifest";
 export * from "./ontology/primitives/project-schema-pin";

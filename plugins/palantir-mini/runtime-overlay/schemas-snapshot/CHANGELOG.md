@@ -8,6 +8,15 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.68.0 — 2026-06-08 (harness redesign W3b-1: remove claude-code-version primitive)
+
+Removal (breaking, but no surviving consumer). Drops `ontology/primitives/claude-code-version.ts`
+(`ClaudeCodeVersionRegistry` / `compareClaudeCodeVersions` / `ClaudeCodeVersionDeclaration`) — a
+Claude-Code-specific version-pin primitive that does not belong in the runtime-neutral SSoT (version
+pinning is a Claude-adapter concern). Pruned from the primitives barrel, foundry-equivalent map,
+package.json exports, MANIFEST.json, and .manifest.json. Sole code consumer (the unregistered
+`cc-allowlist-drift-check` hook) removed in the same plugin release (6.93.0).
+
 ## v1.67.0 — 2026-05-14 (sprint-114 PR 5.4a: AIPEvaluation Convex shapes)
 
 MINOR. Adds Convex-aligned row shapes + type guards to `ontology/primitives/aip-evaluation.ts`.

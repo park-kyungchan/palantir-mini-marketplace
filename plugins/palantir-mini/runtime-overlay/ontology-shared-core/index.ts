@@ -372,7 +372,6 @@ export * from "@palantirKC/claude-schemas/ontology/primitives/property-type";
 
 export * from "@palantirKC/claude-schemas/ontology/primitives/research-document";
 export * from "@palantirKC/claude-schemas/ontology/primitives/memory-index-entry";
-export * from "@palantirKC/claude-schemas/ontology/primitives/claude-code-version";
 export * from "@palantirKC/claude-schemas/ontology/primitives/hook-event-allowlist";
 export * from "@palantirKC/claude-schemas/ontology/primitives/plugin-manifest";
 export * from "@palantirKC/claude-schemas/ontology/primitives/project-schema-pin";
