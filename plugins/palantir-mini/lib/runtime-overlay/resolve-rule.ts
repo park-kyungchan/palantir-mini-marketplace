@@ -16,6 +16,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { resolveExternalRoots } from "../runtime/external-roots";
 
 /** Where the plugin root lives at runtime. */
 const PLUGIN_ROOT = path.resolve(__dirname, "..", "..");
@@ -23,12 +24,8 @@ const PLUGIN_ROOT = path.resolve(__dirname, "..", "..");
 /** Plugin-resident rules overlay directory. */
 const OVERLAY_RULES_DIR = path.join(PLUGIN_ROOT, "runtime-overlay", "rules");
 
-/** External Claude-native rules directory. */
-const EXTERNAL_RULES_DIR = path.join(
-  process.env.HOME ?? "/home/palantirkc",
-  ".claude",
-  "rules",
-);
+/** External host rules-overlay directory (adapter-supplied via resolveExternalRoots). */
+const EXTERNAL_RULES_DIR = resolveExternalRoots().rulesDir;
 
 /** Source classification for a resolved rule body. */
 export type RuleBodySource = "plugin-overlay" | "external" | "not-found";

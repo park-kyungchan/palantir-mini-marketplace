@@ -24,10 +24,10 @@
 //            rule 02 §Memory (MEMORY.md memory system)
 
 import * as fs from "fs";
-import * as os from "os";
 import * as path from "path";
 import * as crypto from "crypto";
 import { deriveProjectSlug } from "../project/slug";
+import { resolveExternalRoots } from "../runtime/external-roots";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -50,8 +50,6 @@ const HASH_FILE_NAME = ".last-memory-reflect-hash";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const HOME = process.env.HOME ?? os.homedir();
-
 /**
  * Derive the Claude memory MEMORY.md path for a given projectRoot.
  * Heuristic: ~/.claude/projects/<project-slug>/memory/MEMORY.md
@@ -67,11 +65,10 @@ function resolveMemoryPath(projectRoot: string): string {
   // We use the slug as an approximation; for production,
   // the real mount is ~/.claude/projects/<abs-path-encoded>/memory/MEMORY.md
   // where the path encoding is: absolute path with / replaced by -.
+  const { projectsDir } = resolveExternalRoots();
   const encodedPath = projectRoot.replace(/\//g, "-");
   const standardMount = path.join(
-    HOME,
-    ".claude",
-    "projects",
+    projectsDir,
     encodedPath,
     "memory",
     "MEMORY.md",
@@ -80,9 +77,7 @@ function resolveMemoryPath(projectRoot: string): string {
 
   // Fallback: try slug-based path (for older memory layouts or test fixtures)
   const slugMount = path.join(
-    HOME,
-    ".claude",
-    "projects",
+    projectsDir,
     slug,
     "memory",
     "MEMORY.md",
