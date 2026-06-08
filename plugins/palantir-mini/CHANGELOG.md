@@ -7,6 +7,11 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.90.1] - 2026-06-08 — chore: sync version fields (PR #96 bumped only plugin.json)
+
+### Fixed
+- **Version-field desync.** PR #96 (6.90.0) bumped only `plugins/palantir-mini/.claude-plugin/plugin.json`; the other 8 of 9 version fields (`package.json`, `.codex-plugin/plugin.json`, `plugins/palantir-mini/.claude-plugin/marketplace.json` ×3, root `.claude-plugin/marketplace.json` ×3) stayed at 6.89.0, breaking the per-wave 9-field lockstep (rule 25 ship discipline). Synced all 9 fields to **6.90.1**. No functional change — the hooks.json fix from #96 is unaffected.
+
 ## [6.90.0] - 2026-06-08 — Fix: Claude hooks.json uses ${CLAUDE_PLUGIN_ROOT} (revert #89 regression)
 
 ### Fixed
