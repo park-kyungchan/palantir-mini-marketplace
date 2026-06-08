@@ -7,6 +7,23 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.107.0] - 2026-06-08 — Harness redesign W3e-3b: neutral Executor/Sandbox runtime lib (Hands layer)
+
+### Added
+- **`lib/sandbox/{contract,edit-functions,adapter,executor}.ts`** — the runtime impl of the `Executor` Tier-2 ActionType modeled in W3e-3a. **COMPOSES three shipped primitives** (does NOT invent a write engine): `Session.run` (argv-safe shell), `applyEditFunction` (pure edit compute), `commitEdits` (the SOLE ontology persist path). Flow: build neutral `RuntimeDecision` → `compareRuntimeDecisionParity` pre-spawn gate → capability fallback → materialize worktree → shell via `Session.run` + every edit step via `applyEditFunction → commitEdits` ONLY → ALWAYS discard the worktree (cattle, not pets). **NO `fs.write*` anywhere in the executor** — a failed submission criterion ⇒ REJECTED ⇒ edits never persisted, project source byte-identical. `edit-functions.ts` registers the pure `"pm.sandbox.executor.applyEditSteps"` function under the EXACT name the W3e-3a ActionType forward-names (`editFunctionName`); reconciliation asserted by test.
+- **`lib/codex/exec-adapter.ts`** (full) — Codex Hands adapter. `functions.exec_command`/`functions.write_stdin` → neutral `"shell"` step; `apply_patch` classified (reusing the pure `collectPatchPaths` from `codex-hook-adapter.ts`) as a general file edit, OUT of v1. The exec DISPATCH is NEW work — the hook adapter only RENAMES payloads for hook-script routing (`bash -lc`); it never runs an exec.
+- **`lib/claude/exec-adapter.ts`** (thin) — Claude Hands adapter (`Bash` → `"shell"`).
+- Tests: `tests/sandbox/executor-write-path.test.ts` (REJECTED ⇒ byte-identical source + `commitEdits` sole-persist spy + worktree discarded; self-model reconciliation) + `tests/runtime/executor-decision-parity.test.ts` (pre-spawn parity gate blocks the spawn on a diverged compared field; `CAPABILITY_GAP`; adapter ingress normalization). **+9 tests**.
+
+### Design notes
+- **v1 scope** (DESIGN APPROVED 2026-06-08): argv-safe shell + ontology-source edits only; codex full + claude thin; gemini W4+; pipes/redirects + general-file-edits out.
+- **Decoupling**: the executor depends on a LOCAL structural `SandboxClientPort` (mirrors the shipped `runtime-overlay/ontology-shared-core/sandbox-client.ts` `SandboxClient`), NOT a `#shared-core` import — so the lib stays out of the shared-core compilation graph; the production `UnixLocalSandboxClient` is INJECTED at the wiring boundary (Q1a "contract wrapping the shipped SandboxClient", realized structurally).
+- **No schema-snapshot bump** — W3e-3b is runtime-only (the typed MEANING shipped in W3e-3a); **M-SELF counter unchanged at 2/3**.
+
+**Known-issue / W3.5 prerequisite:** `runtime-overlay/ontology-shared-core/sandbox-client.ts:448` carries a latent `noUncheckedIndexedAccess` type error (`prog: string | undefined` after the argv destructure) — invisible today (0 lib importers, compiled only under shared-core's own tsconfig) but it WILL surface when the W3.5 handler imports `#shared-core/sandbox-client` to inject the real client. Fix at that boundary (or in shared-core + its external mirror). NOT fixed here to keep this wave scoped and avoid the shared-core external-mirror invariant.
+
+**0 new regressions** (env-clean `env -u PALANTIR_MINI_PLUGIN_ROOT` full stash-baseline-diff IDENTICAL fail-set = 8 pre-existing; 3138 pass). `tsc --noEmit` green at each build step. Lead-direct edits (rule 03 — no sonnet mutation fan-out).
+
 ## [6.106.0] - 2026-06-08 — Harness redesign W3e-3a: self-Ontology Executor ActionType + McpTool ObjectType (M-SELF #2+#3)
 
 ### Added
