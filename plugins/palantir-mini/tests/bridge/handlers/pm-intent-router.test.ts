@@ -353,10 +353,10 @@ describe("T2 — cross-cutting intent + multi-path → delegate + full sprint", 
       complexityHint: "cross-cutting",
     });
 
-    expect(result.decision).toMatch(/^delegate-to-/);
+    expect(result.decision).toBe("delegate");
   });
 
-  test("cross-cutting + 5 paths → sprint mode is full", async () => {
+  test("cross-cutting + 5 paths → delegate decision", async () => {
     const project = makeTmpProject();
     const result = await routeIntent({
       project,
@@ -371,7 +371,7 @@ describe("T2 — cross-cutting intent + multi-path → delegate + full sprint", 
       complexityHint: "cross-cutting",
     });
 
-    expect(result.recipe?.sprintArgs.mode).toBe("full");
+    expect(result.decision).toBe("delegate");
   });
 
 
@@ -552,7 +552,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     });
 
     expect(result.decision).toBe("contract_required");
-    expect(result.recipe).toBeUndefined();
+    expect(result.domain).toBeUndefined();
     expect(result.contractGate.requiredContracts).toEqual([
       "SemanticIntentContract",
       "DigitalTwinChangeContract",
@@ -709,8 +709,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       "ontology/data/visual3D.ts",
       "src/lib/jsxGraph3D/scene3DCompiler.ts",
     ]);
-    expect(result.decision).toBe("delegate-to-ontology-steward");
-    expect(result.recipe?.agent).toBe("ontology-steward");
+    expect(result.decision).toBe("delegate");
   });
 
   test("approved inline contracts derive WorkContract and RouterBinding additively", async () => {
@@ -727,13 +726,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       ...approvedContractEvidence(),
     });
 
-    expect(result.decision).toBe("delegate-to-ontology-steward");
-    expect(result.recipe?.agent).toBe("ontology-steward");
-    expect(result.recipe?.mcpTools).toContain("apply_edit_function");
-    expect(result.recipe?.criticalFiles).toEqual([
-      "ontology/data/visual3D.ts",
-      "src/lib/jsxGraph3D/scene3DCompiler.ts",
-    ]);
+    expect(result.decision).toBe("delegate");
     expect(result.workContract?.status).toBe("bound");
     expect(result.workContract?.semanticIntentContractRef).toBe(
       "semantic-intent:approved:scene3d",
@@ -747,12 +740,6 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     expect(result.routerBindingValidation?.valid).toBe(true);
     expect(result.ontologyDtcBuildReadinessGate?.checks["ready-for-router"].valid).toBe(
       true,
-    );
-    expect(result.recipe?.contractBinding?.workContractRef).toBe(
-      result.workContract?.contractId,
-    );
-    expect(result.recipe?.contractBinding?.routerBindingRef).toBe(
-      result.routerBinding?.bindingId,
     );
   });
 
@@ -786,7 +773,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
 
     expect(result.contractGate.status).toBe("contract_required");
     expect(result.decision).toBe("contract_required");
-    expect(result.recipe).toBeUndefined();
+    expect(result.domain).toBeUndefined();
     expect(result.workContractValidation?.valid).toBe(false);
     expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
     expect(result.ontologyDtcBuildReadinessGate?.checks["work-contract-valid"].valid).toBe(
@@ -828,7 +815,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     const fields =
       result.ontologyDtcBuildReadinessGate?.issues.map((issue) => issue.field) ?? [];
     expect(result.decision).toBe("blocked_for_clarification");
-    expect(result.recipe).toBeUndefined();
+    expect(result.domain).toBeUndefined();
     expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
     expect(result.ontologyDtcBuildReadinessGate?.checks["body-validated"].valid).toBe(
       false,
@@ -870,7 +857,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     });
 
     expect(result.decision).toBe("contract_required");
-    expect(result.recipe).toBeUndefined();
+    expect(result.domain).toBeUndefined();
     expect(result.ontologyDtcBuildReadinessGate?.readyForRouter).toBe(false);
     const fields =
       result.ontologyDtcBuildReadinessGate?.issues.map((issue) => issue.field) ?? [];
@@ -920,7 +907,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       "ontology/data/visual3D.ts",
       "src/lib/jsxGraph3D/scene3DCompiler.ts",
     ]);
-    expect(result.decision).toBe("delegate-to-ontology-steward");
+    expect(result.decision).toBe("delegate");
     expect(result.workContractValidation?.valid).toBe(true);
     expect(result.routerBindingValidation?.valid).toBe(true);
 
@@ -993,7 +980,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       gate.contractRefs?.semanticIntentContractRef,
     );
     expect(result.routingProjection.basis).toBe("approved-inline-contracts");
-    expect(result.decision).toBe("delegate-to-ontology-steward");
+    expect(result.decision).toBe("delegate");
     expect(result.workContractValidation?.valid).toBe(true);
     expect(result.routerBindingValidation?.valid).toBe(true);
   });
@@ -1088,7 +1075,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     expect(result.contractRefs?.semanticIntentContractRef).not.toBe(
       draftGate.contractRefs?.semanticIntentContractRef,
     );
-    expect(result.decision).toBe("delegate-to-ontology-steward");
+    expect(result.decision).toBe("delegate");
   });
 
   test("T7 — result always contains suggestedAgents field (PR-2 T10)", async () => {

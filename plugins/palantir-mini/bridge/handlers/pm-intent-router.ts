@@ -33,7 +33,6 @@
 //   - DO NOT modify bridge/mcp-server.ts (Phase 4 Lead handles TOOLS registration)
 
 import {
-  attachContractBindingToRecipe,
   buildRecipe,
   deriveOntologyContextDigest,
   pickDispatchModeFromConfidence,
@@ -44,8 +43,9 @@ import {
 } from "../../lib/ontology-context/approval";
 import type {
   BuildRecipeInput,
-  DelegationRecipe,
+  DispatchDecision,
   DispatchMode,
+  RecipeDomain,
 } from "../../lib/delegation-recipe/recipe-builder";
 import type { OntologyContextQueryResult } from "./ontology-context-query";
 import { loadCapabilityRegistry } from "../../lib/capability-registry/index";
@@ -72,7 +72,6 @@ import type {
   SemanticIntentContract,
   WorkContract,
 } from "../../lib/lead-intent/contracts";
-import type { RecipeContractBinding } from "../../lib/delegation-recipe/recipe-builder";
 import {
   PromptFrontDoorStore,
   isPromptRuntime,
@@ -218,16 +217,20 @@ export interface PrefetchTimings {
 }
 
 export type IntentRouterDecision =
-  | DelegationRecipe["decision"]
+  | DispatchDecision["decision"]
   | "contract_required"
   | "blocked_for_clarification";
 
-/** Enriched delegation recipe returned by pm_intent_router. */
+/** Neutral dispatch decision returned by pm_intent_router. */
 export interface IntentRouterResult {
   decision: IntentRouterDecision;
   rationale: string;
-  recipe?: DelegationRecipe["recipe"];
-  /** Recommended harness species (cost-aware). */
+  /** Neutral dispatch domain (W3b-2b). Absent on contract-gate / blocked paths. */
+  domain?: RecipeDomain;
+  /** graphConfidence-derived dispatch mode carried by the DispatchDecision. */
+  dispatchMode?: DispatchMode;
+  /** Routing risk grade derived from dispatchMode. */
+  risk?: DispatchDecision["risk"];
   /** Semantic Intent / Digital Twin gate status. */
   contractGate: ContractGateResult;
   /** Ontology-DTC dispatch readiness diagnostics for ontology-affecting work. */
@@ -294,7 +297,7 @@ export interface IntentRouterResult {
   /**
    * graphConfidence-derived dispatch mode (sprint-098 PR 3.6).
    * Present when ontology_context_query succeeded and returned a graphConfidence value.
-   * Mirrors recipe.dispatchMode for callers who read the top-level result shape.
+   * Mirrors the DispatchDecision dispatchMode for callers reading the top-level result shape.
    *
    * lead-direct          — graphConfidence ≥ 0.7 (and missingEdges ≤ 5)
    * targeted-verification — 0.4 ≤ graphConfidence < 0.7  OR  ≥0.7 with missingEdges > 5
@@ -651,7 +654,7 @@ function validateWorkBindingState(
 
 function routerBindingForRecipe(input: {
   workContract: WorkContract;
-  baseRecipe: DelegationRecipe;
+  baseRecipe: DispatchDecision;
   routingProjection: ContractRoutingProjection;
 }): RouterBinding {
   const delegationMode: RouterBinding["delegationMode"] =
@@ -659,9 +662,9 @@ function routerBindingForRecipe(input: {
   const routerOutputRef =
     `pm-intent-router://${slugForRef(input.routingProjection.basis, "basis")}/` +
     slugForRef(input.baseRecipe.decision, "decision");
-  const delegationRecipeRef = input.baseRecipe.recipe?.agent
-    ? `delegation-recipe://${input.baseRecipe.decision}-${input.baseRecipe.recipe.agent}`
-    : undefined;
+  // W3b-2b: ref keyed on the neutral domain (agent identity removed from the decision).
+  const delegationRecipeRef =
+    `delegation-recipe://${input.baseRecipe.decision}-${input.baseRecipe.domain}`;
   return {
     bindingId:
       `router-binding:${slugForRef(input.workContract.contractId, "work-contract")}:` +
@@ -674,21 +677,18 @@ function routerBindingForRecipe(input: {
     workContractRef: input.workContract.contractId,
     routerBasis: input.routingProjection.basis,
     routerOutputRef,
-    ...(delegationRecipeRef ? { delegationRecipeRef } : {}),
-    attachedOutputRefs: [
-      routerOutputRef,
-      ...(delegationRecipeRef ? [delegationRecipeRef] : []),
-    ],
+    delegationRecipeRef,
+    attachedOutputRefs: [routerOutputRef, delegationRecipeRef],
     rationale:
       "pm_intent_router attached this RouterBinding additively after selecting " +
-      `${input.baseRecipe.decision}; DelegationRecipe fields remain unchanged.`,
+      `${input.baseRecipe.decision}; DispatchDecision fields remain unchanged.`,
   };
 }
 
 function deriveWorkBindingForRoute(input: {
   state: WorkBindingState;
   effectiveInput: EffectiveIntentRouterInput;
-  baseRecipe: DelegationRecipe;
+  baseRecipe: DispatchDecision;
   routingProjection: ContractRoutingProjection;
 }): WorkBindingState {
   let state = validateWorkBindingState(input.state, input.effectiveInput);
@@ -742,14 +742,6 @@ function deriveWorkBindingForRoute(input: {
   }
 
   return state;
-}
-
-function recipeContractBinding(state: WorkBindingState): RecipeContractBinding | undefined {
-  if (!state.workContractRef && !state.routerBindingRef) return undefined;
-  return {
-    ...(state.workContractRef ? { workContractRef: state.workContractRef } : {}),
-    ...(state.routerBindingRef ? { routerBindingRef: state.routerBindingRef } : {}),
-  };
 }
 
 function workBindingResultFields(state: WorkBindingState): Partial<IntentRouterResult> {
@@ -1345,10 +1337,9 @@ export async function routeIntent(
     baseRecipe,
     routingProjection,
   });
-  const routeRecipe = attachContractBindingToRecipe(
-    baseRecipe,
-    recipeContractBinding(workBindingState),
-  );
+  // W3b-2b: contractBinding dropped — workContractRef/routerBindingRef already
+  // travel top-level via workBindingResultFields(). routeRecipe IS the DispatchDecision.
+  const routeRecipe = baseRecipe;
   ontologyDtcBuildReadinessGate = assessRouterOntologyDtcBuildReadiness({
     effectiveInput,
     routingProjection,
@@ -1445,7 +1436,7 @@ export async function routeIntent(
         passed: true,
         errorClass: "intent_routing_completed",
         decision: routeRecipe.decision,
-        agent: routeRecipe.recipe?.agent ?? null,
+        domain: routeRecipe.domain,
         contractGate: routingContractGate.status,
         contractPolicy: routingContractGate.contractPolicy,
         recommendedContracts: routingContractGate.recommendedContracts,
@@ -1488,7 +1479,7 @@ export async function routeIntent(
   try {
     await attachRoutingProjectionToCapsule(input.promptId, {
       decision: routeRecipe.decision,
-      agent: routeRecipe.recipe?.agent ?? null,
+      domain: routeRecipe.domain,
       routingProjection,
     }, input.project);
   } catch {
@@ -1499,9 +1490,7 @@ export async function routeIntent(
   try {
     const entry = readCurrentUniversalOntologyEntry(input.project);
     if (entry) {
-      const delegationRecipeRef = routeRecipe.recipe?.agent
-        ? `delegation-recipe://${routeRecipe.decision}-${routeRecipe.recipe.agent}`
-        : `delegation-recipe://${routeRecipe.decision}`;
+      const delegationRecipeRef = `delegation-recipe://${routeRecipe.decision}-${routeRecipe.domain}`;
       await transitionUniversalOntologyEntry({
         entry,
         nextStatus: "routed",

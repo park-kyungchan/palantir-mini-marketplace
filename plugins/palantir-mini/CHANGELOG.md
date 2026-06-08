@@ -7,6 +7,19 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.95.0] - 2026-06-08 — Harness redesign W3b-2b: recipe-builder → neutral DispatchDecision
+
+### Removed
+- **`lib/delegation-recipe/recipe-builder.ts` Claude/agent identity** (670 → 244 LOC) — removed the `AgentModel` type (opus/sonnet/haiku), the `DOMAIN_AGENT` static agent/model map plus the `DOMAIN_MCP_TOOLS`/`DOMAIN_SKILLS`/`DOMAIN_MEMORY_LAYERS`/`DOMAIN_OUT_OF_SCOPE` tables, the agent-selection subsystem (router-suggested-agent consultation + `recipe_agent_selected` emit + the `routerResult`/`emitFn` inputs), the execution DAG (`DelegationExecutionPlan`/`DelegationExecutionTask`/`buildDelegationExecutionPlan`), and the sprint/briefing ceremony (`buildSprintArgs`, `buildBriefingTemplate`, `inferVerifyCommand`). Agent/model/skill/tool selection is a runtime-adapter concern, deferred to W4.
+- **`hooks/agent-router-suggestion-emit.ts`** + its `hooks.json` PostToolUse registration + the `hook-step:posttool-router-suggestion` policy-registry entry — the hook's sole purpose (advise when the static `DOMAIN_AGENT` map diverged from the capability router's top suggestion) is dissolved by this strip: with no recipe-side agent binding, divergence can never occur, so it would silently no-op forever. Untested; zero coverage loss.
+- **`tests/lib/delegation-recipe/recipe-builder-router-consult.test.ts`** — tested router-suggested-agent precedence over the static map; obsoleted with the agent-selection subsystem.
+
+### Changed
+- **`DelegationRecipe` → neutral `DispatchDecision`** `{ decision: "lead-direct" | "delegate"; domain: RecipeDomain; dispatchMode: DispatchMode; risk: "low"|"medium"|"high"; rationale: string }`. `decision` collapses from the open `lead-direct | delegate-to-<agent>` union to the flat `lead-direct | delegate`; the entire `recipe` sub-object is gone. `risk` derives from `dispatchMode` (lead-direct→low, targeted-verification→medium, bounded-explorer→high); on the trivial lead-direct path it sits at the floor (low) since nothing is delegated. KEEP (neutral): `RecipeDomain`/`classifyDomain`, `DispatchMode`/`pickDispatchModeFromConfidence`, `deriveOntologyContextDigest`, `BuildRecipeInput`.
+- **`bridge/handlers/pm-intent-router.ts`** — adapted the recipe-consumption points to the flat shape: `IntentRouterResult.recipe?` → optional top-level `domain?`/`dispatchMode?`/`risk?`; dropped the `attachContractBindingToRecipe`/`recipeContractBinding` wrapper (the `contractBinding` carrier — `workContractRef`/`routerBindingRef` already travel top-level via `workBindingResultFields()`, so removal is lossless); re-keyed `delegation-recipe://` refs + lineage payloads off the neutral `domain` instead of `recipe.agent`. The contract-gating / prompt-front-door / work-binding / ontology-DTC-readiness logic is untouched.
+
+Second half of W3b-2 (strip-only; agent/model/DAG adapter re-home deferred to W4 per user 2026-06-08). typecheck green; touched suites pass (recipe + router + dispatch-mode + timeout-policy hook-count). `pm-semantic-intent-gate.ts` unaffected (type-only `BuildRecipeInput["complexityHint"]`). Pre-existing full-suite failures (agent-ownership-validate, codex-prompt-to-dtc, fill-policy, source-root sentinel — all environment/checkout-specific) are unchanged by this wave.
+
 ## [6.94.0] - 2026-06-08 — Harness redesign W3b-2a: drop harness-species-cost-profile + router dispatchSpecies
 
 ### Removed

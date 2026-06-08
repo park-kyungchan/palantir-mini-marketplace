@@ -412,9 +412,9 @@ describe("FC-B — ontology-affecting intent with NO DTC → fail-closed", () =>
       scopePaths: ["bridge/handlers/pm-semantic-intent-gate.ts"],
     });
 
-    // Fail-closed → contract_required → no recipe dispatched
+    // Fail-closed → contract_required → no dispatch domain produced
     expect(result.decision).toBe("contract_required");
-    expect(result.recipe).toBeUndefined();
+    expect(result.domain).toBeUndefined();
   });
 
   test("FC-B.5: fail-closed rationale mentions dtc-turn-fill instruction", async () => {

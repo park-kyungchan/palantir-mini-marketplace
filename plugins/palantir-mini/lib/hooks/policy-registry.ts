@@ -55,7 +55,6 @@ export type WorkflowStepPolicyId =
   | "hook-step:posttool-commit-edits-backprop"
   | "hook-step:posttool-emit-event-value"
   | "hook-step:posttool-agent-decision-post"
-  | "hook-step:posttool-router-suggestion"
   | "hook-step:posttool-edit-watch"
   | "hook-step:posttool-write-plan-dag"
   | "hook-step:posttool-git-impact-maintenance"
@@ -342,13 +341,6 @@ export const WORKFLOW_STEP_POLICY_REGISTRY: readonly WorkflowStepPolicy[] = [
     event: "PostToolUse",
     matcher: mcpMatcher("apply_edit_function", "commit_edits", "emit_event"),
     purpose: "Record subagent decision evidence after privileged MCP calls.",
-  },
-  {
-    policyId: "hook-step:posttool-router-suggestion",
-    hookPolicyId: "hook-policy:post-tool-lineage",
-    event: "PostToolUse",
-    matcher: mcpMatcher("pm_intent_router"),
-    purpose: "Emit router divergence advisory after intent routing.",
   },
   {
     policyId: "hook-step:posttool-edit-watch",
