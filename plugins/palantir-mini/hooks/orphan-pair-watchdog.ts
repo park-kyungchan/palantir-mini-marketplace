@@ -14,7 +14,7 @@
 
 import { emit } from "../scripts/log";
 import pmOutcomePairAudit from "../bridge/handlers/pm-outcome-pair-audit";
-import { findProjectRoot } from "./harness-base-mode-advisory";
+import { findProjectRoot } from "../lib/project/find-root";
 
 interface HookPayload {
   cwd?:        string;

@@ -26,7 +26,7 @@ import * as fs   from "fs";
 import * as path from "path";
 import { emit }           from "../scripts/log";
 import { loadProjectScope } from "../lib/project-scope/loader";
-import { findProjectRoot } from "./harness-base-mode-advisory";
+import { findProjectRoot } from "../lib/project/find-root";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
