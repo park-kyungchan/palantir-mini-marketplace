@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.76.1 — 2026-06-09 (self-Ontology Wave 8: FDE rubric-grader criterion-prefix bug-fix)
+
+Additive PATCH (rule 08 — additive self-model instance seed, no edits to existing primitives).
+fix: FDE rubric-grader no longer zeroes rule-domain criteria (criterion-prefix switch bug found by grading pm's own
+self-Ontology; ~0.44 -> ~0.81); +1 Learning. Completes DoD #3 FDE-grade. Seeds +1 instance into
+`ontology/self/learning.objecttype.ts` (LEARNING_INSTANCES, `fde-rubric-grader-zeroes-rule-domain-criteria`, refines
+tooling). The paired registration test count is lifted 8 -> 9. No edits to existing primitive bodies.
+
 ## v1.76.0 — 2026-06-09 (self-Ontology Wave 7: dogfood gap-closure)
 
 Additive MINOR (rule 08 — additive self-model instance seeds, no edits to existing primitives).

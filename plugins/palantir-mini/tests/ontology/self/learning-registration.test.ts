@@ -1,5 +1,5 @@
 // Test: Wave-2 self-Ontology Learning ObjectType — pm's cross-session LEARN store
-// registered AS an ObjectType + 8 session bottleneck-learning instances (BackwardProp
+// registered AS an ObjectType + 9 session bottleneck-learning instances (BackwardProp
 // seed, user directive 2026-06-08 "bottleneck -> register in Ontology"). Proves the TYPE
 // resolves from the registry and that the seed resolves + counts + carries no duplicate
 // learningId (the seed IS the authority — no filesystem drift guard, since learnings are
@@ -15,7 +15,7 @@ import {
   type LearningInstance,
 } from "#schemas/ontology/self/learning.objecttype";
 
-const EXPECTED_LEARNING_COUNT = 8;
+const EXPECTED_LEARNING_COUNT = 9;
 
 test("self Learning ObjectType is registered with learningId identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(LEARNING_OBJECT_TYPE_RID);

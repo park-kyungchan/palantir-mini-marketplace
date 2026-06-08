@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.116.1] - 2026-06-09 — self-Ontology Wave 8: FDE rubric-grader criterion-prefix bug-fix
+
+### Fixed
+- **fix: FDE rubric-grader no longer zeroes rule-domain criteria (criterion-prefix switch bug found by grading pm's own self-Ontology; ~0.44 -> ~0.81); +1 Learning. Completes DoD #3 FDE-grade.** The `evaluateRuleCriterion` switch in `lib/fde-build/rubric-grader.ts` matched `criterion:`-prefixed labels while the registered criterion RIDs are bare (e.g. `release_and_change_management`), so every rule-domain criterion fell through to the conservative `passed=false` default — under-scoring a genuinely-good ontology. Bug surfaced by grading pm's OWN self-Ontology (recursive dogfood). Removes the `criterion:` prefix from all 8 rule-domain switch labels; adds a regression test (`tests/lib/fde-build/rubric-grader.test.ts`) asserting a fully-satisfied rule criterion scores `passed=true`. +1 `Learning` (`fde-rubric-grader-zeroes-rule-domain-criteria`, refines tooling) seeded into the self-Ontology — schema-snapshot bumped one PATCH (additive self-model instance seed) — see schemas-snapshot CHANGELOG v1.76.1.
+
+**0 new regressions** (tsc `--noEmit` green; env-clean full-suite fail count unchanged at the documented 8 ambient fails). Lead-orchestrated; opus subagent implemented.
+
 ## [6.116.0] - 2026-06-09 — self-Ontology Wave 7: dogfood gap-closure (ForwardProp self-subject + instance seeds)
 
 ### Added
