@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.112.0] - 2026-06-09 — self-Ontology Wave 3: wire the self/links.ts LinkType graph
+
+### Added
+- **self-Ontology Wave 3 — wire `self/links.ts` LinkType graph (33 edges; self LinkType 0->33; the #1 DoD graph gap closed).** Registers all 33 control-plane relationships as Palantir `LinkType` instances under `runtime-overlay/schemas-snapshot/ontology/self/links.ts`, re-exported from `self/index.ts` (side-effect self-registers into `LINK_TYPE_REGISTRY`), with a paired `tests/ontology/self/links-registration.test.ts` drift test (8 pass / 0 fail). Every endpoint is a `self/` ObjectType RID (imported, never re-derived); all edges are plain LinkTypes except `ManagedSettingsFragmentGrantsMcpTool` (object-backed, carries an allow/deny `mode` property). All 5 named self-links present (`RuleCrossRefs`, `SIC-supersedes`, `WorkflowTrace-refines`, `Sandbox-resumes`, `RuntimeDecision-projected`). With Waves 1-2's ~30 ObjectTypes, the plugin now self-models its full control-plane surface AND the relationships among those surfaces. Schema-snapshot bumped one MINOR (additive LinkType instances, rule 08) — see schemas-snapshot CHANGELOG v1.72.0.
+
+**0 new regressions** (tsc `--noEmit` green; 0-regression confirmed). Lead-orchestrated; opus subagent implemented.
+
 ## [6.111.0] - 2026-06-09 — self-Ontology Wave 2: register remaining ~23 ObjectTypes
 
 ### Added

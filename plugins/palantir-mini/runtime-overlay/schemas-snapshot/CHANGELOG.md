@@ -8,6 +8,17 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.72.0 — 2026-06-09 (self-Ontology Wave 3: wire self/links.ts LinkType graph)
+
+Additive MINOR (rule 08 — additive LinkType instances, no edits to existing primitives). self-Ontology Wave 3 —
+wire `self/links.ts` LinkType graph (33 edges; self LinkType 0->33; the #1 DoD graph gap closed). Registers all
+33 control-plane relationships as Palantir `LinkType` instances under `ontology/self/links.ts`, re-exported from
+`ontology/self/index.ts` (side-effect self-registers into `LINK_TYPE_REGISTRY`). Every endpoint is a `self/`
+ObjectType RID (imported, never re-derived); all edges are plain LinkTypes except
+`ManagedSettingsFragmentGrantsMcpTool` (object-backed, carries an allow/deny `mode` property). Paired plugin
+`tests/ontology/self/links-registration.test.ts` drift test (8 pass / 0 fail). Completes the self-modeling set
+(Waves 1-2 = ObjectTypes; Wave 3 = the relationships among them). Paired plugin release 6.112.0.
+
 ## v1.71.0 — 2026-06-09 (self-Ontology Wave 2: register remaining ~23 ObjectTypes)
 
 Additive MINOR (rule 08 — additive instances, no edits to existing primitives). Registers the remaining ~23
