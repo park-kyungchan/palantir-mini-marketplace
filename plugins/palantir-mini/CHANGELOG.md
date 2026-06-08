@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.115.0] - 2026-06-09 — self-Ontology Wave 6: DATA/LOGIC/ACTION/GOVERNANCE derived view (DoD #4) + dogfood
+
+### Added
+- **self-Ontology Wave 6 — DATA/LOGIC/ACTION/GOVERNANCE derived view GENERATED from registries (DoD #4); dogfood run.** Adds `runtime-overlay/schemas-snapshot/ontology/self/derived-view.ts` (NEW) — `generateDerivedView()` projects the registered self-Ontology onto the four Palantir control-surface axes (DATA = ObjectTypes + Properties + LinkTypes; LOGIC = Functions; ACTION = ActionTypes; GOVERNANCE = Roles + security layers + the DTC/SIC governance ObjectTypes). The view is GENERATED, not hand-authored: it reads `OBJECT_TYPE_REGISTRY` / `LINK_TYPE_REGISTRY` / `ACTION_TYPE_REGISTRY` / `ROLE_REGISTRY` + the `FUNCTION_INSTANCES` seed + `SECURITY_LAYERS` at call time and folds whatever is registered onto the axes, so registering/removing a primitive instance changes the view with zero edits in `derived-view.ts`. Re-exported (`generateDerivedView` + `DerivedView`/`DerivedViewAxis`/`DerivedViewEntry` types) from `self/index.ts`. Paired drift test `tests/ontology/self/derived-view.test.ts` (NEW) asserts each axis count equals its source registry size (DoD #4 proof: projection, not a hand-list). Dogfood: importing the `self/` barrel populates the registries (30 ObjectTypes / 33 LinkTypes / 21 ActionTypes / 76 Functions / 7 Roles / 7 Learning) and a runtime reads pm's typed self-Ontology as the single source of meaning. Schema-snapshot bumped one MINOR (additive derived-view projection, rule 08) — see schemas-snapshot CHANGELOG v1.75.0.
+
+**0 new regressions** (tsc `--noEmit` green; derived-view suite 6/6 pass; env-clean full-suite fail count unchanged at the documented 8 ambient fails, untouched by Wave-6 files). Lead-orchestrated; opus subagent implemented.
+
 ## [6.114.0] - 2026-06-09 — self-Ontology Wave 5: Role primitive type + Role/Learning instances
 
 ### Added

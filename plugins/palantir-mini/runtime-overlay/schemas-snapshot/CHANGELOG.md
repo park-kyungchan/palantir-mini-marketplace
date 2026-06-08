@@ -8,6 +8,18 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.75.0 — 2026-06-09 (self-Ontology Wave 6: DATA/LOGIC/ACTION/GOVERNANCE derived view)
+
+Additive MINOR (rule 08 — additive derived-view projection over registered instances, no edits to existing primitives).
+self-Ontology Wave 6 — DATA/LOGIC/ACTION/GOVERNANCE derived view GENERATED from registries (DoD #4); dogfood run. Adds
+`ontology/self/derived-view.ts` — `generateDerivedView()` projects the registered self-Ontology onto the four Palantir
+control-surface axes (DATA = ObjectTypes + Properties + LinkTypes; LOGIC = Functions; ACTION = ActionTypes; GOVERNANCE =
+Roles + security layers + DTC/SIC governance ObjectTypes). The view is GENERATED, not hand-authored: it reads
+`OBJECT_TYPE_REGISTRY` / `LINK_TYPE_REGISTRY` / `ACTION_TYPE_REGISTRY` / `ROLE_REGISTRY` + `FUNCTION_INSTANCES` +
+`SECURITY_LAYERS` at call time, so registering/removing an instance changes the view with zero edits. Re-exported from
+`ontology/self/index.ts`. Paired drift test under plugin `tests/ontology/self/derived-view.test.ts` asserts each axis count
+equals its source registry size (projection, not a hand-list). No edits to existing primitives.
+
 ## v1.74.0 — 2026-06-09 (self-Ontology Wave 5: Role primitive type + Role/Learning instances)
 
 Additive MINOR (rule 08 — new Role primitive type + Role/Learning instances, no edits to existing primitives).

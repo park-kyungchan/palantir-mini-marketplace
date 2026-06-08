@@ -308,3 +308,12 @@ export {
   RUNTIME_ADAPTER_PROJECTS_RUNTIME_DECISION,
   PROMPT_ENVELOPE_DERIVES_SEMANTIC_INTENT_CONTRACT,
 } from "./links";
+
+// Self-Ontology derived view (DoD #4): the DATA/LOGIC/ACTION/GOVERNANCE 4-axis projection
+// GENERATED from the registries above — not a hand-authored list. See derived-view.ts header.
+export {
+  generateDerivedView,
+  type DerivedView,
+  type DerivedViewAxis,
+  type DerivedViewEntry,
+} from "./derived-view";
