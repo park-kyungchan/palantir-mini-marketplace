@@ -34,3 +34,33 @@ export {
   MCP_TOOL_INSTANCES,
   type McpToolInstance,
 } from "./mcp-tool.objecttype";
+export {
+  SKILL_OBJECT_TYPE,
+  SKILL_OBJECT_TYPE_RID,
+  SKILL_INSTANCES,
+  type SkillInstance,
+} from "./skill.objecttype";
+export {
+  AGENT_OBJECT_TYPE,
+  AGENT_OBJECT_TYPE_RID,
+  AGENT_INSTANCES,
+  type AgentInstance,
+} from "./agent.objecttype";
+export {
+  HOOK_OBJECT_TYPE,
+  HOOK_OBJECT_TYPE_RID,
+  HOOK_INSTANCES,
+  type HookInstance,
+} from "./hook.objecttype";
+export {
+  MCP_HANDLER_OBJECT_TYPE,
+  MCP_HANDLER_OBJECT_TYPE_RID,
+  MCP_HANDLER_INSTANCES,
+  type McpHandlerInstance,
+} from "./mcp-handler.objecttype";
+export {
+  EVENT_ENVELOPE_OBJECT_TYPE,
+  EVENT_ENVELOPE_OBJECT_TYPE_RID,
+  EVENT_ENVELOPE_INSTANCES,
+  type EventEnvelopeInstance,
+} from "./event-envelope.objecttype";
