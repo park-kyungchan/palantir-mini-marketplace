@@ -8,6 +8,18 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.71.0 — 2026-06-09 (self-Ontology Wave 2: register remaining ~23 ObjectTypes)
+
+Additive MINOR (rule 08 — additive instances, no edits to existing primitives). Registers the remaining ~23
+control-plane surfaces as Ontology ObjectTypes under `ontology/self/`: `CapabilityContract`, `CapabilityToken`,
+`ContextCapsule`, `DigitalTwinChangeContract`, `EditFunction`, `EvalSuite`, `FdeOntologyBuildSession`,
+`GradingRubric`, `ImpactEdge`, `Learning`, `ManagedSettingsFragment`, `Monitor`, `PluginManifest`,
+`ProjectOntologyIndex`, `PromptEnvelope`, `Rule`, `RuntimeAdapter`, `RuntimeDecision`, `ScenarioSandbox`,
+`SubmissionCriterion`, `UniversalOntologyEntry`, `WorkflowTrace`. `OBJECT_TYPE_REGISTRY` grows 7 → ~30. Each
+ObjectType is paired with a registration drift test (plugin `tests/ontology/self/*-registration.test.ts`)
+asserting the catalogued instance set stays in sync. Self-Ontology Wave 2 (completes the core self-modeling set
+begun in Wave 1). Paired plugin release 6.111.0.
+
 ## v1.70.0 — 2026-06-09 (self-Ontology Wave 1: register 5 core surface ObjectTypes)
 
 Additive MINOR (rule 08 — additive instances, no edits to existing primitives). Registers the plugin's own

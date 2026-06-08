@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.111.0] - 2026-06-09 — self-Ontology Wave 2: register remaining ~23 ObjectTypes
+
+### Added
+- **self-Ontology Wave 2 — register the remaining ~23 control-plane surface ObjectTypes under `runtime-overlay/schemas-snapshot/ontology/self/`** + one paired registration drift test each under `tests/ontology/self/`: `CapabilityContract`, `CapabilityToken`, `ContextCapsule`, `DigitalTwinChangeContract`, `EditFunction`, `EvalSuite`, `FdeOntologyBuildSession`, `GradingRubric`, `ImpactEdge`, `Learning`, `ManagedSettingsFragment`, `Monitor`, `PluginManifest`, `ProjectOntologyIndex`, `PromptEnvelope`, `Rule`, `RuntimeAdapter`, `RuntimeDecision`, `ScenarioSandbox`, `SubmissionCriterion`, `UniversalOntologyEntry`, `WorkflowTrace`. With Wave 1's 5 core surfaces, the plugin now self-models the full control-plane surface as Ontology ObjectTypes (self-Ontology). `OBJECT_TYPE_REGISTRY` grows 7 → ~30. Each ObjectType is paired with a registration drift test asserting the catalogued instance set stays in sync. Schema-snapshot bumped one MINOR (additive instances, rule 08) — see schemas-snapshot CHANGELOG v1.71.0.
+
+**0 new regressions** (tsc `--noEmit` green; 0-regression confirmed). Lead-orchestrated; opus subagent implemented.
+
 ## [6.110.0] - 2026-06-09 — self-Ontology Wave 1: register 5 core surface ObjectTypes
 
 ### Added
