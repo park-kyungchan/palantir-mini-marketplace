@@ -8,6 +8,19 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.74.0 — 2026-06-09 (self-Ontology Wave 5: Role primitive type + Role/Learning instances)
+
+Additive MINOR (rule 08 — new Role primitive type + Role/Learning instances, no edits to existing primitives).
+self-Ontology Wave 5 — new Role primitive type (GOVERNANCE/ACTORS gap; principal->resource grant, non-overlapping with
+CapabilityToken) + Role instances (agent ownership/RBAC) + 7 Learning instances (session BackwardProp bottlenecks
+L1/L2/L6-L10). Adds `ontology/primitives/role.ts` — the principal->permission BINDING the prior RBAC surface (marking /
+object-security / property-security / capability-token) lacked; deliberately disjoint from CapabilityToken (Role declares
+"principal P may exercise verbs V over resources R"; a token is the issued bearer artifact minted FROM it) — re-exported
+from `ontology/primitives/index.ts`. Adds `ontology/self/roles.ts` (pm's own RBAC surface as Role instances, side-effect
+self-registers into `ROLE_REGISTRY`) re-exported from `ontology/self/index.ts`, plus 7 Learning instances seeded into
+`ontology/self/learning.objecttype.ts`. `role.ts` is additive — no consumer break. Paired drift tests under plugin
+`tests/ontology/self/`. No edits to existing primitives.
+
 ## v1.73.0 — 2026-06-09 (self-Ontology Wave 4: register ActionType verbs + Function bound-logic)
 
 Additive MINOR (rule 08 — additive ActionType + Function instances, no edits to existing primitives). self-Ontology Wave 4 —

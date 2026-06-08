@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.114.0] - 2026-06-09 — self-Ontology Wave 5: Role primitive type + Role/Learning instances
+
+### Added
+- **self-Ontology Wave 5 — new Role primitive type (GOVERNANCE/ACTORS gap; principal->resource grant, non-overlapping with CapabilityToken) + Role instances (agent ownership/RBAC) + 7 Learning instances (session BackwardProp bottlenecks L1/L2/L6-L10). schema MINOR.** Adds `runtime-overlay/schemas-snapshot/ontology/primitives/role.ts` (the principal->permission BINDING the prior RBAC surface — marking / object-security / property-security / capability-token — lacked; deliberately disjoint from CapabilityToken: Role is the declared directory statement "principal P may exercise verbs V over resources R", a token is the issued bearer artifact minted FROM it) re-exported from `primitives/index.ts`, plus `self/roles.ts` modeling pm's OWN RBAC surface (rule 07 agent file-ownership + read-only-vs-mutating capability split) as Role instances re-exported from `self/index.ts` (side-effect self-registers into `ROLE_REGISTRY`), and 7 Learning instances seeded into `self/learning.objecttype.ts` LEARNING_INSTANCES (session bottleneck BackwardProp evidence per user directive 2026-06-08). Paired drift tests `tests/ontology/self/roles-registration.test.ts` (new) + `learning-registration.test.ts` (extended). `role.ts` is additive (no consumer break). Schema-snapshot bumped one MINOR (additive Role primitive type + instances, rule 08) — see schemas-snapshot CHANGELOG v1.74.0.
+
+**0 new regressions** (tsc `--noEmit` green; self-Ontology suite 124/124 + the 2 Wave-5 test files 10/10 pass; ambient full-suite fails unchanged and untouched by Wave-5 files). Lead-orchestrated; opus subagent implemented.
+
 ## [6.113.0] - 2026-06-09 — self-Ontology Wave 4: register ActionType verbs + Function bound-logic
 
 ### Added
