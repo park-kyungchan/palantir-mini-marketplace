@@ -8,6 +8,10 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.72.1 — 2026-06-09
+
+fix: PluginManifest self-Ontology seed no longer pins volatile version (CLAUDE.md section 6); keeps structural drift guards; restores 8-fail baseline.
+
 ## v1.72.0 — 2026-06-09 (self-Ontology Wave 3: wire self/links.ts LinkType graph)
 
 Additive MINOR (rule 08 — additive LinkType instances, no edits to existing primitives). self-Ontology Wave 3 —

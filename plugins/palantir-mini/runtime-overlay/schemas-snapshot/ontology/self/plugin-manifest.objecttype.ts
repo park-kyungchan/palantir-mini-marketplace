@@ -16,11 +16,15 @@
  *
  * Count provenance (LIVE-verified): exactly ONE plugin manifest
  * (`.claude-plugin/plugin.json`). Each instance carries the manifestId identity (the
- * plugin `name:` field, the PK) plus four stored facts read off the manifest + the
- * directories it governs: `version` (the manifest version), `mcpServers` (count of
- * registered MCP server entries), `registeredAgents` (count of agents/*.md the manifest
- * governs), and `registeredSkills` (count of skills/<slug> directories, excluding the
- * `_shared` fragment dir).
+ * plugin `name:` field, the PK) plus the stable structural facts read off the manifest +
+ * the directories it governs: `mcpServers` (count of registered MCP server entries),
+ * `registeredAgents` (count of agents/*.md the manifest governs), and `registeredSkills`
+ * (count of skills/<slug> directories, excluding the `_shared` fragment dir). `version`
+ * is intentionally NOT pinned in this seed — it is a volatile fact that drifts on every
+ * plugin version bump (CLAUDE.md section 6: reference volatile facts, do not pin them).
+ * The ObjectType still declares an OPTIONAL `version` property so the model expresses that
+ * a manifest HAS a version; the live value is read from plugin.json when needed, never
+ * stored as a stale literal here.
  *
  * @owner palantirkc-ontology
  * @purpose Wave-2 self-Ontology ObjectType (M-SELF, harness redesign)
@@ -39,9 +43,11 @@ export const PLUGIN_MANIFEST_OBJECT_TYPE_RID = objectTypeRid(
 
 /**
  * PluginManifest modeled as a Palantir ObjectType. `manifestId` is the stable primary
- * key (the plugin `name:` field); `version`, `mcpServers`, `registeredAgents`, and
- * `registeredSkills` are stored facts carried on the registered INSTANCE below. The
- * PascalCase apiName mirrors the generated symbol.
+ * key (the plugin `name:` field); `mcpServers`, `registeredAgents`, and `registeredSkills`
+ * are stable stored facts carried on the registered INSTANCE below. `version` is an
+ * OPTIONAL property — the model expresses that a manifest HAS a version, but the volatile
+ * literal is intentionally NOT pinned in the seed (CLAUDE.md section 6). The PascalCase
+ * apiName mirrors the generated symbol.
  */
 export const PLUGIN_MANIFEST_OBJECT_TYPE: ObjectTypeDeclaration = {
   rid: PLUGIN_MANIFEST_OBJECT_TYPE_RID,
@@ -49,15 +55,16 @@ export const PLUGIN_MANIFEST_OBJECT_TYPE: ObjectTypeDeclaration = {
   name: "PluginManifest",
   description:
     "palantir-mini plugin/marketplace registration SSoT modeled as an ObjectType: one " +
-    "instance per .claude-plugin/plugin.json manifest. manifestId identity plus version, " +
-    "mcpServers count, registeredAgents count (agents/*.md), and registeredSkills count " +
-    "(skills/<slug> dirs); richer manifest metadata (keywords, mcpServers config) lives " +
-    "in plugin.json, not duplicated in this seed.",
+    "instance per .claude-plugin/plugin.json manifest. manifestId identity plus mcpServers " +
+    "count, registeredAgents count (agents/*.md), and registeredSkills count " +
+    "(skills/<slug> dirs); version is an optional property, not pinned in the seed " +
+    "(volatile). Richer manifest metadata (keywords, mcpServers config) lives in " +
+    "plugin.json, not duplicated in this seed.",
   primaryKeyProperty: "manifestId",
   titleProperty: "manifestId",
   properties: [
     { name: "manifestId", type: "string" },
-    { name: "version", type: "string" },
+    { name: "version", type: "string", optional: true },
     { name: "mcpServers", type: "number" },
     { name: "registeredAgents", type: "number" },
     { name: "registeredSkills", type: "number" },
@@ -66,11 +73,13 @@ export const PLUGIN_MANIFEST_OBJECT_TYPE: ObjectTypeDeclaration = {
 
 /**
  * A registered PluginManifest instance — stable manifest identity (the plugin name)
- * plus the four stored facts read off the manifest + the directories it governs.
+ * plus the stable structural facts read off the manifest + the directories it governs.
+ * `version` is OPTIONAL: the volatile literal is intentionally not pinned in the seed
+ * (CLAUDE.md section 6); the live value is read from plugin.json when needed.
  */
 export interface PluginManifestInstance {
   readonly manifestId: string;
-  readonly version: string;
+  readonly version?: string;
   readonly mcpServers: number;
   readonly registeredAgents: number;
   readonly registeredSkills: number;
@@ -78,15 +87,15 @@ export interface PluginManifestInstance {
 
 /**
  * The 1 PluginManifest instance — pm's LIVE registration SSoT. Snapshot-owned seed (no
- * manifest import); the registration test cross-checks these stored facts against the
- * live plugin.json + agents/ + skills/ directories and fails on any drift. `version` is a
- * volatile fact: the drift guard re-reads it from plugin.json rather than asserting a
- * pinned literal, so a version bump does not break the test.
+ * manifest import); the registration test cross-checks these stable structural facts
+ * against the live plugin.json + agents/ + skills/ directories and fails on any drift.
+ * `version` is intentionally NOT pinned here — it is a volatile fact that drifts on every
+ * version bump (CLAUDE.md section 6: reference volatile facts, do not pin them). Read the
+ * live version from plugin.json when needed rather than from a stale literal.
  */
 export const PLUGIN_MANIFEST_INSTANCES: readonly PluginManifestInstance[] = [
   {
     manifestId: "palantir-mini",
-    version: "6.110.0",
     mcpServers: 1,
     registeredAgents: 15,
     registeredSkills: 61,
