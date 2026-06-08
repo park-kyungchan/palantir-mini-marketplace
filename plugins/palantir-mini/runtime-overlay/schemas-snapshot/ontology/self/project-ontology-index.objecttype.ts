@@ -10,11 +10,11 @@
  * its ontology axes, surface mutation boundaries, and defaults. This file declares the
  * type so the self-model gains the ProjectOntologyIndex noun.
  *
- * Count provenance (catalog §2): count 0 — a real surface whose instances are
- * RUNTIME-SEEDED per project root at init time, not hard-coded in the snapshot. The
- * deliverable here is the TYPE registration; instances stay empty until a runtime source
- * seeds them. The paired test is a registration-resolves check (no filesystem drift
- * guard, since there is no static seed to cross-check).
+ * Count provenance (catalog §2): instances are RUNTIME-SEEDED per project root at init
+ * time, but ONE — the palantir-mini plugin itself, the project this self-model lives in —
+ * is stable enough to seed here as BackwardProp evidence (pm IS a project ontology index).
+ * The deliverable is the TYPE registration plus the 1 seeded instance; the paired test
+ * asserts the type resolves AND the seed resolves + counts + carries no duplicate ids.
  *
  * @owner palantirkc-ontology
  * @purpose Wave-2 self-Ontology ObjectType (M-SELF, harness redesign)
@@ -69,13 +69,26 @@ export interface ProjectOntologyIndexInstance {
 }
 
 /**
- * ProjectOntologyIndex instances — EMPTY (count-0 runtime-seeded). Instances are
- * generated per project root at init time from the live runtime source, not hard-coded
- * here; the TYPE registration is the deliverable.
+ * ProjectOntologyIndex instances — the 1 self-directed index: the palantir-mini plugin
+ * itself (the project this self-model lives in), seeded as BackwardProp evidence (further
+ * indexes stay runtime-seeded per project init). Carries the absolute `projectRoot` PK plus
+ * the ontology axes, the surface mutation boundaries pm enforces, and the project defaults.
+ * The paired test asserts it resolves + counts.
  */
 export const PROJECT_ONTOLOGY_INDEX_INSTANCES: readonly ProjectOntologyIndexInstance[] =
-  [];
+  [
+    {
+      projectRoot: "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini",
+      ontologyAxes:
+        "self-ontology (ObjectType/LinkType/ActionType/Function) + rules overlay + " +
+        "events.jsonl lineage substrate",
+      surfaceMutationBoundaries:
+        "agent file-ownership table (rule 07) + pre-mutation governance gate; " +
+        "src/generated/** is pm-codegen-only",
+      defaults: "TypeScript + Bun; ontology-first propagation; append-only events.jsonl",
+    },
+  ];
 
-// Register the ProjectOntologyIndex ObjectType (the type). Instances are runtime-seeded
-// per project init; the registration above is the Wave-2 deliverable.
+// Register the ProjectOntologyIndex ObjectType (the type). The 1 instance above is data
+// the self-model exposes + the registration test counts; further indexes are runtime-seeded.
 OBJECT_TYPE_REGISTRY.register(PROJECT_ONTOLOGY_INDEX_OBJECT_TYPE);

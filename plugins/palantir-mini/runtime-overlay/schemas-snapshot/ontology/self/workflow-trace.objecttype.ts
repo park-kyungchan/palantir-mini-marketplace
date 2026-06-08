@@ -9,11 +9,11 @@
  * the phases it advanced through, the event envelope refs it produced, and a final
  * verdict. This file declares the type so the self-model gains the WorkflowTrace noun.
  *
- * Count provenance (catalog §2): count 0 — a real surface whose instances are
- * RUNTIME-SEEDED per workflow run, not hard-coded in the snapshot. The deliverable here
- * is the TYPE registration; instances stay empty until a runtime source seeds them. The
- * paired test is a registration-resolves check (no filesystem drift guard, since there is
- * no static seed to cross-check).
+ * Count provenance (catalog §2): instances are RUNTIME-SEEDED per workflow run, but ONE
+ * trace — this self-Ontology instance-coverage buildout itself — is stable enough to seed
+ * here as BackwardProp evidence (the workflow that produced these seeded instances IS a
+ * trace). The deliverable is the TYPE registration plus the 1 seeded instance; the paired
+ * test asserts the type resolves AND the seed resolves + counts + carries no duplicate ids.
  *
  * @owner palantirkc-ontology
  * @purpose Wave-2 self-Ontology ObjectType (M-SELF, harness redesign)
@@ -70,12 +70,21 @@ export interface WorkflowTraceInstance {
 }
 
 /**
- * WorkflowTrace instances — EMPTY (count-0 runtime-seeded). Instances are generated per
- * workflow run from the live runtime source, not hard-coded here; the TYPE registration
- * is the deliverable.
+ * WorkflowTrace instances — the 1 self-directed trace: this self-Ontology instance-coverage
+ * buildout, seeded as BackwardProp evidence (further traces stay runtime-seeded per run).
+ * Carries a kebab-case `traceId` PK plus the workflow family, the phases advanced, the
+ * emitted envelope refs, and the run verdict. The paired test asserts it resolves + counts.
  */
-export const WORKFLOW_TRACE_INSTANCES: readonly WorkflowTraceInstance[] = [];
+export const WORKFLOW_TRACE_INSTANCES: readonly WorkflowTraceInstance[] = [
+  {
+    traceId: "self-ontology-instance-coverage-buildout",
+    workflowFamily: "self-ontology-build",
+    phases: "understand -> seed-instances -> tsc-verify -> test-verify",
+    envelopeRefs: "session/2026-06-08 + self-ontology Wave 6/7",
+    verdict: "count-0 ObjectTypes seeded with concrete pm instances; tsc + tests green",
+  },
+];
 
-// Register the WorkflowTrace ObjectType (the type). Instances are runtime-seeded per
-// run; the registration above is the Wave-2 deliverable.
+// Register the WorkflowTrace ObjectType (the type). The 1 instance above is data the
+// self-model exposes + the registration test counts; further traces are runtime-seeded.
 OBJECT_TYPE_REGISTRY.register(WORKFLOW_TRACE_OBJECT_TYPE);

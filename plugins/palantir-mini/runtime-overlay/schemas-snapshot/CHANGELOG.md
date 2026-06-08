@@ -8,6 +8,17 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.76.0 — 2026-06-09 (self-Ontology Wave 7: dogfood gap-closure)
+
+Additive MINOR (rule 08 — additive self-model instance seeds, no edits to existing primitives).
+self-Ontology Wave 7 — dogfood gap-closure: propagation_audit_forward now audits pm self-ontology as its own subject
+(self-subject fallback); seed EvalSuite + key ObjectType instances; FDE coverage lifted; +1 Learning. DoD #3 dogfood now
+passes (ForwardProp + ready-for-dtc). Seeds concrete pm instances into the previously count-0 self-model ObjectTypes:
+2 self-directed suites into `ontology/self/eval-suite.objecttype.ts` (EVAL_SUITE_INSTANCES), 1 each into
+`project-ontology-index.objecttype.ts` / `runtime-decision.objecttype.ts` / `workflow-trace.objecttype.ts`, and +1 into
+`learning.objecttype.ts` (LEARNING_INSTANCES, propagation-audit-cannot-see-self-ontology). Paired plugin registration
+tests upgraded from empty-seed to resolve + count + no-duplicate-id assertions. No edits to existing primitive bodies.
+
 ## v1.75.0 — 2026-06-09 (self-Ontology Wave 6: DATA/LOGIC/ACTION/GOVERNANCE derived view)
 
 Additive MINOR (rule 08 — additive derived-view projection over registered instances, no edits to existing primitives).
