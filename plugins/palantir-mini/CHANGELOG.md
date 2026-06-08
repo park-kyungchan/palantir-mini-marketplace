@@ -7,6 +7,14 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.93.0] - 2026-06-08 — Harness redesign W3b-1: drop claude-code-version old-identity primitive + cc-allowlist hook
+
+### Removed
+- **`schemas-snapshot/ontology/primitives/claude-code-version.ts`** — a Claude-Code-specific version registry primitive (`ClaudeCodeVersionRegistry`, `compareClaudeCodeVersions`). Old-identity surface: runtime version pinning belongs in the Claude adapter, not the runtime-neutral SSoT. Its only code consumer was the unregistered `cc-allowlist-drift-check` hook (also removed). Pruned from the 3 barrels + foundry-equivalent map + schemas-snapshot manifests (package.json exports, MANIFEST.json, .manifest.json).
+- **`hooks/cc-allowlist-drift-check.ts`** + test — unregistered (absent from hooks.json + codex-hooks.json); compared the installed Claude Code version against a pinned allowlist — a Claude-adapter concern, not neutral core.
+
+First half of W3b (old-identity drop); W3b-2 (pm-intent-router/recipe-builder → neutral DispatchDecision + harness-species-cost-profile drop) follows. typecheck green; 28/28 affected tests pass. Note: schemas-snapshot internal version strings are inconsistent (CHANGELOG 1.68, MANIFEST.json 1.67.0, barrel 1.62.0, .manifest.json 1.37.0) — pre-existing debt, flagged for a future schemas-version-hygiene pass.
+
 ## [6.92.0] - 2026-06-08 — Harness redesign W3 sprint-GAN-2: remove release-gate self-check ceremony + lib/harness remnants
 
 ### Removed
