@@ -7,13 +7,13 @@ import {
   loadProjectOntologyIndex,
   type ProjectOntologyIndex,
 } from "../../../lib/capability/project-ontology-index";
-import { validateCapabilityContract } from "../../../lib/capability/capability-contract";
+import {
+  validateCapabilityContract,
+  type SkillOntologyContract,
+} from "../../../lib/capability/capability-contract";
 import { PORTABLE_PALANTIR_REFERENCE_PACK, validatePortableReferencePack } from "../../../lib/reference/palantir-reference-pack";
 import { loadProjectScope } from "../../../lib/project-scope/loader";
-import {
-  normalizeSkillOntologyContract,
-  type SkillOntologyContract,
-} from "../../../lib/skills/skill-ontology-contract";
+import { normalizeSkillOntologyContract } from "../../../lib/skills/skill-ontology-contract";
 import type { DocDriftSignal } from "../detect-doc-drift/types";
 
 export interface HealthDocDriftSignal {

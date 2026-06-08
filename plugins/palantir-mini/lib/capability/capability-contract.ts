@@ -1,5 +1,3 @@
-import type { SkillOntologyContract, SkillIntentMatcher } from "../skills/skill-ontology-contract";
-
 export const CAPABILITY_CONTRACT_SCHEMA_VERSION =
   "palantir-mini/capability-contract/v1";
 
@@ -12,19 +10,14 @@ export type CapabilitySourceKind =
   | "known-issue"
   | "ontology-index";
 
-export type CapabilityCategory =
-  | "problem-authoring"
-  | "sequencer-compile"
-  | "visual-scenario"
-  | "concept-authoring"
-  | "debug-triage"
-  | "presenter-readiness"
-  | "mcp-tool"
-  | "agent"
-  | "project-surface"
-  | "validation-pack"
-  | "issue-forecast"
-  | "generic";
+/**
+ * Runtime-neutral free-form domain tag (W3e-2). Replaces the closed
+ * CapabilityCategory union that hardcoded the palantir-math education taxonomy
+ * (problem-authoring/sequencer-compile/visual-scenario/concept-authoring/
+ * debug-triage/presenter-readiness). The neutral core carries no project-specific
+ * meaning; a domain tag is a free-form/registered string supplied per source.
+ */
+export type CapabilityDomainTag = string;
 
 export interface CapabilityArtifactLifecycle {
   readonly prerequisites: readonly string[];
@@ -53,7 +46,7 @@ export interface CapabilityContract {
   readonly sourceKind: CapabilitySourceKind;
   readonly sourceRef: string;
   readonly displayName: string;
-  readonly category: CapabilityCategory;
+  readonly category: CapabilityDomainTag;
 
   readonly userFacingPurpose: string;
   readonly leadFacingPurpose: string;
@@ -85,6 +78,71 @@ export interface CapabilityContract {
   readonly writeSurfaces: readonly string[];
   readonly knownIssueRefs: readonly string[];
   readonly metadata?: Record<string, unknown>;
+}
+
+// ─── Skill ontology projection types (folded from lib/skills, W3e-2 Step 4) ──
+// SkillOntologyContract is the parsed-SKILL.md projection the Claude capability
+// source produces before skillContractToCapabilityContract() converts it to the
+// neutral CapabilityContract. Folded here so lib/capability no longer imports
+// lib/skills; the skill category is now a free-form CapabilityDomainTag (the
+// closed education enum was removed in W3e-2).
+
+export interface SkillArtifactLifecycle {
+  readonly prerequisites: readonly string[];
+  readonly optionalInputs: readonly string[];
+  readonly creates: readonly string[];
+  readonly mutates: readonly string[];
+}
+
+export interface SkillIntentMatcher {
+  readonly matcherId: string;
+  readonly naturalLanguageExamples: readonly string[];
+  readonly nouns: readonly string[];
+  readonly verbs: readonly string[];
+  readonly projectScopeLanes: readonly string[];
+  readonly prerequisites?: readonly string[];
+  readonly optionalExistingArtifacts?: readonly string[];
+  readonly createsArtifacts?: readonly string[];
+  readonly consumesArtifacts?: readonly string[];
+  readonly requiredArtifacts?: readonly string[];
+  readonly negativeExamples?: readonly string[];
+}
+
+export interface SkillOntologyContract {
+  readonly skillId: string;
+  readonly skillPath: string;
+  readonly displayName: string;
+  readonly category: CapabilityDomainTag;
+
+  readonly userFacingPurpose: string;
+  readonly leadFacingPurpose: string;
+
+  readonly inputOntology: {
+    readonly objectRefs: readonly string[];
+    readonly requiredArtifacts: readonly string[];
+    readonly artifactLifecycle: SkillArtifactLifecycle;
+    readonly allowedRawInputs: readonly string[];
+  };
+
+  readonly outputOntology: {
+    readonly objectRefs: readonly string[];
+    readonly artifactRefs: readonly string[];
+    readonly validationPacks: readonly string[];
+  };
+
+  readonly actionBoundary: {
+    readonly mayMutateProjectFiles: boolean;
+    readonly mutationSurfaces: readonly string[];
+    readonly requiresDtcApproval: boolean;
+    readonly requiresTeacherApproval: boolean;
+  };
+
+  readonly nonGoals: readonly string[];
+  readonly failureModes: readonly string[];
+  readonly intentMatchers: readonly SkillIntentMatcher[];
+  readonly readSurfaces?: readonly string[];
+  readonly writeSurfaces?: readonly string[];
+  readonly knownIssueRefs?: readonly string[];
 }
 
 export interface CapabilityContractValidationIssue {

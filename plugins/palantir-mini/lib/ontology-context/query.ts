@@ -13,6 +13,7 @@ import {
 import {
   skillContractToCapabilityContract,
   type CapabilityContract,
+  type SkillOntologyContract,
 } from "../capability/capability-contract";
 import { routeCapabilityOntology } from "../capability/capability-router";
 import type { KnownIssue } from "../issues/known-issue";
@@ -22,11 +23,7 @@ import {
   type SemanticConversationState,
 } from "../chatbot-studio/semantic-conversation-state";
 import type { OntologyContextSeed } from "../context-engineering/ontology-activation";
-import {
-  normalizeSkillOntologyContract,
-  type SkillOntologyContract,
-} from "../skills/skill-ontology-contract";
-import { routeSkillOntology } from "../skills/skill-ontology-router";
+import { normalizeSkillOntologyContract } from "../skills/skill-ontology-contract";
 import {
   retrieveDocumentContext,
   type DocumentContextResult,
@@ -307,12 +304,6 @@ export function queryOntologyContext(
     : [];
   const contextSeed = contextSeedFromEntry(input.entry, laneRefs);
   const conversation = conversationFromEntry(input.entry, laneRefs);
-  const routing = routeSkillOntology({
-    projectRoot: input.projectRoot,
-    semanticConversationState: conversation,
-    ontologyContext: contextSeed,
-    availableSkills,
-  });
   const capabilityRouting = routeCapabilityOntology({
     projectRoot: input.projectRoot,
     semanticConversationState: conversation,
@@ -323,7 +314,6 @@ export function queryOntologyContext(
     ? forecastOntologyImpact({
         entry: input.entry,
         projectRoot: input.projectRoot,
-        selectedSkills: routing.selectedSkills,
         selectedCapabilities: capabilityRouting.selectedCapabilities,
       })
     : { directSurfaceRefs: [], downstreamSurfaceRefs: [], confidence: "low" as const };
@@ -331,17 +321,15 @@ export function queryOntologyContext(
     ? forecastKnownIssues({
         entry: input.entry,
         directSurfaceRefs: impact.directSurfaceRefs,
-        selectedCapabilityRefs: unique([
-          ...routing.selectedSkills.map((skill) => skill.skillId),
-          ...capabilityRouting.selectedCapabilities.map((capability) => capability.capabilityId),
-        ]),
+        selectedCapabilityRefs: unique(
+          capabilityRouting.selectedCapabilities.map((capability) => capability.capabilityId),
+        ),
         knownIssues: input.knownIssues ?? loadKnownIssues(input.projectRoot),
       })
     : [];
   const validationPacks = includeValidationPacks
     ? unique([
         ...projectScopePolicyForFiles(impact.directSurfaceRefs, input.projectRoot).validationPacks,
-        ...routing.selectedSkills.flatMap((skill) => skill.outputOntology.validationPacks),
         ...capabilityRouting.selectedCapabilities.flatMap((capability) =>
           capability.outputOntology.validationPacks
         ),
@@ -351,6 +339,16 @@ export function queryOntologyContext(
           .map((pack) => pack.validationPackId),
       ])
     : [];
+
+  // skillContext is the skill-sourced projection of the unified capability routing
+  // (W3e-2 Step 5): skill capabilities carry capabilityId === skillId, so the
+  // public skillContext shape is preserved by filtering capability decisions.
+  const skillCapabilityIds = new Set(
+    skillCapabilities.map((capability) => capability.capabilityId),
+  );
+  const skillDecisions = capabilityRouting.decisions.filter((decision) =>
+    skillCapabilityIds.has(decision.capabilityId),
+  );
 
   const baseResult: Omit<OntologyContextQueryResult, "retrievedPrompt" | "documentContext"> = {
     diagnostics: {
@@ -367,13 +365,15 @@ export function queryOntologyContext(
       laneRefs,
     },
     skillContext: {
-      candidateSkillIds: unique(routing.decisions
+      candidateSkillIds: unique(skillDecisions
         .filter((decision) => decision.decision !== "rejected")
-        .map((decision) => decision.skillId)),
-      selectedSkillIds: routing.selectedSkills.map((skill) => skill.skillId),
-      rejectedSkillIds: routing.decisions
+        .map((decision) => decision.capabilityId)),
+      selectedSkillIds: capabilityRouting.selectedCapabilities
+        .filter((capability) => capability.sourceKind === "skill")
+        .map((capability) => capability.capabilityId),
+      rejectedSkillIds: skillDecisions
         .filter((decision) => decision.decision === "rejected")
-        .map((decision) => decision.skillId),
+        .map((decision) => decision.capabilityId),
     },
     capabilityContext: {
       candidateCapabilityIds: unique(capabilityRouting.decisions

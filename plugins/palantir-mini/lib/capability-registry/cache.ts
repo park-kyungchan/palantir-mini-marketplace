@@ -12,8 +12,6 @@
 // projects within the same process each get their own entry.
 
 import * as fs from "node:fs";
-import * as path from "node:path";
-import { resolvePalantirMiniRoot } from "../config/root";
 import type { CapabilityRegistry, CapabilityRegistryStats } from "./index";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
@@ -98,34 +96,4 @@ export function isInvalidatedByMtime(
     if (currentMtime !== watched.mtime) return true;
   }
   return false;
-}
-
-/**
- * Resolves the plugin root for watched-path construction.
- * Used internally by loadCapabilityRegistry in index.ts; re-exported here for
- * test scenarios that need to construct synthetic CachedRegistry entries.
- */
-export function resolvePluginRootForCache(): string {
-  return resolvePalantirMiniRoot();
-}
-
-/**
- * Construct a WatchedPath snapshot for the standard 3 watched paths.
- * Used by index.ts and test helpers.
- */
-export function snapshotWatchedPaths(): ReadonlyArray<{ path: string; mtime: number }> {
-  const pluginRoot = resolvePluginRootForCache();
-  const targets = [
-    path.join(pluginRoot, "skills"),
-    path.join(pluginRoot, "agents"),
-    path.join(pluginRoot, "bridge", "mcp-server.ts"),
-    path.join(pluginRoot, "lib", "capability-registry", "mcp-tool-capability.ts"),
-  ];
-  return targets.map((p) => {
-    try {
-      return { path: p, mtime: fs.statSync(p).mtimeMs };
-    } catch {
-      return { path: p, mtime: 0 };
-    }
-  });
 }

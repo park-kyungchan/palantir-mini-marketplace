@@ -1,6 +1,6 @@
 {
   "name": "palantir-mini",
-  "version": "6.104.0",
+  "version": "6.105.0",
   "description": "Ontology-first Codex control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and runtime-boundary docs.",
   "author": {
     "name": "palantirKC"

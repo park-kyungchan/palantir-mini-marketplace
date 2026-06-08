@@ -7,6 +7,22 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.105.0] - 2026-06-08 — Harness redesign W3e-2: tool-registry unify (adapter-driven capability discovery)
+
+> **Breaking-internal (lib types only; external MCP/hook/schema surface UNCHANGED → MINOR, not MAJOR).** The skill projection types (`SkillOntologyContract` / `SkillIntentMatcher` / `SkillArtifactLifecycle`) moved package; `SkillOntologyContract.category` changed type. No tool, hook, schema primitive, or generated artifact changed — `pm_plugin_self_check` public-mcp count unchanged; M-SELF counter unchanged (neutralization, not self-Ontology).
+
+### Changed
+- **Capability discovery is adapter-driven.** `lib/capability-registry/index.ts` no longer hardcodes the three Claude scanners (skills `SKILL.md`, `bridge/mcp-server.ts` TOOLS, `agents/*.md` frontmatter). They moved verbatim into the new **`lib/capability-registry/sources/claude-source.ts`** (`CLAUDE_CAPABILITY_SOURCE`), exposed as a neutral `CapabilitySource.discover(ctx)` → flat `CapabilityContract[]` (+ `watchedPaths(ctx)`). The registry build path aggregates `resolveCapabilitySources(identity).discover()` and partitions by `sourceKind`; `resolveCapabilitySources` mirrors `resolveToolProfile` (direct `CLAUDE_*` default switch — never inert-until-imported). Cache invalidation reads the union of sources' `watchedPaths` + the registry-internal `mcp-tool-capability.ts`. Behavior-identical (same 4-path watch set, same per-category contract lists).
+- **Routing unified onto the capability router.** `lib/ontology-context/query.ts` drops `routeSkillOntology`; the public `OntologyContextQueryResult.skillContext` is now the skill-sourced **projection** of the single `routeCapabilityOntology` pass (skill capabilities carry `capabilityId === skillId`, so the shape is preserved). Impact / known-issue / validation-pack derivations read `selectedCapabilities`.
+- **Skill projection types folded into `lib/capability`.** `SkillOntologyContract` / `SkillIntentMatcher` / `SkillArtifactLifecycle` now live in `lib/capability/capability-contract.ts`, severing the `lib/capability → lib/skills` import. `SkillOntologyContract.category` is now a free-form `CapabilityDomainTag` (was the closed `SkillOntologyCategory`). Type importers repointed (parser, project-ontology-index, impact-forecast, query, doc-drift + tests).
+
+### Removed
+- **Closed education category enum**: `SKILL_ONTOLOGY_CATEGORIES` + `SkillOntologyCategory` + `isSkillOntologyCategory` + the `skill-ontology.invalid-category` hard-fail gate (`skill-ontology-contract.ts`). `category` is now free-form; the parser's `explicitCategory` accepts any declared tag, falling back to the Claude SKILL.md text-matching heuristic.
+- **`lib/skills/skill-ontology-router.ts`** (0 importers after the query repoint). Its 3 router tests were migrated: authoring/compile selection were already covered by `capability-router.test.ts`, so the negative-example-rejection + explicit-candidate-ref scenarios were re-added there against `routeCapabilityOntology`.
+- **`CapabilityCategory`** transitional alias (Step-1 shim, 0 consumers) and the dead **`cache.ts` `snapshotWatchedPaths` / `resolvePluginRootForCache`** (competing hardcoded watch list, 0 callers) + their orphaned imports.
+
+**0 new regressions** (env-clean `env -u PALANTIR_MINI_PLUGIN_ROOT` full stash-baseline-diff IDENTICAL fail-set = 8 pre-existing; 3124 pass). `tsc --noEmit` green at each of the 7 steps. Built as 3 in-PR checkpoints (e2a Steps 1-3 / e2b Steps 4-6 / e2c Step 7). One intermittent `pre-compact-state` retention flaky (passes in isolation, unrelated to this wave — event-log area untouched).
+
 ## [6.104.0] - 2026-06-08 — Harness redesign W3e-1: register grade_outcome_with_rubric + pm_grader_dispatch (neutral VERIFY surface)
 
 ### Added

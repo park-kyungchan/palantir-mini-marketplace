@@ -10,15 +10,13 @@ import {
 import { loadKnownIssues } from "../issues/issue-store";
 import type { KnownIssue } from "../issues/known-issue";
 import { loadProjectScope, type ProjectScopeDefinition } from "../project-scope/loader";
-import {
-  normalizeSkillOntologyContract,
-  type SkillOntologyContract,
-} from "../skills/skill-ontology-contract";
+import { normalizeSkillOntologyContract } from "../skills/skill-ontology-contract";
 import {
   CAPABILITY_CONTRACT_SCHEMA_VERSION,
   normalizeCapabilityContract,
   skillContractToCapabilityContract,
   type CapabilityContract,
+  type SkillOntologyContract,
 } from "./capability-contract";
 
 // Re-export the schemas-promoted shape members for backwards compat.
