@@ -50,7 +50,6 @@ import type {
 import type { OntologyContextQueryResult } from "./ontology-context-query";
 import { loadCapabilityRegistry } from "../../lib/capability-registry/index";
 import type { CapabilityRegistryStats } from "../../lib/capability-registry/index";
-import type { HarnessSpeciesVendor } from "#schemas/ontology/primitives/harness-species-cost-profile";
 import { emit } from "../../scripts/log";
 import {
   assessContractGate,
@@ -98,7 +97,6 @@ import {
 } from "../../lib/ontology-workflow/emit";
 
 // Re-export for downstream consumers / tests
-export type { HarnessSpeciesVendor };
 
 /** Best-effort lookup of the most recently opened (non-closed) workflow trace for a project. */
 function findLatestOpenTrace(projectRoot: string): OntologyWorkflowTrace | undefined {
@@ -230,7 +228,6 @@ export interface IntentRouterResult {
   rationale: string;
   recipe?: DelegationRecipe["recipe"];
   /** Recommended harness species (cost-aware). */
-  dispatchSpecies: HarnessSpeciesVendor;
   /** Semantic Intent / Digital Twin gate status. */
   contractGate: ContractGateResult;
   /** Ontology-DTC dispatch readiness diagnostics for ontology-affecting work. */
@@ -1164,7 +1161,6 @@ export async function routeIntent(
   const routingScopeCount = routingScopePaths.length;
 
   // b. Species: default to claude-code-cli-max (cost dispatch removed CUT-F)
-  const dispatchSpecies: HarnessSpeciesVendor = "claude-code-cli-max";
 
   // c. ontology_context_query — canonical context-load path (PR 3.4, sprint-096).
   //    Lazy-imported to avoid circular deps (consistent with prefetch pattern above).
@@ -1266,7 +1262,6 @@ export async function routeIntent(
               ? "fde_session_required"
               : routingContractGate.status,
           decision: blockedDecision,
-          dispatchSpecies,
           prefetchSucceeded: succeeded,
           durationMs,
           scopeCount: routingScopeCount,
@@ -1294,7 +1289,7 @@ export async function routeIntent(
             `Sprint-097 W5-A dtc-T5; plan §8.2. Run pm_semantic_intent_gate with ` +
             `fillPolicy='ontology-dtc-build' to author DTC before routing.`
           : `pm_intent_router: contract gate stopped intent="${input.intent.slice(0, 80)}" ` +
-            `status=${routingContractGate.status} species=${dispatchSpecies}`,
+            `status=${routingContractGate.status}`,
         hypothesis: isFailClosed
           ? "Fail-closed predicate prevents raw-intent routing for ontology-affecting work. " +
             "If a false positive, adjust isOntologyAffectingIntent markers in contracts.ts " +
@@ -1318,7 +1313,6 @@ export async function routeIntent(
     return {
       decision: blockedDecision,
       rationale: routingContractGate.reason,
-      dispatchSpecies,
       contractGate: routingContractGate,
       ...(ontologyDtcBuildReadinessGate
         ? { ontologyDtcBuildReadinessGate }
@@ -1379,7 +1373,6 @@ export async function routeIntent(
           passed: false,
           errorClass: "ontology_dtc_build_readiness_gate_blocked",
           decision: blockedDecision,
-          dispatchSpecies,
           prefetchSucceeded: succeeded,
           durationMs,
           scopeCount: routingScopeCount,
@@ -1421,7 +1414,6 @@ export async function routeIntent(
     return {
       decision: blockedDecision,
       rationale: readinessContractGate.reason,
-      dispatchSpecies,
       contractGate: readinessContractGate,
       ontologyDtcBuildReadinessGate,
       routingProjection,
@@ -1454,7 +1446,6 @@ export async function routeIntent(
         errorClass: "intent_routing_completed",
         decision: routeRecipe.decision,
         agent: routeRecipe.recipe?.agent ?? null,
-        dispatchSpecies,
         contractGate: routingContractGate.status,
         contractPolicy: routingContractGate.contractPolicy,
         recommendedContracts: routingContractGate.recommendedContracts,
@@ -1478,7 +1469,7 @@ export async function routeIntent(
       cwd: input.project,
       reasoning:
         `pm_intent_router: intent="${input.intent.slice(0, 80)}" ` +
-        `decision=${routeRecipe.decision} species=${dispatchSpecies} ` +
+        `decision=${routeRecipe.decision} ` +
         `routingBasis=${routingProjection.basis} ` +
         `ontologyCtx=${ontologyContextDigest ?? "none"} ` +
         `dispatchMode=${graphConfidenceDispatchMode ?? "none"} ` +
@@ -1498,7 +1489,6 @@ export async function routeIntent(
     await attachRoutingProjectionToCapsule(input.promptId, {
       decision: routeRecipe.decision,
       agent: routeRecipe.recipe?.agent ?? null,
-      dispatchSpecies,
       routingProjection,
     }, input.project);
   } catch {
@@ -1622,7 +1612,7 @@ export async function routeIntent(
         sessionId: input.sessionId,
         reasoning:
           `pm_intent_router transitions trace to router mode; ` +
-          `decision=${routeRecipe.decision} species=${dispatchSpecies} — ` +
+          `decision=${routeRecipe.decision} — ` +
           `rule 01 §ForwardProp; PR-10 wire #5`,
       });
     }
@@ -1632,7 +1622,6 @@ export async function routeIntent(
 
   return {
     ...routeRecipe,
-    dispatchSpecies,
     contractGate: routingContractGate,
     ...(ontologyDtcBuildReadinessGate
       ? { ontologyDtcBuildReadinessGate }

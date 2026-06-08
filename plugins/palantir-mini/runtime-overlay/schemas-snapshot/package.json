@@ -89,7 +89,6 @@
     "./ontology/primitives/retry-policy": "./ontology/primitives/retry-policy.ts",
     "./ontology/primitives/grader-effort": "./ontology/primitives/grader-effort.ts",
     "./ontology/primitives/hands-manifest": "./ontology/primitives/hands-manifest.ts",
-    "./ontology/primitives/harness-species-cost-profile": "./ontology/primitives/harness-species-cost-profile.ts",
     "./ontology/primitives/harness-species-enum": "./ontology/primitives/harness-species-enum.ts",
     "./ontology/primitives/runtime-fingerprint": "./ontology/primitives/runtime-fingerprint.ts",
     "./ontology/primitives/back-prop-value-index": "./ontology/primitives/back-prop-value-index.ts",

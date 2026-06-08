@@ -332,18 +332,6 @@ describe("T1 — trivial intent + single scope path", () => {
     expect(result.rationale).toMatch(/trivial|lead/i);
   });
 
-  test("trivial → dispatchSpecies returned (never undefined)", async () => {
-    const project = makeTmpProject();
-    const result = await routeIntent({
-      project,
-      intent: "Update one line in README",
-      scopePaths: ["README.md"],
-      complexityHint: "trivial",
-    });
-
-    expect(typeof result.dispatchSpecies).toBe("string");
-    expect(result.dispatchSpecies.length).toBeGreaterThan(0);
-  });
 
 });
 
@@ -386,19 +374,6 @@ describe("T2 — cross-cutting intent + multi-path → delegate + full sprint", 
     expect(result.recipe?.sprintArgs.mode).toBe("full");
   });
 
-  test("cross-cutting → dispatchSpecies favors flat-rate (bulk workload)", async () => {
-    const project = makeTmpProject();
-    const result = await routeIntent({
-      project,
-      intent: "Mass update all CLI fixture files across the monorepo",
-      scopePaths: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts"],
-      complexityHint: "cross-cutting",
-    });
-
-    // Bulk/cross-cutting → flat-rate subscription (claude-code-cli-max or copilot-studio)
-    const flatRateVendors = ["claude-code-cli-max", "microsoft-copilot-studio"];
-    expect(flatRateVendors).toContain(result.dispatchSpecies);
-  });
 
 
   test("5 paths no hint → still returns full recipe with all required fields", async () => {
@@ -410,7 +385,6 @@ describe("T2 — cross-cutting intent + multi-path → delegate + full sprint", 
     });
 
     expect(typeof result.decision).toBe("string");
-    expect(typeof result.dispatchSpecies).toBe("string");
     expect(Array.isArray(result.prefetchSucceeded)).toBe(true);
     expect(result.prefetchSucceeded.length).toBe(3);
   });
@@ -474,7 +448,6 @@ describe("T4 — graceful degradation when prefetch fails", () => {
     expect(result.prefetchedContext.impact).toBeUndefined();
     // But base recipe still present
     expect(typeof result.decision).toBe("string");
-    expect(typeof result.dispatchSpecies).toBe("string");
   });
 
   test("empty scopePaths → still returns decision + species + rationale", async () => {
@@ -486,7 +459,6 @@ describe("T4 — graceful degradation when prefetch fails", () => {
     });
 
     expect(typeof result.decision).toBe("string");
-    expect(typeof result.dispatchSpecies).toBe("string");
   });
 
 
@@ -542,24 +514,6 @@ describe("T5 — event emission", () => {
     expect((routingEvent?.payload as { decision?: string })?.decision).toBeTruthy();
   });
 
-  test("emitted event carries dispatchSpecies field in payload", async () => {
-    const project = makeTmpProject();
-    await routeIntent({
-      project,
-      intent: "Multi-file hook refactor",
-      scopePaths: ["hooks/a.ts", "hooks/b.ts", "hooks/c.ts"],
-    });
-
-    const events = readEvents(project);
-    const routingEvent = events.find(
-      (e) =>
-        e.type === "validation_phase_completed" &&
-        (e.payload as { errorClass?: string })?.errorClass === "intent_routing_completed",
-    );
-    expect(
-      typeof (routingEvent?.payload as { dispatchSpecies?: string })?.dispatchSpecies,
-    ).toBe("string");
-  });
 
   test("emitted event carries prefetchSucceeded 3-tuple in payload", async () => {
     const project = makeTmpProject();
@@ -1153,9 +1107,8 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
     // The handler currently builds a base recipe without calling routeCapabilityOntology,
     // so suggestedAgents from the result path does not exist on IntentRouterResult.
     // This test verifies that the result can be consumed safely — i.e., there is no
-    // runtime crash and the core fields (decision, dispatchSpecies) are always present.
+    // runtime crash and the core fields (decision) are always present.
     expect(typeof result.decision).toBe("string");
-    expect(typeof result.dispatchSpecies).toBe("string");
     expect(result.prefetchSucceeded.length).toBe(3);
   });
 
@@ -1220,7 +1173,6 @@ describe("T-PR3.4 — ontology_context_query canonical context-load path", () =>
 
     // Core routing fields always present
     expect(typeof result.decision).toBe("string");
-    expect(typeof result.dispatchSpecies).toBe("string");
     expect(result.prefetchSucceeded.length).toBe(3);
 
     // PR 3.4: ontologyContextDigest is either a string (context succeeded) or undefined (fallback)
@@ -1248,7 +1200,6 @@ describe("T-PR3.4 — ontology_context_query canonical context-load path", () =>
 
     // Core routing contract: always returns valid result (fallback path)
     expect(typeof result.decision).toBe("string");
-    expect(typeof result.dispatchSpecies).toBe("string");
     expect(Array.isArray(result.prefetchSucceeded)).toBe(true);
     expect(result.prefetchSucceeded.length).toBe(3);
     // prefetchedContext always an object

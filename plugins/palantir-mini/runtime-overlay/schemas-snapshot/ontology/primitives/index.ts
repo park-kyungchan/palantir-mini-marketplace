@@ -226,7 +226,6 @@ export * from "./research-source-manifest";
 // projects (rule 08 authority chain).
 export * from "./grader-effort";
 export * from "./hands-manifest";
-export * from "./harness-species-cost-profile";
 
 // --- v1.40 SSoT-2 W2.A AIP/Foundry/MCP operational primitives (10) ---
 // Additive MINOR. Promotes 10 cross-cutting primitives capturing the
@@ -401,7 +400,6 @@ import { gradingRubricFoundryEquivalent as _foundryEquiv_grading_rubric } from "
 import { handsManifestFoundryEquivalent as _foundryEquiv_hands_manifest } from "./hands-manifest";
 import { harnessAgentFoundryEquivalent as _foundryEquiv_harness_agent } from "./harness-agent";
 
-import { harnessSpeciesCostProfileFoundryEquivalent as _foundryEquiv_harness_species_cost_profile } from "./harness-species-cost-profile";
 import { harnessSpeciesEnumFoundryEquivalent as _foundryEquiv_harness_species_enum } from "./harness-species-enum";
 import { hookEventAllowlistFoundryEquivalent as _foundryEquiv_hook_event_allowlist } from "./hook-event-allowlist";
 import { impactEdgeFoundryEquivalent as _foundryEquiv_impact_edge } from "./impact-edge";
@@ -499,7 +497,6 @@ export const FOUNDRY_EQUIVALENTS_REGISTRY: Readonly<
   "hands-manifest": _foundryEquiv_hands_manifest,
   "harness-agent": _foundryEquiv_harness_agent,
 
-  "harness-species-cost-profile": _foundryEquiv_harness_species_cost_profile,
   "harness-species-enum": _foundryEquiv_harness_species_enum,
   "hook-event-allowlist": _foundryEquiv_hook_event_allowlist,
   "impact-edge": _foundryEquiv_impact_edge,

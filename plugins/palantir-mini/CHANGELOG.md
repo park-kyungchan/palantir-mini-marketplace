@@ -7,6 +7,14 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.94.0] - 2026-06-08 — Harness redesign W3b-2a: drop harness-species-cost-profile + router dispatchSpecies
+
+### Removed
+- **`schemas-snapshot/ontology/primitives/harness-species-cost-profile.ts`** (321 LOC) — the cost-aware harness-species vendor/cost-profile registry (`HarnessSpeciesVendor`, `HarnessSpeciesCostProfileDeclaration`, `HARNESS_SPECIES_COST_PROFILES`). Vendor/cost/model selection is a runtime-adapter concern, not the neutral SSoT. Pruned from primitives barrel + foundry map + package.json exports + MANIFEST.json.
+- **`pm_intent_router` `dispatchSpecies` field** (`IntentRouterResult.dispatchSpecies`) — was a hardcoded `"claude-code-cli-max"` species tag in the router result + emit payload. Species selection moves to the Claude adapter (deferred to W4). Removed the field, the `HarnessSpeciesVendor` import/re-export, and 3 dispatchSpecies-only tests + scattered assertions.
+
+First half of W3b-2 (router de-identity, strip-only — adapter re-home deferred to W4 per user 2026-06-08). The old-identity fields were consumed only by tests, not live runtime. typecheck green; 66/66 affected router+recipe tests pass. W3b-2b (recipe-builder AgentModel/DOMAIN_AGENT/DAG → neutral DispatchDecision) follows.
+
 ## [6.93.0] - 2026-06-08 — Harness redesign W3b-1: drop claude-code-version old-identity primitive + cc-allowlist hook
 
 ### Removed
