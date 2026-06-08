@@ -13,7 +13,7 @@ import type {
   SicFillStep,
   SicTurnDescriptor,
   SicWithFillFields,
-} from "./fill-sequence";
+} from "./sic-fill-types";
 
 export const CONTEXT_ENGINEERING_TO_SIC_POLICY = "context-engineering-to-sic" as const;
 

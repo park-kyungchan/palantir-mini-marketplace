@@ -16,70 +16,24 @@
 import type { SemanticIntentContract } from "../lead-intent/contracts";
 
 // ---------------------------------------------------------------------------
-// v1.62.0 additive field types (defined locally; shadows schema primitive)
+// Neutral SIC fill base types — canonical home is ./sic-fill-types (W3d-1).
+// Imported for local use below AND re-exported so existing importers of
+// fill-sequence.ts (grade-rubric, fill-policy, the gate) keep resolving.
 // ---------------------------------------------------------------------------
 
-/**
- * Source of a single fill step in the 8-turn SIC fill sequence (PR 5.10).
- *   user   — field value supplied or confirmed by the human user.
- *   agent  — field value inferred by the routing agent.
- *   system — field value set automatically by a hook or gate.
- */
-export type SicFillSource = "user" | "agent" | "system";
+import type {
+  SicFillSource,
+  SicFillStep,
+  SicWithFillFields,
+  SicTurnDescriptor,
+} from "./sic-fill-types";
 
-/**
- * One step in the SIC fill sequence.
- * Each step corresponds to one clarification question answered or one
- * structural field populated during the 8-turn fill workflow (PR 5.10).
- */
-export interface SicFillStep {
-  /** 1-based ordinal within the fill sequence. */
-  readonly step: number;
-  /** The clarification question or field label prompted to the user/agent. */
-  readonly question?: string;
-  /** The accepted answer or inferred value. */
-  readonly answer?: string;
-  /** ISO8601 timestamp when this step was completed. */
-  readonly filledAt: string;
-  /** Who or what provided the answer for this step. */
-  readonly source: SicFillSource;
-}
-
-/**
- * SemanticIntentContract extended with v1.62.0 additive fields.
- * Used internally by fill-sequence helpers; callers may cast to/from the base type.
- */
-export type SicWithFillFields = SemanticIntentContract & {
-  /** 8-turn fill sequence steps (v1.62.0). */
-  readonly fillSequence?: readonly SicFillStep[];
-  /**
-   * Fill / approval verdict (v1.62.0).
-   *   draft  — initial; no fill steps completed.
-   *   filled — all clarification questions answered; awaiting approval.
-   */
-  readonly verdict?: "draft" | "filled" | "approved" | "rejected";
-  /** Links this SIC to its proto-seed (v1.62.0). */
-  readonly seedRid?: string;
-  /** RID of the GradingRubric used to evaluate this SIC (v1.62.0). */
-  readonly gradeRubricRid?: string;
-};
-
-// ---------------------------------------------------------------------------
-// Turn descriptors
-// ---------------------------------------------------------------------------
-
-export interface SicTurnDescriptor {
-  /** 0-based turn index. */
-  readonly turnIndex: number;
-  /** 1-based step ordinal (step = turnIndex + 1). */
-  readonly step: number;
-  /** The question posed to the user / agent at this turn. */
-  readonly question: string;
-  /**
-   * Which field on SemanticIntentContract this turn populates.
-   */
-  readonly targetField: string;
-}
+export type {
+  SicFillSource,
+  SicFillStep,
+  SicWithFillFields,
+  SicTurnDescriptor,
+} from "./sic-fill-types";
 
 /**
  * The canonical 8-turn fill sequence (T0…T7).
