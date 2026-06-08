@@ -11,11 +11,11 @@
  * neutral decision (runtime-neutrality keystone). This file declares the type so the
  * self-model gains the RuntimeDecision noun.
  *
- * Count provenance (catalog §2): count 0 — a real surface whose instances are
- * RUNTIME-SEEDED per dispatch, not hard-coded in the snapshot. The deliverable here is
- * the TYPE registration; instances stay empty until a runtime source seeds them. The
- * paired test is a registration-resolves check (no filesystem drift guard, since there is
- * no static seed to cross-check).
+ * Count provenance (catalog §2): instances are RUNTIME-SEEDED per dispatch, but ONE — the
+ * standing Lead orchestration-only delegation decision (Lead plans/decomposes/verifies but
+ * never makes direct file edits; opus subagents implement) — is stable enough to seed here
+ * as BackwardProp evidence. The deliverable is the TYPE registration plus the 1 seeded
+ * instance; the paired test asserts the type resolves AND the seed resolves + counts.
  *
  * @owner palantirkc-ontology
  * @purpose Wave-2 self-Ontology ObjectType (M-SELF, harness redesign)
@@ -75,12 +75,25 @@ export interface RuntimeDecisionInstance {
 }
 
 /**
- * RuntimeDecision instances — EMPTY (count-0 runtime-seeded). Instances are generated
- * per dispatch from the live runtime source, not hard-coded here; the TYPE registration
- * is the deliverable.
+ * RuntimeDecision instances — the 1 self-directed decision: the standing Lead
+ * orchestration-only delegation verdict, seeded as BackwardProp evidence (further dispatch
+ * decisions stay runtime-seeded). Carries a kebab-case `decisionId` PK plus the workflow
+ * family, the phase, the allowed/forbidden tool sets, and the verdict. The paired test
+ * asserts it resolves + counts.
  */
-export const RUNTIME_DECISION_INSTANCES: readonly RuntimeDecisionInstance[] = [];
+export const RUNTIME_DECISION_INSTANCES: readonly RuntimeDecisionInstance[] = [
+  {
+    decisionId: "lead-orchestration-only-delegation",
+    family: "delegation-recipe",
+    phaseId: "dispatch",
+    allowedTools: "Task (spawn opus subagents), Read, Grep, Glob, pm_* MCP read handlers",
+    forbiddenTools: "Edit, Write, MultiEdit (Lead makes no direct file edits)",
+    verdict:
+      "Lead orchestrates (plan/decompose/dispatch/verify); opus subagents implement all " +
+      "edits/mutation/commit-PR-merge. Correctness over token cost.",
+  },
+];
 
-// Register the RuntimeDecision ObjectType (the type). Instances are runtime-seeded per
-// dispatch; the registration above is the Wave-2 deliverable.
+// Register the RuntimeDecision ObjectType (the type). The 1 instance above is data the
+// self-model exposes + the registration test counts; further decisions are runtime-seeded.
 OBJECT_TYPE_REGISTRY.register(RUNTIME_DECISION_OBJECT_TYPE);

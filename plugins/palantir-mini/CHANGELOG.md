@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.116.0] - 2026-06-09 — self-Ontology Wave 7: dogfood gap-closure (ForwardProp self-subject + instance seeds)
+
+### Added
+- **self-Ontology Wave 7 — dogfood gap-closure: propagation_audit_forward now audits pm self-ontology as its own subject (self-subject fallback); seed EvalSuite + key ObjectType instances; FDE coverage lifted; +1 Learning. DoD #3 dogfood now passes (ForwardProp + ready-for-dtc).** `bridge/handlers/propagation-audit-forward.ts` gains a `detectSelfOntology()` self-subject fallback so the project-ontology step passes when `<project>/ontology/` is absent but pm's own registered ontology lives at `runtime-overlay/schemas-snapshot/ontology/self/` (consumer-project behavior unchanged — the fallback only fires when the primary path is missing AND a registered self-ontology marker is present). Seeds concrete pm instances into the previously count-0 self-model ObjectTypes: 2 self-directed suites into `EvalSuite` (self-ontology-registration + dogfood), 1 into each of `ProjectOntologyIndex` / `RuntimeDecision` / `WorkflowTrace`, plus +1 `Learning` (propagation-audit-cannot-see-self-ontology, refines tooling). Paired registration tests upgraded from empty-seed assertions to resolve + count + no-duplicate-id assertions. Schema-snapshot bumped one MINOR (additive self-model instance seeds, rule 08) — see schemas-snapshot CHANGELOG v1.76.0.
+
+**0 new regressions** (tsc `--noEmit` green; env-clean full-suite fail count unchanged at the documented 8 ambient fails). Lead-orchestrated; opus subagent implemented.
+
 ## [6.115.0] - 2026-06-09 — self-Ontology Wave 6: DATA/LOGIC/ACTION/GOVERNANCE derived view (DoD #4) + dogfood
 
 ### Added

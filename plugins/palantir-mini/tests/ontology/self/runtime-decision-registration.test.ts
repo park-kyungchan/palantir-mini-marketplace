@@ -1,8 +1,9 @@
 // Test: Wave-2 self-Ontology RuntimeDecision ObjectType — pm's neutral dispatch verdict
-// registered AS an ObjectType. Count-0 runtime-seeded: the deliverable is the TYPE
-// registration (instances are seeded per dispatch from the live runtime source, not the
-// snapshot), so this is a registration-resolves test with no filesystem drift guard.
-// Importing the module executes its self-registration side effect.
+// registered AS an ObjectType + 1 self-directed decision (the standing Lead
+// orchestration-only delegation verdict, seeded as BackwardProp evidence). Proves the TYPE
+// resolves from the registry and that the seed resolves + counts + carries no duplicate
+// decisionId (further dispatch decisions are runtime-seeded). Importing the module executes
+// its self-registration side effect.
 
 import { test, expect } from "bun:test";
 import { OBJECT_TYPE_REGISTRY } from "#schemas/ontology/primitives/object-type";
@@ -10,7 +11,10 @@ import {
   RUNTIME_DECISION_OBJECT_TYPE,
   RUNTIME_DECISION_OBJECT_TYPE_RID,
   RUNTIME_DECISION_INSTANCES,
+  type RuntimeDecisionInstance,
 } from "#schemas/ontology/self/runtime-decision.objecttype";
+
+const EXPECTED_RUNTIME_DECISION_COUNT = 1;
 
 test("self RuntimeDecision ObjectType is registered with decisionId identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(RUNTIME_DECISION_OBJECT_TYPE_RID);
@@ -20,10 +24,12 @@ test("self RuntimeDecision ObjectType is registered with decisionId identity", (
   expect(got!.primaryKeyProperty).toBe("decisionId");
 });
 
-test("RuntimeDecision instances are empty (count-0 runtime-seeded)", () => {
-  // Instances are seeded per dispatch from the live runtime source, not hard-coded in
-  // the snapshot; the type registration above is the Wave-2 deliverable.
-  expect(RUNTIME_DECISION_INSTANCES.length).toBe(0);
+test(`RuntimeDecision seed has ${EXPECTED_RUNTIME_DECISION_COUNT} unique decisionId instance`, () => {
+  expect(RUNTIME_DECISION_INSTANCES.length).toBe(EXPECTED_RUNTIME_DECISION_COUNT);
+  const ids = RUNTIME_DECISION_INSTANCES.map(
+    (i: RuntimeDecisionInstance) => i.decisionId,
+  );
+  expect(new Set(ids).size).toBe(EXPECTED_RUNTIME_DECISION_COUNT); // no duplicates
 });
 
 test("RuntimeDecision declares its catalog key props", () => {

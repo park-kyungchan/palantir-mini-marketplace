@@ -7,9 +7,9 @@
  *
  * Count provenance: this is a runtime-seeded ObjectType — concrete learnings are captured
  * per session (pm-learn) as BackwardProp evidence, not derived from a static source. The
- * TYPE registration plus the 7 session bottleneck-learnings seeded into
+ * TYPE registration plus the 8 session bottleneck-learnings seeded into
  * `LEARNING_INSTANCES` (user directive 2026-06-08 "bottleneck -> register in Ontology")
- * are the deliverable; the paired registration test asserts the type resolves and the 7
+ * are the deliverable; the paired registration test asserts the type resolves and the 8
  * instances resolve + count + carry no duplicate ids (no filesystem drift guard — the seed
  * IS the authority; learnings append as the self-model accrues evidence).
  *
@@ -33,7 +33,7 @@ export const LEARNING_OBJECT_TYPE_RID = objectTypeRid(
  * stored-fact surface is the LEARN record — `decision`, `evidenceRefs`, `memoryLayer`
  * (working/episodic/semantic/procedural), and `refines` (process/tooling/understanding).
  * Concrete learnings are runtime-seeded (captured per session); the registered INSTANCES
- * below seed the first 7 session bottleneck-learnings as BackwardProp evidence.
+ * below seed the first 8 session bottleneck-learnings as BackwardProp evidence.
  */
 export const LEARNING_OBJECT_TYPE: ObjectTypeDeclaration = {
   rid: LEARNING_OBJECT_TYPE_RID,
@@ -43,7 +43,7 @@ export const LEARNING_OBJECT_TYPE: ObjectTypeDeclaration = {
     "palantir-mini cross-session LEARN record modeled as an ObjectType: decision + " +
     "evidenceRefs (session/PR refs) + memoryLayer (working/episodic/semantic/procedural) + " +
     "refines (process/tooling/understanding). Runtime-seeded — learnings are captured per " +
-    "session (pm-learn) as BackwardProp evidence; the seed carries the first 7 session " +
+    "session (pm-learn) as BackwardProp evidence; the seed carries the first 8 session " +
     "bottleneck-learnings.",
   primaryKeyProperty: "learningId",
   titleProperty: "learningId",
@@ -66,11 +66,11 @@ export interface LearningInstance {
 }
 
 /**
- * Learning instances — the 7 session bottleneck-learnings registered as a BackwardProp
+ * Learning instances — the 8 session bottleneck-learnings registered as a BackwardProp
  * seed (user directive 2026-06-08 "bottleneck -> register in Ontology"). Each carries a
  * kebab-case `learningId` PK, a one-line `decision`, a session/PR `evidenceRefs` string,
  * the agentic `memoryLayer` (procedural|semantic), and what it `refines`
- * (process|tooling|understanding). The paired registration test asserts these 7 resolve,
+ * (process|tooling|understanding). The paired registration test asserts these 8 resolve,
  * count, and carry no duplicate ids; further learnings are captured per session (pm-learn)
  * and appended here as the self-model accrues BackwardProp evidence.
  */
@@ -138,8 +138,17 @@ export const LEARNING_INSTANCES: readonly LearningInstance[] = [
     memoryLayer: "procedural",
     refines: "process",
   },
+  {
+    learningId: "propagation-audit-cannot-see-self-ontology",
+    decision:
+      "propagation_audit_forward hard-codes <project>/ontology and cannot audit pm's " +
+      "self-ontology at schemas-snapshot/ontology/self; fixed via self-subject fallback (Wave 7)",
+    evidenceRefs: "dogfood Wave 6 + PR Wave 7",
+    memoryLayer: "procedural",
+    refines: "tooling",
+  },
 ];
 
-// Register the Learning ObjectType (the type). The 7 instances above are data the
+// Register the Learning ObjectType (the type). The 8 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(LEARNING_OBJECT_TYPE);

@@ -67,12 +67,56 @@ async function validateSharedCore(_project: string): Promise<PropagationStepResu
   };
 }
 
-/** project-ontology: <project>/ontology/ directory exists. */
+/**
+ * Detect a self-subject ontology embedded in the runtime overlay.
+ *
+ * palantir-mini auditing *itself* has no top-level <project>/ontology/; its
+ * registered ontology lives in the schemas snapshot at
+ * runtime-overlay/schemas-snapshot/ontology/self/ (and ontology/ generally).
+ * Presence of registered ontology source files (*.objecttype.ts / links.ts /
+ * action-types.ts / functions.ts) is treated as the project-ontology step
+ * passing. Returns the matching dir+marker, or null when no self-ontology found.
+ */
+function detectSelfOntology(project: string): { dir: string; marker: string } | null {
+  const overlayRoot = path.join(project, "runtime-overlay", "schemas-snapshot", "ontology");
+  const candidateDirs = [path.join(overlayRoot, "self"), overlayRoot];
+  const isMarker = (f: string): boolean =>
+    f.endsWith(".objecttype.ts") || f === "links.ts" || f === "action-types.ts" || f === "functions.ts";
+  for (const dir of candidateDirs) {
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) continue;
+    const marker = fs.readdirSync(dir).find(isMarker);
+    if (marker) return { dir, marker };
+  }
+  return null;
+}
+
+/**
+ * project-ontology: <project>/ontology/ directory exists.
+ *
+ * Self-subject fallback (additive): when <project>/ontology/ is absent, detect
+ * pm's own registered ontology in runtime-overlay/schemas-snapshot/ontology/.
+ * Consumer-project behavior is unchanged — the fallback only fires when the
+ * primary path is missing AND a registered self-ontology marker is present.
+ */
 async function validateProjectOntology(project: string): Promise<PropagationStepResult> {
   const ontologyDir = path.join(project, "ontology");
-  const pass = fs.existsSync(ontologyDir) && fs.statSync(ontologyDir).isDirectory();
+  if (fs.existsSync(ontologyDir) && fs.statSync(ontologyDir).isDirectory()) {
+    return {
+      pass: true,
+      validator: "project-ontology-dir-exists",
+      evidence: ontologyDir,
+    };
+  }
+  const self = detectSelfOntology(project);
+  if (self) {
+    return {
+      pass: true,
+      validator: "project-ontology-self-subject",
+      evidence: `${self.dir} (registered marker: ${self.marker})`,
+    };
+  }
   return {
-    pass,
+    pass: false,
     validator: "project-ontology-dir-exists",
     evidence: ontologyDir,
   };
