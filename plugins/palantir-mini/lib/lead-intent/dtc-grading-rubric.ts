@@ -25,6 +25,7 @@ import {
 } from "#schemas/ontology/primitives/grading-rubric";
 import type { DigitalTwinChangeContract } from "./contracts";
 import type { PromptRuntime } from "../prompt-front-door/envelope";
+import { resolveHostRuntimeIdentity } from "../runtime/identity";
 
 // =============================================================================
 // Runtime type aliases
@@ -638,6 +639,12 @@ export async function gradeDigitalTwinChangeContract(
     // This is a best-effort emit; failure should not block grading result.
     try {
       const { emit } = await import("../../scripts/log");
+      // W3d-4-B: self-attribute byWhom.identity to the ACTUAL runtime (rule 27) instead
+      // of the hardcoded "claude-code" — this branch only runs UNDER Codex, so the literal
+      // mis-attributed every Codex-runtime gap to claude-code. `resolveHostRuntimeIdentity`
+      // returns RuntimeIdentity (incl "unknown"), which emit()'s identity field excludes, so
+      // omit it when "unknown" (scripts/log.ts then env-resolves).
+      const hostIdentity = resolveHostRuntimeIdentity(runtime);
       // dtc_grader_runtime_gap type is registered by T1-lib-emit-event in a later wave.
       // Until then, use a type cast to allow the plain string literal event type.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -646,7 +653,7 @@ export async function gradeDigitalTwinChangeContract(
         toolName: "gradeDigitalTwinChangeContract",
         cwd: context.projectPath,
         sessionId: context.sessionId,
-        identity: "claude-code",
+        ...(hostIdentity !== "unknown" ? { identity: hostIdentity } : {}),
         reasoning:
           "Codex runtime cannot dispatch model/simulator criteria; deterministic-only path used. " +
           `Skipped: ${skippedCriteriaIds.join(", ")}`,

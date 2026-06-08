@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.103.0] - 2026-06-08 — Harness redesign W3d-4-B: dtc-grader runtime-gap self-attributes identity (completes W3d-4)
+
+### Fixed
+- **`lib/lead-intent/dtc-grading-rubric.ts`** — the `dtc_grader_runtime_gap` advisory emit no longer hardcodes `identity: "claude-code"`. That literal lived **inside the `isCodexRuntime` branch**, so every Codex-runtime grading gap was mis-attributed to claude-code — a rule-27 self-attribution violation (`byWhom.identity` must name the writing runtime). It now resolves via `resolveHostRuntimeIdentity(runtime)` (deterministically `"codex"` in this branch; the field is omitted when `"unknown"` so `scripts/log.ts` env-resolves, since `emit()`'s `identity` type excludes `"unknown"`). Completes **W3d-4** — the type-alias half (`DtcRuntime`→`PromptRuntime`) shipped in W3d-4a (6.100.0). Behavior change, shipped with an explicit **Codex-runtime assertion test** (`tests/lib/lead-intent/dtc-grading-rubric.test.ts` drives `runtime: "codex"` and asserts the emitted gap event's `byWhom.identity === "codex"`, not `"claude-code"`).
+
+**0 new regressions** (stash-baseline-diff IDENTICAL fail-set; 3089 pass). Single-agent adversarial verification **clean** (incl. confirming `L649` was the only hardcoded identity literal in `lib/lead-intent/`, and that passing the resolved `runtime` is more correct than the env-only form when `context.runtime` is supplied without the env var). No schema primitive touched; M-SELF counter unchanged (neutralization).
+
 ## [6.102.0] - 2026-06-08 — Harness redesign W3d-2b: flip the absent-fillPolicy default to nine-axis
 
 ### Changed

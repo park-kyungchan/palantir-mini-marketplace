@@ -1,4 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 import {
   DTC_RUBRIC_V1,
   DTC_RUBRIC_RID,
@@ -379,5 +382,56 @@ describe("DTC_RUBRIC_V1 structural invariants", () => {
 
   test("rubricId is dtc-rubric/v1", () => {
     expect(DTC_RUBRIC_V1.rubricId as string).toBe("dtc-rubric/v1");
+  });
+});
+
+// =============================================================================
+// W3d-4-B — dtc_grader_runtime_gap self-attributes byWhom.identity to the actual
+// runtime (rule 27), not a hardcoded "claude-code".
+// =============================================================================
+describe("gradeDigitalTwinChangeContract runtime-gap identity (W3d-4-B)", () => {
+  const tmpDirs: string[] = [];
+
+  function makeTmpProject(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-grader-identity-"));
+    tmpDirs.push(dir);
+    fs.mkdirSync(path.join(dir, ".palantir-mini", "session"), { recursive: true });
+    return dir;
+  }
+
+  afterEach(() => {
+    for (const dir of tmpDirs.splice(0)) {
+      try {
+        fs.rmSync(dir, { recursive: true, force: true });
+      } catch {
+        // best-effort cleanup
+      }
+    }
+  });
+
+  function readEvents(project: string): Array<Record<string, any>> {
+    const p = path.join(project, ".palantir-mini", "session", "events.jsonl");
+    if (!fs.existsSync(p)) return [];
+    return fs
+      .readFileSync(p, "utf8")
+      .trim()
+      .split("\n")
+      .filter((l) => l.trim().length > 0)
+      .map((l) => JSON.parse(l));
+  }
+
+  test("Codex runtime gap self-attributes byWhom.identity='codex' (not hardcoded claude-code)", async () => {
+    const project = makeTmpProject();
+    const dtc = minimalDtc();
+    // runtime=codex → deterministic-only path → 5 model criteria skipped → gap emit fires.
+    const ctx = gradingContext({ runtime: "codex", projectPath: project });
+
+    await gradeDigitalTwinChangeContract(dtc, ctx, allPassScorer());
+
+    const gap = readEvents(project).find((e) => e.type === "dtc_grader_runtime_gap");
+    expect(gap).toBeDefined();
+    expect(gap!.byWhom?.identity).toBe("codex");
+    // Regression guard for the old hardcoded literal.
+    expect(gap!.byWhom?.identity).not.toBe("claude-code");
   });
 });
