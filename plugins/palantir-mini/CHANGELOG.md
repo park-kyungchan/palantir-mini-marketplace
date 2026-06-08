@@ -7,6 +7,11 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.112.1] - 2026-06-09
+
+### Fixed
+- fix: PluginManifest self-Ontology seed no longer pins volatile version (CLAUDE.md section 6); keeps structural drift guards; restores 8-fail baseline.
+
 ## [6.112.0] - 2026-06-09 — self-Ontology Wave 3: wire the self/links.ts LinkType graph
 
 ### Added

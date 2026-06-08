@@ -1,9 +1,9 @@
 // Test: Wave-2 self-Ontology PluginManifest ObjectType — pm's plugin/marketplace
 // registration SSoT registered AS an ObjectType + 1 manifest instance. Proves the
-// self-model gains the PluginManifest noun and that the seed (version + mcpServers +
+// self-model gains the PluginManifest noun and that the seed (mcpServers +
 // registeredAgents + registeredSkills) stays true to the LIVE plugin.json + agents/ +
-// skills/ directories (drift guard). `version` is volatile: the guard re-reads it from
-// plugin.json rather than asserting a pinned literal.
+// skills/ directories (drift guard). `version` is volatile and intentionally NOT pinned
+// in the seed (CLAUDE.md section 6), so it is not asserted here.
 
 import { test, expect } from "bun:test";
 import * as fs from "node:fs";
@@ -33,20 +33,19 @@ test(`PluginManifest seed has ${EXPECTED_MANIFEST_COUNT} unique manifest instanc
   expect(new Set(ids).size).toBe(EXPECTED_MANIFEST_COUNT); // no duplicates
 });
 
-test("PluginManifest seed identity + version match the LIVE plugin.json (drift guard)", () => {
+test("PluginManifest seed identity + mcpServers match the LIVE plugin.json (drift guard)", () => {
   // The snapshot OWNS the seed (no manifest import); this guard reads the live
   // .claude-plugin/plugin.json and asserts the self-model's manifestId equals the plugin
-  // name, the version equals the live (volatile) version, and the mcpServers count equals
-  // the number of registered MCP server entries.
+  // name and the mcpServers count equals the number of registered MCP server entries.
+  // `version` is volatile and intentionally NOT pinned in the seed (CLAUDE.md section 6),
+  // so it is not asserted — read the live value from plugin.json when needed.
   const manifestPath = path.join(PLUGIN_ROOT, ".claude-plugin/plugin.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
     name: string;
-    version: string;
     mcpServers?: Record<string, unknown>;
   };
   const inst = PLUGIN_MANIFEST_INSTANCES[0]!;
   expect(inst.manifestId).toBe(manifest.name);
-  expect(inst.version).toBe(manifest.version);
   expect(inst.mcpServers).toBe(Object.keys(manifest.mcpServers ?? {}).length);
 });
 
