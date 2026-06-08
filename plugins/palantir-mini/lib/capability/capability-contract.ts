@@ -12,19 +12,17 @@ export type CapabilitySourceKind =
   | "known-issue"
   | "ontology-index";
 
-export type CapabilityCategory =
-  | "problem-authoring"
-  | "sequencer-compile"
-  | "visual-scenario"
-  | "concept-authoring"
-  | "debug-triage"
-  | "presenter-readiness"
-  | "mcp-tool"
-  | "agent"
-  | "project-surface"
-  | "validation-pack"
-  | "issue-forecast"
-  | "generic";
+/**
+ * Runtime-neutral free-form domain tag (W3e-2). Replaces the closed
+ * CapabilityCategory union that hardcoded the palantir-math education taxonomy
+ * (problem-authoring/sequencer-compile/visual-scenario/concept-authoring/
+ * debug-triage/presenter-readiness). The neutral core carries no project-specific
+ * meaning; a domain tag is a free-form/registered string supplied per source.
+ */
+export type CapabilityDomainTag = string;
+
+/** @deprecated W3e-2 — use {@link CapabilityDomainTag}. Transitional alias removed in e2c. */
+export type CapabilityCategory = CapabilityDomainTag;
 
 export interface CapabilityArtifactLifecycle {
   readonly prerequisites: readonly string[];
@@ -53,7 +51,7 @@ export interface CapabilityContract {
   readonly sourceKind: CapabilitySourceKind;
   readonly sourceRef: string;
   readonly displayName: string;
-  readonly category: CapabilityCategory;
+  readonly category: CapabilityDomainTag;
 
   readonly userFacingPurpose: string;
   readonly leadFacingPurpose: string;
