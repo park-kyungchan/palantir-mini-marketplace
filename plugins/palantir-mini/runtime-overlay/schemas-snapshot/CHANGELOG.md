@@ -8,6 +8,16 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.70.0 — 2026-06-09 (self-Ontology Wave 1: register 5 core surface ObjectTypes)
+
+Additive MINOR (rule 08 — additive instances, no edits to existing primitives). Registers the plugin's own
+control-plane surfaces as Ontology ObjectTypes under `ontology/self/`: `Skill` (61 instances), `Agent` (15),
+`Hook` (64), `McpHandler` (63), `EventEnvelope` (83). `OBJECT_TYPE_REGISTRY` grows 2 → 7. Each ObjectType is
+paired with a registration drift test (plugin `tests/ontology/self/*-registration.test.ts`) asserting the
+catalogued instance set stays in sync. Self-Ontology Wave 1 of the palantir-mini self-modeling effort.
+Catalog: `_workspace/palantir-mini-self-ontology-engineering-2026-06-05/.../context/06`. Paired plugin
+release 6.110.0.
+
 ## v1.69.0 — 2026-06-08 (harness redesign W3b-2a: remove harness-species-cost-profile primitive)
 
 Removal (breaking, but no surviving code consumer — only doc-comment cross-refs in sprint-contract /

@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.110.0] - 2026-06-09 — self-Ontology Wave 1: register 5 core surface ObjectTypes
+
+### Added
+- **self-Ontology Wave 1 — register 5 core surface ObjectTypes under `runtime-overlay/schemas-snapshot/ontology/self/`** + paired drift tests under `tests/ontology/self/`: `Skill` (61 instances), `Agent` (15), `Hook` (64), `McpHandler` (63), `EventEnvelope` (83). The plugin now models its own control-plane surfaces as Ontology ObjectTypes (self-Ontology), with one registration drift test per ObjectType asserting the catalogued instance set stays in sync. `OBJECT_TYPE_REGISTRY` grows 2 → 7. Schema-snapshot bumped one MINOR (additive instances, rule 08) — see schemas-snapshot CHANGELOG v1.70.0. Catalog: `_workspace/palantir-mini-self-ontology-engineering-2026-06-05/.../context/06`.
+
+**0 new regressions** (Lead-verified against the 8-fail pre-existing baseline; tsc `--noEmit` green; 5/5 drift tests pass). Lead-orchestrated; opus subagent implemented.
+
 ## [6.109.0] - 2026-06-08 — Harness redesign W3f-2 Wave 1: policy-literal injectable
 
 ### Changed
