@@ -2,7 +2,6 @@
 // Extracted from pm-plugin-self-check.ts (375 LOC) per N1-LARGE wave 1.
 
 import * as path from "path";
-import type { ReleaseChangedSurfaceEvidence } from "../../../lib/harness/release-evidence";
 import type { WorkflowFamilyReleaseGateResult } from "../../../lib/release/workflow-family-release-gate";
 import type { SurfaceContractAuditFinding } from "../../../lib/surface/audit";
 import type { DeletionReadinessResult } from "./check-deletion-readiness";
@@ -127,53 +126,6 @@ export interface PmPluginSelfCheckResult {
       severity: "fail" | "warn";
       message: string;
     }>;
-  };
-  broadTestRatchetResult: {
-    status: PmPluginSelfCheckStatus;
-    details: string;
-    ledgerPath: string;
-    ledgerEntryCount: number;
-    observedFailureCount: number;
-    releaseBlockingCount: number;
-    missingMetadata: string[];
-    observedIds: string[];
-    classifications: Array<{
-      testId: string;
-      classification: string;
-      releaseBlocking: boolean;
-      reason: string;
-    }>;
-  };
-  evalSuiteArtifactsResult: {
-    status: PmPluginSelfCheckStatus;
-    details: string;
-    changedSurfaceCount: number;
-    changedSurfaces: ReleaseChangedSurfaceEvidence[];
-    requiredSuiteIds: string[];
-    runArtifactCount: number;
-    artifactRefs: string[];
-    missingArtifacts: Array<{
-      surface: string;
-      suiteId: string;
-      reason: string;
-    }>;
-  };
-  adversarialVerifierEvidenceResult: {
-    status: PmPluginSelfCheckStatus;
-    details: string;
-    requiredCategories: string[];
-    evidenceCount: number;
-    evidenceRefs: string[];
-    missingCategories: string[];
-  };
-  outcomeReplayEvidenceResult: {
-    status: PmPluginSelfCheckStatus;
-    details: string;
-    required: boolean;
-    sprintNumbers: number[];
-    replayArtifactCount: number;
-    evidenceRefs: string[];
-    missingReplayEvidence: string[];
   };
   workflowResponseTemplateResult: {
     status: PmPluginSelfCheckStatus;
