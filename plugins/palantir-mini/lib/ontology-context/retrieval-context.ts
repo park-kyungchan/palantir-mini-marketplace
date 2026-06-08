@@ -27,6 +27,7 @@ import * as path from "node:path";
 import pmValueGradeMetrics from "../../bridge/handlers/pm-value-grade-metrics";
 import pmWorkflowLineageQuery from "../../bridge/handlers/pm-workflow-lineage-query";
 import { resolvePalantirMiniRoot } from "../config/root";
+import { resolveExternalRoots } from "../runtime/external-roots";
 import {
   composeCodexMountedHookEvents,
   composeCompatibilityHookEventsAlias,
@@ -139,21 +140,10 @@ export interface ComposeRetrievalContextOpts {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const HOME_DEFAULT = process.env["HOME"] ?? "/home/palantirkc";
-const RULES_DIR_DEFAULT = path.join(HOME_DEFAULT, ".claude", "rules");
-const RESEARCH_OFFICIAL_DIR = path.join(
-  HOME_DEFAULT,
-  ".claude",
-  "research",
-  "palantir-official",
-);
-const SCHEMAS_PRIMITIVES_DIR = path.join(
-  HOME_DEFAULT,
-  ".claude",
-  "schemas",
-  "ontology",
-  "primitives",
-);
+const EXTERNAL_ROOTS = resolveExternalRoots();
+const RULES_DIR_DEFAULT = EXTERNAL_ROOTS.rulesDir;
+const RESEARCH_OFFICIAL_DIR = EXTERNAL_ROOTS.researchOfficialDir;
+const SCHEMAS_PRIMITIVES_DIR = EXTERNAL_ROOTS.schemasPrimitivesDir;
 const RULE_FILE_PATTERN = /^(\d{2})-.+\.md$/;
 const LINEAGE_WINDOW_DAYS = 7;
 const SCOPED_FILE_CAP = 200;

@@ -26,6 +26,7 @@ import * as path from "node:path";
 
 import { loadCapabilityRegistry } from "../capability-registry";
 import { resolvePalantirMiniRoot } from "../config/root";
+import { resolveExternalRoots } from "../runtime/external-roots";
 import {
   composeCodexMountedHookEvents,
   composeCompatibilityHookEventsAlias,
@@ -136,11 +137,7 @@ export interface ComposeApplicationStateOpts {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const RULE_FILE_PATTERN = /^(\d{2})-.+\.md$/;
-const RULES_DIR_DEFAULT = path.join(
-  process.env["HOME"] ?? "/home/palantirkc",
-  ".claude",
-  "rules",
-);
+const RULES_DIR_DEFAULT = resolveExternalRoots().rulesDir;
 
 // ─── Git helpers ────────────────────────────────────────────────────────────
 

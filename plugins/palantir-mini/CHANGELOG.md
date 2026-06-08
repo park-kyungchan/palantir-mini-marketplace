@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.98.0] - 2026-06-08 — Harness redesign W3c-3: path-roots → resolveExternalRoots()
+
+### Added
+- **`lib/runtime/external-roots.ts`** (NEW) — neutral `resolveExternalRoots(env?)` → `{ homeDir, overlayDir, rulesDir, researchOfficialDir, schemasPrimitivesDir, projectsDir }`, modeled on `lib/config/root.ts` env-precedence. The host overlay base defaults to `<home>/.claude` and is overridable via `PALANTIR_MINI_EXTERNAL_OVERLAY_DIR` so a non-Claude host (Codex/Gemini) can repoint the whole external overlay without editing the neutral core. `homeDir` resolves `HOME ?? os.homedir()` — the hardcoded `/home/palantirkc` operator-path fallback is gone. + focused test (default / override / blank-HOME).
+
+### Changed
+- **`lib/ontology-context/application-state.ts`**, **`lib/ontology-context/retrieval-context.ts`**, **`lib/runtime-overlay/resolve-rule.ts`**, **`lib/runtime-overlay/memory-reflect.ts`** — replaced four files' hardcoded `~/.claude/{rules,research/palantir-official,schemas/ontology/primitives,projects}` + `/home/palantirkc` literals with `resolveExternalRoots()` fields. Values are **byte-identical** to before when `HOME` is set and no override is supplied (behavior-preserving); `memory-reflect` keeps its `PALANTIR_MINI_MEMORY_PATH` override + encoding logic, just sourcing the `projects` base from the resolver. Projection OUTPUT shapes (`ApplicationStateProjection` / `RetrievalContextProjection`), the `EXTERNAL_RULES_DIR` export (consumed by `session-start-overlay-injector`), and `MemoryReflectResult` are unchanged.
+
+Third sub-wave of W3c (verified split; ratified design A — standalone resolver over a `RuntimeAdapterContract` field). Scoped to the external `~/.claude/*` overlay roots; the project-local `CLAUDE.md` doc-basename naming (a project-relative doc concern, not a host external root) is deferred to a small follow-on. The pre-existing unused `resolvePalantirMiniRoot` import in `application-state.ts` was left untouched (not introduced by this wave; surgical). No schema primitive touched. typecheck green; affected tests pass (ontology-context + resolve-rule + session-start-overlay + fresh-home = 85/85, + 3 new); full-suite stash-baseline-diff confirms **0 new regressions** (21 pre-existing failures unchanged).
+
 ## [6.97.0] - 2026-06-08 — Harness redesign W3c-2: tool-classifier → injected ToolCapabilityProfile
 
 ### Added
