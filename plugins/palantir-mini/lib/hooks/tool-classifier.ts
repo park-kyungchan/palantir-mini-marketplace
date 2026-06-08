@@ -4,6 +4,7 @@ import {
 } from "../capability-registry/mcp-tool-capability";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { resolveToolProfile, type ToolCapabilityProfile } from "../runtime/tool-profile";
 
 export type PalantirMiniToolOperation =
   | "apply_edit_function"
@@ -40,14 +41,6 @@ export interface HookToolPayloadLike {
   readonly tool_input?: Record<string, unknown> | undefined;
 }
 
-const READ_ONLY_TOOLS = new Set([
-  "read",
-  "grep",
-  "glob",
-  "ls",
-  "notebookread",
-]);
-
 const READ_ONLY_OPERATIONS = new Set<PalantirMiniToolOperation>([
   "get_ontology",
   "impact_query",
@@ -58,14 +51,6 @@ const READ_ONLY_OPERATIONS = new Set<PalantirMiniToolOperation>([
   "pm_semantic_intent_gate",
   "pm_substrate_query",
   "pre_edit_impact",
-]);
-
-const PROTECTED_MUTATION_TOOLS = new Set([
-  "edit",
-  "write",
-  "multiedit",
-  "notebookedit",
-  "agent",
 ]);
 
 const PROTECTED_MUTATION_OPERATIONS = new Set<PalantirMiniToolOperation>([
@@ -256,7 +241,10 @@ export function isNegotiateSprintContractApproveOrCounter(input: Record<string, 
   return action === "approve" || action === "counter";
 }
 
-export function classifyHookTool(payload: HookToolPayloadLike): HookToolClassification {
+export function classifyHookTool(
+  payload: HookToolPayloadLike,
+  profile: ToolCapabilityProfile = resolveToolProfile(),
+): HookToolClassification {
   const originalName = payload.tool_name ?? "unknown";
   const normalizedName = normalizeToolName(originalName);
   const canonicalPalantirMiniName = normalizePalantirMiniMcpToolName(normalizedName);
@@ -275,7 +263,7 @@ export function classifyHookTool(payload: HookToolPayloadLike): HookToolClassifi
     ? isReadOnlyBashCommand(String(payload.tool_input?.command ?? ""))
     : false;
   const isReadOnly =
-    READ_ONLY_TOOLS.has(normalizedName) ||
+    profile.readOnlyTools.has(normalizedName) ||
     READ_ONLY_OPERATIONS.has(operation) ||
     bashReadOnly;
 
@@ -289,7 +277,7 @@ export function classifyHookTool(payload: HookToolPayloadLike): HookToolClassifi
     normalizedName.includes("deploy");
   const isProtectedMutation =
     !isReadOnly &&
-    (PROTECTED_MUTATION_TOOLS.has(normalizedName) ||
+    (profile.protectedMutationTools.has(normalizedName) ||
       PROTECTED_MUTATION_OPERATIONS.has(operation) ||
       ontologyContextMutation ||
       negotiateMutation ||
