@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.119.0] - 2026-06-09 — ENTRY-loop register seam (operative OE-elevation keystone)
+
+### Added
+- **`action:"register"` ENTRY-loop seam: an approved-DTC ontology-engineering session now materializes its accepted candidate set into registered, READABLE primitives (register → commit → materialize → read), per-project isolated.** This is the keystone of pm's operative Ontology-first vertical slice — the path from an approved design-time-check session to live, readable primitives is now closed end-to-end.
+  - per-project rid helper (`lib/actions/project-primitive-rid.ts`) so registered primitives are namespaced + isolated per project.
+  - `register-accepted` mapping (`lib/ontology-engineering-workflow/register-accepted.ts`): candidate → params mapping over objects → actions → functions → links, with link skip-and-report (links whose endpoints are unresolved are skipped and reported rather than failing the batch).
+  - `handleRegister` gate: refuses to register unless the session is SIC+DTC approved AND the FDE grade passed.
+  - single batched `commit_edits` for the whole accepted set (one atomic materialization).
+  - tests 13/0 new: loop-closure proof, per-project isolation, 2 negative gates (unapproved / failed-grade), idempotency; tsc clean.
+
+Regression: 1829 pass / 1 skip / 1 PRE-EXISTING-unrelated fail (capability-registry/loader.test.ts, not introduced); 0 NEW regressions.
+
+Lead-orchestrated; opus subagent implemented.
+
 ## [6.118.0] - 2026-06-09 — O-1: structured_output capability (provably non-looping)
 
 ### Added
