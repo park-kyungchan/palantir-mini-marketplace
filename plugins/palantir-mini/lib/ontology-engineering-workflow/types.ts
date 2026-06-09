@@ -11,8 +11,29 @@ export type OntologyEngineeringWorkflowAction =
   | "start"
   | "turn"
   | "draft_sic"
+  | "ingest"
   | "register"
   | "status";
+
+/**
+ * Result of the `ingest` seam — parse a frozen NC1 SOURCE jsonl into the session
+ * candidate arrays (pre-approval; the elevation flow continues via draft_sic →
+ * approve → register). Counts the merged candidates per kind and reports edges /
+ * records that were skipped-and-reported during the parse.
+ */
+export interface OntologyEngineeringIngestResult {
+  readonly counts: {
+    readonly objects: number;
+    readonly functions: number;
+    readonly actions: number;
+    readonly roles: number;
+    readonly links: number;
+  };
+  readonly skipped: {
+    readonly edges: ReadonlyArray<{ readonly candidateId: string; readonly reason: string }>;
+    readonly records: ReadonlyArray<{ readonly line: number; readonly reason: string }>;
+  };
+}
 
 /**
  * Result of the ENTRY-loop `register` seam (O-2 closure). Materializes an
