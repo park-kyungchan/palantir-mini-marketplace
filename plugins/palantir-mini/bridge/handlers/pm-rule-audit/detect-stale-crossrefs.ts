@@ -3,6 +3,7 @@
 import * as fs from "fs";
 import { RULE_REGISTRY_ENTRIES } from "#schemas/src/generated/rule-registry";
 import type { RuleAuditFinding } from "#schemas/ontology/primitives/rule";
+import { HOOK_INSTANCES } from "#schemas/ontology/self";
 import { HOOKS_DIR } from "./types";
 
 export function checkStaleCrossRefs(findings: RuleAuditFinding[]): void {
@@ -29,6 +30,41 @@ export function checkStaleCrossRefs(findings: RuleAuditFinding[]): void {
   }
 }
 
+/**
+ * Classify a single rule→hook citation. Pure + injectable (unit-testable):
+ *   - hook file absent          → stale-hook-citation  (advisory)
+ *   - hook present but UNWIRED   → unwired-hook-citation (warn) — a rule promising
+ *                                  enforcement via an orphan hook is a governance lie
+ *   - hook present + wired       → null (valid)
+ * `orphanIds` is the SSoT wired/unwired axis (self-Ontology HOOK_INSTANCES, drift-guarded
+ * by the registration test incl. in-process aggregator membership).
+ */
+export function classifyHookCitation(
+  ruleId: number,
+  slug: string,
+  citedHook: string,
+  hooks: ReadonlySet<string>,
+  orphanIds: ReadonlySet<string>,
+): RuleAuditFinding | null {
+  if (!hooks.has(citedHook)) {
+    return {
+      kind: "stale-hook-citation",
+      severity: "advisory",
+      ruleId,
+      detail: `rule ${ruleId} (${slug}) cites hook "${citedHook}" which is not found under hooks/`,
+    };
+  }
+  if (orphanIds.has(citedHook)) {
+    return {
+      kind: "unwired-hook-citation",
+      severity: "warn",
+      ruleId,
+      detail: `rule ${ruleId} (${slug}) cites hook "${citedHook}" which exists but is UNWIRED in hooks/hooks.json (orphanInRegistry) — the rule promises enforcement that never fires`,
+    };
+  }
+  return null;
+}
+
 export function checkHookCitations(findings: RuleAuditFinding[]): void {
   if (!fs.existsSync(HOOKS_DIR)) return;
   const hooks = new Set(
@@ -37,16 +73,13 @@ export function checkHookCitations(findings: RuleAuditFinding[]): void {
       .filter((f) => f.endsWith(".ts"))
       .map((f) => f.replace(/\.ts$/, "")),
   );
+  const orphanIds = new Set(
+    HOOK_INSTANCES.filter((h) => h.orphanInRegistry).map((h) => h.hookId),
+  );
   for (const r of RULE_REGISTRY_ENTRIES) {
     for (const hc of r.hookCitations) {
-      if (!hooks.has(hc)) {
-        findings.push({
-          kind: "stale-hook-citation",
-          severity: "advisory",
-          ruleId: r.ruleId,
-          detail: `rule ${r.ruleId} (${r.slug}) cites hook "${hc}" which is not found under hooks/`,
-        });
-      }
+      const finding = classifyHookCitation(r.ruleId, r.slug, hc, hooks, orphanIds);
+      if (finding) findings.push(finding);
     }
   }
 }

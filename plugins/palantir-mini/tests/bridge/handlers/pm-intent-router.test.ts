@@ -346,9 +346,9 @@ describe("T2 — cross-cutting intent + multi-path → delegate + full sprint", 
       scopePaths: [
         "hooks/pre-edit-impact-mcp-first.ts",
         "hooks/lead-ontology-discovery-completeness.ts",
-        "hooks/user-prompt-ontology-intent-extract.ts",
+        "hooks/post-edit-propagate.ts",
         "hooks/harness-cron-auto-register.ts",
-        "hooks/plans-index-drift-detect.ts",
+        "hooks/pre-edit-ontology.ts",
       ],
       complexityHint: "cross-cutting",
     });
@@ -501,7 +501,7 @@ describe("T5 — event emission", () => {
     await routeIntent({
       project,
       intent: "Trivial one-file hook fix",
-      scopePaths: ["hooks/plans-index-drift-detect.ts"],
+      scopePaths: ["hooks/post-edit-propagate.ts"],
       complexityHint: "trivial",
     });
 

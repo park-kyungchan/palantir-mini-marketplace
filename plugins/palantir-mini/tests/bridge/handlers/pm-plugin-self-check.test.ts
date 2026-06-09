@@ -402,7 +402,7 @@ describe("pm_plugin_self_check", () => {
           {
             hooks: [
               {
-                command: "bun run hooks/user-prompt-submit",
+                command: "bun run scripts/run.ts prompt-front-door-capture",
                 timeout: 5,
               },
             ],

@@ -9,7 +9,7 @@
  * Authority chain:
  *   research/claude-code/hook-events-v2.md -> schemas/ontology/primitives/hook-event-allowlist.ts (this file)
  *   -> palantir-mini/mcp handlers: validate_hook_event_allowlist
- *   -> plugin hooks: session-drift-check, events-5d-gate
+ *   -> plugin hooks: events-5d-gate, pre-compact-state
  *
  * Branded RID pattern (zero runtime cost):
  *   type HookEventAllowlistRid = string & { __brand: "HookEventAllowlistRid" };

@@ -7,7 +7,7 @@ invariant: "events.jsonl is append-only; every ontology edit emits a 5-dim event
 supersededBy: null
 supersedes: [18]
 crossRefs: [08, 12, 16, 22]
-hookCitations: [events-5d-gate, session-start, user-prompt-submit, pre-compact-state]
+hookCitations: [events-5d-gate, session-start, pre-compact-state]
 bodyLocCeiling: 45
 ---
 

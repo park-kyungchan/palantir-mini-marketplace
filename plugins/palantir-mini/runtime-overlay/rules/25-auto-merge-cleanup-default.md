@@ -7,7 +7,7 @@ invariant: "Allowlisted PR auto-merges by default with branch/worktree cleanup +
 supersededBy: null
 supersedes: []
 crossRefs: [12, 16, 22]
-hookCitations: [post-merge-cleanup, session-start-cleanliness, session-start-dirty-classify, pre-pr-dirty-gate, session-end-cleanup]
+hookCitations: [post-merge-cleanup, pre-pr-dirty-gate, session-end-cleanup]
 bodyLocCeiling: 60
 ---
 
@@ -36,8 +36,7 @@ User directive 2026-05-03: "특정 작업은 내가 별 말이 없으면 항상 
 ## §Working-tree cleanliness invariant
 
 - Session-end blocking via `stop-guard.ts` was removed after proving too late and bypass-prone for commit/PR ownership; cleanliness enforcement now belongs to pre-PR gates and explicit ship workflow verification.
-- `session-start-cleanliness` hook emits advisory when violated: dirty>5 OR stash>1.
-- v1.1.0 — `session-start-dirty-classify` hook complements the count-based check with 4-axis categorical classification (auto-regen / runtime-substrate / user-WIP / ephemeral).
+- Cleanliness violation advisory (dirty>5 OR stash>1) and 4-axis categorical classification (auto-regen / runtime-substrate / user-WIP / ephemeral) live in `lib/dirty-classify`, consumed by the wired `pre-pr-dirty-gate` + `session-end-cleanup` hooks. The unwired SessionStart wrappers (`session-start-cleanliness`, `session-start-dirty-classify`) were removed (HOOK surface minimalism) — the shared lib retains the logic.
 - 5-file user-WIP buffer: between sprints, ≤ 5 user-WIP entries are tolerated (sprint-end transition); strict mode `PALANTIR_MINI_DIRTY_GATE_STRICT=1` blocks above this threshold.
 - Plugin cache files MUST be in `.gitignore` (sprint-020 W1 + sprint-055 W2.G extended for tracked-project transcripts).
 
