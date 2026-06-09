@@ -7,6 +7,18 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.126.0] - 2026-06-09 — firehose cure: shared boundedReturn + single MCP response byte-gate
+
+### Added
+- **`lib/bounded-return/` — the shared firehose cure (audit G1 / rule 05 §3): a `boundedReturn` helper mirroring `lib/structured-output`'s pre-size-gate + injected file-sink, applied at the SINGLE MCP server response seam so EVERY tool's oversized payload degrades to `{ summary, fullPath, bytes, digest }`.**
+  - `DEFAULT_BOUNDED_RETURN_MAX_BYTES = 65536` (64 KiB), tunable via `PALANTIR_MINI_MCP_MAX_RESPONSE_BYTES`.
+  - `bridge/mcp-server.ts` wraps the tool/call success serialization through `boundedToolResponseText`: under the ceiling the response is **byte-identical** to the historical `JSON.stringify(result, null, 2)` (zero behavior change on the common path); over the ceiling the full result is written to `<root>/.palantir-mini/mcp-response-overflow/` and only a small pointer envelope crosses the wire.
+  - Tames the audit G1 firehose tools (pm_ontology_engineering_workflow ~1.59M, ontology_context_query ~100K) at one structural seam — no per-handler edits.
+  - Gate measures + persists + digests the SAME indented serialization (no compact-vs-indented leak); the overflow sink write is fail-safe (a disk failure returns a bounded summary+preview envelope, never errors the call or leaks the full payload); the env ceiling parse rejects NaN/0/negative.
+  - tests: `tests/lib/bounded-return.test.ts` (10 cases). 702 pass / 0 fail; tsc clean.
+
+Lead-orchestrated; opus subagents implemented + adversarially verified (the adversarial lens caught + drove the serialization-leak + fail-safe fixes).
+
 ## [6.125.0] - 2026-06-09 — fix(oe): S1 post-register/elevate state-sync (terminal `registered` phase)
 
 ### Fixed

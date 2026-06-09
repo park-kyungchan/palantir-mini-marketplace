@@ -16,7 +16,18 @@
 // events_log_rotate remains present to satisfy the pm-events-rotate skill contract.
 
 import * as readline from "readline";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as os from "node:os";
+import { createHash } from "node:crypto";
 import type { EventType } from "../lib/event-log/types";
+import {
+  boundedReturn,
+  genericResultSummary,
+  DEFAULT_BOUNDED_RETURN_MAX_BYTES,
+  type BoundedReturnSink,
+  type BoundedReturnSinkPort,
+} from "../lib/bounded-return";
 import {
   DEFAULT_MCP_TOOL_SURFACE_PROFILE,
   MCP_TOOL_SURFACE_PROFILE_ENV,
@@ -1082,6 +1093,106 @@ async function loadHandler(toolName: string): Promise<(args: unknown) => Promise
   return mod.default;
 }
 
+// ─── Bounded tool-response gate (firehose cure — audit G1 / rule 05 §3) ──────
+//
+// EVERY tool/call success serializes its result THROUGH boundedToolResponseText.
+// Under the byte ceiling the serialization is byte-identical to the historical
+// `JSON.stringify(result, null, 2)` — ZERO behavior change on the common path. Over
+// the ceiling the oversized full result is written to a file under the project's
+// .palantir-mini/ (or a tmp dir) and only a small {summary, fullPath, bytes, digest}
+// crosses the wire. The lib (lib/bounded-return) never touches fs; the concrete fs
+// sink below is the injected wiring boundary.
+
+/** Resolve the directory tree to write an overflow file under. */
+function resolveOverflowRoot(args: Record<string, unknown>): string {
+  const candidate = args.projectRoot ?? args.project;
+  if (typeof candidate === "string" && candidate.length > 0) {
+    return path.join(candidate, ".palantir-mini", "mcp-response-overflow");
+  }
+  return fs.mkdtempSync(path.join(os.tmpdir(), "pm-mcp-overflow-"));
+}
+
+/** Concrete fs sink — writes the serialized oversized full result to a unique file. */
+function makeOverflowFileSink(toolName: string, root: string): BoundedReturnSinkPort {
+  return {
+    write(serialized: string): BoundedReturnSink {
+      fs.mkdirSync(root, { recursive: true });
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const shortHash = createHash("sha256").update(serialized).digest("hex").slice(0, 8);
+      const file = path.join(root, `${toolName}-${stamp}-${shortHash}.json`);
+      fs.writeFileSync(file, serialized);
+      return { path: file, bytes: Buffer.byteLength(serialized, "utf8") };
+    },
+  };
+}
+
+/**
+ * Serialize a tool result for the MCP `text` content field, bounded by a byte ceiling.
+ * Under the ceiling: returns the EXACT historical serialization (byte-identical). Over
+ * the ceiling: sinks the full result to a file and returns a small pointer envelope.
+ */
+async function boundedToolResponseText(
+  toolName: string,
+  result: unknown,
+  args: Record<string, unknown>,
+): Promise<string> {
+  const serialized = JSON.stringify(result, null, 2);
+  // Parse the ceiling SAFELY: reject NaN / 0 / negative (a negative would force EVERY
+  // response to overflow; '0' would too). Only a finite, strictly-positive value overrides.
+  const parsed = Number(process.env.PALANTIR_MINI_MCP_MAX_RESPONSE_BYTES);
+  const maxBytes =
+    Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_BOUNDED_RETURN_MAX_BYTES;
+  if (Buffer.byteLength(serialized, "utf8") <= maxBytes) {
+    return serialized; // common path — unchanged, byte-identical to historical behavior.
+  }
+  const summary = genericResultSummary(result);
+  try {
+    const sink = makeOverflowFileSink(toolName, resolveOverflowRoot(args));
+    // PASS `serialized` so the gate measures + persists + digests the SAME (indented) form
+    // it measured for the ceiling decision — no compact-vs-indented discrepancy (leak fix).
+    const bounded = await boundedReturn({ summary, full: result, serialized, maxBytes }, sink);
+    if (bounded.bounded === false) {
+      // Guard: should not happen now that the same `serialized` is gated — return inline.
+      return serialized;
+    }
+    return JSON.stringify(
+      {
+        ok: true,
+        tool: toolName,
+        bounded: true,
+        note:
+          "response exceeded the MCP byte ceiling; full result written to fullPath — " +
+          "re-read it for detail",
+        summary: bounded.summary,
+        fullPath: bounded.fullPath,
+        bytes: bounded.bytes,
+        digest: bounded.digest,
+      },
+      null,
+      2,
+    );
+  } catch (e) {
+    // FAIL SAFE: the sink/write failed. Never error the tool call, never emit the full
+    // (oversized) payload inline — return summary + a truncated preview only.
+    return JSON.stringify(
+      {
+        ok: true,
+        tool: toolName,
+        bounded: true,
+        sinkError: String((e as Error)?.message ?? e),
+        note:
+          "full result exceeded the byte ceiling and could not be persisted to disk; " +
+          "summary + truncated preview only",
+        summary,
+        bytes: Buffer.byteLength(serialized, "utf8"),
+        preview: serialized.slice(0, maxBytes),
+      },
+      null,
+      2,
+    );
+  }
+}
+
 // ─── Error helpers (JSON-RPC 2.0 error codes) ──────────────────────────────
 const ERR = {
   PARSE:      -32700,
@@ -1157,7 +1268,16 @@ async function handleRequest(req: JsonRpcRequest): Promise<JsonRpcResponse | nul
           });
           await emitMcpFirstEvidenceForToolCall(toolName, params.arguments ?? {}, durationMs);
           return respondSuccess(req.id, {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [
+              {
+                type: "text",
+                text: await boundedToolResponseText(
+                  toolName,
+                  result,
+                  (params.arguments ?? {}) as Record<string, unknown>,
+                ),
+              },
+            ],
             isError: false,
           });
         } catch (e) {
