@@ -282,6 +282,28 @@ const TOOLS: ToolSpec[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: "structured_output",
+    description:
+      "Structural anti-stall (rule 05 / O-1): validate a model-produced candidate against a " +
+      "small bounded JSON Schema, returning EITHER a structured value OR a bounded fallback " +
+      "text. Termination is a property of the machinery — a fixed finite path (pre-size gate " +
+      "→ bounded validate-retry with a hard integer ceiling → guaranteed fallback) that cannot " +
+      "loop. Oversized candidates are sunk to a file; never the ~1 MB validation-loop failure mode.",
+    inputSchema: {
+      type: "object",
+      required: ["schema"],
+      properties: {
+        schema:       { type: "object", additionalProperties: true, description: "Small bounded JSON-Schema validation target." },
+        candidate:    { type: "object", additionalProperties: true, description: "Model-produced value to validate." },
+        maxBytes:     { type: "number", default: 16384, description: "Pre-size gate ceiling in bytes (default 16 KiB)." },
+        maxRetries:   { type: "number", default: 2, description: "Hard integer retry ceiling for the bounded validate loop (default 2)." },
+        overflowSink: { type: "string", enum: ["file"], default: "file", description: 'Sink kind for an oversized candidate — only "file".' },
+        project:      { type: "string", description: "Optional project root — where the overflow sink file is written." },
+      },
+      additionalProperties: false,
+    },
+  },
   // ─── B. Harness Engineering (8) ────────────────────────────────────────────
   // Phase H2 (2026-04-20) — 3-agent harness (Prithvi Rajasekaran + AIP Evals 5-evaluator)
   {
@@ -778,6 +800,8 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
     "pm_runtime_decision_parity",
     "pm_rule_query",
     "pm_rule_audit",
+    // O-1: structural anti-stall (validate-or-bounded-fallback, verify/recover).
+    "structured_output",
   ],
   "hook-validation": [
     "pm_pre_mutation_governance",
@@ -821,6 +845,8 @@ const HANDLER_MODULES: Record<string, string> = {
   validate_managed_settings_fragments: "./handlers/validate-managed-settings-fragments",
   // F. Phase 3 read-path orchestrator (1) — sprint-093 PR 3.1 canonical handler.
   ontology_context_query:              "./handlers/ontology-context-query",
+  // G. Structured output (1) — O-1 structural anti-stall (rule 05).
+  structured_output:                   "./handlers/structured-output",
 };
 
 function categoryForTool(toolName: string): NonNullable<ToolSpec["category"]> {

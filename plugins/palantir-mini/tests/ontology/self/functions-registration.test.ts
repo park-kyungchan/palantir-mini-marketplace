@@ -19,7 +19,7 @@ import {
   type FunctionInstance,
 } from "#schemas/ontology/self/functions";
 
-const EXPECTED_FUNCTION_COUNT = 76;
+const EXPECTED_FUNCTION_COUNT = 77;
 // plugins/palantir-mini root: this test lives at tests/ontology/self/, so 3 levels up.
 const PLUGIN_ROOT = path.join(import.meta.dir, "../../..");
 

@@ -1,6 +1,6 @@
 /**
- * palantir-mini SELF-ONTOLOGY — McpHandler as a registered ObjectType + its 63
- * instances (Wave 1 ObjectType build). pm's bridge-handler layer modeled AS ontology:
+ * palantir-mini SELF-ONTOLOGY — McpHandler as a registered ObjectType + its 64
+ * instances (Wave 1 ObjectType build; +1 = O-1 structured-output). pm's bridge-handler layer modeled AS ontology:
  * the runtime exposes 29 callable MCP tools but is backed by far more handler modules
  * (mode-dispatchers fan out to hidden sub-modes), so the handler dir is the true LOGIC
  * surface — the biggest under-modeling trap a 1-tool-per-type pass misses.
@@ -13,8 +13,8 @@
  * bridge/handlers/ directory so the self-model fails loud if pm's handler surface drifts
  * (a handler added/removed in the bridge without updating this seed).
  *
- * Count provenance (Wave 1 grounding, LIVE-verified): bridge/handlers/ has EXACTLY 65
- * `.ts` files; excluding the 2 underscore helpers leaves 63 first-class handler nouns.
+ * Count provenance (Wave 1 grounding, LIVE-verified): bridge/handlers/ has EXACTLY 66
+ * `.ts` files; excluding the 2 underscore helpers leaves 64 first-class handler nouns.
  * Identity-only here (handlerName + a couple of coarse structural flags); per-handler
  * dispatch metadata is the runtime concern, not duplicated into the self-model.
  *
@@ -127,6 +127,7 @@ export const MCP_HANDLER_INSTANCES: readonly McpHandlerInstance[] = [
   { handlerName: "run-playwright-scenario" },
   { handlerName: "semantic-drift-audit" },
   { handlerName: "session_resume" },
+  { handlerName: "structured-output" },
   { handlerName: "validate-hook-citations" },
   { handlerName: "validate-hook-event-allowlist" },
   { handlerName: "validate-managed-settings-fragments" },
@@ -135,6 +136,6 @@ export const MCP_HANDLER_INSTANCES: readonly McpHandlerInstance[] = [
   { handlerName: "verify-schema-pin" },
 ];
 
-// Register the McpHandler ObjectType (the type). The 63 instances above are data the
+// Register the McpHandler ObjectType (the type). The 64 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(MCP_HANDLER_OBJECT_TYPE);

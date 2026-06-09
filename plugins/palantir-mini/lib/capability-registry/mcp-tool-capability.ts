@@ -354,6 +354,17 @@ export const MCP_TOOL_CAPABILITIES: readonly McpToolCapabilityRecord[] = [
     externalEgress: false,
     classifierProjection: explicit("commit_edits"),
   }),
+  capability("structured_output", {
+    domain: "LOGIC",
+    effects: ["validate", "compute"],
+    mutationKind: "none",
+    requiresDtcApproval: false,
+    requiresSprintContract: false,
+    dataAction: "none",
+    releaseDeploy: false,
+    externalEgress: false,
+    classifierProjection: fallback(),
+  }),
   capability("grade_semantic_intent_contract", {
     domain: "GOVERNANCE",
     effects: ["evaluate"],

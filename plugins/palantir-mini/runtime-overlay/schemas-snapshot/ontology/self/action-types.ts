@@ -930,8 +930,56 @@ export const EVALUATE_RELEASE_GATE_ACTION_TYPE: Tier2FunctionBackedAction = {
 };
 
 // ───────────────────────────────────────────────────────────────────────────────
+// 21. structuredOutput (Tier-2) — validate a model candidate or fall back (O-1 / SI-1).
+//   The structural form of the rule-05 anti-stall clause: validate-or-bounded-fallback
+//   with a termination guarantee that is a property of the engine's finite path, NOT
+//   caller discipline. Surfaced as the `structured_output` MCP tool; the runtime impl
+//   is lib/structured-output/index.ts (downstream — ontology-first, rule 01). The
+//   `editFunctionName` forward-names the registered thin EditFunction so the ActionType↔
+//   editFunctionName parity holds like the four O-2 register verbs.
+// ───────────────────────────────────────────────────────────────────────────────
+
+/** Stable RID for the self-Ontology structuredOutput ActionType. */
+export const STRUCTURED_OUTPUT_ACTION_TYPE_RID = rid("structured-output");
+
+/** structuredOutput — validate a model-produced candidate or collapse to a bounded fallback (Tier-2). */
+export const STRUCTURED_OUTPUT_ACTION_TYPE: Tier2FunctionBackedAction = {
+  rid: STRUCTURED_OUTPUT_ACTION_TYPE_RID,
+  tier: "tier-2",
+  apiName: "StructuredOutput",
+  name: "StructuredOutput",
+  description:
+    "palantir-mini self verb: validates a model-produced candidate against a small bounded " +
+    "JSON Schema, returning EITHER a structured value OR a bounded fallback text. Termination " +
+    "is a property of the machinery (lib/structured-output: pre-size gate → bounded validate-retry " +
+    "→ guaranteed fallback) — the structural form of the rule-05 anti-stall clause; it CANNOT loop. " +
+    "Tier-2: wraps the structuredOutput fillOrFallback EditFunction.",
+  editFunctionName: "pm.structuredOutput.fillOrFallback",
+  parameters: [
+    {
+      name: "function",
+      type: "Function",
+      required: true,
+      description: "The structuredOutputFillOrFallback Function this action wraps (the engine).",
+    },
+    {
+      name: "mcpTool",
+      type: "McpTool",
+      required: false,
+      description: "The structured_output McpTool surface this ActionType is bound to.",
+    },
+  ],
+  submissionCriteriaNames: [],
+  approvalPolicy: "none",
+  branchPolicy: "branch-optional",
+  validateOnlySupported: true,
+  sideEffects: [],
+};
+
+// ───────────────────────────────────────────────────────────────────────────────
 // Register all 21 self-Ontology verbs into ACTION_TYPE_REGISTRY (side-effect on import).
-// Combined with executor.actiontype.ts (Executor), self/ register-grep = 22 ActionTypes.
+// (20 catalog §4 verbs + structuredOutput, O-1.) Combined with executor.actiontype.ts
+// (Executor), self/ register-grep = 23 ActionTypes.
 // ───────────────────────────────────────────────────────────────────────────────
 
 export const SELF_ACTION_TYPES = [
@@ -955,6 +1003,7 @@ export const SELF_ACTION_TYPES = [
   PROMOTE_EVIDENCE_ACTION_TYPE,
   REGISTER_CAPABILITY_TOKEN_ACTION_TYPE,
   EVALUATE_RELEASE_GATE_ACTION_TYPE,
+  STRUCTURED_OUTPUT_ACTION_TYPE,
 ] as const;
 
 for (const action of SELF_ACTION_TYPES) {

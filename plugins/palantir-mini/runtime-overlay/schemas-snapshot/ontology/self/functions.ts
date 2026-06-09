@@ -8,11 +8,11 @@
  * snapshot-owned `*_INSTANCES` seed-array idiom, the same mechanism every other self-noun
  * uses. The brand + kind union come from the primitive; identity is snapshot-owned.
  *
- * 76 bound-logic Function instances (catalog §4) modeled at IDENTITY level: functionName +
- * group + sourcePath (+ kind/commits/deterministic descriptors). The 63 handler-backed
- * functions trace 1:1 to `bridge/handlers/*.ts` (the SSoT the catalog commands us to drive
- * from — functional handlers 63 >> exposed tools 29); the remaining 13 are lib-subsystem /
- * recap composite LOGIC bound to `lib/**`. CRITICAL (the under-modeling trap): the ~34
+ * 77 bound-logic Function instances (catalog §4 + O-1 structuredOutput) modeled at IDENTITY
+ * level: functionName + group + sourcePath (+ kind/commits/deterministic descriptors). The 63
+ * handler-backed functions trace 1:1 to `bridge/handlers/*.ts` (the SSoT the catalog commands
+ * us to drive from — functional handlers 63 >> exposed tools 29); the remaining 14 are
+ * lib-subsystem / recap composite LOGIC bound to `lib/**` (incl. structuredOutputFillOrFallback). CRITICAL (the under-modeling trap): the ~34
  * HIDDEN sub-mode handlers under `pm_health_audit` / `pm_substrate_query` / `pm_plugin_self_check`
  * are each their OWN Function instance — a naive 1-ObjectType-per-tool pass captures 29 and
  * silently drops ~34 real Function primitives. They are all seeded below.
@@ -153,7 +153,7 @@ export const FUNCTION_INSTANCES: readonly FunctionInstance[] = [
   { functionName: "propagationAuditBackward", functionRid: fnRid("propagation-audit-backward"), group: "propagation-audit", sourcePath: "bridge/handlers/propagation-audit-backward.ts", kind: "edit-function", deterministic: true },
   { functionName: "propagationChainHealth", functionRid: fnRid("propagation-chain-health"), group: "propagation-audit", sourcePath: "bridge/handlers/propagation-chain-health.ts", kind: "edit-function", deterministic: true },
 
-  // ── Verify / recover heuristics (8) ─────────────────────────────────────────
+  // ── Verify / recover heuristics (9) ─────────────────────────────────────────
   { functionName: "pmRecap", functionRid: fnRid("pm-recap"), group: "verify-recover", sourcePath: "bridge/handlers/pm-recap.ts", kind: "aip-logic" },
   { functionName: "recapAccuracy", functionRid: fnRid("recap-accuracy"), group: "verify-recover", sourcePath: "lib/recap/classification-accuracy.ts", kind: "edit-function", deterministic: true },
   { functionName: "semanticDriftAudit", functionRid: fnRid("semantic-drift-audit"), group: "verify-recover", sourcePath: "bridge/handlers/semantic-drift-audit.ts", kind: "edit-function", deterministic: true },
@@ -162,6 +162,7 @@ export const FUNCTION_INSTANCES: readonly FunctionInstance[] = [
   { functionName: "pmAipSourceAuthorityValidate", functionRid: fnRid("pm-aip-source-authority-validate"), group: "verify-recover", sourcePath: "bridge/handlers/pm-aip-source-authority-validate.ts", kind: "edit-function", deterministic: true },
   { functionName: "pmWorkflowResponseValidate", functionRid: fnRid("pm-workflow-response-validate"), group: "verify-recover", sourcePath: "bridge/handlers/pm-workflow-response-validate.ts", kind: "edit-function", deterministic: true },
   { functionName: "sessionResume", functionRid: fnRid("session-resume"), group: "verify-recover", sourcePath: "bridge/handlers/session_resume.ts", kind: "aip-logic" },
+  { functionName: "structuredOutputFillOrFallback", functionRid: fnRid("structured-output-fill-or-fallback"), group: "verify-recover", sourcePath: "lib/structured-output/index.ts", kind: "edit-function", deterministic: true },
 
   // ── Self-check + validators: pm_plugin_self_check dispatcher + 6 HIDDEN validators + workbench (8) ──
   { functionName: "pmPluginSelfCheck", functionRid: fnRid("pm-plugin-self-check"), group: "self-check-dispatcher", sourcePath: "bridge/handlers/pm-plugin-self-check.ts", kind: "aip-logic" },

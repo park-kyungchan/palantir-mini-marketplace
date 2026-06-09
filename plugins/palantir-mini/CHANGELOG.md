@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.118.0] - 2026-06-09 — O-1: structured_output capability (provably non-looping)
+
+### Added
+- **typed `StructuredOutputRequest` -> `StructuredOutputResult` contract with a termination guarantee that is a property of the engine's finite path, not caller discipline: pre-size gate -> bounded validate-retry -> guaranteed text-fallback; surfaced as the `structured_output` MCP tool; registered as an `ActionType` (`StructuredOutput`, #21) + `Function` (`structuredOutputFillOrFallback`) in the self-Ontology.** The structural form of the rule-05 anti-stall clause (large/open-ended StructuredOutput -> unrecoverable validation loop): the engine lives in `lib/structured-output/` (`contract.ts` + `index.ts`), the bridge handler in `bridge/handlers/structured-output.ts`, wired into the live MCP surface (`bridge/mcp-server.ts` TOOLS 29 -> 30 + HANDLER_MODULES) and the capability registry (`lib/capability-registry/mcp-tool-capability.ts`). The thin EditFunction `pm.structuredOutput.fillOrFallback` registers on the live apply path via `bridge/handlers/apply-edit-function.ts` (ActionType<->editFunctionName parity). Self-Ontology seeds bumped to keep the LIVE-cross-checking registration tests green (McpTool 29->30, McpHandler 63->64, self ActionTypes 20->21 catalog verbs, Functions 76->77, managed-settings grantedTools 62->63) — see schemas-snapshot CHANGELOG v1.77.0.
+
+**0 new regressions** (known 20 pre-existing full-suite fails unchanged; structured-output test passes 7/0; tsc clean). Lead-orchestrated; opus subagent implemented.
+
 ## [6.117.0] - 2026-06-09 — O-2: register->commit->materialize->read loop closure
 
 ### Added

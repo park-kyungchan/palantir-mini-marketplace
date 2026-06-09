@@ -18,7 +18,7 @@ import {
   MCP_TOOL_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_MCP_TOOL_COUNT = 29;
+const EXPECTED_MCP_TOOL_COUNT = 30;
 
 test("self Executor is registered in ACTION_TYPE_REGISTRY (register-grep > 0)", () => {
   const got = ACTION_TYPE_REGISTRY.get(EXECUTOR_ACTION_TYPE_RID);

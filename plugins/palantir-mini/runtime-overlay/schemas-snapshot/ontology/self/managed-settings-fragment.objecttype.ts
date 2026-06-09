@@ -78,7 +78,7 @@ export interface ManagedSettingsFragmentInstance {
  * against the fragment json, failing on any drift.
  */
 export const MANAGED_SETTINGS_FRAGMENT_INSTANCES: readonly ManagedSettingsFragmentInstance[] = [
-  { fragmentId: "50-palantir-mini", grantedTools: 62, deniedTools: 2 },
+  { fragmentId: "50-palantir-mini", grantedTools: 63, deniedTools: 2 },
 ];
 
 // Register the ManagedSettingsFragment ObjectType (the type). The 1 instance above is
