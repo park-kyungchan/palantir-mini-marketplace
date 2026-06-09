@@ -226,12 +226,16 @@ const TOOLS: ToolSpec[] = [
     name: "pm_ontology_engineering_workflow",
     description:
       "Public Ontology Engineering workflow state machine. Owns start -> turn -> draft_sic -> status " +
-      "around the internal FDEOntologyEngineeringSession and returns runtime-neutral workflow state.",
+      "around the internal FDEOntologyEngineeringSession and returns runtime-neutral workflow state. " +
+      "The `elevate` action drives the composed GOVERNED ingest -> lint -> draft_sic -> approve -> register " +
+      "flow as ONE call: it registers ONLY when the caller explicitly supplies an approved SIC + DTC status " +
+      "and readyForDigitalTwin; otherwise it returns awaiting-approval and registers nothing. The individual " +
+      "mutating actions (register/ingest/lint) stay direct-caller and are NOT exposed here.",
     inputSchema: {
       type: "object",
       required: ["projectRoot", "action"],
       properties: {
-        action: { type: "string", enum: ["start", "turn", "draft_sic", "status"] },
+        action: { type: "string", enum: ["start", "turn", "draft_sic", "status", "elevate"] },
         project: { type: "string", description: "Legacy alias for projectRoot. Direct/internal callers may pass this field; public MCP callers should use projectRoot." },
         projectRoot: { type: "string", description: "Canonical absolute project root. Required for public MCP calls." },
         universalOntologyEntryRef: { type: "string" },
@@ -244,8 +248,9 @@ const TOOLS: ToolSpec[] = [
         semanticIntentContractStatus: { type: "string", enum: ["draft", "approved", "superseded"] },
         digitalTwinChangeContractRef: { type: "string" },
         digitalTwinChangeContractStatus: { type: "string", enum: ["draft", "approved", "superseded"] },
+        readyForDigitalTwin: { type: "boolean", description: "Caller-supplied readiness grade; with approved SIC+DTC statuses it authorizes the composed `elevate` flow's register step." },
         workContractRef: { type: "string" },
-        sourceJsonlPath: { type: "string", description: "Absolute path to a frozen NC1 SOURCE jsonl; required for the direct-caller `ingest` action." },
+        sourceJsonlPath: { type: "string", description: "Absolute path to a frozen NC1 SOURCE jsonl; required for the `elevate` flow and the direct-caller `ingest` action." },
         affectedSurfaces: { type: "array", items: { type: "string" } },
         recordedDecisionNote: { type: "string" },
         rawUserMessage: { type: "string" },
