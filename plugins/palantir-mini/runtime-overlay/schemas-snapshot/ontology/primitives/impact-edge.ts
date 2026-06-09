@@ -143,11 +143,3 @@ export class ImpactEdgeRegistry {
 }
 
 export const IMPACT_EDGE_REGISTRY = new ImpactEdgeRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Typed impact-graph edge for impact_query MCP; substrate-internal, not Foundry surface",
-};
-export { categoryFoundryEquivalent as impactEdgeFoundryEquivalent };

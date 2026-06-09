@@ -9,16 +9,12 @@ palantir-mini canonical runtime SSoT. Resolve #schemas/* here. Query router: BRO
 | action-type | palantir-mini — ActionType primitive (prim-action-01, prim-action-02) |
 | agent-definition | AgentDefinition primitive (prim-ops-22, v1.27.0) |
 | agentic-memory-layer | AgenticMemoryLayer enum primitive (prim-learn-16, v1.35.0) |
-| aip-agent | AIPAgent primitive (prim-ops-24, v1.37.0) |
-| aip-architecture-axis | AIPArchitectureAxis primitive (prim-data-14, v1.0.0) |
 | aip-evaluation | AIPEvaluation primitives (prim-learn-20, v1.37.0) |
 | aip-logic-function | AIPLogicFunction primitive (prim-logic-03, v1.0) |
-| aip-mode-and-skill | AIPMode + AIPSkill primitives (prim-ops-25, v1.40.0) |
 | approval-ref | ApprovalRef primitive (prim-learn-22, v1.51.0) |
 | automation-declaration | AutomationDeclaration primitive (prim-action-03, v1.0) |
 | back-prop-value-index | BackPropValueIndex primitive (prim-data-NN, sprint-101 PR 4.1b) |
 | capability-token | CapabilityToken primitive (prim-security-02, v1.0) |
-| category-foundry-equivalent | categoryFoundryEquivalent metadata primitive (prim-meta-01, v1.48.0) |
 | claude-code-version | palantir-mini — ClaudeCodeVersion primitive (prim-version-01) |
 | codegen-header-contract | palantir-mini — CodegenHeaderContract primitive (prim-learn-11) |
 | commit | Commit primitive (prim-data-19, v1.0.0) |
@@ -29,7 +25,6 @@ palantir-mini canonical runtime SSoT. Resolve #schemas/* here. Query router: BRO
 | dispatch-contract | DispatchContract primitive (prim-action-12, v1.48.0) |
 | document-corpus | DocumentCorpus primitive (prim-context-02, v1.56.0) |
 | edge-base-type | EdgeBaseDeclaration primitive (prim-logic-01, v1.59.0) |
-| event | Event primitive (prim-learn-27, v1.0.0) |
 | failure-category | FailureCategory enum primitive (prim-data-13, v1.32.0) |
 | failure-mode | FailureMode primitive (prim-data-23, v1.0.0) |
 | fde-gap-report | palantir-mini schema primitive — FDEGapReportDetailed (Slice 3.A extension) |
@@ -43,9 +38,7 @@ palantir-mini canonical runtime SSoT. Resolve #schemas/* here. Query router: BRO
 | function | Function primitive (prim-logic-04, v1.0.0) |
 | generated-artifact | GeneratedArtifact primitive (prim-data-22, v1.0.0) |
 | global-branching-proposal | GlobalBranchingProposal primitive (prim-learn-21, v1.40.0) |
-| governance-edge | GovernanceEdgeDeclaration primitive (prim-logic-03, v1.59.0) |
 | grader | Grader primitive (prim-harness-11, v1.0.0) |
-| grader-domain-extension | Grader domain extension (prim-data-25, v1.40.0) |
 | grader-effort | GraderEffort primitive (prim-harness-10, v1.42.0) |
 | grading-criterion | GradingCriterion primitive (prim-data-08, v1.42.0) |
 | grading-rubric | GradingRubric primitive (prim-data-NN, v1.61.0 — schemas 1.60→1.61) |
@@ -57,9 +50,7 @@ palantir-mini canonical runtime SSoT. Resolve #schemas/* here. Query router: BRO
 | hook-event-allowlist | palantir-mini — HookEventAllowlist primitive (prim-hooks-01) |
 | impact-edge | palantir-mini — ImpactEdge primitive (prim-learn-12) |
 | interface-type | palantir-mini — InterfaceType primitive (prim-logic-02) |
-| learning | Learning primitive (prim-learn-28, v1.0.0) |
 | lineage-conformance-policy | palantir-mini — LineageConformancePolicy primitive (prim-learn-09) |
-| lineage-edge | LineageEdgeDeclaration primitive (prim-logic-05, v1.59.0) |
 | lineage-refs | LineageRefs interface primitive (prim-learn-17, v1.35.0) |
 | link-type | palantir-mini — LinkType / Object-Backed LinkType primitive (prim-logic-03) |
 | managed-settings-fragment | palantir-mini — ManagedSettingsFragment primitive (prim-learn-10) |
@@ -93,13 +84,11 @@ palantir-mini canonical runtime SSoT. Resolve #schemas/* here. Query router: BRO
 | property-security-policy | PropertySecurityPolicy primitive (prim-security-05, v1.40.0) |
 | property-type | palantir-mini — PropertyType primitive (prim-data-03) |
 | pull-request | PullRequest primitive (prim-data-20, v1.0.0) |
-| refinement-edge | RefinementEdgeDeclaration primitive (prim-logic-06, v1.59.0) |
 | refinement-target | RefinementTarget interface primitive (prim-learn-18, v1.35.0) |
 | research-document | palantir-mini — ResearchDocument primitive (prim-research-01) |
 | research-source-manifest | ResearchSourceManifest primitive (prim-research-09, v1.39.0) |
 | retention-manifest | RetentionManifest primitive — per-tier event retention policy + provenance |
 | retry-policy | RetryPolicy primitive (prim-action-09, v1.40.0) |
-| routing-edge | RoutingEdgeDeclaration primitive (prim-logic-04, v1.59.0) |
 | rule | palantir-mini — Rule primitive (prim-ops-19) |
 | runtime-entrypoint | RuntimeEntrypoint primitive (prim-ops-26, v1.0.0) |
 | runtime-fingerprint | RuntimeFingerprint primitive (prim-data-NN, v1.63.0) |
@@ -113,8 +102,6 @@ palantir-mini canonical runtime SSoT. Resolve #schemas/* here. Query router: BRO
 | source-file | SourceFile primitive (prim-data-17, v1.0.0) |
 | sprint-contract | SprintContract primitive (prim-action-05, v1.48.0) |
 | struct | Struct primitive (prim-data-05, v1.0) |
-| structural-edge | StructuralEdgeDeclaration primitive (prim-logic-02, v1.59.0) |
-| taxonomy-edge | TaxonomyEdgeDeclaration primitive (prim-logic-07, v1.59.0) |
 | test | Test primitive (prim-data-18, v1.0.0) |
 | tool | Tool primitive (prim-action-08, v1.0.0) |
 | universal-ontology-entry | UniversalOntologyEntry primitive (prim-learn-28, v1.54.0) |

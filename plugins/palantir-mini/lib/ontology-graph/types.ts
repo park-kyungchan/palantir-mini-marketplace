@@ -175,17 +175,13 @@ export type TypedGraphNode = NodeRecord<unknown>;
 /**
  * TypedGraphEdge — generic stub pending snapshot-refresh chore PR.
  *
- * The concrete form is a discriminated union over 6 cluster EdgeDeclarations
- * each carrying their own edgeKind discriminant. Deferred because the
- * runtime-overlay snapshot does not yet include PR 2.2 primitives.
+ * The concrete form is the single EdgeBaseDeclaration carrying an `EdgeKind`
+ * cluster discriminator (lineage / governance / refinement / routing /
+ * structural / taxonomy). The previously-planned 6 cluster-subtype
+ * declarations were folded into that one base + discriminator. Deferred
+ * because the runtime-overlay snapshot consumer here stays generic.
  *
  * Concrete form (once snapshot refreshed):
- *   export type TypedGraphEdge =
- *     | StructuralEdgeDeclaration
- *     | GovernanceEdgeDeclaration
- *     | RoutingEdgeDeclaration
- *     | LineageEdgeDeclaration
- *     | RefinementEdgeDeclaration
- *     | TaxonomyEdgeDeclaration;
+ *   export type TypedGraphEdge = EdgeBaseDeclaration; // discriminated by `kind: EdgeKind`
  */
 export type TypedGraphEdge = EdgeRecord<unknown>;

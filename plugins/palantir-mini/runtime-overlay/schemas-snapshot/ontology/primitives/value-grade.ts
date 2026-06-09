@@ -72,11 +72,3 @@ export function isCircuitGrade(g: ValueGrade): boolean {
 export function isActiveGrade(g: ValueGrade): boolean {
   return g !== "T0";
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "T0..T4 valuable-data tier enum (rule 26); palantir-mini substrate-routing, not Foundry surface",
-};
-export { categoryFoundryEquivalent as valueGradeFoundryEquivalent };

@@ -80,12 +80,3 @@ export class GradingRubricRegistry {
 }
 
 export const GRADING_RUBRIC_REGISTRY = new GradingRubricRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "over-specified",
-  foundryType: "GradingRubric (AIP Evals composition)",
-  extensions: ["canonical-rid", "immutability-guard"],
-};
-export { categoryFoundryEquivalent as gradingRubricFoundryEquivalent };

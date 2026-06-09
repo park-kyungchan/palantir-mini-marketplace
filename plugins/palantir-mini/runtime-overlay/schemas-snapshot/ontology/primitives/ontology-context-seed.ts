@@ -134,12 +134,3 @@ export class OntologyContextSeedRegistry {
 }
 
 export const ONTOLOGY_CONTEXT_SEED_REGISTRY = new OntologyContextSeedRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "OntologyContextSeed is palantir-mini-originated (proto-context lifecycle layer above Foundry's ontology branching). Carries scope-hints + research-refs + lifecycle-status fields with no direct Foundry counterpart.",
-};
-export { categoryFoundryEquivalent as ontologyContextSeedFoundryEquivalent };

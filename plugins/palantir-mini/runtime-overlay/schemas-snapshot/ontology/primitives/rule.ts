@@ -149,11 +149,3 @@ export function isRuleScopeMigrated(r: RuleDeclaration): boolean {
     r.scopeMigratedTo !== r.scope
   );
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Claude-local rules behavioral overlay; no Foundry equivalent",
-};
-export { categoryFoundryEquivalent as ruleFoundryEquivalent };

@@ -237,17 +237,3 @@ export function isEventEnvelope(value: unknown): value is EventEnvelope {
   if (typeof bw.identity !== "string") return false;
   return true;
 }
-
-// ─── Foundry equivalence ─────────────────────────────────────────────────────
-
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "EventEnvelope is the palantir-mini append-only Decision Lineage row (rule 10 " +
-    "5-dim substrate); no direct Palantir Foundry counterpart. Promotes the canonical " +
-    "envelope from the runtime type lib/event-log/types.ts to schema-level authority.",
-};
-
-export { categoryFoundryEquivalent as eventEnvelopeFoundryEquivalent };

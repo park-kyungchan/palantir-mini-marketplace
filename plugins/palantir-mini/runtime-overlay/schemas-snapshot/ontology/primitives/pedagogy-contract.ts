@@ -173,11 +173,3 @@ export class PedagogyContractRegistry {
 }
 
 export const PEDAGOGY_CONTRACT_REGISTRY = new PedagogyContractRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "mathcrew/palantir-math pedagogy contract (Bloom + CPA + variation); domain-specific, not Foundry surface",
-};
-export { categoryFoundryEquivalent as pedagogyContractFoundryEquivalent };

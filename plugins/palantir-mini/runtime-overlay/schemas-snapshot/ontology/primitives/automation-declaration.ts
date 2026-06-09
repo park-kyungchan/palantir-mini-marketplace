@@ -54,12 +54,3 @@ export class AutomationDeclarationRegistry {
 }
 
 export const AUTOMATION_DECLARATION_REGISTRY = new AutomationDeclarationRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "partial",
-  foundryType: "Automation",
-  gaps: ["notification config", "retry policy linkage", "alerting integrations"],
-};
-export { categoryFoundryEquivalent as automationDeclarationFoundryEquivalent };

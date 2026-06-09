@@ -173,11 +173,3 @@ export class WorkflowLineageGraphRegistry {
 }
 
 export const WORKFLOW_LINEAGE_GRAPH_REGISTRY = new WorkflowLineageGraphRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "WorkflowLineageGraph",
-};
-export { categoryFoundryEquivalent as workflowLineageGraphFoundryEquivalent };

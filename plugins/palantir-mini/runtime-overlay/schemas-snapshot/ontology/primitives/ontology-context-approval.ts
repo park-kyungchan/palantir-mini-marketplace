@@ -29,7 +29,6 @@
  * @since v1.55.0
  */
 
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
 
 export const ONTOLOGY_CONTEXT_APPROVAL_SCHEMA_VERSION =
   "palantir-mini/ontology-context-approval/v1" as const;
@@ -109,12 +108,3 @@ export function isOntologyContextApproval(
       approval.approvalKind === "user-approved")
   );
 }
-
-// --- Foundry equivalence (per-prompt approved retrieval boundary) ---
-import type {} from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Per-prompt approved retrieval boundary for palantir-mini's context-routing layer; no Foundry object-type equivalent (control-plane substrate primitive).",
-};
-export { categoryFoundryEquivalent as ontologyContextApprovalFoundryEquivalent };

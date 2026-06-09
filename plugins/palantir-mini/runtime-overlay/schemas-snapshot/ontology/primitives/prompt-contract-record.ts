@@ -53,12 +53,3 @@ export function isPromptContractRecord(x: unknown): x is PromptContractRecord {
     record.contract !== null
   );
 }
-
-// --- Foundry equivalence (Prompt-to-DTC persistence record) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Prompt-local contract persistence record for palantir-mini; analogous to branch/proposal evidence, plugin-native",
-};
-export { categoryFoundryEquivalent as promptContractRecordFoundryEquivalent };

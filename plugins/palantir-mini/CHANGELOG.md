@@ -7,6 +7,21 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.131.0] - 2026-06-10 — chore: schema structural minimalism — remove dead primitives + fold edge subtypes [schemas-snapshot 1.82.0]
+
+Bold minimalism (user-authorized: many recent updates → remove legacy/dead surface). Every removal confirm-gated against ground-truth grep for zero real-logic consumers before deletion. Shrinks every `get_ontology` fold + schema read (serves the token-efficient-impact-analysis goal).
+
+### Removed
+- **`category-foundry-equivalent` primitive + the ~84-satellite `categoryFoundryEquivalent` per-primitive tax** (OSDK round-trip metadata; the promised audit/codegen/migration consumers were never built — ZERO real-logic readers). Stripped the uniform 3-line import+const+export block from 84 primitives + the barrel `FOUNDRY_EQUIVALENTS_REGISTRY` / `getFoundryEquivalents()` aggregator. Biggest token win.
+- **AIP-mirror primitives** `aip-agent`, `aip-architecture-axis`, `aip-mode-and-skill` (0 real consumers; System-Silo anti-pattern). `aip-evaluation` KEPT (live). `aip-logic-function` KEPT (real consumer in `source-executor`). The `source-executor` `aip-agent` variant was migrated out first.
+- **Alias-wrapper primitives** `event.ts` (`EventRid`/`EventDeclaration`) + `learning.ts` (`LearningRid`/`LearningDeclaration`) — brands never imported by the graph they were declared for; the live shapes are `EventEnvelope` + `feedback-loop-closed`.
+- **`grader-domain-extension`** (0 consumers; `grading-rubric`/`grading-criterion` stay).
+
+### Changed
+- **Folded 6 edge-subtype primitives** (`lineage/governance/refinement/routing/structural/taxonomy-edge`) into `edge-base-type` via a required `kind` cluster discriminator (`EDGE_KINDS` / `EdgeKind`). `edge-base-type` (the live `EdgeRid` primitive) + `impact-edge` KEPT. The fine-grained per-cluster sub-kinds (0 real consumers) are no longer modeled at the schema layer.
+
+schemas-snapshot 1.81.0→1.82.0 (root) + ontology axis 1.72.0. `tsc --noEmit` exit 0; `tests/ontology` + `tests/lib/ontology-graph` 174 pass / 0 fail; zero new failures vs baseline; 0 residual `FoundryEquivalent` refs in lib/bridge. Lead-orchestrated; confirm→implement→verify→test workflow (3 confirm agents + 3 adversarial verifiers all correct=true + green gate); re-verified by Lead against ground truth.
+
 ## [6.130.0] - 2026-06-10 — fix: lineage substrate conformance (XRUN-1/2/6 + ENVELOPE-1) [schemas-snapshot 1.81.0]
 
 ### Fixed

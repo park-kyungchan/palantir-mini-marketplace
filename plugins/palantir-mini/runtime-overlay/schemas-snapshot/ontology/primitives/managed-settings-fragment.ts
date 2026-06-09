@@ -151,11 +151,3 @@ export class ManagedSettingsFragmentRegistry {
 
 export const MANAGED_SETTINGS_FRAGMENT_REGISTRY =
   new ManagedSettingsFragmentRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Claude Code managed-settings.d/*.json RBAC fragment; runtime-specific",
-};
-export { categoryFoundryEquivalent as managedSettingsFragmentFoundryEquivalent };

@@ -83,11 +83,3 @@ export class ObjectTypeRegistry {
 }
 
 export const OBJECT_TYPE_REGISTRY = new ObjectTypeRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "ObjectType",
-};
-export { categoryFoundryEquivalent as objectTypeFoundryEquivalent };

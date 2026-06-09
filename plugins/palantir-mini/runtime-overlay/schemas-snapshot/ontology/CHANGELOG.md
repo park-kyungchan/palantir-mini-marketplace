@@ -1,5 +1,26 @@
 # Ontology Schema Changelog
 
+## 1.72.0 — PR-C schema structural minimalism (dead-primitive removal + edge-subtype fold + FoundryEquivalence removal) — 2026-06-10
+
+MINOR (rule 08 — removals of 0-consumer primitives + an additive `kind` discriminator on `EdgeBaseDeclaration`; every removed symbol verified to have zero real-logic importers, so no consumer breaks).
+
+### Removed (dead primitives — zero real-logic consumers)
+
+- `primitives/aip-agent.ts` (`AIPAgentDeclaration` / `AIPAgentRid` / `AIP_AGENT_REGISTRY`). Migration: `source-executor.ts` drops the `"aip-agent"` variant (interface + kind + guard + `isSourceExecutor` branch).
+- `primitives/aip-mode-and-skill.ts` (`AIPMode` / `AIPSkill` / `AIP_MODES` / `AIP_SKILL_REGISTRY` / `isAIPMode` / `aipSkillId`).
+- `primitives/aip-architecture-axis.ts` (`AIPAxisName` / `AIP_AXIS_NAMES` / `AIPArchitectureAxisRid` / `AIPArchitectureAxisDeclaration`).
+- `primitives/event.ts` (`EventRid` / `EventDeclaration` / `eventRid` / `isEventDeclaration`). `event-envelope.ts` is retained.
+- `primitives/learning.ts` (`LearningRid` / `LearningDeclaration` / `learningRid` / `isLearningDeclaration`). `feedback-loop-closed.ts` is retained.
+- `primitives/grader-domain-extension.ts` (`AIPEvalsEvaluatorType` + 4 value exports). `grading-rubric.ts` / `grading-criterion.ts` retained.
+
+### Changed (edge-type cluster fold)
+
+- `primitives/edge-base-type.ts` — added `EdgeKind` cluster discriminator + `EDGE_KINDS` + required `kind: EdgeKind` field on `EdgeBaseDeclaration`. Removed the 6 folded cluster-subtype files: `structural-edge.ts` / `governance-edge.ts` / `routing-edge.ts` / `lineage-edge.ts` / `refinement-edge.ts` / `taxonomy-edge.ts`. `impact-edge.ts` retained (distinct brand + live registry).
+
+### Removed (FoundryEquivalence write-only metadata)
+
+- `primitives/category-foundry-equivalent.ts` (`FoundryEquivalence` + helpers) + the 84 per-primitive `categoryFoundryEquivalent` satellite markers + the `FOUNDRY_EQUIVALENTS_REGISTRY` + `getFoundryEquivalents()` aggregator in the primitives barrel. Promised consumers (audits/codegen/migration tooling) were never built.
+
 ## 1.71.0 — PR-B lineage substrate hardening (XRUN-1 / XRUN-2 / ENVELOPE-1) — 2026-06-10
 
 Additive MINOR (rule 08 — additive exports + optional fields; no removals/breaking edits).

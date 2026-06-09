@@ -367,11 +367,3 @@ export function isHandsManifestDeclaration(
     Array.isArray(m.entries)
   );
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Hands-layer sandbox manifest mirroring OpenAI Agents SDK schema; harness-portability primitive, not Foundry surface",
-};
-export { categoryFoundryEquivalent as handsManifestFoundryEquivalent };

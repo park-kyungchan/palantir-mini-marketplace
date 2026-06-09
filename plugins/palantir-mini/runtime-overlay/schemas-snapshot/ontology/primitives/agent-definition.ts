@@ -104,11 +104,3 @@ export class AgentDefinitionRegistry {
 }
 
 export const AGENT_DEFINITION_REGISTRY = new AgentDefinitionRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Claude Code subagent .md frontmatter; no Foundry equivalent (Foundry uses AIPAgent for runtime declaration)",
-};
-export { categoryFoundryEquivalent as agentDefinitionFoundryEquivalent };

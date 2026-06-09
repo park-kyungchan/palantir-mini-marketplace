@@ -71,11 +71,3 @@ export function isPropagationHealthPayload(
     typeof v.measuredAt === "string"
   );
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Propagation chain health-score primitive; palantir-mini meta-substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as propagationHealthFoundryEquivalent };

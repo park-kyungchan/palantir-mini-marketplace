@@ -219,11 +219,3 @@ export class ResearchSourceManifestRegistry {
 }
 
 export const RESEARCH_SOURCE_MANIFEST_REGISTRY = new ResearchSourceManifestRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Research-library MANIFEST.json staleness governance; no Foundry equivalent",
-};
-export { categoryFoundryEquivalent as researchSourceManifestFoundryEquivalent };

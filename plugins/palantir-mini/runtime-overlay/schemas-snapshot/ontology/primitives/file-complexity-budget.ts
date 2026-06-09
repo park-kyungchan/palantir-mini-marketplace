@@ -119,11 +119,3 @@ export const HANDLER_FILE_BUDGET: FileComplexityBudgetDeclaration = {
   rationale:
     "Handlers past 200 lines start hiding branches; split validation from effect.",
 };
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "LOC/complexity budget for substrate health; codebase-governance, not Foundry surface",
-};
-export { categoryFoundryEquivalent as fileComplexityBudgetFoundryEquivalent };

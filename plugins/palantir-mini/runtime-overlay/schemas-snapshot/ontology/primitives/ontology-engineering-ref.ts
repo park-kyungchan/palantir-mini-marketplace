@@ -130,12 +130,3 @@ export function isOntologyEngineeringRef(x: unknown): x is OntologyEngineeringRe
       ref.confidence === "unresolved")
   );
 }
-
-// --- Foundry equivalence (Prompt-to-DTC ref graph) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Typed Prompt-to-DTC ref graph over Foundry-like object/action/function and project-local surfaces",
-};
-export { categoryFoundryEquivalent as ontologyEngineeringRefFoundryEquivalent };

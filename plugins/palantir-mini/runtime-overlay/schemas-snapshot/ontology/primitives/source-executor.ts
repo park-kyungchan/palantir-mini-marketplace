@@ -1,9 +1,9 @@
 /**
  * @stable — SourceExecutor primitive (prim-action-08, v1.40.0)
  *
- * Discriminated union over the 5 executor kinds Workflow Lineage tracks
+ * Discriminated union over the executor kinds Workflow Lineage tracks
  * (Palantir docs verbatim §A): Foundry functions, ontology actions,
- * automations, AIP Logic functions, and AIP agents. Each kind binds to a
+ * automations, and AIP Logic functions. Each kind binds to a
  * different ontology surface; this primitive is the typed handle Workflow
  * Lineage uses to render the provenance graph nodes.
  *
@@ -29,7 +29,6 @@
  */
 
 import type { ActionTypeRid } from "./action-type";
-import type { AIPAgentRid } from "./aip-agent";
 import type { AIPLogicFunctionRid } from "./aip-logic-function";
 import type { AutomationRid } from "./automation-declaration";
 
@@ -40,8 +39,7 @@ export type SourceExecutorKind =
   | "function"
   | "action"
   | "automation"
-  | "aip-logic"
-  | "aip-agent";
+  | "aip-logic";
 
 /**
  * Foundry function (TypeScript v1, Python). The function reference is a
@@ -78,26 +76,17 @@ export interface SourceExecutorAIPLogic {
   readonly aipLogicFunctionRid: AIPLogicFunctionRid;
 }
 
-export interface SourceExecutorAIPAgent {
-  readonly kind: "aip-agent";
-  readonly executorRid: string;
-  readonly displayName: string;
-  readonly aipAgentRid: AIPAgentRid;
-}
-
 export type SourceExecutor =
   | SourceExecutorFunction
   | SourceExecutorAction
   | SourceExecutorAutomation
-  | SourceExecutorAIPLogic
-  | SourceExecutorAIPAgent;
+  | SourceExecutorAIPLogic;
 
 export const SOURCE_EXECUTOR_KINDS: readonly SourceExecutorKind[] = [
   "function",
   "action",
   "automation",
   "aip-logic",
-  "aip-agent",
 ] as const;
 
 export function isSourceExecutorKind(s: string): s is SourceExecutorKind {
@@ -122,12 +111,6 @@ export function isSourceExecutorAIPLogic(x: SourceExecutor): x is SourceExecutor
   return x.kind === "aip-logic";
 }
 
-export function isSourceExecutorAIPAgent(
-  x: SourceExecutor,
-): x is SourceExecutorAIPAgent {
-  return x.kind === "aip-agent";
-}
-
 export function isSourceExecutor(x: unknown): x is SourceExecutor {
   if (typeof x !== "object" || x === null) return false;
   const e = x as SourceExecutor;
@@ -143,8 +126,6 @@ export function isSourceExecutor(x: unknown): x is SourceExecutor {
       return typeof (e as SourceExecutorAutomation).automationRid === "string";
     case "aip-logic":
       return typeof (e as SourceExecutorAIPLogic).aipLogicFunctionRid === "string";
-    case "aip-agent":
-      return typeof (e as SourceExecutorAIPAgent).aipAgentRid === "string";
   }
 }
 
@@ -169,33 +150,3 @@ export class SourceExecutorRegistry {
 }
 
 export const SOURCE_EXECUTOR_REGISTRY = new SourceExecutorRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3, refined R5-F3 sprint-060 W2.1) ---
-//
-// The discriminated-union shape covering action / automation / aip-logic /
-// aip-agent variants is fully equivalent to Foundry's Workflow Lineage
-// SourceExecutor 5-kind union. However, the `function` variant
-// (`SourceExecutorFunction`) uses a stable-name reference (`executorRid:
-// string + signature: string`) rather than a typed RID brand because
-// Foundry TS/Python functions are registered at deploy time and do not
-// have a typed schema RID surface in palantir-mini's ontology layer (see
-// source-executor.ts lines 50-58 design comment).
-//
-// This is a documented design choice — Foundry functions are opaque
-// executor handles in our ontology — but it means the per-variant
-// equivalence is uneven: 4 kinds map equivalent, 1 kind (function) maps
-// partial. Marking `partial` overall captures this asymmetry honestly for
-// audit / migration tooling instead of overstating with `equivalent`.
-//
-// Cross-ref: architecture review §5.G.3 R5-F3 Minor (Function primitive
-// stable-name only, no full Foundry-TS signature surface).
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "partial",
-  foundryType: "SourceExecutor (Workflow Lineage 5-kind union)",
-  gaps: [
-    "SourceExecutorFunction uses stable-name `executorRid: string + signature: string` (no typed FoundryFunctionRid brand)",
-    "EditFunction (referenced as `editFunctionName: string` in action-type.ts:60-61) is not registered as a primitive — same opaque-handle pattern",
-  ],
-};
-export { categoryFoundryEquivalent as sourceExecutorFoundryEquivalent };

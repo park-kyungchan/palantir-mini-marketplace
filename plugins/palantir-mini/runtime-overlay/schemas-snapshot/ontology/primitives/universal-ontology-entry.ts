@@ -124,12 +124,3 @@ export function isUniversalOntologyEntry(
     typeof entry.status === "string"
   );
 }
-
-// --- Foundry equivalence (prompt-front-door ontology capture entry) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Prompt-capture + lifecycle-state entry for palantir-mini's Universal Ontology layer; no direct Foundry object-type equivalent (it is a control-plane substrate primitive).",
-};
-export { categoryFoundryEquivalent as universalOntologyEntryFoundryEquivalent };

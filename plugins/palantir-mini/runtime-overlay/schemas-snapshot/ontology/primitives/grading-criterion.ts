@@ -217,12 +217,3 @@ export class GradingCriterionRegistry {
 }
 
 export const GRADING_CRITERION_REGISTRY = new GradingCriterionRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "over-specified",
-  foundryType: "GradingCriterion (AIP Evals 5-evaluator)",
-  extensions: ["hybrid", "simulator", "visual"],
-};
-export { categoryFoundryEquivalent as gradingCriterionFoundryEquivalent };

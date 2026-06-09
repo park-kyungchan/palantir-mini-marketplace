@@ -118,11 +118,3 @@ export class SkillDefinitionRegistry {
 }
 
 export const SKILL_DEFINITION_REGISTRY = new SkillDefinitionRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Claude Code SKILL.md frontmatter primitive; no Foundry equivalent",
-};
-export { categoryFoundryEquivalent as skillDefinitionFoundryEquivalent };

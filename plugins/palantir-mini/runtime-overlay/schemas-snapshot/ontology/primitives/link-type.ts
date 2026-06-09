@@ -66,11 +66,3 @@ export class LinkTypeRegistry {
 }
 
 export const LINK_TYPE_REGISTRY = new LinkTypeRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "LinkType (plain + object-backed)",
-};
-export { categoryFoundryEquivalent as linkTypeFoundryEquivalent };

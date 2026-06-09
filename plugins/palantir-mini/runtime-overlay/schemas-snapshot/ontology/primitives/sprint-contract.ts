@@ -372,11 +372,3 @@ export type SprintContract = Extract<
   DispatchContract,
   { species: "palantir-mini-sprint-harness" }
 >;
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "palantir-mini-sprint-harness contract binding theme + rubric + iteration budget; harness-substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as sprintContractFoundryEquivalent };

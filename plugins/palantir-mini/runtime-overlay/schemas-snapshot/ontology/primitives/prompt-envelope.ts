@@ -66,12 +66,3 @@ export function isPromptEnvelope(x: unknown): x is PromptEnvelope {
     envelope.contractRefs !== null
   );
 }
-
-// --- Foundry equivalence (Prompt-to-DTC identity layer) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Prompt-front-door identity envelope for AI agent governance; not a Foundry ontology data type",
-};
-export { categoryFoundryEquivalent as promptEnvelopeFoundryEquivalent };

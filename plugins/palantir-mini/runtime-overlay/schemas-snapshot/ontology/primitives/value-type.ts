@@ -62,11 +62,3 @@ export class ValueTypeRegistry {
 }
 
 export const VALUE_TYPE_REGISTRY = new ValueTypeRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "ValueType (constraint-bearing scalar)",
-};
-export { categoryFoundryEquivalent as valueTypeFoundryEquivalent };

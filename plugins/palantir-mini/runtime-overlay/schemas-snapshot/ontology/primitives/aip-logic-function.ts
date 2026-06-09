@@ -82,11 +82,3 @@ export class AIPLogicFunctionRegistry {
 }
 
 export const AIP_LOGIC_FUNCTION_REGISTRY = new AIPLogicFunctionRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "AIPLogicFunction",
-};
-export { categoryFoundryEquivalent as aipLogicFunctionFoundryEquivalent };

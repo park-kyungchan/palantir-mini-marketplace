@@ -117,11 +117,3 @@ export function isRefinementTarget(x: unknown): x is RefinementTarget {
     isRefinementConfidence(r.confidenceLevel)
   );
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Typed refinement-target pointer (DH/HC/rubric/spec/skill/agent/hook); palantir-mini BackProp input, not Foundry surface",
-};
-export { categoryFoundryEquivalent as refinementTargetFoundryEquivalent };

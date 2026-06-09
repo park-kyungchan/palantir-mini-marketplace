@@ -105,11 +105,3 @@ export class OntologyBranchProposalRegistry {
 }
 
 export const ONTOLOGY_BRANCH_PROPOSAL_REGISTRY = new OntologyBranchProposalRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "OntologyBranch + OntologyProposal",
-};
-export { categoryFoundryEquivalent as ontologyBranchProposalFoundryEquivalent };

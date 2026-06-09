@@ -123,11 +123,3 @@ export class MEMORYIndexEntryRegistry {
 }
 
 export const MEMORY_INDEX_ENTRY_REGISTRY = new MEMORYIndexEntryRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Per-project agent-memory MEMORY.md index entry; runtime-specific",
-};
-export { categoryFoundryEquivalent as memoryIndexEntryFoundryEquivalent };
