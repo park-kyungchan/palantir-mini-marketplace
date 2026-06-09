@@ -24,12 +24,14 @@ import { objectTypeRid } from "../../runtime-overlay/schemas-snapshot/ontology/p
 import { linkTypeRid } from "../../runtime-overlay/schemas-snapshot/ontology/primitives/link-type";
 import { actionTypeRid } from "../../runtime-overlay/schemas-snapshot/ontology/primitives/action-type";
 import { aipLogicFunctionRid } from "../../runtime-overlay/schemas-snapshot/ontology/primitives/function";
+import { roleRid } from "../../runtime-overlay/schemas-snapshot/ontology/primitives/role";
 
 export type PrimitiveKindSlug =
   | "object-type"
   | "link-type"
   | "action-type"
-  | "function";
+  | "function"
+  | "role";
 
 /**
  * Normalize an arbitrary string to a stable kebab-case slug:
@@ -71,5 +73,7 @@ export function projectPrimitiveRid(
       return actionTypeRid(slug);
     case "function":
       return aipLogicFunctionRid(slug);
+    case "role":
+      return roleRid(slug);
   }
 }

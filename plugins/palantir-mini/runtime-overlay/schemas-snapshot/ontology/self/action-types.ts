@@ -237,6 +237,45 @@ export const REGISTER_FUNCTION_ACTION_TYPE: Tier2FunctionBackedAction = {
 };
 
 // ───────────────────────────────────────────────────────────────────────────────
+// 4b. registerRole (Tier-2) — registers a Role (principal→permission grant; GOVERNANCE).
+// ───────────────────────────────────────────────────────────────────────────────
+
+/** Stable RID for the self-Ontology registerRole ActionType. */
+export const REGISTER_ROLE_ACTION_TYPE_RID = rid("register-role");
+
+/** registerRole — registers a Role (principal→permission RBAC grant) into the registry (Tier-2). */
+export const REGISTER_ROLE_ACTION_TYPE: Tier2FunctionBackedAction = {
+  rid: REGISTER_ROLE_ACTION_TYPE_RID,
+  tier: "tier-2",
+  apiName: "RegisterRole",
+  name: "RegisterRole",
+  description:
+    "palantir-mini self verb: registers a Role (principal→permission grant; the GOVERNANCE/" +
+    "ACTORS binding the prior RBAC surface lacked). Tier-2: wraps applyRegisterRole; " +
+    "OntologyEdit[] persisted via commitEdits with submission-criteria pre-flight.",
+  editFunctionName: "pm.actions.ontology.applyRegisterRole",
+  parameters: [
+    {
+      name: "objectType",
+      type: "ObjectType",
+      required: false,
+      description: "A granted-resource ObjectType the Role binds permission verbs over.",
+    },
+    {
+      name: "proposedEdits",
+      type: "OntologyEdit[]",
+      required: false,
+      description: "OntologyEdit[] the action proposes; persisted ONLY via commitEdits.",
+    },
+  ],
+  submissionCriteriaNames: [],
+  approvalPolicy: "policy-approval",
+  branchPolicy: "branch-required",
+  validateOnlySupported: true,
+  sideEffects: [],
+};
+
+// ───────────────────────────────────────────────────────────────────────────────
 // 5. registerTier1DeclarativeAction (TIER-1) — the ONE genuine Tier-1 CRUD-rule verb.
 //    Tier-1 shape: objectType + field + operation; NO editFunctionName.
 // ───────────────────────────────────────────────────────────────────────────────
@@ -987,6 +1026,7 @@ export const SELF_ACTION_TYPES = [
   REGISTER_LINK_TYPE_ACTION_TYPE,
   REGISTER_ACTION_TYPE_ACTION_TYPE,
   REGISTER_FUNCTION_ACTION_TYPE,
+  REGISTER_ROLE_ACTION_TYPE,
   REGISTER_TIER1_DECLARATIVE_ACTION_ACTION_TYPE,
   COMMIT_EDITS_ACTION_TYPE,
   APPLY_EDIT_FUNCTION_ACTION_TYPE,

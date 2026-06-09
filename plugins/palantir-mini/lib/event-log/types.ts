@@ -1290,6 +1290,7 @@ export interface EventSnapshot {
     linkTypes:   string[];
     actionTypes: string[];
     functions:   string[];
+    roles:       string[];
   };
   totalEvents:                 number;
   lastSequence:                number;

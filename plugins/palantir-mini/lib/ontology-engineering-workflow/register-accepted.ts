@@ -47,6 +47,7 @@ export interface RegisterAcceptedResult {
     readonly actionTypes: string[];
     readonly functions: string[];
     readonly linkTypes: string[];
+    readonly roles: string[];
   };
   readonly skipped: {
     readonly links: Array<{ linkName: string; reason: string }>;
@@ -69,6 +70,7 @@ export async function registerAcceptedCandidates(
     actionTypes: [] as string[],
     functions: [] as string[],
     linkTypes: [] as string[],
+    roles: [] as string[],
   };
   const skipped = { links: [] as Array<{ linkName: string; reason: string }> };
 
@@ -165,6 +167,28 @@ export async function registerAcceptedCandidates(
     );
     edits.push(...e);
     registered.linkTypes.push(rid);
+  }
+
+  // ── 5) Roles (principal→permission grants; no endpoint dependency → last) ──
+  for (const candidate of session.roleCandidates ?? []) {
+    const rid = projectPrimitiveRid(projectRoot, "role", candidate.plainName);
+    if (alreadyRegistered.has(rid)) continue;
+    const { edits: e } = await applyEditFunction(
+      "pm.actions.ontology.applyRegisterRole",
+      {
+        rid,
+        declaration: {
+          plainName: candidate.plainName,
+          principalKind: candidate.principalKind,
+          grantedResourceRefs: candidate.grantedResourceRefs,
+          permissions: candidate.permissions,
+          candidateId: candidate.candidateId,
+          evidenceRefs: candidate.evidenceRefs,
+        },
+      },
+    );
+    edits.push(...e);
+    registered.roles.push(rid);
   }
 
   return { edits, registered, skipped };

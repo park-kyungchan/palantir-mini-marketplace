@@ -153,6 +153,16 @@ export interface ChatbotContextCandidate {
   readonly evidenceRefs: readonly string[];
 }
 
+export interface RoleCandidate {
+  readonly candidateId: string;
+  readonly plainName: string;
+  readonly principalKind?: "agent" | "runtime" | "capability-token";
+  readonly grantedResourceRefs?: readonly string[];
+  readonly permissions?: readonly string[];
+  readonly whyItMayMatter?: string;
+  readonly evidenceRefs?: readonly string[];
+}
+
 export interface LeadClarificationQuestion {
   readonly questionId: string;
   readonly phase: FDEOntologyEngineeringPhase;
@@ -297,6 +307,13 @@ export interface FDEOntologyEngineeringSession {
   readonly linkCandidates: readonly LinkTypeCandidate[];
   readonly actionCandidates: readonly ActionTypeCandidate[];
   readonly functionCandidates: readonly FunctionCandidate[];
+  /**
+   * Role (principal→permission grant) candidates — GOV-axis register path.
+   * Optional (additive, post-dating the 12 existing session fixtures); the
+   * register seam reads it as `session.roleCandidates ?? []`. Real sessions
+   * always carry it (session-store initializes `roleCandidates: []`).
+   */
+  readonly roleCandidates?: readonly RoleCandidate[];
   readonly chatbotContextCandidates: readonly ChatbotContextCandidate[];
   readonly contextEngineeringPlan?: ContextEngineeringPlanStub;
   readonly readinessProfileId?: LatentIntentFamily;
