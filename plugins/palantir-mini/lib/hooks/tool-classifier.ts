@@ -162,9 +162,14 @@ export function isAssignedReviewArtifactPath(filePath: string): boolean {
   const workspaceIndex = parts.findIndex((part) => part === "_workspace");
   if (workspaceIndex < 0) return false;
 
+  const reviewArtifactOutputSegments = new Set([
+    "agent-outputs",
+    "outputs",
+    "worker-outputs",
+  ]);
   for (let index = workspaceIndex + 2; index < parts.length - 1; index += 1) {
     const segment = parts[index];
-    if (segment !== "agent-outputs" && segment !== "worker-outputs") continue;
+    if (segment === undefined || !reviewArtifactOutputSegments.has(segment)) continue;
     if (index !== parts.length - 2) return false;
     const filename = parts[index + 1] ?? "";
     if (!filename.toLowerCase().endsWith(".md") || filename.length <= ".md".length) return false;

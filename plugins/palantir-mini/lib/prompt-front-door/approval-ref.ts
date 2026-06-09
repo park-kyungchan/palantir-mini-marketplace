@@ -7,7 +7,8 @@ export const APPROVAL_REF_SCHEMA_VERSION = "prompt-front-door/approval-ref/v1";
 export type ApprovalSurface =
   | "semantic-intent"
   | "digital-twin-change"
-  | "prompt-boundary-field";
+  | "prompt-boundary-field"
+  | "developer-source-mutation";
 
 export interface StructuredApprovalRef {
   readonly schemaVersion: typeof APPROVAL_REF_SCHEMA_VERSION;
@@ -108,7 +109,8 @@ export function validateApprovalRefValue(
   if (
     ref.approvalSurface !== "semantic-intent" &&
     ref.approvalSurface !== "digital-twin-change" &&
-    ref.approvalSurface !== "prompt-boundary-field"
+    ref.approvalSurface !== "prompt-boundary-field" &&
+    ref.approvalSurface !== "developer-source-mutation"
   ) {
     issues.push({
       field: `${field}.approvalSurface`,

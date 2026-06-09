@@ -114,6 +114,13 @@ const ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS = [
   "signal",
   "createdAt",
   "emittedAt",
+  // Improvement #2 — approve_source_mutation inputs
+  "userApprovalPromptId",
+  "userApprovalPromptHash",
+  "userApprovalQuote",
+  "approvedSourcePaths",
+  "frontDoorSessionId",
+  "frontDoorRuntime",
 ] as const satisfies readonly (keyof OntologyEngineeringWorkflowHandlerInput)[];
 
 const EVENTS_LOG_ROTATE_PUBLIC_FIELDS = [
@@ -319,7 +326,7 @@ describe("mcp-server prompt identity schemas", () => {
     );
 
     expect(props.action?.type).toBe("string");
-    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "status", "elevate"]);
+    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "status", "elevate", "approve_source_mutation"]);
     expect(props.project?.type).toBe("string");
     expect(props.projectRoot?.type).toBe("string");
     expect(props.fdeSessionRef?.type).toBe("string");

@@ -11,7 +11,12 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { classifyHookTool } from "../lib/hooks/tool-classifier";
 import { readCurrentFDEOntologyEngineeringSession } from "../lib/fde-ontology-engineering/session-store";
-import { readCurrentOntologyEngineeringWorkflowState } from "../lib/ontology-engineering-workflow";
+import {
+  readCurrentOntologyEngineeringWorkflowState,
+  reverifySourceMutationApprovalAgainstEnvelope,
+  type SourceMutationApprovalRecord,
+} from "../lib/ontology-engineering-workflow";
+import { PromptFrontDoorStore } from "../lib/prompt-front-door/store";
 import { buildOntologyEngineeringResponseTemplateContext } from "../lib/ontology-engineering-response-template";
 
 interface HookPayload {
@@ -40,6 +45,23 @@ interface WorkflowProbe {
   readonly hasFdeProvenance: boolean;
   readonly mutationAuthorized: boolean;
   readonly provenanceReason: string;
+}
+
+/**
+ * Improvement #2 — result of the READ-TIME re-verification of any persisted
+ * developer/source-mutation fast-path approval against the hook-captured
+ * PromptEnvelope. Computed asynchronously (the re-verify helper re-loads the
+ * envelope) BEFORE the synchronous assessment runs, and passed in. `undefined`
+ * (the default for sync callers / existing tests) means the fast-path cannot
+ * fire — the assessment behaves exactly as before.
+ */
+interface SourceMutationFastPath {
+  /** True ONLY if a persisted approval re-verified against the envelope this turn. */
+  readonly authorized: boolean;
+  /** First-checked reason (grant rationale, or the rejection cause). */
+  readonly reason: string;
+  /** The unforgeable approval ref kind/promptId surfaced in additionalContext. */
+  readonly approvalRefSummary?: string;
 }
 
 const LEGACY_RUNTIME_UI_TOKENS = [
@@ -145,11 +167,23 @@ function resolveProjectRoot(payload: HookPayload): string {
   return walkProjectRoot(cwd) ?? path.resolve(cwd);
 }
 
-function isWorkflowStartOrStatus(payload: HookPayload): boolean {
+// Actions that self-provision their FDE session (source-ingest ingests first,
+// elevate ingests before linting), so they must run BEFORE provenance exists.
+// Exempting them at the early-return un-blocks only the PRE-gate call; the
+// handler's own approval gate (elevate.ts) still governs whether a register
+// proceeds. Preserves the existing undefined-action allowance.
+const PROVENANCE_EXEMPT_WORKFLOW_ACTIONS = new Set([
+  "start",
+  "status",
+  "ingest",
+  "elevate",
+]);
+
+function isProvenanceExemptWorkflowAction(payload: HookPayload): boolean {
   const toolName = normalize(payload.tool_name ?? "");
   if (!toolName.includes("pm_ontology_engineering_workflow")) return false;
   const action = stringField(payload.tool_input, "action")?.toLowerCase();
-  return action === undefined || action === "start" || action === "status";
+  return action === undefined || PROVENANCE_EXEMPT_WORKFLOW_ACTIONS.has(action);
 }
 
 function hasLegacyRuntimeUi(payload: HookPayload): boolean {
@@ -242,6 +276,65 @@ function readWorkflowProbe(projectRoot: string, payload: HookPayload): WorkflowP
   };
 }
 
+/**
+ * Improvement #2 — compute the developer/source-mutation fast-path for THIS call.
+ *
+ * Loads the persisted `sourceMutationApprovals[]` from the current workflow state
+ * and, for the protected path-like values this tool call touches, asks the
+ * backend's READ-TIME re-verifier to confirm each candidate against the
+ * hook-captured PromptEnvelope. The persisted record is NEVER trusted on its own:
+ * `reverifySourceMutationApprovalAgainstEnvelope` re-loads the envelope and
+ * re-checks promptHash + userQuote-substring + approval-verb/surface co-occurrence
+ * + current/just-prior pointer + 15-min TTL + unconsumed + full scope coverage.
+ * The first record that re-verifies authorizes the call.
+ *
+ * Async because it re-reads the envelope; called from `main()` before the
+ * synchronous assessment. Returns `{ authorized: false }` (never throws) so a
+ * failure to read state can only DENY, never open.
+ */
+async function computeSourceMutationFastPath(
+  projectRoot: string,
+  payload: HookPayload,
+  nowMs: number = Date.now(),
+): Promise<SourceMutationFastPath> {
+  let approvals: readonly SourceMutationApprovalRecord[] = [];
+  try {
+    const workflowState = readCurrentOntologyEngineeringWorkflowState(projectRoot);
+    approvals = workflowState?.sourceMutationApprovals ?? [];
+  } catch {
+    return { authorized: false, reason: "could not read workflow state for source-mutation fast-path" };
+  }
+  if (approvals.length === 0) {
+    return { authorized: false, reason: "no source-mutation approvals persisted" };
+  }
+
+  const touchedPaths = collectPathLikeValues(payload.tool_input);
+  const store = new PromptFrontDoorStore({ projectRoot });
+
+  let lastReason = "no persisted approval re-verified against the captured envelope";
+  for (const record of approvals) {
+    try {
+      const verdict = await reverifySourceMutationApprovalAgainstEnvelope(
+        record,
+        store,
+        touchedPaths,
+        nowMs,
+      );
+      if (verdict.authorized) {
+        return {
+          authorized: true,
+          reason: verdict.reason,
+          approvalRefSummary: `${record.kind} promptId=${record.approvedAtPromptId} scope=[${record.approvedSourcePaths.join(", ")}]`,
+        };
+      }
+      lastReason = verdict.reason;
+    } catch {
+      lastReason = "source-mutation re-verification threw (failed closed)";
+    }
+  }
+  return { authorized: false, reason: lastReason };
+}
+
 function deny(reason: string, additionalContext: string): HookResult {
   return {
     message: `palantir-mini: ontology-engineering workflow gate BLOCKED - ${reason}`,
@@ -264,7 +357,16 @@ function responseTemplateContext(payload: HookPayload): string {
   });
 }
 
-export function assessOntologyEngineeringWorkflowHook(payload: HookPayload): HookResult {
+export function assessOntologyEngineeringWorkflowHook(
+  payload: HookPayload,
+  /**
+   * Improvement #2 — the READ-TIME re-verified developer/source-mutation
+   * fast-path for this call (computed async in `main()` via
+   * `computeSourceMutationFastPath`). `undefined` (sync callers / existing tests)
+   * means the fast-path cannot fire and behavior is byte-identical to before.
+   */
+  sourceMutationFastPath?: SourceMutationFastPath,
+): HookResult {
   const classification = classifyHookTool(payload);
   const legacyRuntimeUi = hasLegacyRuntimeUi(payload);
 
@@ -275,9 +377,9 @@ export function assessOntologyEngineeringWorkflowHook(payload: HookPayload): Hoo
     );
   }
 
-  if (isWorkflowStartOrStatus(payload)) {
+  if (isProvenanceExemptWorkflowAction(payload)) {
     return {
-      message: "palantir-mini: ontology-engineering workflow gate OK - workflow start/status allowed",
+      message: "palantir-mini: ontology-engineering workflow gate OK - provenance-exempt self-provisioning action allowed",
       decision: "continue",
       additionalContext: responseTemplateContext(payload),
     };
@@ -307,6 +409,23 @@ export function assessOntologyEngineeringWorkflowHook(payload: HookPayload): Hoo
   }
 
   if (protectedSurfaceMutation && !probe.mutationAuthorized) {
+    // Improvement #2 — ADDITIVE developer/source-mutation fast-path. Fires ONLY
+    // when a persisted approval RE-VERIFIED against the hook-captured
+    // PromptEnvelope this turn (HOLE-1: the persisted record is never trusted
+    // alone — `computeSourceMutationFastPath` re-loaded the envelope and the
+    // backend re-checked promptHash + userQuote-substring + pointer-freshness +
+    // TTL + scope + unconsumed). This branch only ALLOWS; it weakens no deny.
+    if (sourceMutationFastPath?.authorized === true) {
+      return {
+        message: "palantir-mini: ontology-engineering workflow gate OK - user-approved source-mutation fast-path (re-verified against captured envelope)",
+        decision: "continue",
+        additionalContext: [
+          `sourceMutationFastPath=granted in lieu of SIC/DTC; ${sourceMutationFastPath.reason}`,
+          sourceMutationFastPath.approvalRefSummary ?? "",
+          responseTemplateContext(payload),
+        ].filter((part) => part.length > 0).join("\n\n"),
+      };
+    }
     return deny(
       "Ontology Engineering workflow mutation requires approved SIC and DTC workflow state",
       "The current workflow state must have mutationAuthorized=true before edits to hooks, gate/router handlers, workflow libraries, skills, or managed-settings surfaces proceed.",
@@ -337,7 +456,21 @@ async function main(): Promise<void> {
       return;
     }
   }
-  process.stdout.write(`${JSON.stringify(assessOntologyEngineeringWorkflowHook(payload))}\n`);
+  // Improvement #2 — re-verify any persisted source-mutation approval against the
+  // hook-captured envelope BEFORE the synchronous assessment (HOLE-1). Failures
+  // fail closed (authorized:false), so this can only ALLOW, never open.
+  let sourceMutationFastPath: SourceMutationFastPath | undefined;
+  try {
+    sourceMutationFastPath = await computeSourceMutationFastPath(
+      resolveProjectRoot(payload),
+      payload,
+    );
+  } catch {
+    sourceMutationFastPath = { authorized: false, reason: "source-mutation fast-path computation threw (failed closed)" };
+  }
+  process.stdout.write(
+    `${JSON.stringify(assessOntologyEngineeringWorkflowHook(payload, sourceMutationFastPath))}\n`,
+  );
 }
 
 if (import.meta.main) {

@@ -39,6 +39,15 @@ import {
   elevateOntologyFromSource,
   type ElevateResult,
 } from "../../lib/ontology-engineering-workflow/elevate";
+import { verifyAndMintSourceMutationApproval } from "../../lib/ontology-engineering-workflow";
+import type { SourceMutationApprovalRecord } from "../../lib/ontology-engineering-workflow";
+import { appendEventAtomic } from "../../lib/event-log/append";
+import { resolveHostRuntimeIdentity } from "../../lib/runtime/identity";
+import { approvalRefToString } from "../../lib/prompt-front-door/approval-ref";
+import { createHash } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import type { EventEnvelope, EventId, SessionId, CommitSha } from "../../lib/event-log/types";
 import { lintConstructionCandidates } from "../../lib/construction-lint/lint-candidates";
 import { ingestJsonlSourceToCandidates } from "../../lib/fde-ontology-engineering/source-ingest";
 import commitEditsHandler from "./commit-edits";
@@ -83,6 +92,26 @@ export interface OntologyEngineeringWorkflowHandlerInput
   readonly sourceJsonlPath?: string;
   readonly createdAt?: string;
   readonly emittedAt?: string;
+  // ─── Improvement #2 — approve_source_mutation inputs (verified, never trusted) ──
+  /** Pointer to the captured real prompt (front-door promptId). */
+  readonly userApprovalPromptId?: string;
+  /** sha256 of the captured prompt. */
+  readonly userApprovalPromptHash?: string;
+  /** Model's quote of the user's approval sentence (substring-verified vs excerpt). */
+  readonly userApprovalQuote?: string;
+  /** SCOPE — surface globs/paths the user named. */
+  readonly approvedSourcePaths?: readonly string[];
+  /** Front-door session id used to locate the captured envelope. */
+  readonly frontDoorSessionId?: string;
+  /** Front-door runtime (claude/codex/...) used for the pointer re-check. */
+  readonly frontDoorRuntime?: "claude" | "codex" | "cursor" | "gemini" | "unknown";
+}
+
+export interface SourceMutationApprovalActionResult {
+  /** The minted record (absent on failure). */
+  readonly record?: SourceMutationApprovalRecord;
+  /** Why verification failed (absent on success). */
+  readonly invalidReason?: string;
 }
 
 export interface OntologyEngineeringWorkflowHandlerResult {
@@ -98,6 +127,7 @@ export interface OntologyEngineeringWorkflowHandlerResult {
   readonly ingest?: OntologyEngineeringIngestResult;
   readonly lint?: OntologyEngineeringLintResult;
   readonly elevate?: ElevateResult;
+  readonly sourceMutationApproval?: SourceMutationApprovalActionResult;
 }
 
 const MINIMAL_ROOT_PAYLOAD_EXAMPLE =
@@ -121,9 +151,10 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "register" &&
     value.action !== "lint" &&
     value.action !== "elevate" &&
+    value.action !== "approve_source_mutation" &&
     value.action !== "status"
   ) {
-    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, ingest, register, lint, elevate, or status.");
+    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, ingest, register, lint, elevate, approve_source_mutation, or status.");
   }
   if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
     throw new Error(
@@ -613,6 +644,145 @@ async function handleElevate(
   return { ...readState({ handlerInput: input, session }), elevate };
 }
 
+// ─── Improvement #2 — approve_source_mutation ─────────────────────────────
+
+function gitHeadShaFor(project: string): string {
+  const gitHead = path.join(project, ".git", "HEAD");
+  if (!fs.existsSync(gitHead)) return "no-git";
+  try {
+    const head = fs.readFileSync(gitHead, "utf8").trim();
+    if (head.startsWith("ref: ")) {
+      const refPath = path.join(project, ".git", head.slice(5));
+      if (fs.existsSync(refPath)) return fs.readFileSync(refPath, "utf8").trim();
+      return head.slice(5);
+    }
+    return head;
+  } catch {
+    return "no-git";
+  }
+}
+
+function sha256(value: string): string {
+  return `sha256:${createHash("sha256").update(value, "utf8").digest("hex")}`;
+}
+
+async function emitSourceMutationAuditEvent(
+  root: string,
+  envelope: Omit<EventEnvelope, "sequence">,
+): Promise<void> {
+  try {
+    const eventsPath = path.join(root, ".palantir-mini", "session", "events.jsonl");
+    await appendEventAtomic(eventsPath, envelope);
+  } catch {
+    // best-effort audit; never let an audit-write failure block the no-op result
+  }
+}
+
+/**
+ * `approve_source_mutation` seam (Improvement #2). Verifies a model-claimed
+ * user approval against the INDEPENDENTLY hook-captured PromptEnvelope and, on
+ * success, mints + PERSISTS a {@link SourceMutationApprovalRecord} into the
+ * SEPARATE `state.sourceMutationApprovals` array (never `userDecisionRecords`,
+ * so SIC/DTC `deriveMutationAuthorized` is untouched). Compute-only no-op on
+ * failure (mirrors the `register` invalidReason style). Emits a 5-dim audit
+ * event on both grant and denial (rule 10).
+ */
+async function handleApproveSourceMutation(
+  input: OntologyEngineeringWorkflowHandlerInput,
+): Promise<OntologyEngineeringWorkflowHandlerResult> {
+  const root = projectRoot(input);
+  if (root.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow approve_source_mutation requires a projectRoot.");
+  }
+  const session = readSessionByInput(input);
+  const baseResult = readState({ handlerInput: input, session });
+  const when = input.emittedAt ?? new Date().toISOString();
+  const atopWhich = gitHeadShaFor(root) as unknown as CommitSha;
+  const throughWhich = {
+    sessionId: (input.frontDoorSessionId ?? "mcp") as unknown as SessionId,
+    toolName: "pm_ontology_engineering_workflow:approve_source_mutation",
+    cwd: root,
+  };
+
+  const verification = await verifyAndMintSourceMutationApproval({
+    projectRoot: root,
+    promptId: input.userApprovalPromptId ?? "",
+    promptHash: input.userApprovalPromptHash ?? "",
+    userQuote: input.userApprovalQuote ?? "",
+    approvedSourcePaths: input.approvedSourcePaths ?? [],
+    runtime: input.frontDoorRuntime,
+    sessionId: input.frontDoorSessionId,
+  });
+
+  if (verification.invalidReason !== undefined) {
+    await emitSourceMutationAuditEvent(root, {
+      type: "source_mutation_approval_denied",
+      eventId: `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}` as unknown as EventId,
+      when,
+      atopWhich,
+      throughWhich,
+      byWhom: { identity: resolveHostRuntimeIdentity() },
+      withWhat: {
+        reasoning: `source-mutation fast-path denied: ${verification.invalidReason}`,
+        memoryLayers: ["working"],
+      },
+      payload: {
+        invalidReason: verification.invalidReason,
+        promptId: input.userApprovalPromptId,
+        approvedSourcePaths: input.approvedSourcePaths,
+      },
+    });
+    return {
+      ...baseResult,
+      sourceMutationApproval: { invalidReason: verification.invalidReason },
+    };
+  }
+
+  const record = verification.record;
+  // Persist into the SEPARATE sourceMutationApprovals array (never userDecisionRecords).
+  // `deriveOntologyEngineeringWorkflowState` does NOT carry this array, so read the
+  // prior persisted approvals from disk and accumulate (no record is dropped).
+  const persisted = readPreviousWorkflowState({ root, action: "approve_source_mutation", session });
+  const previous = persisted?.sourceMutationApprovals ?? [];
+  const nextState: OntologyEngineeringWorkflowState = {
+    ...baseResult.state,
+    sourceMutationApprovals: [...previous, record],
+  };
+  const written = writeOntologyEngineeringWorkflowState(nextState);
+
+  await emitSourceMutationAuditEvent(root, {
+    type: "source_mutation_approval_granted",
+    eventId: `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}` as unknown as EventId,
+    when,
+    atopWhich,
+    throughWhich,
+    // The grant originates from the user turn (rule 10 byWhom semantics).
+    byWhom: { identity: "user" },
+    withWhat: {
+      reasoning:
+        `source-mutation fast-path granted in lieu of SIC/DTC, bound to promptId=${record.approvedAtPromptId}; ` +
+        `scope=[${record.approvedSourcePaths.join(", ")}]`,
+      memoryLayers: ["working", "episodic"],
+    },
+    payload: {
+      approvalRef: approvalRefToString(record.approvalRef) ?? record.approvalRef.promptHash,
+      approvedSourcePaths: record.approvedSourcePaths,
+      promptId: record.approvedAtPromptId,
+      promptHash: record.approvedPromptHash,
+      userQuoteHash: sha256(record.userQuote),
+      runtime: record.runtime,
+    },
+  });
+
+  return {
+    ...baseResult,
+    state: nextState,
+    statePath: written.statePath,
+    currentPath: written.currentPath,
+    sourceMutationApproval: { record },
+  };
+}
+
 export async function handleOntologyEngineeringWorkflow(
   input: OntologyEngineeringWorkflowHandlerInput,
 ): Promise<OntologyEngineeringWorkflowHandlerResult> {
@@ -682,6 +852,9 @@ export async function handleOntologyEngineeringWorkflow(
     }
     case "elevate": {
       return handleElevate(input);
+    }
+    case "approve_source_mutation": {
+      return handleApproveSourceMutation(input);
     }
   }
 }

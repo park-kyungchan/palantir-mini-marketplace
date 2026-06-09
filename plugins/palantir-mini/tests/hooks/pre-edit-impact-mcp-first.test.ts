@@ -261,6 +261,22 @@ describe("pre-edit-impact-mcp-first", () => {
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
   });
 
+  test("6f. SKIPPED — assigned report in plain outputs/ lane", async () => {
+    const reportFile = path.join(TMP, "_workspace", "run-1", "outputs", "W1-report.md");
+    declareReviewArtifact(reportFile);
+    const result = await preEditImpactMcpFirst(makePayload(reportFile)) as { message: string };
+    expect(result.message).toContain("skipped");
+    expect(result.message).toContain("assigned review artifact path");
+  });
+
+  test("6g. BLOCKED — undeclared outputs/ lane markdown remains gated", async () => {
+    const reportFile = path.join(TMP, "_workspace", "run-1", "outputs", "W1-report.md");
+    const result = await preEditImpactMcpFirst(makePayload(reportFile)) as {
+      hookSpecificOutput?: { permissionDecision?: string };
+    };
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+  });
+
   test("6e. BLOCKED — non-report workspace markdown remains gated", async () => {
     const reportFile = path.join(TMP, "_workspace", "run-1", "source-notes.md");
     const result = await preEditImpactMcpFirst(makePayload(reportFile)) as {

@@ -178,6 +178,9 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
       case "dtc_grading_completed":             snapshot.dtc_grading_completed = (snapshot.dtc_grading_completed ?? 0) + 1; break;
       case "dtc_grader_runtime_gap":            snapshot.dtc_grader_runtime_gap = (snapshot.dtc_grader_runtime_gap ?? 0) + 1; break;
       case "dtc_eval_refs_bypass_invoked":      snapshot.dtc_eval_refs_bypass_invoked = (snapshot.dtc_eval_refs_bypass_invoked ?? 0) + 1; break;
+      // Improvement #2 — developer/source-mutation fast-path audit events
+      case "source_mutation_approval_granted":  snapshot.source_mutation_approval_granted = (snapshot.source_mutation_approval_granted ?? 0) + 1; break;
+      case "source_mutation_approval_denied":   snapshot.source_mutation_approval_denied = (snapshot.source_mutation_approval_denied ?? 0) + 1; break;
       default: {
         const _exhaustive: never = ev;
         void _exhaustive;
