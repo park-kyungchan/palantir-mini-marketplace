@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { atomicWriteJsonSync } from "../fs-atomic";
 import type { KnownIssue } from "./known-issue";
 
 const LEGACY_OBSERVED_AT = "1970-01-01T00:00:00.000Z";
@@ -79,13 +80,6 @@ export function loadKnownIssues(projectRoot: string): readonly KnownIssue[] {
     .filter((issue): issue is KnownIssue => issue !== null);
 }
 
-function atomicWriteJson(filePath: string, value: unknown): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  fs.renameSync(tmpPath, filePath);
-}
-
 export function upsertKnownIssue(projectRoot: string, issue: KnownIssue): KnownIssue {
   const filePath = knownIssueStorePath(projectRoot);
   const existingIssues = loadKnownIssues(projectRoot);
@@ -116,7 +110,7 @@ export function upsertKnownIssue(projectRoot: string, issue: KnownIssue): KnownI
     nextIssues.push(nextIssue);
   }
 
-  atomicWriteJson(filePath, {
+  atomicWriteJsonSync(filePath, {
     schemaVersion: "palantir-mini/known-issues/v1",
     projectId: issue.projectId,
     issues: nextIssues.sort((left, right) => left.issueId.localeCompare(right.issueId)),

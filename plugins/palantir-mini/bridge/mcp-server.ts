@@ -46,6 +46,7 @@ import {
 import { isMcpFirstEvidenceToolName } from "../lib/hooks/tool-classifier";
 import { PROMPT_RUNTIMES } from "../lib/prompt-front-door";
 import { emit } from "../scripts/log";
+import pkg from "../package.json";
 
 // ─── JSON-RPC 2.0 types ────────────────────────────────────────────────────
 interface JsonRpcRequest {
@@ -1218,7 +1219,7 @@ async function handleRequest(req: JsonRpcRequest): Promise<JsonRpcResponse | nul
         return respondSuccess(req.id, {
           protocolVersion: "2024-11-05",
           capabilities:    { tools: {} },
-          serverInfo:      { name: "palantir-mini", version: "1.0.0" },
+          serverInfo:      { name: "palantir-mini", version: pkg.version },
         });
       }
 

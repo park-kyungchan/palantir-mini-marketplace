@@ -5,7 +5,7 @@
  * ObjectType (the type) modeling pm's per-run workflow lineage record.
  *
  * pm's workflow lineage modeled AS ontology: each run through the ontology workflow
- * machine (`lib/ontology-workflow/`) emits a trace record holding the workflow family,
+ * machine (`lib/ontology-workflow-trace/`) emits a trace record holding the workflow family,
  * the phases it advanced through, the event envelope refs it produced, and a final
  * verdict. This file declares the type so the self-model gains the WorkflowTrace noun.
  *
@@ -43,7 +43,7 @@ export const WORKFLOW_TRACE_OBJECT_TYPE: ObjectTypeDeclaration = {
   name: "WorkflowTrace",
   description:
     "palantir-mini per-run workflow lineage record modeled as an ObjectType: one " +
-    "instance per workflow run (lib/ontology-workflow). traceId identity plus " +
+    "instance per workflow run (lib/ontology-workflow-trace). traceId identity plus " +
     "workflowFamily, phases, envelopeRefs, and verdict. Instances are runtime-seeded " +
     "per run, not carried in the snapshot seed.",
   primaryKeyProperty: "traceId",

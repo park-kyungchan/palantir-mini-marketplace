@@ -13,7 +13,7 @@ import {
   openOntologyWorkflowTrace,
   transitionOntologyWorkflowTrace,
   closeOntologyWorkflowTrace,
-} from "../../../lib/ontology-workflow/emit";
+} from "../../../lib/ontology-workflow-trace/emit";
 
 function readEventLines(projectRoot: string): Array<Record<string, unknown>> {
   const eventsPath = path.join(projectRoot, ".palantir-mini", "session", "events.jsonl");

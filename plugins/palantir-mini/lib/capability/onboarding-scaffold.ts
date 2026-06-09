@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { atomicWriteJsonSync } from "../fs-atomic";
 import { PROJECT_ONTOLOGY_INDEX_SCHEMA_VERSION } from "./project-ontology-index";
 
 export interface ProjectOntologyScaffoldInput {
@@ -18,13 +19,6 @@ function projectIdFromRoot(projectRoot: string): string {
   return path.basename(projectRoot).replace(/[^A-Za-z0-9._-]+/g, "-");
 }
 
-function atomicWriteJson(filePath: string, value: unknown): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  fs.renameSync(tmpPath, filePath);
-}
-
 function writeText(filePath: string, value: string): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, value, "utf8");
@@ -39,7 +33,7 @@ export function scaffoldProjectOntologyRuntime(
   const writtenPaths: string[] = [];
 
   const indexPath = path.join(input.projectRoot, ".palantir-mini", "ontology-index", "project.json");
-  atomicWriteJson(indexPath, {
+  atomicWriteJsonSync(indexPath, {
     schemaVersion: PROJECT_ONTOLOGY_INDEX_SCHEMA_VERSION,
     projectId,
     warnings: [
@@ -117,7 +111,7 @@ export function scaffoldProjectOntologyRuntime(
 
   const scopePath = path.join(input.projectRoot, ".palantir-mini", "project-scope.json");
   if (!fs.existsSync(scopePath)) {
-    atomicWriteJson(scopePath, {
+    atomicWriteJsonSync(scopePath, {
       projectId,
       sourcePath: ".palantir-mini/project-scope.json",
       writableRoot: ".",

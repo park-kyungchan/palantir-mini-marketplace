@@ -26,6 +26,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { atomicWriteJsonSync } from "../fs-atomic";
 import { emit } from "../../scripts/log";
 
 // ─── Inline types (mirrors schemas/ontology/primitives/ontology-context-approval.ts) ──
@@ -120,15 +121,6 @@ function approvalPath(projectRoot: string, approvalId: string): string {
     ontologyContextApprovalStoreDir(projectRoot),
     `${safeFileSegment(approvalId)}.json`,
   );
-}
-
-// ─── Atomic write ─────────────────────────────────────────────────────────────
-
-function atomicWriteJsonSync(filePath: string, value: unknown): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  fs.renameSync(tmpPath, filePath);
 }
 
 // ─── approvalId derivation ────────────────────────────────────────────────────

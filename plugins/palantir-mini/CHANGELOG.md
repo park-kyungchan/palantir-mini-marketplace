@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.127.0] - 2026-06-09 — chore: code dedup + rename + agent hygiene + serverInfo version (audit G7/G5/G2)
+
+### Changed
+- **Merged duplicated infra helpers (audit G7): `lib/fs-atomic.ts` (`atomicWriteJsonSync` + async `atomicWriteJson`) + `lib/id-segment.ts` (parameterized `safeSegment` + `stableHash`/`stableDigest`) — repointed 9 `atomicWriteJson` / 5 `safeSegment` / 2 digest call sites, ~120 LOC verbatim dup removed, single audited atomic-write path (relevant to the state-sync class). Behavior byte-identical (edge-case verified).**
+- Renamed `lib/ontology-workflow/` → `lib/ontology-workflow-trace/` (audit G7) to kill the name collision with `lib/ontology-engineering-workflow`; importers updated, git history preserved.
+- Agent hygiene (audit G5): `ontology-steward` gains the `emit_event` tool (5-dim lineage, rule 10); `lead-orchestrator` declares `model: opus`.
+- `serverInfo.version` now sourced from the plugin `package.json` (was hard-coded `"1.0.0"`; audit G2).
+
+702 → full-suite green at baseline (20 known pre-existing failures, 0 new); typecheck exit 0. Lead-orchestrated; opus subagents implemented + adversarially verified.
+
 ## [6.126.0] - 2026-06-09 — firehose cure: shared boundedReturn + single MCP response byte-gate
 
 ### Added

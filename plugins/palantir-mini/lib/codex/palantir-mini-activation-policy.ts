@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { safeSegment } from "../id-segment";
 import { isPalantirMiniMcpToolName, isReadOnlyBashCommand } from "../hooks/tool-classifier";
 import {
   detectPalantirMiniPluginOptOut,
@@ -51,6 +52,12 @@ export interface CodexPalantirMiniActivationDecision {
   readonly shouldInjectAdditionalContext: boolean;
   readonly shouldEmitPalantirMiniEvent: boolean;
 }
+
+const ACTIVATION_SEGMENT_OPTS = {
+  fallback: "unknown",
+  maxLen: Infinity,
+  allowColon: false,
+} as const;
 
 const META_HARNESS_ROOT = "/home/palantirkc/meta-harness";
 const PALANTIR_MINI_MARKETPLACE_ROOT = "/home/palantirkc/palantir-mini-marketplace";
@@ -120,16 +127,6 @@ function findAncestorWith(start: string | undefined, dirname: string): string | 
     cur = path.dirname(cur);
   }
   return undefined;
-}
-
-function safeSegment(value: string): string {
-  return value
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter(Boolean)
-    .join("-")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "unknown";
 }
 
 function uniqueAbsPaths(values: Array<string | undefined>): string[] {
@@ -232,7 +229,7 @@ function hasPromptFrontDoorContinuation(input: CodexPalantirMiniActivationInput)
       "session",
       "prompt-front-door",
       "current",
-      `codex-${safeSegment(input.sessionId)}.json`,
+      `codex-${safeSegment(input.sessionId, ACTIVATION_SEGMENT_OPTS)}.json`,
     );
     const pointer = readJsonObject(pointerPath);
     const pointerPromptId = typeof pointer?.promptId === "string" ? pointer.promptId : undefined;
@@ -245,8 +242,8 @@ function hasPromptFrontDoorContinuation(input: CodexPalantirMiniActivationInput)
       "session",
       "prompt-front-door",
       "sessions",
-      safeSegment(pointerSessionId),
-      `${safeSegment(pointerPromptId)}.json`,
+      safeSegment(pointerSessionId, ACTIVATION_SEGMENT_OPTS),
+      `${safeSegment(pointerPromptId, ACTIVATION_SEGMENT_OPTS)}.json`,
     );
     const envelope = readJsonObject(envelopePath);
     const optOut = envelope?.palantirMiniPluginOptOut;

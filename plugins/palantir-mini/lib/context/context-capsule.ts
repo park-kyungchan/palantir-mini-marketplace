@@ -1,6 +1,7 @@
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
+import { atomicWriteJsonSync } from "../fs-atomic";
 import { emit } from "../../scripts/log";
 import type { DtcFillSequenceSession } from "../chatbot-studio/dtc-fill-session";
 import type { SemanticConversationState } from "../chatbot-studio/semantic-conversation-state";
@@ -77,13 +78,6 @@ function currentPointerPath(projectRoot: string): string {
   return path.join(contextCapsulesDir(projectRoot), "current.json");
 }
 
-function atomicWriteJson(filePath: string, value: unknown): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  fs.renameSync(tmpPath, filePath);
-}
-
 function readJson<T>(filePath: string): T | null {
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
@@ -101,7 +95,7 @@ function writeCurrentPointer(projectRoot: string, capsule: ContextCapsule, fileP
     sessionId: capsule.sessionId,
     updatedAt: new Date().toISOString(),
   };
-  atomicWriteJson(currentPointerPath(projectRoot), pointer);
+  atomicWriteJsonSync(currentPointerPath(projectRoot), pointer);
 }
 
 export async function persistContextCapsule(
@@ -114,7 +108,7 @@ export async function persistContextCapsule(
     lifecycle: "persisted",
     persistedAt: capsule.persistedAt ?? new Date().toISOString(),
   };
-  atomicWriteJson(filePath, persisted);
+  atomicWriteJsonSync(filePath, persisted);
   writeCurrentPointer(projectRoot, persisted, filePath);
   return filePath;
 }
@@ -235,7 +229,7 @@ export async function freezeContextCapsule(
     frozenAt: new Date().toISOString(),
     frozenReason: reason,
   };
-  atomicWriteJson(capsulePath(projectRoot, capsuleId), frozen);
+  atomicWriteJsonSync(capsulePath(projectRoot, capsuleId), frozen);
   writeCurrentPointer(projectRoot, frozen, capsulePath(projectRoot, capsuleId));
   return frozen;
 }
@@ -263,7 +257,7 @@ export async function archiveContextCapsule(
     archivedAt: new Date().toISOString(),
   };
   const archivePath = path.join(archiveDir(projectRoot), `${capsuleId}.json`);
-  atomicWriteJson(archivePath, archived);
+  atomicWriteJsonSync(archivePath, archived);
   try {
     fs.rmSync(capsulePath(projectRoot, capsuleId), { force: true });
   } catch {

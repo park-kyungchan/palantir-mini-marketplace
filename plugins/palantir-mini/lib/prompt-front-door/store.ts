@@ -1,5 +1,7 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import * as path from "node:path";
+import { atomicWriteJson } from "../fs-atomic";
+import { safeSegment } from "../id-segment";
 import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
@@ -49,17 +51,13 @@ export interface PromptFrontDoorStoreOptions {
   readonly rootDir?: string;
 }
 
-function safeSegment(value: string): string {
-  return value
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter(Boolean)
-    .join("-")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "unknown";
-}
-
 const PROMPT_CONTRACT_REF_PREFIX = "prompt-front-door://contract/";
+
+const PROMPT_SEGMENT_OPTS = {
+  fallback: "unknown",
+  maxLen: Infinity,
+  allowColon: false,
+} as const;
 
 function contractIdFor(contract: PromptStoredContract): string {
   return contract.contractId;
@@ -74,9 +72,9 @@ export function promptContractRef(
   return [
     PROMPT_CONTRACT_REF_PREFIX.replace(/\/$/, ""),
     kind,
-    safeSegment(sessionId),
-    safeSegment(promptId),
-    safeSegment(contractId),
+    safeSegment(sessionId, PROMPT_SEGMENT_OPTS),
+    safeSegment(promptId, PROMPT_SEGMENT_OPTS),
+    safeSegment(contractId, PROMPT_SEGMENT_OPTS),
   ].join("/");
 }
 
@@ -88,13 +86,6 @@ export function parsePromptContractRef(ref: string): ParsedPromptContractRef | n
   if (kind !== "semantic-intent" && kind !== "digital-twin-change") return null;
   if (!sessionSegment || !promptSegment || !contractSegment) return null;
   return { kind, sessionSegment, promptSegment, contractSegment };
-}
-
-async function atomicWriteJson(filePath: string, value: unknown): Promise<void> {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  await writeFile(tmpPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  await rename(tmpPath, filePath);
 }
 
 export class PromptFrontDoorStore {
@@ -110,8 +101,8 @@ export class PromptFrontDoorStore {
     return path.join(
       this.rootDir,
       "sessions",
-      safeSegment(sessionId),
-      `${safeSegment(promptId)}.json`,
+      safeSegment(sessionId, PROMPT_SEGMENT_OPTS),
+      `${safeSegment(promptId, PROMPT_SEGMENT_OPTS)}.json`,
     );
   }
 
@@ -119,7 +110,7 @@ export class PromptFrontDoorStore {
     return path.join(
       this.rootDir,
       "current",
-      `${safeSegment(runtime)}-${safeSegment(sessionId)}.json`,
+      `${safeSegment(runtime, PROMPT_SEGMENT_OPTS)}-${safeSegment(sessionId, PROMPT_SEGMENT_OPTS)}.json`,
     );
   }
 
@@ -131,9 +122,9 @@ export class PromptFrontDoorStore {
   ): string {
     return this.contractRecordPathBySegments({
       kind,
-      sessionSegment: safeSegment(sessionId),
-      promptSegment: safeSegment(promptId),
-      contractSegment: safeSegment(contractId),
+      sessionSegment: safeSegment(sessionId, PROMPT_SEGMENT_OPTS),
+      promptSegment: safeSegment(promptId, PROMPT_SEGMENT_OPTS),
+      contractSegment: safeSegment(contractId, PROMPT_SEGMENT_OPTS),
     });
   }
 

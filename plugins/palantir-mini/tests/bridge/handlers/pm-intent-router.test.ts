@@ -1245,7 +1245,7 @@ describe("T-PR3.4 — ontology_context_query canonical context-load path", () =>
 
 import {
   openOntologyWorkflowTrace,
-} from "../../../lib/ontology-workflow/emit";
+} from "../../../lib/ontology-workflow-trace/emit";
 
 describe("T-PR10 — workflow-trace transition wire", () => {
   test("router transitions an open trace to router mode and emits event", async () => {
@@ -1264,7 +1264,7 @@ describe("T-PR10 — workflow-trace transition wire", () => {
     await routeIntent({
       project,
       intent: "Fix typo in workflow trace emitter comment",
-      scopePaths: ["lib/ontology-workflow/emit.ts"],
+      scopePaths: ["lib/ontology-workflow-trace/emit.ts"],
       complexityHint: "trivial",
     });
 

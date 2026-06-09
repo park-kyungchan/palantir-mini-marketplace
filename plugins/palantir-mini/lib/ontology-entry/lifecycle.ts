@@ -14,8 +14,8 @@
  * @since palantir-mini plugin v5.x (foamy-giggling-kettle PR-3)
  */
 
-import * as fs from "node:fs";
 import * as path from "node:path";
+import { atomicWriteJsonSync } from "../fs-atomic";
 import type { UniversalOntologyEntry } from "./universal-entry";
 
 /** Derived from UniversalOntologyEntry["status"] to avoid exporting a separate union. */
@@ -56,15 +56,6 @@ export interface TransitionUniversalOntologyEntryInput {
   readonly projectRoot: string;
   /** Injected for testing; defaults to new Date() when absent. */
   readonly now?: Date;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function atomicWriteJsonSync(filePath: string, value: unknown): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  fs.renameSync(tmpPath, filePath);
 }
 
 // ─── Core transition ──────────────────────────────────────────────────────────

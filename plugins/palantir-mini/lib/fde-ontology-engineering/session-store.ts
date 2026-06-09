@@ -1,6 +1,8 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { atomicWriteJsonSync } from "../fs-atomic";
+import { safeSegment, stableDigest } from "../id-segment";
 import type { UniversalOntologyEntry } from "../ontology-entry/universal-entry";
 import { universalOntologyEntryRef } from "../ontology-entry/entry-store";
 import type {
@@ -69,32 +71,6 @@ export interface CreateFDEOntologyTurnRecordInput {
   readonly emittedAt?: string;
 }
 
-function safeSegment(value: string): string {
-  return value
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter(Boolean)
-    .join("-")
-    .replace(/[^a-zA-Z0-9._:-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 128) || "session";
-}
-
-function atomicWriteJson(filePath: string, value: unknown): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  fs.renameSync(tmpPath, filePath);
-}
-
-function stableDigest(value: unknown): string {
-  return crypto
-    .createHash("sha256")
-    .update(JSON.stringify(value))
-    .digest("hex")
-    .slice(0, 16);
-}
-
 function deriveSessionId(entry: UniversalOntologyEntry): string {
   return `fde-ontology-engineering:${stableDigest({
     entryId: entry.entryId,
@@ -145,14 +121,14 @@ export function fdeOntologyEngineeringSessionPath(
   projectRoot: string,
   sessionId: string,
 ): string {
-  return path.join(fdeOntologyEngineeringStoreDir(projectRoot), `${safeSegment(sessionId)}.json`);
+  return path.join(fdeOntologyEngineeringStoreDir(projectRoot), `${safeSegment(sessionId, { fallback: "session", maxLen: 128, allowColon: true })}.json`);
 }
 
 export function fdeOntologyEngineeringSessionDir(
   projectRoot: string,
   sessionId: string,
 ): string {
-  return path.join(fdeOntologyEngineeringStoreDir(projectRoot), safeSegment(sessionId));
+  return path.join(fdeOntologyEngineeringStoreDir(projectRoot), safeSegment(sessionId, { fallback: "session", maxLen: 128, allowColon: true }));
 }
 
 export function fdeOntologyEngineeringCurrentPath(projectRoot: string): string {
@@ -167,12 +143,12 @@ export function fdeOntologyEngineeringTurnRecordPath(
   return path.join(
     fdeOntologyEngineeringSessionDir(projectRoot, sessionId),
     "turns",
-    `${safeSegment(turnId)}.json`,
+    `${safeSegment(turnId, { fallback: "session", maxLen: 128, allowColon: true })}.json`,
   );
 }
 
 export function fdeOntologyEngineeringSessionRef(sessionId: string): string {
-  return `${SESSION_REF_PREFIX}${safeSegment(sessionId)}`;
+  return `${SESSION_REF_PREFIX}${safeSegment(sessionId, { fallback: "session", maxLen: 128, allowColon: true })}`;
 }
 
 export function createFDEOntologyEngineeringSessionFromEntry(
@@ -227,8 +203,8 @@ export function writeFDEOntologyEngineeringSessionSnapshot(
     updatedAt: session.updatedAt,
   };
 
-  atomicWriteJson(sessionPath, session);
-  atomicWriteJson(currentPath, current);
+  atomicWriteJsonSync(sessionPath, session);
+  atomicWriteJsonSync(currentPath, current);
   return { sessionPath, currentPath, sessionRef };
 }
 
@@ -267,7 +243,7 @@ export function writeFDEOntologyTurnRecord(
   record: FDEOntologyTurnRecord,
 ): { readonly turnPath: string } {
   const turnPath = fdeOntologyEngineeringTurnRecordPath(projectRoot, record.sessionId, record.turnId);
-  atomicWriteJson(turnPath, record);
+  atomicWriteJsonSync(turnPath, record);
   return { turnPath };
 }
 

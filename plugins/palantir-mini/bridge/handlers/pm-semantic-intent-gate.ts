@@ -65,7 +65,7 @@ import * as fs from "node:fs";
 import {
   transitionOntologyWorkflowTrace,
   type OntologyWorkflowTrace,
-} from "../../lib/ontology-workflow/emit";
+} from "../../lib/ontology-workflow-trace/emit";
 import {
   assessContractGate,
   assessOntologyDtcBuildReadinessGate,

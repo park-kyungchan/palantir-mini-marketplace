@@ -8,7 +8,7 @@ description: >
   (schemas -> shared-core -> per-project ontology). Use when promoting a
   primitive, deprecating an obsolete type, bumping schema version, or
   investigating drift between shared-core and consumer projects.
-tools: Read, Write, Edit, Glob, Grep, Bash, LSP
+tools: Read, Write, Edit, Glob, Grep, Bash, LSP, mcp__plugin_palantir-mini_palantir-mini__emit_event
 model: opus
 maxTurns: 40
 memory: user

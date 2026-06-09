@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
+import { stableHash } from "../id-segment";
 import {
   SEMANTIC_NORMALIZATION_VERSION,
   type NormalizedTermValue,
 } from "./types";
+
+export { stableHash };
 
 export interface NormalizeTermOptions {
   readonly sourceSystemId?: string;
@@ -12,11 +15,6 @@ export interface NormalizeTermOptions {
 
 export function stableJson(value: unknown): string {
   return JSON.stringify(sortJsonValue(value));
-}
-
-export function stableHash(value: unknown, prefix = "sha256"): string {
-  const digest = createHash("sha256").update(stableJson(value)).digest("hex");
-  return `${prefix}:${digest}`;
 }
 
 export function shortStableHash(value: unknown, length = 24): string {
