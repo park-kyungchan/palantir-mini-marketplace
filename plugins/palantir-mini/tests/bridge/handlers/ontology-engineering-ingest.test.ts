@@ -159,7 +159,7 @@ describe("ingest seam — jsonl SOURCE → session candidate arrays", () => {
 
     const result = ingestJsonlSourceToCandidates({ sourceJsonlPath: fixture, projectRoot: P });
 
-    expect(result.counts).toEqual({ objects: 2, functions: 1, actions: 1, roles: 1, links: 1 });
+    expect(result.counts).toEqual({ objects: 2, functions: 1, actions: 1, roles: 1, properties: 0, links: 1 });
     expect(result.skipped.edges).toHaveLength(1);
 
     const persisted = readCurrentFDEOntologyEngineeringSession(P);
@@ -182,7 +182,7 @@ describe("ingest seam — jsonl SOURCE → session candidate arrays", () => {
       sourceJsonlPath: fixture,
     });
 
-    expect(result.ingest?.counts).toEqual({ objects: 2, functions: 1, actions: 1, roles: 1, links: 1 });
+    expect(result.ingest?.counts).toEqual({ objects: 2, functions: 1, actions: 1, roles: 1, properties: 0, links: 1 });
     expect(result.ingest?.skipped.edges).toHaveLength(1);
     expect(result.session?.objectCandidates).toHaveLength(2);
   });
@@ -245,5 +245,51 @@ describe("ingest seam — jsonl SOURCE → session candidate arrays", () => {
     expect(snap.actionTypes).toContain(actRid);
     expect(snap.roles).toContain(roleRid);
     expect(snap.linkTypes).toContain(linkRid);
+  });
+
+  test("DATA + atom_kind 'property' → a propertyCandidate (not an objectCandidate)", () => {
+    // A DATA atom with atom_kind "property" routes to propertyCandidates; an
+    // atom_kind "entity" stays an objectCandidate (the C2 DATA-axis split).
+    const records = [
+      {
+        kg_layer: "DATA",
+        record_type: "kg_linear_function_data_atom_candidate",
+        candidate_id: "lfa-dt-100",
+        label_ko: "선형함수",
+        description_ko: "y = ax + b 형태의 함수",
+        atom_kind: "entity",
+        source_basis_refs: ["ref:lf-entity"],
+      },
+      {
+        kg_layer: "DATA",
+        record_type: "kg_linear_function_data_atom_candidate",
+        candidate_id: "lfa-dt-101",
+        label_ko: "기울기",
+        description_ko: "직선의 기울기 값",
+        atom_kind: "property",
+        value_type: "Double",
+        source_basis_refs: ["ref:slope-prop"],
+      },
+    ];
+    const file = path.join(
+      os.tmpdir(),
+      `pm-ingest-prop-fixture-${Date.now()}-${Math.random().toString(36).slice(2)}.jsonl`,
+    );
+    fs.writeFileSync(file, records.map((r) => JSON.stringify(r)).join("\n") + "\n", "utf8");
+    tmpFiles.push(file);
+
+    const parsed = parseJsonlSourceToCandidateArrays(file);
+
+    // entity → object (not property); property → property (not object).
+    expect(parsed.objectCandidates).toHaveLength(1);
+    expect(parsed.objectCandidates[0]!.plainName).toBe("선형함수");
+
+    expect(parsed.propertyCandidates).toHaveLength(1);
+    expect(parsed.propertyCandidates[0]!.plainName).toBe("기울기");
+    expect(parsed.propertyCandidates[0]!.dataType).toBe("Double");
+    expect(parsed.propertyCandidates[0]!.evidenceRefs!.length).toBeGreaterThan(0);
+
+    // the property atom did NOT leak into objectCandidates
+    expect(parsed.objectCandidates.map((c) => c.plainName)).not.toContain("기울기");
   });
 });

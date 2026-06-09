@@ -7,6 +7,22 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.123.0] - 2026-06-09 — Property primitive + cross-layer link widening
+
+### Added
+- **The PROPERTY primitive (6th register verb) completes the DATA axis (ObjectType + Property), plus two completions: cross-layer LINK widening and source-ingest property routing.**
+  - `applyRegisterProperty` edit-function (kind:"object" + primitiveKind:"Property") + `REGISTER_PROPERTY_ACTION_TYPE` parity-wired in the self-Ontology (`runtime-overlay/schemas-snapshot/ontology/self/action-types.ts` + `self/index.ts`).
+  - `properties` fold bin in EventSnapshot/fold + `EventSnapshot.registeredPrimitives.properties` (additive) so registered Property primitives project alongside object/action/function/link/role bins.
+  - `PropertyCandidate` + `propertyCandidates` + project-primitive-rid `"property"`.
+  - register-accepted **properties pass** with owner resolution (`ownerObjectName` → owning ObjectType rid).
+  - **COMPLETION 1 — cross-layer link widening**: register-accepted now builds a COMBINED `plainName`→rid map across objects+actions+functions+roles+properties, so cross-layer edges (DATA↔LOGIC↔ACTION) resolve and REGISTER instead of being skipped.
+  - **COMPLETION 2 — source-ingest routing**: SOURCE DATA atoms with `atom_kind="property"` route to `propertyCandidates`.
+  - catalog 22 → 23 verbs.
+
+Regression: 1998 pass / 1 skip / 1 PRE-EXISTING-unrelated fail (capability-registry/loader.test.ts, not introduced); 0 NEW regressions.
+
+Lead-orchestrated; opus subagent implemented.
+
 ## [6.122.0] - 2026-06-09 — 8 construction anti-pattern lints (action:lint)
 
 ### Added

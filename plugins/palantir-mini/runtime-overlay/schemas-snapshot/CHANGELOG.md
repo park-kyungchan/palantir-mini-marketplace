@@ -8,6 +8,15 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.79.0 — 2026-06-09 (self-Ontology: DATA→Property register path — REGISTER_PROPERTY ActionType + EventSnapshot.registeredPrimitives.properties bin)
+
+Additive MINOR (rule 08 — additive self-model ActionType + EventSnapshot bin, no edits to existing primitives).
+Added REGISTER_PROPERTY self ActionType (Property primitive) + EventSnapshot.registeredPrimitives.properties bin (additive).
+Parity-wired to the `applyRegisterProperty` edit-function (kind:"object" + primitiveKind:"Property") and exported via
+`ontology/self/index.ts`. The `properties` bin folds registered Property primitives into the snapshot projection
+alongside the existing object/action/function/link/role bins, completing the DATA axis (ObjectType + Property).
+No edits to existing primitive bodies.
+
 ## v1.78.0 — 2026-06-09 (self-Ontology: GOV→Role register path — REGISTER_ROLE ActionType + EventSnapshot.registeredPrimitives.roles bin)
 
 Additive MINOR (rule 08 — additive self-model ActionType + EventSnapshot bin, no edits to existing primitives).

@@ -276,6 +276,45 @@ export const REGISTER_ROLE_ACTION_TYPE: Tier2FunctionBackedAction = {
 };
 
 // ───────────────────────────────────────────────────────────────────────────────
+// 4c. registerProperty (Tier-2) — registers a Property (an ObjectType's stored field; DATA).
+// ───────────────────────────────────────────────────────────────────────────────
+
+/** Stable RID for the self-Ontology registerProperty ActionType. */
+export const REGISTER_PROPERTY_ACTION_TYPE_RID = rid("register-property");
+
+/** registerProperty — registers a Property (an ObjectType's stored field) into the registry (Tier-2). */
+export const REGISTER_PROPERTY_ACTION_TYPE: Tier2FunctionBackedAction = {
+  rid: REGISTER_PROPERTY_ACTION_TYPE_RID,
+  tier: "tier-2",
+  apiName: "RegisterProperty",
+  name: "RegisterProperty",
+  description:
+    "palantir-mini self verb: registers a Property (an ObjectType's stored field; the DATA-axis " +
+    "completion alongside registerObjectType). Tier-2: wraps applyRegisterProperty; " +
+    "OntologyEdit[] persisted via commitEdits with submission-criteria pre-flight.",
+  editFunctionName: "pm.actions.ontology.applyRegisterProperty",
+  parameters: [
+    {
+      name: "objectType",
+      type: "ObjectType",
+      required: false,
+      description: "The owner ObjectType this Property is a stored field of, if resolved.",
+    },
+    {
+      name: "proposedEdits",
+      type: "OntologyEdit[]",
+      required: false,
+      description: "OntologyEdit[] the action proposes; persisted ONLY via commitEdits.",
+    },
+  ],
+  submissionCriteriaNames: [],
+  approvalPolicy: "policy-approval",
+  branchPolicy: "branch-required",
+  validateOnlySupported: true,
+  sideEffects: [],
+};
+
+// ───────────────────────────────────────────────────────────────────────────────
 // 5. registerTier1DeclarativeAction (TIER-1) — the ONE genuine Tier-1 CRUD-rule verb.
 //    Tier-1 shape: objectType + field + operation; NO editFunctionName.
 // ───────────────────────────────────────────────────────────────────────────────
@@ -1016,9 +1055,9 @@ export const STRUCTURED_OUTPUT_ACTION_TYPE: Tier2FunctionBackedAction = {
 };
 
 // ───────────────────────────────────────────────────────────────────────────────
-// Register all 21 self-Ontology verbs into ACTION_TYPE_REGISTRY (side-effect on import).
-// (20 catalog §4 verbs + structuredOutput, O-1.) Combined with executor.actiontype.ts
-// (Executor), self/ register-grep = 23 ActionTypes.
+// Register all self-Ontology verbs into ACTION_TYPE_REGISTRY (side-effect on import).
+// (20 catalog §4 verbs + structuredOutput, O-1 + registerRole + registerProperty.)
+// Combined with executor.actiontype.ts (Executor), self/ register-grep = 24 ActionTypes.
 // ───────────────────────────────────────────────────────────────────────────────
 
 export const SELF_ACTION_TYPES = [
@@ -1027,6 +1066,7 @@ export const SELF_ACTION_TYPES = [
   REGISTER_ACTION_TYPE_ACTION_TYPE,
   REGISTER_FUNCTION_ACTION_TYPE,
   REGISTER_ROLE_ACTION_TYPE,
+  REGISTER_PROPERTY_ACTION_TYPE,
   REGISTER_TIER1_DECLARATIVE_ACTION_ACTION_TYPE,
   COMMIT_EDITS_ACTION_TYPE,
   APPLY_EDIT_FUNCTION_ACTION_TYPE,

@@ -200,6 +200,7 @@ export function createFDEOntologyEngineeringSessionFromEntry(
     actionCandidates: [],
     functionCandidates: [],
     roleCandidates: [],
+    propertyCandidates: [],
     chatbotContextCandidates: [],
     unresolvedQuestions: [],
     stableSummary: initialStableSummary(createdAt),

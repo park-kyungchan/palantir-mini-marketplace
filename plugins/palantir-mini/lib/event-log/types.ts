@@ -1291,6 +1291,7 @@ export interface EventSnapshot {
     actionTypes: string[];
     functions:   string[];
     roles:       string[];
+    properties:  string[];
   };
   totalEvents:                 number;
   lastSequence:                number;
