@@ -73,6 +73,9 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
     event_log_rotated:                 0,
     sprint_completed:                  0,
     failure_mode_synthesized:          0,
+    // O-2 — register→commit→materialize→read loop: projection of committed
+    // applyRegister* edits into a readable typed-primitive collection.
+    registeredPrimitives: { objectTypes: [], linkTypes: [], actionTypes: [], functions: [] },
     totalEvents:                 events.length,
     lastSequence:                0,
   };
@@ -80,7 +83,26 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
   for (const ev of events) {
     switch (ev.type) {
       case "edit_proposed":               snapshot.edit_proposed++;               break;
-      case "edit_committed":              snapshot.edit_committed++;              break;
+      case "edit_committed": {
+        snapshot.edit_committed++;
+        // O-2 materialization: project each committed register edit's rid into the
+        // readable typed-primitive collection, binned by properties.primitiveKind
+        // (ObjectType/ActionType/Function carried as kind:"object") or edit kind:"link".
+        const reg = snapshot.registeredPrimitives!;
+        // Defensive: historical / fixture edit_committed rows may omit appliedEdits.
+        const appliedEdits = Array.isArray(ev.payload?.appliedEdits) ? ev.payload.appliedEdits : [];
+        for (const edit of appliedEdits) {
+          if (edit.kind === "link") {
+            reg.linkTypes.push(edit.rid);
+          } else if (edit.kind === "object") {
+            const primitiveKind = (edit.properties as Record<string, unknown> | undefined)?.primitiveKind;
+            if (primitiveKind === "ObjectType")      reg.objectTypes.push(edit.rid);
+            else if (primitiveKind === "ActionType") reg.actionTypes.push(edit.rid);
+            else if (primitiveKind === "Function")   reg.functions.push(edit.rid);
+          }
+        }
+        break;
+      }
       case "submission_criteria_failed":  snapshot.submission_criteria_failed++;  break;
       case "validation_phase_completed":  snapshot.validation_phase_completed++;  break;
       case "codegen_started":             snapshot.codegen_started++;             break;

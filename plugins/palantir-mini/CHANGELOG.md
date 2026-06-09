@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.117.0] - 2026-06-09 — O-2: register->commit->materialize->read loop closure
+
+### Added
+- **4 `applyRegister{ObjectType,LinkType,ActionType,Function}` edit-functions wired via `registerEditFunction`; `commitEdits` materializes committed register-edits into `EventSnapshot.registeredPrimitives` via fold-projection so a primitive registered via commit is readable in `get_ontology`.** Closes the SIC/FDE -> registered-primitive OPEN LOOP: the 4 edit-functions live in `lib/actions/ontology-register.ts` and are imported on the live path via `bridge/handlers/apply-edit-function.ts`; `commitEdits` (`lib/actions/commit.ts`) still appends `edit_committed` lineage (rule 10) and now folds committed register-edits into the snapshot's `registeredPrimitives` projection (`lib/event-log/read/fold-snapshot.ts`, `lib/event-log/types.ts`).
+
+**0 new regressions** (20 pre-existing full-suite fails unchanged; loop-closure test 4/0; tsc clean). Lead-orchestrated; opus subagent implemented.
+
 ## [6.116.1] - 2026-06-09 — self-Ontology Wave 8: FDE rubric-grader criterion-prefix bug-fix
 
 ### Fixed
