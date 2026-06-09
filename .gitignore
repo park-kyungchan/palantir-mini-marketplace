@@ -1,0 +1,6 @@
+# palantir-mini runtime/session/cache substrate (ephemeral; not source).
+# Per rule 25 (plugin cache + session state must be gitignored) and rule 10
+# (events.jsonl is append-only on-disk substrate, not a tracked artifact).
+# On-disk files are preserved; this only stops git from tracking them.
+.palantir-mini/session/
+.palantir-mini/harness/
