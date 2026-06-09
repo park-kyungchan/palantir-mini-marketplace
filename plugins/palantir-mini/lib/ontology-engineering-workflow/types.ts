@@ -28,6 +28,7 @@ export interface OntologyEngineeringRegisterResult {
     readonly actionTypes: readonly string[];
     readonly functions: readonly string[];
     readonly linkTypes: readonly string[];
+    readonly roles: readonly string[];
   };
   /** Link candidates skipped because an endpoint did not resolve (D6). */
   readonly skipped: {

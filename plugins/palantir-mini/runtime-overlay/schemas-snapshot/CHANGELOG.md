@@ -8,6 +8,15 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.78.0 — 2026-06-09 (self-Ontology: GOV→Role register path — REGISTER_ROLE ActionType + EventSnapshot.registeredPrimitives.roles bin)
+
+Additive MINOR (rule 08 — additive self-model ActionType + EventSnapshot bin, no edits to existing primitives).
+Added the `REGISTER_ROLE` self ActionType (GOV→Role register path, the 5th register verb) to `ontology/self/action-types.ts`
+(parity-wired to the `applyRegisterRole` edit-function) and exported via `ontology/self/index.ts`. Added the
+`EventSnapshot.registeredPrimitives.roles` bin (additive) so registered Role primitives fold into the snapshot
+projection alongside the existing object/action/function/link bins. Closes the GOV axis so a project's roles can elevate.
+No edits to existing primitive bodies.
+
 ## v1.77.0 — 2026-06-09 (self-Ontology O-1: StructuredOutput ActionType + structuredOutputFillOrFallback Function)
 
 Additive MINOR (rule 08 — additive self-model ActionType + Function seeds, no edits to existing primitives).

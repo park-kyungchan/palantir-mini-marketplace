@@ -32,6 +32,7 @@ export const APPLY_REGISTER_OBJECT_TYPE_NAME = "pm.actions.ontology.applyRegiste
 export const APPLY_REGISTER_LINK_TYPE_NAME = "pm.actions.ontology.applyRegisterLinkType";
 export const APPLY_REGISTER_ACTION_TYPE_NAME = "pm.actions.ontology.applyRegisterActionType";
 export const APPLY_REGISTER_FUNCTION_NAME = "pm.actions.ontology.applyRegisterFunction";
+export const APPLY_REGISTER_ROLE_NAME = "pm.actions.ontology.applyRegisterRole";
 
 // ─── Param interfaces (typed; rid is the registered primitive identity) ──────
 
@@ -54,6 +55,11 @@ export interface ApplyRegisterActionTypeParams {
 }
 
 export interface ApplyRegisterFunctionParams {
+  readonly rid: string;
+  readonly declaration?: Record<string, unknown>;
+}
+
+export interface ApplyRegisterRoleParams {
   readonly rid: string;
   readonly declaration?: Record<string, unknown>;
 }
@@ -94,6 +100,12 @@ export function applyRegisterFunction(params: ApplyRegisterFunctionParams): Onto
   return [{ kind: "object", rid, properties: { primitiveKind: "Function", ...(params.declaration ?? {}) } }];
 }
 
+/** Role → `kind:"object"` tagged `primitiveKind:"Role"` (principal→permission grant; no link-kind fit). */
+export function applyRegisterRole(params: ApplyRegisterRoleParams): OntologyEdit[] {
+  const rid = requireRid(params?.rid, "applyRegisterRole");
+  return [{ kind: "object", rid, properties: { primitiveKind: "Role", ...(params.declaration ?? {}) } }];
+}
+
 // ─── Side-effect: register under the self-model's forward-named editFunctionName ──
 
 registerEditFunction<ApplyRegisterObjectTypeParams>({
@@ -118,4 +130,10 @@ registerEditFunction<ApplyRegisterFunctionParams>({
   name: APPLY_REGISTER_FUNCTION_NAME,
   description: "Self verb: compute the register OntologyEdit for a new Function (pure; commit via commitEdits).",
   apply: applyRegisterFunction,
+});
+
+registerEditFunction<ApplyRegisterRoleParams>({
+  name: APPLY_REGISTER_ROLE_NAME,
+  description: "Self verb: compute the register OntologyEdit for a new Role (pure; commit via commitEdits).",
+  apply: applyRegisterRole,
 });

@@ -21,6 +21,7 @@ import {
   REGISTER_LINK_TYPE_ACTION_TYPE,
   REGISTER_ACTION_TYPE_ACTION_TYPE,
   REGISTER_FUNCTION_ACTION_TYPE,
+  REGISTER_ROLE_ACTION_TYPE,
   REGISTER_TIER1_DECLARATIVE_ACTION_ACTION_TYPE,
   COMMIT_EDITS_ACTION_TYPE,
   APPLY_EDIT_FUNCTION_ACTION_TYPE,
@@ -41,8 +42,9 @@ import {
   EXECUTOR_ACTION_TYPE,
 } from "#schemas/ontology/self";
 
-// Catalog §4 = 20 verb rows + structuredOutput (O-1) = 21; Executor is the +1 pre-existing self ActionType.
-const EXPECTED_CATALOG_VERB_COUNT = 21;
+// Catalog §4 = 20 verb rows + structuredOutput (O-1) + registerRole (GOV register path) = 22;
+// Executor is the +1 pre-existing self ActionType.
+const EXPECTED_CATALOG_VERB_COUNT = 22;
 const EXPECTED_SELF_ACTION_TYPE_COUNT = EXPECTED_CATALOG_VERB_COUNT + 1; // + Executor
 
 // The 20 catalog verbs as a flat list (the source of truth for "all resolve" + "no dupes").
@@ -51,6 +53,7 @@ const CATALOG_VERBS: readonly ActionTypeDeclaration[] = [
   REGISTER_LINK_TYPE_ACTION_TYPE,
   REGISTER_ACTION_TYPE_ACTION_TYPE,
   REGISTER_FUNCTION_ACTION_TYPE,
+  REGISTER_ROLE_ACTION_TYPE,
   REGISTER_TIER1_DECLARATIVE_ACTION_ACTION_TYPE,
   COMMIT_EDITS_ACTION_TYPE,
   APPLY_EDIT_FUNCTION_ACTION_TYPE,
@@ -70,7 +73,7 @@ const CATALOG_VERBS: readonly ActionTypeDeclaration[] = [
   STRUCTURED_OUTPUT_ACTION_TYPE,
 ];
 
-test(`SELF_ACTION_TYPES is the 21-verb catalog (catalog §4 + O-1 structuredOutput)`, () => {
+test(`SELF_ACTION_TYPES is the 22-verb catalog (catalog §4 + O-1 structuredOutput + registerRole)`, () => {
   expect(SELF_ACTION_TYPES.length).toBe(EXPECTED_CATALOG_VERB_COUNT);
   // The exported array and the flat catalog list agree (same identities, same order).
   expect([...SELF_ACTION_TYPES]).toEqual([...CATALOG_VERBS]);
@@ -84,13 +87,13 @@ test(`every catalog verb resolves in ACTION_TYPE_REGISTRY by RID`, () => {
   }
 });
 
-test(`no duplicate RIDs across the 20 verbs + Executor (21 unique self ActionTypes)`, () => {
+test(`no duplicate RIDs across the 22 verbs + Executor (23 unique self ActionTypes)`, () => {
   const rids = [...CATALOG_VERBS, EXECUTOR_ACTION_TYPE].map((a) => a.rid);
   expect(rids.length).toBe(EXPECTED_SELF_ACTION_TYPE_COUNT);
   expect(new Set(rids).size).toBe(EXPECTED_SELF_ACTION_TYPE_COUNT);
 });
 
-test(`ACTION_TYPE_REGISTRY holds all 21 self ActionTypes (20 catalog + Executor)`, () => {
+test(`ACTION_TYPE_REGISTRY holds all 23 self ActionTypes (22 catalog + Executor)`, () => {
   // Every self verb + Executor is retrievable; the registry is a superset of these 21.
   const all = [...CATALOG_VERBS, EXECUTOR_ACTION_TYPE];
   for (const a of all) expect(ACTION_TYPE_REGISTRY.get(a.rid)).toBe(a);
@@ -99,10 +102,10 @@ test(`ACTION_TYPE_REGISTRY holds all 21 self ActionTypes (20 catalog + Executor)
   for (const a of all) expect(registeredRids.has(a.rid)).toBe(true);
 });
 
-test(`tier split = 19 Tier-2 + 2 Tier-1 (catalog §4 + O-1 structuredOutput)`, () => {
+test(`tier split = 20 Tier-2 + 2 Tier-1 (catalog §4 + O-1 structuredOutput + registerRole)`, () => {
   const tier2 = CATALOG_VERBS.filter((a) => a.tier === "tier-2");
   const tier1 = CATALOG_VERBS.filter((a) => a.tier === "tier-1");
-  expect(tier2.length).toBe(19);
+  expect(tier2.length).toBe(20);
   expect(tier1.length).toBe(2);
 });
 

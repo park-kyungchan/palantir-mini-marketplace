@@ -422,7 +422,7 @@ async function handleRegister(
     }
     const register: OntologyEngineeringRegisterResult = {
       committed: false,
-      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [] },
+      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [], roles: [] },
       skipped: { links: [] },
       invalidReason: reasons.join("; "),
     };
@@ -437,6 +437,7 @@ async function handleRegister(
     ...(snapshot?.actionTypes ?? []),
     ...(snapshot?.functions ?? []),
     ...(snapshot?.linkTypes ?? []),
+    ...(snapshot?.roles ?? []),
   ]);
 
   const { edits, registered, skipped } = await registerAcceptedCandidates({
@@ -448,7 +449,7 @@ async function handleRegister(
   if (edits.length === 0) {
     const register: OntologyEngineeringRegisterResult = {
       committed: false,
-      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [] },
+      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [], roles: [] },
       skipped,
       invalidReason: "nothing to register: no new accepted candidates (all already registered or none present)",
     };

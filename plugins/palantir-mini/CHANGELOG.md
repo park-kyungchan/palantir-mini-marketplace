@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.120.0] - 2026-06-09 — GOV→Role register path (5th register verb)
+
+### Added
+- **GOV→Role register path wired end-to-end — the 5th register verb — closing the GOV axis so a project's roles can elevate into registered, READABLE primitives.**
+  - `applyRegisterRole` edit-function (kind:"object" tagged `primitiveKind:"Role"`) + `REGISTER_ROLE_ACTION_TYPE` in the self-Ontology (ActionType↔editFunction parity-wired).
+  - roles fold bin (`EventSnapshot.registeredPrimitives.roles`) + fold projection for registered Role primitives.
+  - `RoleCandidate` type + `roleCandidates` session array; project-primitive-rid `"role"` kind (`roleRid`).
+  - roles pass added to the `register-accepted` seam.
+  - tests 4/0: Role loop-closure via `get_ontology.roles`, isolation, idempotency, parity; tsc clean. Catalog test updated 21 → 22 verbs.
+
+Regression: 1833 pass / 1 skip / 1 PRE-EXISTING-unrelated fail (capability-registry/loader.test.ts, not introduced); 0 NEW regressions.
+
+Lead-orchestrated; opus subagent implemented.
+
 ## [6.119.0] - 2026-06-09 — ENTRY-loop register seam (operative OE-elevation keystone)
 
 ### Added
