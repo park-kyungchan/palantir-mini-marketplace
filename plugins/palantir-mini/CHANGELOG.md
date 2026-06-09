@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.121.0] - 2026-06-09 — jsonl-SOURCE ingestion adapter (action:ingest)
+
+### Added
+- **jsonl-SOURCE → OE-candidates ingestion adapter + an `action:"ingest"` workflow seam, so a frozen NC1 SOURCE jsonl now feeds the OE-elevation flow directly: ingest → draft_sic → approve → register.**
+  - `lib/fde-ontology-engineering/source-ingest.ts` (`parseJsonlSourceToCandidateArrays` + `ingestJsonlSourceToCandidates`): maps a frozen NC1 SOURCE jsonl by `kg_layer` → candidate kind (DATA→Object, LOGIC→Function, ACTION→Action, GOVERNANCE→Role, EDGE→Link).
+  - composition-edge endpoint resolution (`candidate_id` → plainName); null-`edge_kind` and dangling-endpoint edges are skipped and reported rather than failing the batch.
+  - wired as `action:"ingest"` (ungated, pre-approval) on the OE workflow handler + `sourceJsonlPath` input + MCP tool schema.
+  - tests 4/0: parse mapping, edge resolve+skip, persisted-session read-back, full ingest→register mini-loop (all 5 rids readable); tsc clean.
+  - No schema/self edit (ingest is a workflow action, not a self ActionType).
+
+Regression: 1837 pass / 1 skip / 1 PRE-EXISTING-unrelated fail (capability-registry/loader.test.ts, not introduced); 0 NEW regressions.
+
+Lead-orchestrated; opus subagent implemented.
+
 ## [6.120.0] - 2026-06-09 — GOV→Role register path (5th register verb)
 
 ### Added
