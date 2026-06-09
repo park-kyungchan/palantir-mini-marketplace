@@ -30,10 +30,12 @@ import {
   type OntologyEngineeringWorkflowState,
   type OntologyEngineeringRegisterResult,
   type OntologyEngineeringIngestResult,
+  type OntologyEngineeringLintResult,
   type TurnCardDecisionSpec,
   type UserDecisionRecord,
 } from "../../lib/ontology-engineering-workflow";
 import { registerAcceptedCandidates } from "../../lib/ontology-engineering-workflow/register-accepted";
+import { lintConstructionCandidates } from "../../lib/construction-lint/lint-candidates";
 import { ingestJsonlSourceToCandidates } from "../../lib/fde-ontology-engineering/source-ingest";
 import commitEditsHandler from "./commit-edits";
 import getOntology from "./get-ontology";
@@ -88,6 +90,7 @@ export interface OntologyEngineeringWorkflowHandlerResult {
   readonly semanticIntentContract?: SemanticIntentContract;
   readonly register?: OntologyEngineeringRegisterResult;
   readonly ingest?: OntologyEngineeringIngestResult;
+  readonly lint?: OntologyEngineeringLintResult;
 }
 
 const MINIMAL_ROOT_PAYLOAD_EXAMPLE =
@@ -109,9 +112,10 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "draft_sic" &&
     value.action !== "ingest" &&
     value.action !== "register" &&
+    value.action !== "lint" &&
     value.action !== "status"
   ) {
-    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, ingest, register, or status.");
+    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, ingest, register, lint, or status.");
   }
   if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
     throw new Error(
@@ -386,6 +390,44 @@ function writeState(input: {
 }
 
 /**
+ * Map an FDE session's candidate arrays to the construction-lint input. The
+ * lint pass is purely structural (objects/actions/functions/links/roles), so
+ * this is the single mapping used by BOTH the `lint` seam and the advisory
+ * attach on `register`.
+ */
+function lintFindingsForSession(session: FDEOntologyEngineeringSession) {
+  return lintConstructionCandidates({
+    objects: session.objectCandidates,
+    actions: session.actionCandidates,
+    functions: session.functionCandidates,
+    links: session.linkCandidates,
+    roles: session.roleCandidates ?? [],
+  });
+}
+
+/**
+ * `lint` seam — a callable, READ-ONLY construction anti-pattern pass.
+ *
+ * UNGATED (no approval needed, like `status`/`turn`): read the project session,
+ * run the 8 construction lints over its candidate arrays, and return the
+ * freshly-derived workflow state plus the lint findings. Mutates nothing.
+ */
+function handleLint(
+  input: OntologyEngineeringWorkflowHandlerInput,
+): OntologyEngineeringWorkflowHandlerResult {
+  const root = projectRoot(input);
+  if (root.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow lint requires a projectRoot.");
+  }
+  const session = readSessionByInput(input);
+  if (session === undefined) {
+    throw new Error("pm_ontology_engineering_workflow lint requires an existing FDE session.");
+  }
+  const lint: OntologyEngineeringLintResult = { findings: lintFindingsForSession(session) };
+  return { ...readState({ handlerInput: input, session }), lint };
+}
+
+/**
  * `ingest` seam — feed a frozen NC1 SOURCE jsonl into the register pipeline.
  *
  * Pre-approval (NO approval gate — like `turn`): parse the SOURCE jsonl into the
@@ -506,11 +548,15 @@ async function handleRegister(
     edits,
   });
 
+  // Construction anti-pattern lint over the same session candidate arrays.
+  // ADVISORY: findings are surfaced on the register result, but the gate has
+  // already passed and the commit proceeds regardless — never block on findings.
   const register: OntologyEngineeringRegisterResult = {
     committed: true,
     registered,
     skipped,
     commitResult,
+    lint: lintFindingsForSession(session),
   };
   return { ...readState({ handlerInput: input, session }), register };
 }
@@ -578,6 +624,9 @@ export async function handleOntologyEngineeringWorkflow(
     }
     case "register": {
       return handleRegister(input);
+    }
+    case "lint": {
+      return handleLint(input);
     }
   }
 }
