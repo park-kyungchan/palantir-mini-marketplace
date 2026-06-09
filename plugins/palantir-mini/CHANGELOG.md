@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.124.0] - 2026-06-09 — composed governed OE-elevation flow (action:elevate) + adapter-OE-binding
+
+### Added
+- **The composed governed OE-elevation flow conceptually completes pm's operative ontology-first vertical slice: `lib/ontology-engineering-workflow/elevate.ts` orchestrates the already-built governed steps into ONE flow, and `action:"elevate"` becomes the FIRST mutating flow on the public MCP action enum — the adapter-OE-binding by which a runtime DRIVES the governed flow through pm.**
+  - `elevate.ts` composes `ingest → lint → draft_sic → caller-supplied-approval-gate → register` as a single commit.
+  - `action:"elevate"` exposed as the single governed MCP flow action; the public action enum is now `["start","turn","draft_sic","status","elevate"]`. `register`/`ingest`/`lint` stay **direct-caller** (NOT MCP-exposed).
+  - **Governance — caller-supplied approval gate, never auto-fabricated**: elevate registers ONLY when the caller explicitly supplies approved SIC+DTC contract statuses AND `readyForDigitalTwin`; otherwise it returns phase `"awaiting-approval"` with no register.
+  - phase outcomes: AUTHORIZED → phase `"elevated"` + primitives readable (incl. cross-layer link); UNAUTHORIZED → phase `"awaiting-approval"` + no register.
+  - tests: authorized path (phase `elevated` + primitives readable incl. cross-layer link) + unauthorized path (phase `awaiting-approval` + no register); tsc clean.
+
+Regression: 1869 pass / 1 skip / 1 PRE-EXISTING-unrelated fail (capability-registry/loader.test.ts, not introduced); 0 NEW regressions.
+
+Lead-orchestrated; opus subagent implemented. Completes the OE-vertical-slice (operative ontology-first).
+
 ## [6.123.0] - 2026-06-09 — Property primitive + cross-layer link widening
 
 ### Added
