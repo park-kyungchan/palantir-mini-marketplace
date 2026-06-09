@@ -15,59 +15,58 @@
 //        switch blocks. TypeScript enforces exhaustiveness at compile time.
 
 // ─── Branded value types (prim-data-05 CommitSha) ──────────────────────────
-export type EventId   = string & { readonly __brand: "EventId" };
-export type SessionId = string & { readonly __brand: "SessionId" };
-export type CommitSha = string & { readonly __brand: "CommitSha" };
-
-export const eventId   = (s: string): EventId   => s as EventId;
-export const sessionId = (s: string): SessionId => s as SessionId;
-export const commitSha = (s: string): CommitSha => s as CommitSha;
+// ENVELOPE-1: brands are single-sourced from the canonical event-envelope
+// primitive (schemas-snapshot is the authority). Re-exported here so existing
+// runtime imports of `EventId`/`SessionId`/`CommitSha` from this module keep
+// working unchanged.
+export type { EventId, SessionId, CommitSha } from "#schemas/ontology/primitives/event-envelope";
+export { eventId, sessionId, commitSha } from "#schemas/ontology/primitives/event-envelope";
 
 // ─── v1.35.0 valuable-data substrate imports (rule 26) ────────────────────
 import type { ValueGrade } from "#schemas/ontology/primitives/value-grade";
 import type { AgenticMemoryLayer } from "#schemas/ontology/primitives/agentic-memory-layer";
 import type { LineageRefs } from "#schemas/ontology/primitives/lineage-refs";
 import type { RefinementTarget } from "#schemas/ontology/primitives/refinement-target";
+// ENVELOPE-1: the canonical 5-dim envelope SUBSTRATE is imported from the
+// schema primitive (the SSoT) and EXTENDED here — the runtime owns the full
+// variant union (OCP) but does NOT re-declare the 5-dim shape. `withWhat` is
+// the only sub-field the runtime widens (rule-26 memoryLayers/refinementTarget
+// extensions), so it is Omit-ed from the primitive base and re-added below.
+import type {
+  EventEnvelopeBase as PrimitiveEventEnvelopeBase,
+  EventWithWhat as PrimitiveEventWithWhat,
+} from "#schemas/ontology/primitives/event-envelope";
+
+// The canonical primitive declares its fields `readonly` (schema hygiene). The
+// runtime mirror is built field-by-field by many handlers and mutated in tests,
+// so it must be mutable — but we do NOT want to re-declare the 5-dim shapes.
+// DeepMutable strips `readonly` recursively WITHOUT restating any field names,
+// keeping the primitive the single source of the envelope SUBSTRATE shape.
+// Branded primitives (e.g. `string & { __brand }` for EventId/CommitSha) must be
+// left intact — the leading primitive guard prevents recursing INTO a brand and
+// exploding it into a `{ [x:number]: string; toString: {}; ... }` mapped type.
+type DeepMutable<T> = T extends string | number | boolean | symbol | bigint | null | undefined
+  ? T
+  : T extends ReadonlyArray<infer U>
+    ? Array<DeepMutable<U>>
+    : T extends object
+      ? { -readonly [K in keyof T]: DeepMutable<T[K]> }
+      : T;
 
 // ─── Decision Lineage 5 dimensions (prim-learn-02, v1.35.0 extended) ─────
-export interface EventEnvelopeBase {
-  eventId:  EventId;
-  /** WHEN — ISO8601 */
-  when:     string;
-  /** ATOP_WHICH — git HEAD SHA at time of emit */
-  atopWhich: CommitSha;
-  /** THROUGH_WHICH — session / tool / cwd context */
-  throughWhich: {
-    sessionId: SessionId;
-    toolName:  string;
-    cwd:       string;
-    /** v1.35.0+ Optional UI/system surface tag (e.g. "workshop", "cli", "mcp"). */
-    surface?:  string;
-  };
+// Mirror = primitive base (eventId / when / atopWhich / throughWhich / byWhom /
+// sequence / propagationDepth / propagationDepthSource) with the runtime-only
+// rule-26 extensions added on top. The 5-dim shape lives in ONE place
+// (the primitive); this interface only ADDS optional fields + drops readonly.
+export interface EventEnvelopeBase
+  extends Omit<DeepMutable<PrimitiveEventEnvelopeBase>, "withWhat"> {
   /**
-   * BY_WHOM — identity of the emitter (v1.35.0 extended with provider-neutral
-   * fields per rule 26 §Axis D1; LLMI-02 provider-neutral runtime contract).
+   * WITH_WHAT — primitive's reasoning/hypothesis core, widened with the rule-26
+   * Axes C2 + E extension fields the runtime carries (memoryLayers /
+   * refinementTarget). The core 5-dim WITH_WHAT shape is single-sourced from
+   * the primitive's `EventWithWhat`.
    */
-  byWhom: {
-    identity:   "claude-code" | "codex" | "gemini" | "user" | "monitor" | "test-agent" | "unknown";
-    agentName?: string;
-    teamName?:  string;
-    /** v1.35.0+ Normalized model name (e.g. "claude-opus-4-7", "gpt-5.4"). */
-    model?:     string;
-    /** v1.35.0+ Provider tag (e.g. "anthropic", "openai", "xai", "google"). */
-    provider?:  string;
-    /** v1.35.0+ Interface family (e.g. "messages", "responses", "vertex"). */
-    interfaceFamily?: string;
-    /** v1.35.0+ Runtime tag (e.g. "claude-code", "codex", "gemini"). */
-    runtime?:   string;
-  };
-  /**
-   * WITH_WHAT — optional reasoning / hypothesis / refinement target / memory
-   * layers (v1.35.0 extended per rule 26 §Axes C2 + E).
-   */
-  withWhat?: {
-    reasoning?:  string;
-    hypothesis?: string;
+  withWhat?: DeepMutable<PrimitiveEventWithWhat> & {
     /**
      * v1.35.0+ Axis E — agentic memory layer(s) this event refines. Required
      * on T2+ envelopes per rule 26. Empty array treated same as missing.
@@ -79,14 +78,6 @@ export interface EventEnvelopeBase {
      */
     refinementTarget?: RefinementTarget;
   };
-  /** Monotonic counter — serves as optimistic version for concurrent writes */
-  sequence: number;
-  /**
-   * PROPAGATION_DEPTH — W6 FwdProp/BwdProp chain depth (0=research touch,
-   * 1=schema, 2=shared-core, 3=project ontology, 4=contracts, 5=runtime).
-   * Optional; backward-compat.
-   */
-  propagationDepth?: number;
   /**
    * v1.35.0+ Axis A3 — typed cross-references (actionRid / dryRunRef /
    * outcomePairId / evidenceUrls / playgroundSandboxId). Replaces free-form

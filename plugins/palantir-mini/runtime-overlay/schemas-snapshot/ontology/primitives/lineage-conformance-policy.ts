@@ -76,6 +76,63 @@ interface LineageEventShape {
   readonly withWhat?: unknown;
 }
 
+/**
+ * Canonical "is this 5-dim dimension actually present?" predicate (XRUN-1).
+ *
+ * Single source of truth for what "5-dim complete" means in the AUDIT/gate
+ * path. The historical leak was that three definitions diverged AND the
+ * registry only checked TOP-LEVEL presence (`undefined`/`null`/`""`), so an
+ * event with `throughWhich: {}` or `byWhom: {}` (empty sub-objects) passed the
+ * 5-dim gate while carrying NO session/tool/cwd context and NO emitter
+ * identity. This predicate DESCENDS into the sub-fields the substrate actually
+ * requires:
+ *   - throughWhich.{sessionId, toolName, cwd} must all be non-empty strings
+ *   - byWhom.identity must be a non-empty string (also required by rule 27
+ *     cross-runtime self-attribution — a row with no identity cannot be
+ *     attributed to a writing runtime)
+ *   - when / atopWhich / withWhat: non-empty top-level presence.
+ *
+ * Mirrors the `value-grade-assigner` hook's Axis A1 descent so the emit-time
+ * gate (rule 26) and the audit-time gate (this primitive) agree on one
+ * definition.
+ *
+ * DELIBERATE READ-vs-AUDIT ASYMMETRY: this strict descent is for the
+ * AUDIT/PreCompact gate ONLY. `lib/event-log/read.ts:validateEnvelope` stays
+ * intentionally lenient (4-dim, top-level `undefined`/`null` only) so it keeps
+ * ADMITTING historical append-only rows with empty sub-objects — tightening
+ * the reader would mass-quarantine valid history, violating rule 10's
+ * NEVER-blind-delete invariant. The audit MEASURES non-conformance; the reader
+ * PRESERVES the log.
+ */
+export function isDimensionComplete(
+  event: LineageEventShape,
+  dim: LineageDimension,
+): boolean {
+  const value = (event as Record<string, unknown>)[dim];
+  if (value === undefined || value === null || value === "") return false;
+
+  if (dim === "throughWhich") {
+    if (typeof value !== "object") return false;
+    const tw = value as Record<string, unknown>;
+    const sessionId = tw.sessionId;
+    const toolName = tw.toolName;
+    const cwd = tw.cwd;
+    return (
+      typeof sessionId === "string" && sessionId.length > 0 &&
+      typeof toolName === "string" && toolName.length > 0 &&
+      typeof cwd === "string" && cwd.length > 0
+    );
+  }
+
+  if (dim === "byWhom") {
+    if (typeof value !== "object") return false;
+    const identity = (value as Record<string, unknown>).identity;
+    return typeof identity === "string" && identity.length > 0;
+  }
+
+  return true;
+}
+
 /** Registry helper — v0 minimal registry via plain Map */
 export class LineageConformancePolicyRegistry {
   private readonly policies = new Map<
@@ -99,9 +156,15 @@ export class LineageConformancePolicyRegistry {
    * Audit an events.jsonl file against registered policies.
    * The caller provides the parsed events (one per line). This contract
    * defines the shape of the report.
+   *
+   * @param strict — when true (XRUN-1), use the canonical `isDimensionComplete`
+   *   descent so empty sub-objects (`throughWhich: {}`, `byWhom: {}`) count as
+   *   missing. The AUDIT/PreCompact gate passes `true`. Default `false`
+   *   preserves the legacy top-level-only presence check for any other caller.
    */
   audit(
     events: ReadonlyArray<LineageEventShape>,
+    strict = false,
   ): LineageAuditReport {
     const violations: LineageViolation[] = [];
     for (const event of events) {
@@ -109,8 +172,13 @@ export class LineageConformancePolicyRegistry {
       const policy = this.policies.get(type) ?? DEFAULT_POLICY;
       const missing: LineageDimension[] = [];
       for (const dim of policy.requiredDims) {
-        const value = event[dim];
-        if (value === undefined || value === null || value === "") {
+        const present = strict
+          ? isDimensionComplete(event, dim)
+          : (() => {
+              const value = event[dim];
+              return !(value === undefined || value === null || value === "");
+            })();
+        if (!present) {
           missing.push(dim);
         }
       }

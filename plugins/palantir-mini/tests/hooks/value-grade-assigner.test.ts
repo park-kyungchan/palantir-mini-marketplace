@@ -336,9 +336,9 @@ describe("valueGradeAssigner", () => {
 
   // ─── sprint-059 W2.6 new test cases: propagationDepth inference ────────────
 
-  test("propagationDepth inferred as 5 for byWhom.identity=monitor", async () => {
-    // Monitor emits map to runtime layer (depth 5) in the ForwardProp chain.
-    // Rule 10 v2.1.0 §propagationDepth: 5 = runtime layer.
+  test("propagationDepth inferred as 4 for byWhom.identity=monitor", async () => {
+    // Monitor emits map to runtime layer (depth 4) on the canonical 0-4 scale.
+    // Rule 10 v2.2.0 §propagationDepth: 4 = runtime/src layer.
     const envelope = baseEnvelope({
       byWhom: { identity: "monitor", agentName: "monitor-async" },
       withWhat: { memoryLayers: ["procedural"] as const },
@@ -349,14 +349,14 @@ describe("valueGradeAssigner", () => {
       tool_input: { project: TMP, envelope },
     });
     expect(result.decision).toBe("continue");
-    // additionalContext must report depth=5 inferred from identity
-    expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=5");
+    // additionalContext must report depth=4 inferred from identity
+    expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=4");
     expect(result.hookSpecificOutput?.additionalContext).toContain("inferred");
   });
 
-  test("propagationDepth inferred as 1 for claude-code + schema-primitive refinementTarget", async () => {
-    // schema-primitive refinementTarget maps to the schema layer (depth 1).
-    // Rule 10 v2.1.0 §propagationDepth: 1 = schema layer.
+  test("propagationDepth inferred as 0 for claude-code + schema-primitive refinementTarget", async () => {
+    // schema-primitive refinementTarget maps to the research/schema layer (depth 0)
+    // on the canonical 0-4 scale (research+schema collapsed). Rule 10 v2.2.0.
     const envelope = baseEnvelope({
       byWhom: { identity: "claude-code" },
       withWhat: {
@@ -375,7 +375,7 @@ describe("valueGradeAssigner", () => {
       tool_input: { project: TMP, envelope },
     });
     expect(result.decision).toBe("continue");
-    expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=1");
+    expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=0");
     expect(result.hookSpecificOutput?.additionalContext).toContain("inferred");
   });
 
@@ -399,8 +399,9 @@ describe("valueGradeAssigner", () => {
     expect(result.hookSpecificOutput?.additionalContext).toContain("caller-supplied");
   });
 
-  test("propagationDepth defaults to 4 (contracts layer) for claude-code with no refinementTarget", async () => {
-    // claude-code agent with no refinementTarget.kind → safe default of 4 (contracts layer).
+  test("propagationDepth defaults to 3 (contracts/hooks layer) for claude-code with no refinementTarget", async () => {
+    // claude-code agent with no refinementTarget.kind → safe default of 3
+    // (contracts/hooks layer) on the canonical 0-4 scale.
     const envelope = baseEnvelope({
       byWhom: { identity: "claude-code", agentName: "implementer" },
       withWhat: { memoryLayers: ["procedural"] as const },
@@ -411,7 +412,7 @@ describe("valueGradeAssigner", () => {
       tool_input: { project: TMP, envelope },
     });
     expect(result.decision).toBe("continue");
-    expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=4");
+    expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=3");
   });
 
   // ─── sprint-060 W1.9 new test cases (P1.E1/M24/H.5) ────────────────────────

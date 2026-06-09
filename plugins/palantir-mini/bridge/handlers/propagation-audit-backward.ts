@@ -20,6 +20,10 @@ import {
   type LineageDimension,
   type PropagationStep,
 } from "#schemas/ontology/primitives/propagation-replay";
+import {
+  PROPAGATION_DEPTH_TO_STEP,
+  PROPAGATION_STEPS,
+} from "#schemas/ontology/primitives/propagation-audit";
 import type { RefinementTarget } from "#schemas/ontology/primitives/refinement-target";
 
 export interface PropagationAuditBackwardInput {
@@ -86,12 +90,12 @@ function readAllEvents(project: string): RawEventRow[] {
  * or propagationDepth field. Returns null when unclassifiable.
  */
 function classifyStep(row: RawEventRow): PropagationStep | null {
-  // 1. propagationDepth field takes precedence (T1.4 addition)
+  // 1. propagationDepth field takes precedence (T1.4 addition).
+  // XRUN-2: depth is the canonical 0-4 layer scale (research+schema collapsed to
+  // layer 0). Map via PROPAGATION_DEPTH_TO_STEP — NOT by indexing the 6-value
+  // PropagationStep vocabulary (which would mis-map every depth ≥1).
   if (typeof row.propagationDepth === "number") {
-    const steps: PropagationStep[] = [
-      "research", "schema", "shared-core", "project-ontology", "contracts", "runtime",
-    ];
-    const step = steps[row.propagationDepth];
+    const step = PROPAGATION_DEPTH_TO_STEP[row.propagationDepth];
     if (step) return step;
   }
   // 2. Event-type heuristics
@@ -170,10 +174,9 @@ function walkBackward(
   const visited = new Set<string>();
   const nodes: PropagationReplayNode[] = [];
   let firstViolationStep: PropagationStep | null = null;
-  // Track earliest (most-authoritative) violation step found
-  const STEP_ORDER: PropagationStep[] = [
-    "research", "schema", "shared-core", "project-ontology", "contracts", "runtime",
-  ];
+  // Track earliest (most-authoritative) violation step found. Authority order
+  // is the canonical 6-value PropagationStep vocabulary (research highest).
+  const STEP_ORDER: readonly PropagationStep[] = PROPAGATION_STEPS;
 
   const queue: Array<{ row: RawEventRow; depth: number }> = [
     { row: seedRow, depth: 0 },

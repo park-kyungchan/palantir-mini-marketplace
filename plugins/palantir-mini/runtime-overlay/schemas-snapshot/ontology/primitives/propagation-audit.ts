@@ -73,6 +73,75 @@ export function isPropagationStep(s: string): s is PropagationStep {
   return (PROPAGATION_STEPS as readonly string[]).includes(s);
 }
 
+// ─── propagationDepth — canonical 5-layer (0-4) scale (XRUN-2) ──────────────
+//
+// SCALE RECONCILIATION. rule 10 v2.2.0 §Auto-derivation + rule 01 §ForwardProp
+// define FIVE layers (0-4); divergent code paths previously used SIX layers
+// (0-5, splitting research/schema). This is the ONE canonical enumeration —
+// the hook's inferPropagationDepth, scripts/log.ts emit(), the backward-prop
+// audit, and the compactor all consume it.
+//
+//   0 = research / schemas          (origin layer; rule 10 path-table row 1)
+//   1 = shared-core                 (ontology/shared-core)
+//   2 = project-ontology            (project ontology)
+//   3 = contracts / hooks
+//   4 = runtime / src
+//
+// Note the relationship to the SIX-value `PropagationStep` authority vocabulary
+// above: `PropagationStep` keeps its full 6-entry forward-chain enum (research
+// AND schema are distinct STEPS), but the 5-layer DEPTH scale COLLAPSES
+// research+schema into layer 0. PROPAGATION_DEPTH_TO_STEP maps a depth integer
+// to its representative step (layer 0 → "research", the highest authority).
+export const MIN_PROPAGATION_DEPTH = 0;
+export const MAX_PROPAGATION_DEPTH = 4;
+
+/** Canonical 0-4 propagation layer depth (rule 10 §Auto-derivation). */
+export type PropagationDepth = 0 | 1 | 2 | 3 | 4;
+
+/**
+ * Maps a canonical 0-4 `propagationDepth` to its representative
+ * `PropagationStep`. Layer 0 (research/schema collapsed) maps to "research".
+ * Index by a clamped depth; out-of-range depths return undefined.
+ */
+export const PROPAGATION_DEPTH_TO_STEP: readonly PropagationStep[] = [
+  "research",          // 0 — research / schemas
+  "shared-core",       // 1 — ontology/shared-core
+  "project-ontology",  // 2 — project ontology
+  "contracts",         // 3 — contracts / hooks
+  "runtime",           // 4 — runtime / src
+] as const;
+
+/** True when `n` is an integer in the canonical 0-4 range. */
+export function isPropagationDepth(n: number): n is PropagationDepth {
+  return Number.isInteger(n) && n >= MIN_PROPAGATION_DEPTH && n <= MAX_PROPAGATION_DEPTH;
+}
+
+/**
+ * Path-heuristic auto-derivation of `propagationDepth` from an emitter context
+ * path (rule 10 v2.2.0 §Auto-derivation). Best-effort — returns undefined when
+ * the path matches no layer (caller then omits the field, which is valid).
+ *
+ *   research/ | schemas/       → 0
+ *   ontology/shared-core/      → 1
+ *   project ontology/          → 2
+ *   contracts/ | hooks/        → 3
+ *   runtime/ | src/            → 4
+ */
+export function derivePropagationDepthFromPath(
+  contextPath: string | undefined,
+): PropagationDepth | undefined {
+  if (!contextPath) return undefined;
+  const p = contextPath.replace(/\\/g, "/").toLowerCase();
+  // Order matters: shared-core is under ontology/, so test it before the
+  // generic project-ontology check.
+  if (/(^|\/)(research|schemas)\//.test(p)) return 0;
+  if (/(^|\/)ontology\/shared-core\//.test(p) || /(^|\/)shared-core\//.test(p)) return 1;
+  if (/(^|\/)(project[- ]?ontology|ontology)\//.test(p)) return 2;
+  if (/(^|\/)(contracts|hooks)\//.test(p)) return 3;
+  if (/(^|\/)(runtime|runtime-overlay|src|lib|bridge|scripts)\//.test(p)) return 4;
+  return undefined;
+}
+
 /**
  * Per-step audit result. One entry per `PropagationStep` in
  * `PropagationAuditPayload.perStepResult`.

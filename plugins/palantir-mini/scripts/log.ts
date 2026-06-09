@@ -31,6 +31,8 @@ import {
 } from "../lib/outcome-pairing/track";
 import { isCanonicalSkillSlug, inferCanonicalSlug } from "../lib/skill-registry/canonical-slugs";
 import { normalizeRuntimeIdentity, type RuntimeIdentity } from "../lib/runtime/identity";
+import { derivePropagationDepthFromPath } from "#schemas/ontology/primitives/propagation-audit";
+import { isEventEnvelope } from "#schemas/ontology/primitives/event-envelope";
 
 export interface LogEnvelope {
   type:     EventEnvelope["type"];
@@ -58,8 +60,14 @@ export interface LogEnvelope {
   lineageRefs?: LineageRefs;
   /** Substrate-routing grade (T0..T4). Set by value-grade-assigner hook; callers may pass to override auto-grade. */
   valueGrade?: ValueGrade;
-  /** Axis A2 — propagation chain depth (0..5). */
+  /** Axis A2 — propagation chain depth (canonical 0-4 layer scale; rule 10 §Auto-derivation). */
   propagationDepth?: number;
+  /**
+   * Optional emitter context path used to auto-derive `propagationDepth` when
+   * the caller omits it (rule 10 v2.2.0 §Auto-derivation). Falls back to
+   * `toolName`/`cwd` when unset. Explicit `propagationDepth` always wins.
+   */
+  contextPath?: string;
   /** Axis D1 — provider-neutral identity fields (LLMI-02). */
   model?: string;
   provider?: string;
@@ -147,6 +155,27 @@ export async function emit(env: LogEnvelope): Promise<number> {
     }
   }
 
+  // ─── rule 10 v2.2.0 §Auto-derivation — propagationDepth (XRUN-2) ────────
+  // Explicit caller value wins ('explicit'); otherwise derive from the emitter
+  // context path (contextPath → toolName → cwd) via the canonical 0-4
+  // path-heuristic and tag the provenance 'auto'. When no layer matches, the
+  // field is omitted (omitting is valid per rule 10).
+  let effectiveDepth: number | undefined;
+  let depthSource: "auto" | "explicit" | undefined;
+  if (env.propagationDepth !== undefined) {
+    effectiveDepth = env.propagationDepth;
+    depthSource = "explicit";
+  } else {
+    const derived =
+      derivePropagationDepthFromPath(env.contextPath) ??
+      derivePropagationDepthFromPath(env.toolName) ??
+      derivePropagationDepthFromPath(env.cwd);
+    if (derived !== undefined) {
+      effectiveDepth = derived;
+      depthSource = "auto";
+    }
+  }
+
   // v1.35.0 — withWhat now carries memoryLayers + refinementTarget when provided.
   const hasWithWhat =
     Boolean(env.reasoning) ||
@@ -184,7 +213,9 @@ export async function emit(env: LogEnvelope): Promise<number> {
         : {}),
     } : undefined,
     ...(env.lineageRefs !== undefined ? { lineageRefs: env.lineageRefs } : {}),
-    ...(env.propagationDepth !== undefined ? { propagationDepth: env.propagationDepth } : {}),
+    ...(effectiveDepth !== undefined
+      ? { propagationDepth: effectiveDepth, propagationDepthSource: depthSource }
+      : {}),
   };
 
   const envelopeNoGrade = {
@@ -203,6 +234,23 @@ export async function emit(env: LogEnvelope): Promise<number> {
     ...envelopeNoGrade,
     valueGrade: computedGrade,
   } as Omit<EventEnvelope, "sequence">;
+
+  // ─── ENVELOPE-1 — machine-check the canonical 5-dim shape at emit ────────
+  // Validate against the schema primitive's structural type guard (the SSoT for
+  // the EventEnvelope shape). ADVISORY ONLY: a hard reject here would break
+  // historical flows + lifecycle events whose payloads predate the primitive,
+  // so a non-conformant envelope is logged to stderr but still appended (rule 10
+  // NEVER blind-drops). `isEventEnvelope` requires `sequence`; the real value is
+  // assigned under the lock in appendEventAtomic, so we probe with a provisional 0.
+  if (!isEventEnvelope({ ...envelope, sequence: 0 })) {
+    try {
+      process.stderr.write(
+        `[palantir-mini/log] envelope failed isEventEnvelope schema-shape check ` +
+        `(type=${String(env.type)}); appended anyway (advisory, rule 10 no-drop). ` +
+        `Verify 5-dim fields against schemas event-envelope primitive.\n`,
+      );
+    } catch { /* never throw from telemetry */ }
+  }
 
   // ─── W2.4 (sprint-027) — skill_started canonical-slug advisory ─────────
   // When emitting a skill_started event whose payload.skillName is not in the
