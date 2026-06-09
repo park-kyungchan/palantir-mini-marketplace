@@ -90,7 +90,8 @@ export type OntologyEngineeringWorkflowPhase =
   | "semantic-contract-drafted"
   | "semantic-contract-approved"
   | "digital-twin-approved"
-  | "mutation-authorized";
+  | "mutation-authorized"
+  | "registered";
 
 export type UserDecisionKind = "accept" | "reject" | "defer" | "answer";
 
@@ -185,6 +186,14 @@ export interface OntologyEngineeringWorkflowContract {
   readonly phase: OntologyEngineeringWorkflowPhase;
   readonly allowedNextActions: readonly OntologyEngineeringWorkflowAction[];
   readonly mutationAuthorized: boolean;
+  /**
+   * ISO8601 set ONCE the workflow's accepted candidate set has been committed via
+   * the `register`/`elevate` seam (S1 state-sync closure). Presence => terminal
+   * `registered` phase + allowedNextActions `["status"]`. Persisted; preserved
+   * across re-derivations until a new `start`. Does NOT flip `mutationAuthorized`
+   * (the protected-surface gate signal stays tied to SIC/DTC approval).
+   */
+  readonly registeredAt?: string;
   readonly sourceRefs: readonly string[];
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -213,6 +222,7 @@ export interface DeriveWorkflowStateInput {
   readonly digitalTwinChangeContractRef?: string;
   readonly digitalTwinChangeContractStatus?: "draft" | "approved" | "superseded";
   readonly workContractRef?: string;
+  readonly registeredAt?: string;
   readonly turnDecisionSpecs?: readonly TurnCardDecisionSpec[];
   readonly userDecisionRecords?: readonly UserDecisionRecord[];
   readonly createdAt?: string;
@@ -388,8 +398,16 @@ export function deriveOntologyEngineeringWorkflowState(
 ): OntologyEngineeringWorkflowState {
   const updatedAt = input.updatedAt ?? new Date().toISOString();
   const createdAt = input.createdAt ?? input.fdeSession?.createdAt ?? updatedAt;
-  const phase = deriveWorkflowPhase(input);
+  const registered = (input.registeredAt ?? "").trim().length > 0;
+  const phase: OntologyEngineeringWorkflowPhase = registered
+    ? "registered"
+    : deriveWorkflowPhase(input);
+  // Gate signal — UNCHANGED. Registration does NOT authorize protected-surface
+  // mutation; the terminal signal is `phase: "registered"` + register.committed.
   const mutationAuthorized = deriveMutationAuthorized(input);
+  const allowedNextActions: readonly OntologyEngineeringWorkflowAction[] = registered
+    ? ["status"]
+    : deriveAllowedNextActions(input);
   const fdeSessionRef = input.fdeSession
     ? `fde-ontology-engineering://session/${input.fdeSession.sessionId}`
     : undefined;
@@ -419,8 +437,9 @@ export function deriveOntologyEngineeringWorkflowState(
     digitalTwinChangeContractStatus: input.digitalTwinChangeContractStatus,
     workContractRef: input.workContractRef,
     phase,
-    allowedNextActions: deriveAllowedNextActions(input),
+    allowedNextActions,
     mutationAuthorized,
+    registeredAt: input.registeredAt,
     sourceRefs,
     turnDecisionSpecs: input.turnDecisionSpecs ?? [],
     userDecisionRecords,

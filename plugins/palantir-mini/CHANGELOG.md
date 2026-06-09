@@ -7,6 +7,19 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.125.0] - 2026-06-09 — fix(oe): S1 post-register/elevate state-sync (terminal `registered` phase)
+
+### Fixed
+- **BLOCKING state-sync defect (audit G4 S1): after the OE-workflow `register`/`elevate` seam committed, the returned + persisted top-level `state.phase` was stale (`digital-twin-approved`) and never reflected the commit, corrupting every downstream consumer of OE-workflow phase.**
+  - Added a terminal `registered` phase to `OntologyEngineeringWorkflowPhase`; `register`/`elevate` now `writeState` a persisted `registeredAt` signal so the derived top-level phase advances to `registered` (allowedNextActions `["status"]`), instead of returning a re-derived pre-commit `readState`.
+  - Reconciled the two phase namespaces: the nested `ElevateResult.phase ("elevated")` is now consistent with the authoritative top-level `state.phase ("registered")`.
+  - GOVERNANCE-safe: `mutationAuthorized` stays derived purely from SIC/DTC/workContract/decision-record approval (NOT flipped by registration), so the enforcement gate's protected-surface authorization is unchanged. The separate `sourceMutationApprovals` array is preserved across the new write.
+
+### Added
+- `registered` terminal phase + optional persisted `registeredAt` contract field; `writeRegisteredState` handler helper; regression test `tests/bridge/handlers/ontology-engineering-state-sync.test.ts` (6 cases: terminal phase returned+persisted, governance mutationAuthorized=false on register AND elevate paths, idempotent re-register, sourceMutationApprovals preservation, elevate namespace reconciliation).
+
+Lead-orchestrated; opus subagents implemented + adversarially verified.
+
 ## [6.124.0] - 2026-06-09 — composed governed OE-elevation flow (action:elevate) + adapter-OE-binding
 
 ### Added
