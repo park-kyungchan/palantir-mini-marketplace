@@ -1,5 +1,43 @@
 # Ontology Schema Changelog
 
+## 1.70.0 — EventEnvelope primitive: canonical 5-dim envelope promoted from runtime (audit G3) — 2026-06-09
+
+### Added
+
+- `ontology/primitives/event-envelope.ts` (NEW) — promotes the canonical 5-dim
+  Decision Lineage envelope (rule 10: WHEN / ATOP_WHICH / THROUGH_WHICH / BY_WHOM
+  / WITH_WHAT) from the runtime type `palantir-mini/lib/event-log/types.ts`
+  (`interface EventEnvelopeBase` + EventId/SessionId/CommitSha brands + ~40
+  variant unions) to **schema-level authority**. Audit G3 flagged this as the
+  highest-leverage missing primitive — the append-only `events.jsonl` row
+  envelope was un-schema'd, modeled only in runtime + the alias-wrapper
+  `event.ts` (which covers only EventRid graph-node identity and explicitly
+  states the full envelope is NOT modeled there). Declares:
+  - `EVENT_ENVELOPE_SCHEMA_VERSION` const.
+  - Branded value types `EventId` / `SessionId` / `CommitSha` (+ `eventId` /
+    `sessionId` / `commitSha` factories), mirroring the runtime brand convention.
+  - `EventEnvelopeBase` — the 5 dims (`when` ISO8601, `atopWhich` CommitSha,
+    `throughWhich`, `byWhom`, optional `withWhat`) + `sequence` + optional
+    `propagationDepth` (rule 10 §propagationDepth). Sub-shapes
+    `EventThroughWhich` / `EventByWhom` (provider-neutral attribution, rule 26
+    §Axis D1) / `EventWithWhat`.
+  - A REPRESENTATIVE discriminated `EventEnvelope` union by `type` discriminant
+    (`edit_proposed` / `edit_committed` / `validation_phase_completed`) with an
+    OCP note that new variants extend the union — the full ~40-variant set stays
+    in the runtime mirror. `EventType` discriminant alias.
+  - `isEventEnvelope` structural type-guard (validates the 5 required dims; payload
+    shape is a per-variant concern).
+  - `eventEnvelopeFoundryEquivalent` (`claude-extension`) marker.
+- **No uphill import from `lib/event-log/`** — schemas-snapshot is the authority;
+  the runtime type is the mirror of this declaration, not the reverse.
+- Complements `event.ts` (prim-learn-27): that covers the EventRid graph-node
+  identity, this covers the full envelope shape. No symbol collision.
+- Registered in `ontology/primitives/index.ts` barrel (`export *`) +
+  `package.json` exports subpath `./ontology/primitives/event-envelope`.
+
+MINOR (additive primitive; no edits to v1.0–v1.69 primitive bodies; no breaking
+change). Schema package version bumped 1.79.0 → 1.80.0.
+
 ## 1.69.0 — Self-Ontology: Executor ActionType + McpTool ObjectType (M-SELF #2+#3) — 2026-06-08
 
 ### Added

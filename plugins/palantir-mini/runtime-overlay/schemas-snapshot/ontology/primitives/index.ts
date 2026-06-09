@@ -729,3 +729,16 @@ export type {
   FDEPanelBuilderHints,
 } from "./fde-panel";
 export { FDE_PANEL_SCHEMA_VERSION } from "./fde-panel";
+
+// --- v1.70 EventEnvelope primitive (audit G3 — highest-leverage ADD) ---
+// Promotes the canonical 5-dim Decision Lineage envelope (rule 10:
+// when / atopWhich / throughWhich / byWhom / withWhat) from the runtime type
+// palantir-mini/lib/event-log/types.ts to schema-level authority. Declares
+// EventEnvelopeBase + EventId/SessionId/CommitSha brands + a REPRESENTATIVE
+// discriminated EventEnvelope subset (full ~40-variant union stays in the
+// runtime mirror per OCP) + isEventEnvelope guard. Complements event.ts
+// (prim-learn-27, EventRid graph-node identity) — that covers the node, this
+// covers the full envelope. No uphill import from lib/ (schema is authority).
+// Import via shared-core; never import this path directly from consumer
+// projects (rule 08 authority chain).
+export * from "./event-envelope";

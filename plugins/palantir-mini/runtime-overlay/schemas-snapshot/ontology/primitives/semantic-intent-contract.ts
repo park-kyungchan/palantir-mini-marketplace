@@ -162,8 +162,11 @@ export interface SemanticIntentContract {
   readonly confirmedIntent: string;
 
   /** Backward-compatible conversation fields. */
+  /** @deprecated superseded by approvedObjectTypeRefs; migration pending */
   readonly approvedNouns: readonly string[];
+  /** @deprecated superseded by approvedActionTypeRefs; migration pending */
   readonly approvedVerbs: readonly string[];
+  /** @deprecated superseded by approvedSurfaceRefs; migration pending */
   readonly affectedSurfaces: readonly string[];
 
   /** Additive typed ref graph fields. */
@@ -174,6 +177,7 @@ export interface SemanticIntentContract {
   readonly approvedSurfaceRefs?: readonly ProjectSurfaceRef[];
   readonly approvedLaneRefs?: readonly ProjectLaneRef[];
 
+  /** @deprecated superseded by axes.constraintsNonGoals; migration pending */
   readonly nonGoals: readonly string[];
   readonly downstreamAllowed: readonly string[];
   readonly downstreamForbidden: readonly string[];
@@ -206,8 +210,18 @@ export interface SemanticIntentContract {
    * NOTE: "approved" here is distinct from `status === "approved"`.
    * `verdict` tracks the fill workflow outcome; `status` tracks the contract
    * lifecycle (draft / approved / superseded).
+   *
+   * @deprecated use fillVerdict
    */
   readonly verdict?: "draft" | "filled" | "approved" | "rejected";
+
+  /**
+   * Canonical replacement for the `verdict` field. Same fill / approval
+   * verdict semantics; renamed to avoid the naming collision with `status`
+   * (the contract lifecycle). Additive — readers may continue to consult
+   * `verdict` until the migration completes.
+   */
+  readonly fillVerdict?: "draft" | "filled" | "approved" | "rejected";
 
   /**
    * RID of the GradingRubric used to evaluate this SIC during the fill
