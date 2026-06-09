@@ -11,7 +11,33 @@ export type OntologyEngineeringWorkflowAction =
   | "start"
   | "turn"
   | "draft_sic"
+  | "register"
   | "status";
+
+/**
+ * Result of the ENTRY-loop `register` seam (O-2 closure). Materializes an
+ * approved ontology-engineering session's accepted candidate set into
+ * registered, readable primitives via a single batched commit.
+ */
+export interface OntologyEngineeringRegisterResult {
+  /** True iff the candidate set was committed (edit_committed appended). */
+  readonly committed: boolean;
+  /** Per-kind minted rids that were committed. */
+  readonly registered: {
+    readonly objectTypes: readonly string[];
+    readonly actionTypes: readonly string[];
+    readonly functions: readonly string[];
+    readonly linkTypes: readonly string[];
+  };
+  /** Link candidates skipped because an endpoint did not resolve (D6). */
+  readonly skipped: {
+    readonly links: ReadonlyArray<{ readonly linkName: string; readonly reason: string }>;
+  };
+  /** The commit handler's verdict; absent when nothing was committed. */
+  readonly commitResult?: unknown;
+  /** Why the register call was refused (precondition gate not met / no edits). */
+  readonly invalidReason?: string;
+}
 
 export type OntologyEngineeringWorkflowPhase =
   | "not-started"

@@ -28,9 +28,14 @@ import {
   writeOntologyEngineeringWorkflowState,
   type OntologyEngineeringWorkflowAction,
   type OntologyEngineeringWorkflowState,
+  type OntologyEngineeringRegisterResult,
   type TurnCardDecisionSpec,
   type UserDecisionRecord,
 } from "../../lib/ontology-engineering-workflow";
+import { registerAcceptedCandidates } from "../../lib/ontology-engineering-workflow/register-accepted";
+import commitEditsHandler from "./commit-edits";
+import getOntology from "./get-ontology";
+import { COMMIT_EDITS_ACTION_TYPE_RID } from "../../runtime-overlay/schemas-snapshot/ontology/self/action-types";
 import {
   handleFDEOntologyTurn,
   type FDEOntologyTurnHandlerInput,
@@ -77,6 +82,7 @@ export interface OntologyEngineeringWorkflowHandlerResult {
   readonly sessionRef?: string;
   readonly turn?: FDEOntologyTurnHandlerResult;
   readonly semanticIntentContract?: SemanticIntentContract;
+  readonly register?: OntologyEngineeringRegisterResult;
 }
 
 const MINIMAL_ROOT_PAYLOAD_EXAMPLE =
@@ -96,9 +102,10 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "start" &&
     value.action !== "turn" &&
     value.action !== "draft_sic" &&
+    value.action !== "register" &&
     value.action !== "status"
   ) {
-    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, or status.");
+    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, register, or status.");
   }
   if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
     throw new Error(
@@ -367,6 +374,105 @@ function writeState(input: {
   };
 }
 
+/**
+ * ENTRY-loop `register` seam (O-2 closure). An EXPLICIT call materializes an
+ * approved ontology-engineering session's accepted candidate set into
+ * registered, READABLE primitives: register → commit → materialize → read,
+ * per-project isolated. NOT auto-fired on the approval transition — re-gated here.
+ *
+ * Precondition gate (D3 + D5): refuse unless BOTH hold —
+ *   (a) approval: the workflow has reached digital-twin-approved (SIC approved +
+ *       valid ref AND DTC approved + valid ref — the front-door FSM
+ *       `digital_twin_approved` + isApprovedSemanticIntentContract semantics,
+ *       encoded by deriveOntologyEngineeringWorkflowState's contract-approved check);
+ *   (b) grade: the FDE readiness grade passed (session.readinessProfile.
+ *       readyForDigitalTwin === true — the grade signal reachable in this
+ *       handler's context).
+ * When not (approved AND graded): return an INVALID no-op (invalidReason) and
+ * write NO edits.
+ */
+async function handleRegister(
+  input: OntologyEngineeringWorkflowHandlerInput,
+): Promise<OntologyEngineeringWorkflowHandlerResult> {
+  const root = projectRoot(input);
+  if (root.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow register requires a projectRoot.");
+  }
+  const session = readSessionByInput(input);
+  if (session === undefined) {
+    throw new Error("pm_ontology_engineering_workflow register requires an existing FDE session.");
+  }
+
+  // Derive the workflow state (reads prior persisted contract approval + handler
+  // input). phase digital-twin-approved / mutation-authorized ⇒ SIC + DTC approved.
+  const state = deriveStateSnapshot({ handlerInput: input, session, preservePreviousUpdatedAt: true });
+  const approved =
+    state.phase === "digital-twin-approved" || state.phase === "mutation-authorized";
+  const graded = session.readinessProfile?.readyForDigitalTwin === true;
+
+  if (!approved || !graded) {
+    const reasons: string[] = [];
+    if (!approved) {
+      reasons.push(
+        `digital-twin contract not approved (workflow phase=${state.phase}; require SIC+DTC approved)`,
+      );
+    }
+    if (!graded) {
+      reasons.push("FDE readiness grade not passed (readinessProfile.readyForDigitalTwin !== true)");
+    }
+    const register: OntologyEngineeringRegisterResult = {
+      committed: false,
+      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [] },
+      skipped: { links: [] },
+      invalidReason: reasons.join("; "),
+    };
+    return { ...readState({ handlerInput: input, session }), register };
+  }
+
+  // Already-materialized rids → skip on re-register (idempotency against the
+  // append-only fold, which does not itself dedup).
+  const snapshot = (await getOntology({ project: root })).snapshot.registeredPrimitives;
+  const alreadyRegistered = new Set<string>([
+    ...(snapshot?.objectTypes ?? []),
+    ...(snapshot?.actionTypes ?? []),
+    ...(snapshot?.functions ?? []),
+    ...(snapshot?.linkTypes ?? []),
+  ]);
+
+  const { edits, registered, skipped } = await registerAcceptedCandidates({
+    session,
+    projectRoot: root,
+    alreadyRegistered,
+  });
+
+  if (edits.length === 0) {
+    const register: OntologyEngineeringRegisterResult = {
+      committed: false,
+      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [] },
+      skipped,
+      invalidReason: "nothing to register: no new accepted candidates (all already registered or none present)",
+    };
+    return { ...readState({ handlerInput: input, session }), register };
+  }
+
+  // Single batched commit (D4) through the ONE commit path (commit_edits handler).
+  // The handler attaches its own 5-dim lineage (byWhom defaults to the runtime
+  // identity; reasoning records the dryRunRef) — see commit.ts:baseLineage.
+  const commitResult = await commitEditsHandler({
+    project: root,
+    actionTypeRid: COMMIT_EDITS_ACTION_TYPE_RID,
+    edits,
+  });
+
+  const register: OntologyEngineeringRegisterResult = {
+    committed: true,
+    registered,
+    skipped,
+    commitResult,
+  };
+  return { ...readState({ handlerInput: input, session }), register };
+}
+
 export async function handleOntologyEngineeringWorkflow(
   input: OntologyEngineeringWorkflowHandlerInput,
 ): Promise<OntologyEngineeringWorkflowHandlerResult> {
@@ -424,6 +530,9 @@ export async function handleOntologyEngineeringWorkflow(
         },
       );
       return writeState({ handlerInput: input, session, semanticIntentContract });
+    }
+    case "register": {
+      return handleRegister(input);
     }
   }
 }
