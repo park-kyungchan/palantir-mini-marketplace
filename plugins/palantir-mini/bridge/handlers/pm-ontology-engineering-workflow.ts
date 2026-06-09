@@ -35,6 +35,10 @@ import {
   type UserDecisionRecord,
 } from "../../lib/ontology-engineering-workflow";
 import { registerAcceptedCandidates } from "../../lib/ontology-engineering-workflow/register-accepted";
+import {
+  elevateOntologyFromSource,
+  type ElevateResult,
+} from "../../lib/ontology-engineering-workflow/elevate";
 import { lintConstructionCandidates } from "../../lib/construction-lint/lint-candidates";
 import { ingestJsonlSourceToCandidates } from "../../lib/fde-ontology-engineering/source-ingest";
 import commitEditsHandler from "./commit-edits";
@@ -69,6 +73,8 @@ export interface OntologyEngineeringWorkflowHandlerInput
   readonly semanticIntentContractStatus?: "draft" | "approved" | "superseded";
   readonly digitalTwinChangeContractRef?: string;
   readonly digitalTwinChangeContractStatus?: "draft" | "approved" | "superseded";
+  /** Caller-supplied readiness grade — gates the composed `elevate` flow's register step. */
+  readonly readyForDigitalTwin?: boolean;
   readonly workContractRef?: string;
   readonly choiceApplications?: readonly HandlerChoiceApplication[];
   readonly affectedSurfaces?: readonly string[];
@@ -91,6 +97,7 @@ export interface OntologyEngineeringWorkflowHandlerResult {
   readonly register?: OntologyEngineeringRegisterResult;
   readonly ingest?: OntologyEngineeringIngestResult;
   readonly lint?: OntologyEngineeringLintResult;
+  readonly elevate?: ElevateResult;
 }
 
 const MINIMAL_ROOT_PAYLOAD_EXAMPLE =
@@ -113,9 +120,10 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "ingest" &&
     value.action !== "register" &&
     value.action !== "lint" &&
+    value.action !== "elevate" &&
     value.action !== "status"
   ) {
-    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, ingest, register, lint, or status.");
+    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, ingest, register, lint, elevate, or status.");
   }
   if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
     throw new Error(
@@ -130,9 +138,12 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
         `Minimal turn payload: ${MINIMAL_TURN_PAYLOAD_EXAMPLE}`,
     );
   }
-  if (value.action === "ingest" && !hasNonEmptyString(value, "sourceJsonlPath")) {
+  if (
+    (value.action === "ingest" || value.action === "elevate") &&
+    !hasNonEmptyString(value, "sourceJsonlPath")
+  ) {
     throw new Error(
-      "pm_ontology_engineering_workflow: missing_source_jsonl_path: `sourceJsonlPath` is required when action is `ingest`.",
+      "pm_ontology_engineering_workflow: missing_source_jsonl_path: `sourceJsonlPath` is required when action is `ingest` or `elevate`.",
     );
   }
 }
@@ -562,6 +573,46 @@ async function handleRegister(
   return { ...readState({ handlerInput: input, session }), register };
 }
 
+/**
+ * `elevate` seam — the COMPOSED GOVERNED OE-ELEVATION FLOW (the FIRST mutating
+ * flow exposed via MCP; the individual mutating actions register/ingest/lint stay
+ * direct-caller). Drives the already-built governed steps as ONE flow so a runtime
+ * adapter DRIVES the governed pipeline through pm via a single governed call:
+ *
+ *   ingest → lint → draft_sic → APPROVAL GATE (caller-supplied) → register.
+ *
+ * The approval gate is governance, NEVER auto-fabricated: registers ONLY when the
+ * caller explicitly supplied SIC approved + DTC approved + readyForDigitalTwin.
+ * Returns the freshly-derived workflow state plus the composed elevate result.
+ */
+async function handleElevate(
+  input: OntologyEngineeringWorkflowHandlerInput,
+): Promise<OntologyEngineeringWorkflowHandlerResult> {
+  const root = projectRoot(input);
+  if (root.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow elevate requires a projectRoot.");
+  }
+  const sourceJsonlPath = input.sourceJsonlPath?.trim();
+  if (sourceJsonlPath === undefined || sourceJsonlPath.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow elevate requires a sourceJsonlPath.");
+  }
+
+  const elevate = await elevateOntologyFromSource({
+    projectRoot: root,
+    sourceJsonlPath,
+    semanticIntentContractStatus: input.semanticIntentContractStatus,
+    digitalTwinChangeContractStatus: input.digitalTwinChangeContractStatus,
+    readyForDigitalTwin: input.readyForDigitalTwin,
+    rawUserRequest: input.recordedDecisionNote,
+    sessionId: input.sessionId,
+  });
+
+  // Read the freshly-derived workflow state over the (now ingested + possibly
+  // registered) session so the result carries the runtime-neutral workflow view.
+  const session = readSessionByInput(input);
+  return { ...readState({ handlerInput: input, session }), elevate };
+}
+
 export async function handleOntologyEngineeringWorkflow(
   input: OntologyEngineeringWorkflowHandlerInput,
 ): Promise<OntologyEngineeringWorkflowHandlerResult> {
@@ -628,6 +679,9 @@ export async function handleOntologyEngineeringWorkflow(
     }
     case "lint": {
       return handleLint(input);
+    }
+    case "elevate": {
+      return handleElevate(input);
     }
   }
 }

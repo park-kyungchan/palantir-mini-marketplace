@@ -98,6 +98,7 @@ const ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS = [
   "semanticIntentContractStatus",
   "digitalTwinChangeContractRef",
   "digitalTwinChangeContractStatus",
+  "readyForDigitalTwin",
   "workContractRef",
   "sourceJsonlPath",
   "affectedSurfaces",
@@ -318,7 +319,7 @@ describe("mcp-server prompt identity schemas", () => {
     );
 
     expect(props.action?.type).toBe("string");
-    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "status"]);
+    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "status", "elevate"]);
     expect(props.project?.type).toBe("string");
     expect(props.projectRoot?.type).toBe("string");
     expect(props.fdeSessionRef?.type).toBe("string");

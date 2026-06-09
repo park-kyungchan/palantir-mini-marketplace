@@ -15,6 +15,7 @@ export type OntologyEngineeringWorkflowAction =
   | "ingest"
   | "register"
   | "lint"
+  | "elevate"
   | "status";
 
 /**
