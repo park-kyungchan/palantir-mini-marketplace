@@ -1239,6 +1239,21 @@ export const isDtcGraderRuntimeGap            = (e: EventEnvelope): e is DtcGrad
 export const isDtcEvalRefsBypassInvoked       = (e: EventEnvelope): e is DtcEvalRefsBypassInvokedEnvelope       => e.type === "dtc_eval_refs_bypass_invoked";
 
 // ─── Snapshot type produced by foldToSnapshot (prim-data-04 SnapshotManifest) ─
+
+/**
+ * FOLD-1 — a single materialized register-primitive entry in the canonical
+ * fold. Carries the registered `rid` PLUS the committed `declaration` (the
+ * register edit's `properties` minus `primitiveKind`, or the link edit's
+ * `{ srcRid, dstRid, linkName }`), so the fold is meaning-bearing — a reader
+ * sees WHAT was registered, not just THAT something was. `declaration` is
+ * OPTIONAL: historical / fixture snapshots that only carried bare rids fold
+ * into entries with `declaration` absent.
+ */
+export interface RegisteredPrimitiveEntry {
+  rid: string;
+  declaration?: Record<string, unknown>;
+}
+
 export interface EventSnapshot {
   edit_proposed:               number;
   edit_committed:              number;
@@ -1335,13 +1350,17 @@ export interface EventSnapshot {
   source_mutation_approval_denied?:   number;
   // O-2 — register→commit→materialize→read loop closure. Projection of committed
   // applyRegister* edits into a readable typed-primitive collection (fold-snapshot.ts).
+  // FOLD-1 — each bucket entry carries the registered rid PLUS the committed
+  // declaration (the edit's projected meaning), not just the bare rid, so the
+  // canonical fold is meaning-bearing. `declaration` is OPTIONAL for back-compat
+  // with historical / fixture snapshots that only carried rids.
   registeredPrimitives?: {
-    objectTypes: string[];   // rids
-    linkTypes:   string[];
-    actionTypes: string[];
-    functions:   string[];
-    roles:       string[];
-    properties:  string[];
+    objectTypes: RegisteredPrimitiveEntry[];
+    linkTypes:   RegisteredPrimitiveEntry[];
+    actionTypes: RegisteredPrimitiveEntry[];
+    functions:   RegisteredPrimitiveEntry[];
+    roles:       RegisteredPrimitiveEntry[];
+    properties:  RegisteredPrimitiveEntry[];
   };
   totalEvents:                 number;
   lastSequence:                number;

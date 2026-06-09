@@ -153,6 +153,11 @@ function buildVerboseMarkdown(events: EventEnvelope[]): string | undefined {
   return `# T3+ Decision Lineage (${t3Plus.length} events)\n\n` + blocks.join("\n\n");
 }
 
+// FOLD-1 note: this `.map(e => e.rid)` is intentionally rid-graph-only — it
+// builds the lineageGraph's impacted-rid list for display, NOT the meaning-
+// bearing fold. The committed declarations flow through `derivedState =
+// foldToSnapshot(...)` (registeredPrimitives now carry declarations); get_ontology
+// is the sole meaning read. Keep this list as bare rids.
 function impactedObjectsOf(ev: EventEnvelope): string[] {
   switch (ev.type) {
     case "edit_proposed":   return Array.isArray(ev.payload?.hypotheticalEdits) ? ev.payload.hypotheticalEdits.map((e) => e.rid) : [];

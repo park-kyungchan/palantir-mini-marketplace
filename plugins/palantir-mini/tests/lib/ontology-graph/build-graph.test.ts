@@ -4,10 +4,10 @@
  *
  * Uses real fixtures under os.tmpdir() — no fs mocking, no module mocking,
  * no global git state mutation. Indexer-under-test (the orchestrator) walks
- * the temp directory and fans out to all 10 concrete indexers. Each indexer
- * gracefully tolerates an empty / partial fixture tree (per their own
- * spec), so the orchestrator returns 10 stats rows even when the fixture
- * contains nothing meaningful.
+ * the temp directory and fans out to all concrete indexers
+ * (ALL_INDEXER_NAMES). Each indexer gracefully tolerates an empty / partial
+ * fixture tree (per their own spec), so the orchestrator returns one stats row
+ * per indexer even when the fixture contains nothing meaningful.
  *
  * Sprint X3 PR 4/5. Plugin v6.11.0 → v6.12.0.
  *
@@ -102,7 +102,7 @@ async function seedMinimalFixture(root: string): Promise<void> {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("buildOntologyGraph", () => {
-  test("default run: returns store + stats arrays of length 10", async () => {
+  test("default run: returns store + stats arrays of length 11", async () => {
     const root = mkTempProject("default-run");
     await seedMinimalFixture(root);
 
@@ -111,9 +111,9 @@ describe("buildOntologyGraph", () => {
     });
 
     expect(result.store).toBeDefined();
-    expect(result.stats.length).toBe(10);
+    expect(result.stats.length).toBe(ALL_INDEXER_NAMES.length);
 
-    // All 10 canonical names present.
+    // All canonical names present.
     const names = result.stats.map((s) => s.indexerName).sort();
     const expected = [...ALL_INDEXER_NAMES].sort();
     expect(names).toEqual(expected);
@@ -129,7 +129,7 @@ describe("buildOntologyGraph", () => {
     }
   });
 
-  test("opts.skip filters indexers (events + git-history dropped → 8 rows)", async () => {
+  test("opts.skip filters indexers (events + git-history dropped → 2 fewer rows)", async () => {
     const root = mkTempProject("skip-filter");
     await seedMinimalFixture(root);
 
@@ -139,7 +139,7 @@ describe("buildOntologyGraph", () => {
       nowIso: "2026-05-13T00:00:00Z",
     });
 
-    expect(result.stats.length).toBe(8);
+    expect(result.stats.length).toBe(ALL_INDEXER_NAMES.length - 2);
     const names = result.stats.map((s) => s.indexerName);
     expect(names).not.toContain("events");
     expect(names).not.toContain("git-history");

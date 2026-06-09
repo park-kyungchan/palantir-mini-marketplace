@@ -109,9 +109,10 @@ describe("COMPOSED GOVERNED OE-ELEVATION FLOW — `elevate` seam", () => {
     const linkRid = projectPrimitiveRid(P, "link-type", "computes");
 
     const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
-    expect(reg.objectTypes).toContain(objRid);
-    expect(reg.functions).toContain(fnRid);
-    expect(reg.linkTypes).toContain(linkRid);
+    // FOLD-1: buckets now hold { rid, declaration? } — project to rids to assert.
+    expect(reg.objectTypes.map((e) => e.rid)).toContain(objRid);
+    expect(reg.functions.map((e) => e.rid)).toContain(fnRid);
+    expect(reg.linkTypes.map((e) => e.rid)).toContain(linkRid);
   });
 
   test("UNAUTHORIZED: no approval fields → phase 'awaiting-approval', NOTHING registered", async () => {

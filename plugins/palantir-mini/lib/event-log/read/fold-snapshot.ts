@@ -93,14 +93,26 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
         const appliedEdits = Array.isArray(ev.payload?.appliedEdits) ? ev.payload.appliedEdits : [];
         for (const edit of appliedEdits) {
           if (edit.kind === "link") {
-            reg.linkTypes.push(edit.rid);
+            // FOLD-1: carry the link's meaning (its endpoints + name) as the
+            // declaration so the fold is meaning-bearing, not a bare rid.
+            reg.linkTypes.push({
+              rid: edit.rid,
+              declaration: { srcRid: edit.srcRid, dstRid: edit.dstRid, linkName: edit.linkName },
+            });
           } else if (edit.kind === "object") {
-            const primitiveKind = (edit.properties as Record<string, unknown> | undefined)?.primitiveKind;
-            if (primitiveKind === "ObjectType")      reg.objectTypes.push(edit.rid);
-            else if (primitiveKind === "ActionType") reg.actionTypes.push(edit.rid);
-            else if (primitiveKind === "Function")   reg.functions.push(edit.rid);
-            else if (primitiveKind === "Role")       reg.roles.push(edit.rid);
-            else if (primitiveKind === "Property")   reg.properties.push(edit.rid);
+            // FOLD-1: project the committed declaration (the edit's properties
+            // MINUS the primitiveKind tag, which is the binning discriminator,
+            // not part of the registered meaning) into the bucket entry.
+            const props = (edit.properties as Record<string, unknown> | undefined) ?? {};
+            const primitiveKind = props.primitiveKind;
+            const { primitiveKind: _omit, ...declaration } = props;
+            void _omit;
+            const entry = { rid: edit.rid, declaration };
+            if (primitiveKind === "ObjectType")      reg.objectTypes.push(entry);
+            else if (primitiveKind === "ActionType") reg.actionTypes.push(entry);
+            else if (primitiveKind === "Function")   reg.functions.push(entry);
+            else if (primitiveKind === "Role")       reg.roles.push(entry);
+            else if (primitiveKind === "Property")   reg.properties.push(entry);
           }
         }
         break;

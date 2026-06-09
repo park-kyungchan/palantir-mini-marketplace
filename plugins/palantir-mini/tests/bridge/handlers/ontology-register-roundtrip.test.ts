@@ -87,7 +87,14 @@ describe("O-2 — full loop closure (§2.5)", () => {
     // (c) THE loop-closure proof: get_ontology materializes the committed rid.
     const onto = await getOntology({ project: root });
     expect(onto.snapshot.edit_committed).toBeGreaterThanOrEqual(1);
-    expect(onto.snapshot.registeredPrimitives?.objectTypes).toContain(rid);
+    const objBucket = onto.snapshot.registeredPrimitives?.objectTypes ?? [];
+    expect(objBucket.map((e) => e.rid)).toContain(rid);
+
+    // FOLD-1: the bucket entry is MEANING-bearing — it carries the committed
+    // declaration (apiName here), not just the bare rid. The old `.toContain(rid)`
+    // alone could not catch a lossy rid-only fold; this assertion does.
+    const objEntry = objBucket.find((e) => e.rid === rid);
+    expect(objEntry?.declaration?.apiName).toBe("LinearFunction");
   });
 
   test("each primitive kind bins into the right registeredPrimitives bucket", async () => {
@@ -117,9 +124,18 @@ describe("O-2 — full loop closure (§2.5)", () => {
     });
 
     const reg = (await getOntology({ project: root })).snapshot.registeredPrimitives!;
-    expect(reg.objectTypes).toContain("rid:obj/a");
-    expect(reg.linkTypes).toContain("rid:link/a");
-    expect(reg.actionTypes).toContain("rid:action/a");
-    expect(reg.functions).toContain("rid:fn/a");
+    expect(reg.objectTypes.map((e) => e.rid)).toContain("rid:obj/a");
+    expect(reg.linkTypes.map((e) => e.rid)).toContain("rid:link/a");
+    expect(reg.actionTypes.map((e) => e.rid)).toContain("rid:action/a");
+    expect(reg.functions.map((e) => e.rid)).toContain("rid:fn/a");
+
+    // FOLD-1: the LinkType bucket entry carries the link's meaning (endpoints +
+    // name) as its declaration, not just the rid.
+    const linkEntry = reg.linkTypes.find((e) => e.rid === "rid:link/a");
+    expect(linkEntry?.declaration).toMatchObject({
+      srcRid: "rid:obj/a",
+      dstRid: "rid:obj/b",
+      linkName: "relatesTo",
+    });
   });
 });
