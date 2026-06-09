@@ -75,7 +75,7 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
     failure_mode_synthesized:          0,
     // O-2 — register→commit→materialize→read loop: projection of committed
     // applyRegister* edits into a readable typed-primitive collection.
-    registeredPrimitives: { objectTypes: [], linkTypes: [], actionTypes: [], functions: [], roles: [] },
+    registeredPrimitives: { objectTypes: [], linkTypes: [], actionTypes: [], functions: [], roles: [], properties: [] },
     totalEvents:                 events.length,
     lastSequence:                0,
   };
@@ -100,6 +100,7 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
             else if (primitiveKind === "ActionType") reg.actionTypes.push(edit.rid);
             else if (primitiveKind === "Function")   reg.functions.push(edit.rid);
             else if (primitiveKind === "Role")       reg.roles.push(edit.rid);
+            else if (primitiveKind === "Property")   reg.properties.push(edit.rid);
           }
         }
         break;

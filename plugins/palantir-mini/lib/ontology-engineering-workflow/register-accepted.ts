@@ -9,11 +9,13 @@
  * (the handler calls the commit handler with the concatenated edits). Same
  * 2-stage seam the O-2 round-trip exercises.
  *
- * ORDER is load-bearing: objects → actions → functions → links. Objects are
- * registered first and their plainName→rid map is built so a LinkType candidate
- * can resolve its sourceObject/targetObject to the just-minted object rids.
- * A link whose endpoints don't both resolve is SKIPPED-and-reported (never
- * throws) — D6.
+ * ORDER is load-bearing: objects → actions → functions → roles → properties →
+ * links. All non-link kinds are registered first and a COMBINED plainName→rid map
+ * is built across ALL of them, so a LinkType candidate can resolve its
+ * sourceObject/targetObject against ANY registered primitive — a DATA↔LOGIC↔ACTION
+ * edge (e.g. object→function) resolves, not just object→object. A link whose
+ * endpoint name is truly absent from the combined map is SKIPPED-and-reported
+ * (never throws) — D6.
  *
  * @owner palantirkc-plugin-actions
  * @purpose Map accepted candidates → register OntologyEdit[] (register seam)
@@ -48,6 +50,7 @@ export interface RegisterAcceptedResult {
     readonly functions: string[];
     readonly linkTypes: string[];
     readonly roles: string[];
+    readonly properties: string[];
   };
   readonly skipped: {
     readonly links: Array<{ linkName: string; reason: string }>;
@@ -71,18 +74,23 @@ export async function registerAcceptedCandidates(
     functions: [] as string[],
     linkTypes: [] as string[],
     roles: [] as string[],
+    properties: [] as string[],
   };
   const skipped = { links: [] as Array<{ linkName: string; reason: string }> };
 
-  // plainName → rid for objects, so links can resolve their endpoints.
-  const objectRidByName = new Map<string, string>();
+  // COMBINED plainName → rid across ALL non-link kinds, so a LinkType candidate
+  // can resolve its endpoints against ANY registered primitive (cross-layer:
+  // object↔function↔action↔role↔property), not just objects. Built in the same
+  // order primitives are registered below; later same-name bindings win, but a
+  // frozen SOURCE should not collide plain names across kinds.
+  const nameToRid = new Map<string, string>();
 
   // ── 1) Objects ────────────────────────────────────────────────────────────
   for (const candidate of session.objectCandidates ?? []) {
     const rid = projectPrimitiveRid(projectRoot, "object-type", candidate.plainName);
     // Always record the name→rid binding so links resolve, even when the object
     // is already registered (idempotent re-register).
-    objectRidByName.set(candidate.plainName, rid);
+    nameToRid.set(candidate.plainName, rid);
     if (alreadyRegistered.has(rid)) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterObjectType",
@@ -103,6 +111,7 @@ export async function registerAcceptedCandidates(
   // ── 2) Actions ────────────────────────────────────────────────────────────
   for (const candidate of session.actionCandidates ?? []) {
     const rid = projectPrimitiveRid(projectRoot, "action-type", candidate.plainName);
+    nameToRid.set(candidate.plainName, rid);
     if (alreadyRegistered.has(rid)) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterActionType",
@@ -125,6 +134,7 @@ export async function registerAcceptedCandidates(
   // ── 3) Functions ──────────────────────────────────────────────────────────
   for (const candidate of session.functionCandidates ?? []) {
     const rid = projectPrimitiveRid(projectRoot, "function", candidate.plainName);
+    nameToRid.set(candidate.plainName, rid);
     if (alreadyRegistered.has(rid)) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterFunction",
@@ -143,12 +153,64 @@ export async function registerAcceptedCandidates(
     registered.functions.push(rid);
   }
 
-  // ── 4) Links (skip-and-report when an endpoint is unresolved — D6) ─────────
+  // ── 4) Roles (principal→permission grants; no endpoint dependency) ─────────
+  for (const candidate of session.roleCandidates ?? []) {
+    const rid = projectPrimitiveRid(projectRoot, "role", candidate.plainName);
+    nameToRid.set(candidate.plainName, rid);
+    if (alreadyRegistered.has(rid)) continue;
+    const { edits: e } = await applyEditFunction(
+      "pm.actions.ontology.applyRegisterRole",
+      {
+        rid,
+        declaration: {
+          plainName: candidate.plainName,
+          principalKind: candidate.principalKind,
+          grantedResourceRefs: candidate.grantedResourceRefs,
+          permissions: candidate.permissions,
+          candidateId: candidate.candidateId,
+          evidenceRefs: candidate.evidenceRefs,
+        },
+      },
+    );
+    edits.push(...e);
+    registered.roles.push(rid);
+  }
+
+  // ── 5) Properties (an ObjectType's stored field; owner resolved AFTER objects) ──
+  for (const candidate of session.propertyCandidates ?? []) {
+    const rid = projectPrimitiveRid(projectRoot, "property", candidate.plainName);
+    nameToRid.set(candidate.plainName, rid);
+    if (alreadyRegistered.has(rid)) continue;
+    // Resolve the owner ObjectType rid via the combined map (objects are registered
+    // before this pass). If unresolved, register the property standalone — never skip.
+    const ownerRid = candidate.ownerObjectName
+      ? nameToRid.get(candidate.ownerObjectName)
+      : undefined;
+    const { edits: e } = await applyEditFunction(
+      "pm.actions.ontology.applyRegisterProperty",
+      {
+        rid,
+        declaration: {
+          plainName: candidate.plainName,
+          ownerObjectName: candidate.ownerObjectName,
+          ownerRid,
+          dataType: candidate.dataType,
+          candidateId: candidate.candidateId,
+          evidenceRefs: candidate.evidenceRefs,
+        },
+      },
+    );
+    edits.push(...e);
+    registered.properties.push(rid);
+  }
+
+  // ── 6) Links — LAST so endpoints resolve against the COMBINED cross-layer map.
+  //       Skip-and-report only when an endpoint name is truly absent (D6).
   for (const candidate of session.linkCandidates ?? []) {
     const srcName = candidate.sourceObject;
     const dstName = candidate.targetObject;
-    const srcRid = srcName ? objectRidByName.get(srcName) : undefined;
-    const dstRid = dstName ? objectRidByName.get(dstName) : undefined;
+    const srcRid = srcName ? nameToRid.get(srcName) : undefined;
+    const dstRid = dstName ? nameToRid.get(dstName) : undefined;
     if (srcRid === undefined || dstRid === undefined) {
       const missing: string[] = [];
       if (srcRid === undefined) missing.push(`sourceObject=${srcName ?? "(none)"}`);
@@ -167,28 +229,6 @@ export async function registerAcceptedCandidates(
     );
     edits.push(...e);
     registered.linkTypes.push(rid);
-  }
-
-  // ── 5) Roles (principal→permission grants; no endpoint dependency → last) ──
-  for (const candidate of session.roleCandidates ?? []) {
-    const rid = projectPrimitiveRid(projectRoot, "role", candidate.plainName);
-    if (alreadyRegistered.has(rid)) continue;
-    const { edits: e } = await applyEditFunction(
-      "pm.actions.ontology.applyRegisterRole",
-      {
-        rid,
-        declaration: {
-          plainName: candidate.plainName,
-          principalKind: candidate.principalKind,
-          grantedResourceRefs: candidate.grantedResourceRefs,
-          permissions: candidate.permissions,
-          candidateId: candidate.candidateId,
-          evidenceRefs: candidate.evidenceRefs,
-        },
-      },
-    );
-    edits.push(...e);
-    registered.roles.push(rid);
   }
 
   return { edits, registered, skipped };

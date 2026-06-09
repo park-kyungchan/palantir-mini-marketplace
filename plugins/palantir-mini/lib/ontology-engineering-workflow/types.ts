@@ -38,6 +38,7 @@ export interface OntologyEngineeringIngestResult {
     readonly functions: number;
     readonly actions: number;
     readonly roles: number;
+    readonly properties: number;
     readonly links: number;
   };
   readonly skipped: {
@@ -61,6 +62,7 @@ export interface OntologyEngineeringRegisterResult {
     readonly functions: readonly string[];
     readonly linkTypes: readonly string[];
     readonly roles: readonly string[];
+    readonly properties: readonly string[];
   };
   /** Link candidates skipped because an endpoint did not resolve (D6). */
   readonly skipped: {

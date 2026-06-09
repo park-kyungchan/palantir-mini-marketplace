@@ -31,7 +31,8 @@ export type PrimitiveKindSlug =
   | "link-type"
   | "action-type"
   | "function"
-  | "role";
+  | "role"
+  | "property";
 
 /**
  * Normalize an arbitrary string to a stable kebab-case slug:
@@ -56,7 +57,11 @@ export function projectSlug(projectRoot: string): string {
  * The namespaced slug `${projectSlug}/${kind}/${kebab(plainName)}` is passed
  * through the matching branded rid minter. Functions have no dedicated minter
  * in the primitives layer (FunctionRid IS AIPLogicFunctionRid), so the function
- * case uses `aipLogicFunctionRid` with the same namespaced slug.
+ * case uses `aipLogicFunctionRid` with the same namespaced slug. Properties have
+ * no slug-taking identity minter either (property-type.ts declares value types,
+ * not per-property identities), so the property case mints via `objectTypeRid`
+ * with the `property`-namespaced slug — distinct from `object-type` rids because
+ * the `/property/` segment is part of the slug.
  */
 export function projectPrimitiveRid(
   projectRoot: string,
@@ -75,5 +80,7 @@ export function projectPrimitiveRid(
       return aipLogicFunctionRid(slug);
     case "role":
       return roleRid(slug);
+    case "property":
+      return objectTypeRid(slug);
   }
 }

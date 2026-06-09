@@ -39,6 +39,7 @@ import type {
   FunctionCandidate,
   LinkTypeCandidate,
   ObjectTypeCandidate,
+  PropertyCandidate,
   RoleCandidate,
 } from "./types";
 import { createUniversalOntologyEntry } from "../ontology-entry/universal-entry";
@@ -64,6 +65,7 @@ export interface ParsedSourceCandidateArrays {
   readonly functionCandidates: FunctionCandidate[];
   readonly actionCandidates: ActionTypeCandidate[];
   readonly roleCandidates: RoleCandidate[];
+  readonly propertyCandidates: PropertyCandidate[];
   readonly linkCandidates: LinkTypeCandidate[];
   readonly skipped: {
     readonly edges: Array<{ readonly candidateId: string; readonly reason: string }>;
@@ -84,6 +86,7 @@ export interface IngestJsonlSourceResult {
     readonly functions: number;
     readonly actions: number;
     readonly roles: number;
+    readonly properties: number;
     readonly links: number;
   };
   readonly skipped: ParsedSourceCandidateArrays["skipped"];
@@ -158,6 +161,7 @@ export function parseJsonlSourceToCandidateArrays(
   const functionCandidates: FunctionCandidate[] = [];
   const actionCandidates: ActionTypeCandidate[] = [];
   const roleCandidates: RoleCandidate[] = [];
+  const propertyCandidates: PropertyCandidate[] = [];
   const linkCandidates: LinkTypeCandidate[] = [];
   const skippedEdges: Array<{ candidateId: string; reason: string }> = [];
   const skippedRecords: Array<{ line: number; reason: string }> = [];
@@ -207,12 +211,24 @@ export function parseJsonlSourceToCandidateArrays(
 
     switch (layer) {
       case "data":
-        objectCandidates.push({
-          candidateId: `object:${slug(plainName)}`,
-          plainName,
-          whyItMayMatter: description ?? asString(record.atom_kind) ?? "(from NC1 SOURCE)",
-          evidenceRefs,
-        });
+        // DATA-axis split: atom_kind "property" → a Property (an ObjectType's
+        // stored field); every other DATA atom (entity, …) → an ObjectType.
+        if (asString(record.atom_kind) === "property") {
+          propertyCandidates.push({
+            candidateId: `property:${slug(plainName)}`,
+            plainName,
+            dataType: asString(record.value_type),
+            whyItMayMatter: description,
+            evidenceRefs,
+          });
+        } else {
+          objectCandidates.push({
+            candidateId: `object:${slug(plainName)}`,
+            plainName,
+            whyItMayMatter: description ?? asString(record.atom_kind) ?? "(from NC1 SOURCE)",
+            evidenceRefs,
+          });
+        }
         break;
       case "logic":
         functionCandidates.push({
@@ -283,6 +299,7 @@ export function parseJsonlSourceToCandidateArrays(
     functionCandidates: dedupByCandidateId(functionCandidates),
     actionCandidates: dedupByCandidateId(actionCandidates),
     roleCandidates: dedupByCandidateId(roleCandidates),
+    propertyCandidates: dedupByCandidateId(propertyCandidates),
     linkCandidates: dedupByCandidateId(linkCandidates),
     skipped: { edges: skippedEdges, records: skippedRecords },
   };
@@ -318,6 +335,7 @@ export function ingestJsonlSourceToCandidates(
     functionCandidates: parsed.functionCandidates,
     actionCandidates: parsed.actionCandidates,
     roleCandidates: parsed.roleCandidates,
+    propertyCandidates: parsed.propertyCandidates,
     linkCandidates: parsed.linkCandidates,
     updatedAt: new Date().toISOString(),
   };
@@ -331,6 +349,7 @@ export function ingestJsonlSourceToCandidates(
       functions: parsed.functionCandidates.length,
       actions: parsed.actionCandidates.length,
       roles: parsed.roleCandidates.length,
+      properties: parsed.propertyCandidates.length,
       links: parsed.linkCandidates.length,
     },
     skipped: parsed.skipped,

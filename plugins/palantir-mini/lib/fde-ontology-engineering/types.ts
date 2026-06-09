@@ -163,6 +163,17 @@ export interface RoleCandidate {
   readonly evidenceRefs?: readonly string[];
 }
 
+export interface PropertyCandidate {
+  readonly candidateId: string;
+  readonly plainName: string;
+  /** plainName of the owner ObjectType this Property is a stored field of, if known. */
+  readonly ownerObjectName?: string;
+  /** PropertyType (e.g. "String", "Integer") or a free-form value-type hint. */
+  readonly dataType?: string;
+  readonly whyItMayMatter?: string;
+  readonly evidenceRefs?: readonly string[];
+}
+
 export interface LeadClarificationQuestion {
   readonly questionId: string;
   readonly phase: FDEOntologyEngineeringPhase;
@@ -314,6 +325,14 @@ export interface FDEOntologyEngineeringSession {
    * always carry it (session-store initializes `roleCandidates: []`).
    */
   readonly roleCandidates?: readonly RoleCandidate[];
+  /**
+   * Property (an ObjectType's stored field) candidates — DATA-axis register path,
+   * the completion alongside objectCandidates. Optional (additive, post-dating the
+   * existing session fixtures); the register seam reads it as
+   * `session.propertyCandidates ?? []`. Real sessions always carry it
+   * (session-store initializes `propertyCandidates: []`).
+   */
+  readonly propertyCandidates?: readonly PropertyCandidate[];
   readonly chatbotContextCandidates: readonly ChatbotContextCandidate[];
   readonly contextEngineeringPlan?: ContextEngineeringPlanStub;
   readonly readinessProfileId?: LatentIntentFamily;

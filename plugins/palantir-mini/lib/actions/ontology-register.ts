@@ -33,6 +33,7 @@ export const APPLY_REGISTER_LINK_TYPE_NAME = "pm.actions.ontology.applyRegisterL
 export const APPLY_REGISTER_ACTION_TYPE_NAME = "pm.actions.ontology.applyRegisterActionType";
 export const APPLY_REGISTER_FUNCTION_NAME = "pm.actions.ontology.applyRegisterFunction";
 export const APPLY_REGISTER_ROLE_NAME = "pm.actions.ontology.applyRegisterRole";
+export const APPLY_REGISTER_PROPERTY_NAME = "pm.actions.ontology.applyRegisterProperty";
 
 // ─── Param interfaces (typed; rid is the registered primitive identity) ──────
 
@@ -60,6 +61,11 @@ export interface ApplyRegisterFunctionParams {
 }
 
 export interface ApplyRegisterRoleParams {
+  readonly rid: string;
+  readonly declaration?: Record<string, unknown>;
+}
+
+export interface ApplyRegisterPropertyParams {
   readonly rid: string;
   readonly declaration?: Record<string, unknown>;
 }
@@ -106,6 +112,12 @@ export function applyRegisterRole(params: ApplyRegisterRoleParams): OntologyEdit
   return [{ kind: "object", rid, properties: { primitiveKind: "Role", ...(params.declaration ?? {}) } }];
 }
 
+/** Property → `kind:"object"` tagged `primitiveKind:"Property"` (an ObjectType's stored field; no link-kind fit). */
+export function applyRegisterProperty(params: ApplyRegisterPropertyParams): OntologyEdit[] {
+  const rid = requireRid(params?.rid, "applyRegisterProperty");
+  return [{ kind: "object", rid, properties: { primitiveKind: "Property", ...(params.declaration ?? {}) } }];
+}
+
 // ─── Side-effect: register under the self-model's forward-named editFunctionName ──
 
 registerEditFunction<ApplyRegisterObjectTypeParams>({
@@ -136,4 +148,10 @@ registerEditFunction<ApplyRegisterRoleParams>({
   name: APPLY_REGISTER_ROLE_NAME,
   description: "Self verb: compute the register OntologyEdit for a new Role (pure; commit via commitEdits).",
   apply: applyRegisterRole,
+});
+
+registerEditFunction<ApplyRegisterPropertyParams>({
+  name: APPLY_REGISTER_PROPERTY_NAME,
+  description: "Self verb: compute the register OntologyEdit for a new Property (pure; commit via commitEdits).",
+  apply: applyRegisterProperty,
 });
