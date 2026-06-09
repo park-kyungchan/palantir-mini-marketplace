@@ -338,6 +338,7 @@ function deriveStateSnapshot(input: {
   readonly userDecisionRecords?: readonly UserDecisionRecord[];
   readonly semanticIntentContract?: SemanticIntentContract;
   readonly preservePreviousUpdatedAt?: boolean;
+  readonly registeredAt?: string;
 }): OntologyEngineeringWorkflowState {
   const root = projectRoot(input.handlerInput);
   const preservePrevious = input.handlerInput.action !== "start";
@@ -370,6 +371,8 @@ function deriveStateSnapshot(input: {
     workContractRef:
       input.handlerInput.workContractRef ??
       (preservePrevious ? previous?.workContractRef : undefined),
+    registeredAt:
+      input.registeredAt ?? (preservePrevious ? previous?.registeredAt : undefined),
     turnDecisionSpecs:
       input.turnDecisionSpecs ?? (preservePrevious ? previous?.turnDecisionSpecs : undefined) ?? [],
     userDecisionRecords:
@@ -428,6 +431,41 @@ function writeState(input: {
     session: input.session,
     sessionRef: input.session ? fdeOntologyEngineeringSessionRef(input.session.sessionId) : undefined,
     semanticIntentContract: input.semanticIntentContract,
+  };
+}
+
+/**
+ * Persist the terminal `registered` state after a COMMITTED register/elevate (S1
+ * state-sync closure). Threads a `registeredAt` signal so the derived top-level
+ * phase advances to `registered` and is WRITTEN (not just readState-derived),
+ * reconciling it with the nested elevate.phase namespace. Preserves the SEPARATE
+ * `sourceMutationApprovals` array, which deriveOntologyEngineeringWorkflowState
+ * does not carry (same accumulate-from-disk pattern as approve_source_mutation).
+ */
+function writeRegisteredState(input: {
+  readonly handlerInput: OntologyEngineeringWorkflowHandlerInput;
+  readonly session?: FDEOntologyEngineeringSession;
+  readonly registeredAt: string;
+}): OntologyEngineeringWorkflowHandlerResult {
+  const root = projectRoot(input.handlerInput);
+  const state = deriveStateSnapshot({
+    handlerInput: input.handlerInput,
+    session: input.session,
+    registeredAt: input.registeredAt,
+  });
+  const prevApprovals =
+    readPreviousWorkflowState({ root, action: input.handlerInput.action, session: input.session })
+      ?.sourceMutationApprovals ?? [];
+  const nextState: OntologyEngineeringWorkflowState =
+    prevApprovals.length > 0 ? { ...state, sourceMutationApprovals: prevApprovals } : state;
+  const written = writeOntologyEngineeringWorkflowState(nextState);
+  return {
+    action: input.handlerInput.action,
+    state: nextState,
+    statePath: written.statePath,
+    currentPath: written.currentPath,
+    session: input.session,
+    sessionRef: input.session ? fdeOntologyEngineeringSessionRef(input.session.sessionId) : undefined,
   };
 }
 
@@ -532,7 +570,9 @@ async function handleRegister(
   // input). phase digital-twin-approved / mutation-authorized ⇒ SIC + DTC approved.
   const state = deriveStateSnapshot({ handlerInput: input, session, preservePreviousUpdatedAt: true });
   const approved =
-    state.phase === "digital-twin-approved" || state.phase === "mutation-authorized";
+    state.phase === "digital-twin-approved" ||
+    state.phase === "mutation-authorized" ||
+    state.phase === "registered";
   const graded = session.readinessProfile?.readyForDigitalTwin === true;
 
   if (!approved || !graded) {
@@ -601,7 +641,8 @@ async function handleRegister(
     commitResult,
     lint: lintFindingsForSession(session),
   };
-  return { ...readState({ handlerInput: input, session }), register };
+  const registeredAt = input.emittedAt ?? new Date().toISOString();
+  return { ...writeRegisteredState({ handlerInput: input, session, registeredAt }), register };
 }
 
 /**
@@ -641,6 +682,10 @@ async function handleElevate(
   // Read the freshly-derived workflow state over the (now ingested + possibly
   // registered) session so the result carries the runtime-neutral workflow view.
   const session = readSessionByInput(input);
+  if (elevate.register?.committed === true) {
+    const registeredAt = input.emittedAt ?? new Date().toISOString();
+    return { ...writeRegisteredState({ handlerInput: input, session, registeredAt }), elevate };
+  }
   return { ...readState({ handlerInput: input, session }), elevate };
 }
 
