@@ -49,13 +49,21 @@ export interface DigitalTwinChangeContract {
   readonly semanticIntentContractRef: string;
 
   /** Backward-compatible runtime fields. */
+  /** @deprecated superseded by permittedMutationSurfaces; migration pending */
   readonly affectedSurfaces: readonly string[];
+  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly changeBoundary: string;
+  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly branchProposalPolicy: string;
+  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly permissionBoundary: string;
+  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly replayMigrationPlan: string;
+  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly observabilityPlan: string;
+  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly toolSurfaceReadiness: string;
+  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly evaluationPlan: string;
 
   /** Additive typed control-plane fields. */

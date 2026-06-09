@@ -1,6 +1,6 @@
 {
   "name": "palantir-mini",
-  "version": "6.127.0",
+  "version": "6.128.0",
   "private": true,
   "type": "module",
   "imports": {

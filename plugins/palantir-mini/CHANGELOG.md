@@ -7,6 +7,18 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.128.0] - 2026-06-09 — feat(schema): EventEnvelope primitive + vestigial-field deprecation markers (Phase 2 additive)
+
+### Added
+- **Schema'd `EventEnvelope` primitive (audit G3 highest-leverage ADD): the canonical 5-dim Decision Lineage envelope (when / atopWhich / throughWhich / byWhom / withWhat, rule 10) — previously only a runtime type in `lib/event-log/types.ts` — is now promoted into `runtime-overlay/schemas-snapshot/ontology/primitives/event-envelope.ts` (schemas-snapshot 1.80.0). Un-blocks typed lineage; the M-SELF self-Ontology prerequisite.**
+- SIC: new `fillVerdict` field (canonical replacement for the `status`-colliding `verdict`).
+
+### Deprecated
+- SIC vestigial string fields `approvedNouns` / `approvedVerbs` / `affectedSurfaces` / `nonGoals` + `verdict` (superseded by typed-ref siblings / axes; `@deprecated` markers added, migration pending).
+- DTC 7 free-text "plan" string blobs (changeBoundary, branchProposalPolicy, permissionBoundary, replayMigrationPlan, observabilityPlan, toolSurfaceReadiness, evaluationPlan) + `affectedSurfaces` (superseded by typed-ref siblings; `@deprecated`).
+
+Purely additive (no field dropped/retyped, no construction site changed — field drops await the one-MINOR deprecation window). typecheck exit 0; full suite at baseline (20 known fails, 0 new). Lead-orchestrated; opus subagents implemented + verified.
+
 ## [6.127.0] - 2026-06-09 — chore: code dedup + rename + agent hygiene + serverInfo version (audit G7/G5/G2)
 
 ### Changed
