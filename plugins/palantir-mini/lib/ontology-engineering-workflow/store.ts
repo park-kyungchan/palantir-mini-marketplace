@@ -1,28 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { atomicWriteJsonSync } from "../fs-atomic";
+import { safeSegment } from "../id-segment";
 import type { OntologyEngineeringWorkflowState } from "./types";
 
 export interface WriteOntologyEngineeringWorkflowStateResult {
   readonly statePath: string;
   readonly currentPath: string;
-}
-
-function safeSegment(value: string): string {
-  return value
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter(Boolean)
-    .join("-")
-    .replace(/[^a-zA-Z0-9._:-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 128) || "workflow";
-}
-
-function atomicWriteJson(filePath: string, value: unknown): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  fs.renameSync(tmpPath, filePath);
 }
 
 export function ontologyEngineeringWorkflowStoreDir(projectRoot: string): string {
@@ -40,7 +24,7 @@ export function ontologyEngineeringWorkflowStatePath(
 ): string {
   return path.join(
     ontologyEngineeringWorkflowStoreDir(projectRoot),
-    `${safeSegment(workflowId)}.json`,
+    `${safeSegment(workflowId, { fallback: "workflow", maxLen: 128, allowColon: true })}.json`,
   );
 }
 
@@ -53,8 +37,8 @@ export function writeOntologyEngineeringWorkflowState(
 ): WriteOntologyEngineeringWorkflowStateResult {
   const statePath = ontologyEngineeringWorkflowStatePath(state.projectRoot, state.contractId);
   const currentPath = ontologyEngineeringWorkflowCurrentPath(state.projectRoot);
-  atomicWriteJson(statePath, state);
-  atomicWriteJson(currentPath, state);
+  atomicWriteJsonSync(statePath, state);
+  atomicWriteJsonSync(currentPath, state);
   return { statePath, currentPath };
 }
 

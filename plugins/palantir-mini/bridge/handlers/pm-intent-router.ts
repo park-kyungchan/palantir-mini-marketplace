@@ -93,7 +93,7 @@ import * as path from "node:path";
 import {
   transitionOntologyWorkflowTrace,
   type OntologyWorkflowTrace,
-} from "../../lib/ontology-workflow/emit";
+} from "../../lib/ontology-workflow-trace/emit";
 
 // Re-export for downstream consumers / tests
 

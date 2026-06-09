@@ -46,7 +46,7 @@ import {
   transitionOntologyWorkflowTrace,
   closeOntologyWorkflowTrace,
   type OntologyWorkflowTrace,
-} from "../../lib/ontology-workflow/emit";
+} from "../../lib/ontology-workflow-trace/emit";
 
 interface CommitEditsArgs {
   project:             string;

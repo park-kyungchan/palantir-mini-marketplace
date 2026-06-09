@@ -14,7 +14,7 @@ import type {
 import type { DtcWithFillFields } from "../semantic-intent/dtc-fill-sequence";
 import type { ProjectScopeDefinition } from "../project-scope/types";
 import type { KnownIssue } from "../issues/known-issue";
-import type { OntologyWorkflowTrace } from "../ontology-workflow/trace";
+import type { OntologyWorkflowTrace } from "../ontology-workflow-trace/trace";
 import { classifyHookTool } from "../hooks/tool-classifier";
 import {
   actionTypeRefMatchesAction,
