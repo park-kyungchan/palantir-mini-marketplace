@@ -47,6 +47,22 @@ export interface CommitResult {
   failedCriteria:     string[];
   sequence?:          number;
   eventType:          "edit_committed" | "submission_criteria_failed" | "none";
+  /**
+   * O-2 observability: count of just-committed register-primitive edits (an edit
+   * tagged `properties.primitiveKind` or a `kind:"link"` edit). Derived from
+   * req.edits — additive to the return type only; no behavior change to the append.
+   */
+  materializedPrimitives?: number;
+}
+
+/** Count edits that materialize a typed primitive (object w/ primitiveKind tag, or a link). */
+function countMaterializedPrimitives(edits: OntologyEdit[]): number {
+  let count = 0;
+  for (const edit of edits) {
+    if (edit.kind === "link") count++;
+    else if (edit.kind === "object" && (edit.properties as Record<string, unknown> | undefined)?.primitiveKind) count++;
+  }
+  return count;
 }
 
 function eventsPathFor(project: string): string {
@@ -157,5 +173,6 @@ export async function commitEdits(req: CommitRequest): Promise<CommitResult> {
     failedCriteria: evalResult.failedNames,
     sequence,
     eventType: "edit_committed",
+    materializedPrimitives: countMaterializedPrimitives(req.edits),
   };
 }

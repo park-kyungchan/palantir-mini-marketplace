@@ -1283,6 +1283,14 @@ export interface EventSnapshot {
   dtc_grading_completed?:             number;
   dtc_grader_runtime_gap?:            number;
   dtc_eval_refs_bypass_invoked?:      number;
+  // O-2 — register→commit→materialize→read loop closure. Projection of committed
+  // applyRegister* edits into a readable typed-primitive collection (fold-snapshot.ts).
+  registeredPrimitives?: {
+    objectTypes: string[];   // rids
+    linkTypes:   string[];
+    actionTypes: string[];
+    functions:   string[];
+  };
   totalEvents:                 number;
   lastSequence:                number;
 }
