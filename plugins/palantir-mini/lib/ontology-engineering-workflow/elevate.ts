@@ -112,6 +112,8 @@ async function registerStep(
   projectRoot: string,
 ): Promise<OntologyEngineeringRegisterResult> {
   const snapshot = (await getOntology({ project: projectRoot })).snapshot.registeredPrimitives;
+  // FOLD-1: bucket entries are now { rid, declaration? } — project to bare rids
+  // for the idempotency set.
   const alreadyRegistered = new Set<string>([
     ...(snapshot?.objectTypes ?? []),
     ...(snapshot?.actionTypes ?? []),
@@ -119,7 +121,7 @@ async function registerStep(
     ...(snapshot?.linkTypes ?? []),
     ...(snapshot?.roles ?? []),
     ...(snapshot?.properties ?? []),
-  ]);
+  ].map((e) => e.rid));
 
   const { edits, registered, skipped } = await registerAcceptedCandidates({
     session,

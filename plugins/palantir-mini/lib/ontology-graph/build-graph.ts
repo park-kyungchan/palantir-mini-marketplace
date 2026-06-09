@@ -1,7 +1,7 @@
 /**
  * lib/ontology-graph/build-graph.ts — Top-level orchestrator that combines
- * all 10 concrete indexers (PR 2.4-2.13) into a single typed traversal over
- * `OntologyGraphStore` (PR 2.3 sprint-080).
+ * all 11 concrete indexers (PR 2.4-2.13 + IMPACT-1) into a single typed
+ * traversal over `OntologyGraphStore` (PR 2.3 sprint-080).
  *
  * @stable
  *
@@ -18,9 +18,8 @@
  * store, returns store + stats. No event emission, no disk I/O beyond what
  * the underlying indexers perform. The orchestrator itself is passive.
  *
- * Sprint X3 PR 4/5. Canonical plan v2 §4 row 2.14 mistakenly says "12
- * indexers" — actual count is 10 (this file's `IndexerName` union is the
- * source of truth):
+ * Sprint X3 PR 4/5. The `IndexerName` union below is the source of truth for
+ * the count (now 11 after IMPACT-1 wired the registered-primitives indexer):
  *   1. browse-index    (PR 2.4 sprint-081)
  *   2. agents-rules    (PR 2.5 sprint-082)
  *   3. plugin-manifest (PR 2.6 sprint-083)
@@ -31,6 +30,7 @@
  *   8. tests-evals     (PR 2.11 sprint-088)
  *   9. events          (PR 2.12 sprint-089)
  *  10. git-history     (PR 2.13 sprint-090)
+ *  11. registered-primitives (IMPACT-1 — registered ontology primitives as nodes)
  *
  * IMPLEMENTATION NOTE: Generic-only emission (Option A; inherits from PR 2.3
  * substrate). Orchestrator is generic over `TNode` / `TEdge` with `unknown`
@@ -67,6 +67,7 @@ import { indexSourceFilesImports } from "./indexers/source-files";
 import { indexTestsAndEvals } from "./indexers/tests-evals";
 import { indexEventsT2Plus } from "./indexers/events";
 import { indexGitHistory } from "./indexers/git-history";
+import { indexRegisteredPrimitives } from "./indexers/registered-primitives";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -84,9 +85,11 @@ export type IndexerName =
   | "source-files"
   | "tests-evals"
   | "events"
-  | "git-history";
+  | "git-history"
+  // IMPACT-1 — registered ontology primitives projected as first-class nodes.
+  | "registered-primitives";
 
-/** All 10 indexer names in canonical order. */
+/** All indexer names in canonical order. */
 export const ALL_INDEXER_NAMES: ReadonlyArray<IndexerName> = [
   "browse-index",
   "agents-rules",
@@ -98,6 +101,7 @@ export const ALL_INDEXER_NAMES: ReadonlyArray<IndexerName> = [
   "tests-evals",
   "events",
   "git-history",
+  "registered-primitives",
 ];
 
 /**
@@ -159,6 +163,8 @@ const INDEXER_REGISTRY: Readonly<
     indexEventsT2Plus(root, nowIso !== undefined ? { nowIso } : undefined),
   "git-history": (root, nowIso) =>
     indexGitHistory(root, nowIso !== undefined ? { nowIso, skipPRs: true } : { skipPRs: true }),
+  "registered-primitives": (root, nowIso) =>
+    indexRegisteredPrimitives(root, nowIso !== undefined ? { nowIso } : undefined),
 };
 
 /** Internal per-indexer outcome (after timing + error capture). */

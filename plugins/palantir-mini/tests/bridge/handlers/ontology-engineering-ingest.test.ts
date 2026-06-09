@@ -240,11 +240,12 @@ describe("ingest seam — jsonl SOURCE → session candidate arrays", () => {
     const linkRid = projectPrimitiveRid(P, "link-type", "requires");
 
     const snap = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
-    expect(snap.objectTypes).toContain(objRid);
-    expect(snap.functions).toContain(fnRid);
-    expect(snap.actionTypes).toContain(actRid);
-    expect(snap.roles).toContain(roleRid);
-    expect(snap.linkTypes).toContain(linkRid);
+    // FOLD-1: buckets now hold { rid, declaration? } — project to rids to assert.
+    expect(snap.objectTypes.map((e) => e.rid)).toContain(objRid);
+    expect(snap.functions.map((e) => e.rid)).toContain(fnRid);
+    expect(snap.actionTypes.map((e) => e.rid)).toContain(actRid);
+    expect(snap.roles.map((e) => e.rid)).toContain(roleRid);
+    expect(snap.linkTypes.map((e) => e.rid)).toContain(linkRid);
   });
 
   test("DATA + atom_kind 'property' → a propertyCandidate (not an objectCandidate)", () => {

@@ -7,6 +7,15 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.129.0] - 2026-06-10 — fix: operative fold + impact bridge (impact analysis THROUGH the Ontology)
+
+### Fixed
+- **IMPACT-1 (headline — impact analysis through the Ontology): registered ontology primitives now enter the impact graph.** New `lib/ontology-graph/indexers/registered-primitives.ts` folds a project's `events.jsonl` → `get_ontology` `snapshot.registeredPrimitives` and projects each registered primitive as a first-class graph node keyed by its verbatim `projectPrimitiveRid`, plus each registered LinkType's `src→dst` as a `linkType` edge; wired into the `buildOntologyGraph` orchestrator. Before this, the operative `elevate→register→commit` chain materialized rids that matched NOTHING in the typed graph, so `impact_query` / `ontology_context_query.impactContext` were blind to everything the Ontology actually models. A registered rid now matches directly (`computeGraphConfidence` 0.1/bounded-explorer → 0.7/lead-direct in the e2e test).
+- **FOLD-1: the canonical fold is now meaning-bearing.** `EventSnapshot.registeredPrimitives` buckets widened from `string[]` (bare rid) to `RegisteredPrimitiveEntry[]` (`{ rid; declaration? }`, declaration optional for back-compat); `foldToSnapshot` projects the committed `edit.properties` (minus the `primitiveKind` binning discriminator) for object kinds and `{ srcRid, dstRid, linkName }` for links. `get_ontology` can now reconstruct what a primitive IS, not just that a rid was registered. Round-trip tests assert declaration survival (was only asserting `.toContain(rid)`, which is why the loss went uncaught). `replay-lineage` stays rid-graph-only (documented; its `derivedState` carries declarations via the fixed fold).
+- **OUT-2: `get_ontology` `domain` scope is now real (was a no-op).** The `domain` arg now narrows `registeredPrimitives` + counters (D/L/A → bucket map); added optional single-bucket `kind` narrowing; added a flat top-level `counts` object (per-kind + totalEvents + lastSequence).
+
+Surgical, line-preserving; `tsc --noEmit` exit 0; touched-area suite 327 pass / 0 fail; zero new failures vs `tests/KNOWN_BROAD_SUITE_FAILURES.md`. Lead-orchestrated; opus subagents implemented + adversarially verified.
+
 ## [6.128.0] - 2026-06-09 — feat(schema): EventEnvelope primitive + vestigial-field deprecation markers (Phase 2 additive)
 
 ### Added

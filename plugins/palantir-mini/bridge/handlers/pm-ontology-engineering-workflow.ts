@@ -597,6 +597,8 @@ async function handleRegister(
   // Already-materialized rids → skip on re-register (idempotency against the
   // append-only fold, which does not itself dedup).
   const snapshot = (await getOntology({ project: root })).snapshot.registeredPrimitives;
+  // FOLD-1: bucket entries are now { rid, declaration? } — project to bare rids
+  // for the idempotency set.
   const alreadyRegistered = new Set<string>([
     ...(snapshot?.objectTypes ?? []),
     ...(snapshot?.actionTypes ?? []),
@@ -604,7 +606,7 @@ async function handleRegister(
     ...(snapshot?.linkTypes ?? []),
     ...(snapshot?.roles ?? []),
     ...(snapshot?.properties ?? []),
-  ]);
+  ].map((e) => e.rid));
 
   const { edits, registered, skipped } = await registerAcceptedCandidates({
     session,

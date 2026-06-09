@@ -148,11 +148,18 @@ describe("ENTRY-loop register seam — full loop closure for a NEW project", () 
     const linkRid = projectPrimitiveRid(P, "link-type", "Attends");
 
     const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
-    expect(reg.objectTypes).toContain(objStudent);
-    expect(reg.objectTypes).toContain(objLesson);
-    expect(reg.actionTypes).toContain(actRid);
-    expect(reg.functions).toContain(fnRid);
-    expect(reg.linkTypes).toContain(linkRid);
+    expect(reg.objectTypes.map((e) => e.rid)).toContain(objStudent);
+    expect(reg.objectTypes.map((e) => e.rid)).toContain(objLesson);
+    expect(reg.actionTypes.map((e) => e.rid)).toContain(actRid);
+    expect(reg.functions.map((e) => e.rid)).toContain(fnRid);
+    expect(reg.linkTypes.map((e) => e.rid)).toContain(linkRid);
+
+    // FOLD-1: the canonical fold is MEANING-bearing — the registered Student
+    // ObjectType bucket entry carries the committed declaration (plainName),
+    // not just the bare rid. The old rid-only `.toContain` could not catch a
+    // lossy fold; this declaration-survival assertion can.
+    const studentEntry = reg.objectTypes.find((e) => e.rid === objStudent);
+    expect(studentEntry?.declaration?.plainName).toBe("Student");
 
     // The link's endpoints equal the committed object rids.
     const committedEdits = result.register?.commitResult as { appliedEdits?: Array<Record<string, unknown>> };
@@ -224,6 +231,6 @@ describe("ENTRY-loop register seam — full loop closure for a NEW project", () 
     const objStudent = projectPrimitiveRid(P, "object-type", "Student");
     const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
     // Same rid is materialized; the fold dedups by rid → exactly one occurrence.
-    expect(reg.objectTypes.filter((r) => r === objStudent).length).toBe(1);
+    expect(reg.objectTypes.filter((e) => e.rid === objStudent).length).toBe(1);
   });
 });

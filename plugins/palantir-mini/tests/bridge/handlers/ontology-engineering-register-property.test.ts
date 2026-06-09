@@ -125,7 +125,8 @@ describe("ENTRY-loop register seam — PROPERTY path (6th verb, DATA-axis comple
     expect(result.register?.registered.properties).toContain(propRidExpected);
 
     const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
-    expect(reg.properties).toContain(propRidExpected);
+    // FOLD-1: buckets now hold { rid, declaration? } — project to rids to assert.
+    expect(reg.properties.map((e) => e.rid)).toContain(propRidExpected);
 
     // The committed edit is a kind:"object" row tagged primitiveKind:"Property",
     // carrying the resolved owner rid in its declaration.
@@ -150,7 +151,7 @@ describe("ENTRY-loop register seam — PROPERTY path (6th verb, DATA-axis comple
 
     const propRidP = projectPrimitiveRid(P, "property", "Slope");
     const regQ = (await getOntology({ project: Q })).snapshot.registeredPrimitives!;
-    expect(regQ.properties).not.toContain(propRidP);
+    expect(regQ.properties.map((e) => e.rid)).not.toContain(propRidP);
     expect(regQ.properties.length).toBe(0);
   });
 
@@ -163,7 +164,7 @@ describe("ENTRY-loop register seam — PROPERTY path (6th verb, DATA-axis comple
 
     const propRidExpected = projectPrimitiveRid(P, "property", "Slope");
     const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
-    expect(reg.properties.filter((r) => r === propRidExpected).length).toBe(1);
+    expect(reg.properties.filter((e) => e.rid === propRidExpected).length).toBe(1);
   });
 
   test("PARITY: REGISTER_PROPERTY_ACTION_TYPE forward-names the live applyRegisterProperty edit-function", () => {
@@ -238,7 +239,7 @@ describe("ENTRY-loop register seam — CROSS-LAYER link resolution (C1 widening)
     expect(result.register?.skipped.links).toHaveLength(0);
 
     const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
-    expect(reg.linkTypes).toContain(linkRidExpected);
+    expect(reg.linkTypes.map((e) => e.rid)).toContain(linkRidExpected);
 
     // The committed link edit's endpoints are the object rid and the function rid.
     const committedEdits = result.register?.commitResult as { appliedEdits?: Array<Record<string, unknown>> };

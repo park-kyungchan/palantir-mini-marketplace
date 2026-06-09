@@ -124,7 +124,8 @@ describe("ENTRY-loop register seam — ROLE path (5th verb, GOV-axis closure)", 
     expect(result.register?.registered.roles).toContain(roleRidExpected);
 
     const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
-    expect(reg.roles).toContain(roleRidExpected);
+    // FOLD-1: buckets now hold { rid, declaration? } — project to rids to assert.
+    expect(reg.roles.map((e) => e.rid)).toContain(roleRidExpected);
 
     // The committed edit is a kind:"object" row tagged primitiveKind:"Role".
     const committedEdits = result.register?.commitResult as { appliedEdits?: Array<Record<string, unknown>> };
@@ -143,7 +144,7 @@ describe("ENTRY-loop register seam — ROLE path (5th verb, GOV-axis closure)", 
 
     const roleRidP = projectPrimitiveRid(P, "role", "Hook Builder Grant");
     const regQ = (await getOntology({ project: Q })).snapshot.registeredPrimitives!;
-    expect(regQ.roles).not.toContain(roleRidP);
+    expect(regQ.roles.map((e) => e.rid)).not.toContain(roleRidP);
     expect(regQ.roles.length).toBe(0);
   });
 
@@ -156,7 +157,7 @@ describe("ENTRY-loop register seam — ROLE path (5th verb, GOV-axis closure)", 
 
     const roleRidExpected = projectPrimitiveRid(P, "role", "Hook Builder Grant");
     const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
-    expect(reg.roles.filter((r) => r === roleRidExpected).length).toBe(1);
+    expect(reg.roles.filter((e) => e.rid === roleRidExpected).length).toBe(1);
   });
 
   test("PARITY: REGISTER_ROLE_ACTION_TYPE forward-names the live applyRegisterRole edit-function", () => {
