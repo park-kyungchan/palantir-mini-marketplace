@@ -51,6 +51,9 @@ const APPROVAL_VERB_PATTERNS: readonly RegExp[] = [
   /\bgreen[- ]?light\b/i,
   /승인/,
   /허가/,
+  /동의/,
+  /허락/,
+  /허용/,
   /진행해/,
   /해도\s*(좋|돼|된다)/,
 ];
@@ -74,6 +77,14 @@ const PROTECTED_SURFACE_INTENT_MARKERS: readonly RegExp[] = [
   /\bmanaged[- ]?settings\b/i,
   /\bplugin source\b/i,
   /\bpalantir-mini\b/i,
+  /소스/,
+  /라이브러리/,
+  /훅/,
+  /후크/,
+  /워크플로우?/,
+  /게이트/,
+  /핸들러/,
+  /플러그인/,
 ];
 
 export interface VerifyAndMintSourceMutationApprovalInput {

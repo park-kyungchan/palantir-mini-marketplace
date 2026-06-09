@@ -409,6 +409,58 @@ describe("fix2 HOLE-2 — path mention without approval verb", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Case 7-KO — Korean approval lexicon (#2): Korean approvals must be recognized
+// while the co-occurrence requirement stays intact (no security weakening).
+// ---------------------------------------------------------------------------
+
+describe("fix2 HOLE-2 — Korean approval lexicon", () => {
+  test("Korean approval verb + Korean protected-surface marker co-occur -> true", () => {
+    // The exact shape that was wrongly rejected: 승인한다 + 워크플로 라이브러리 소스.
+    expect(
+      excerptExpressesSourceMutationApproval(
+        "워크플로 라이브러리 소스 수정 승인한다.",
+      ),
+    ).toBe(true);
+    // Other Korean verbs added to the lexicon, each with a Korean surface marker.
+    expect(excerptExpressesSourceMutationApproval("훅 수정에 동의한다.")).toBe(true);
+    expect(excerptExpressesSourceMutationApproval("게이트 핸들러 수정 허락합니다.")).toBe(true);
+    expect(excerptExpressesSourceMutationApproval("플러그인 소스 수정 허용.")).toBe(true);
+    // 워크플로우 (trailing 우) variant also matches.
+    expect(excerptExpressesSourceMutationApproval("워크플로우 소스 수정 승인합니다.")).toBe(true);
+  });
+
+  test("Korean surface mention WITHOUT an approval verb is still rejected (fail-closed)", () => {
+    // Mentions protected surfaces (워크플로 라이브러리 소스) but no approval verb.
+    expect(
+      excerptExpressesSourceMutationApproval("워크플로 라이브러리 소스는 지금 건드리지 마세요."),
+    ).toBe(false);
+    // Korean approval verb but NO protected-surface marker -> still rejected.
+    expect(excerptExpressesSourceMutationApproval("그 변경 승인한다.")).toBe(false);
+  });
+
+  test("reverify authorizes a record bound to a Korean-approval envelope", async () => {
+    const rawKoreanApproval =
+      "워크플로 라이브러리 소스(hooks/ontology-engineering-workflow-enforcement-gate.ts) 수정 승인한다.";
+    const envelope = makeEnvelope({ rawPrompt: rawKoreanApproval });
+    const store = new FakeEnvelopeStore();
+    store.putEnvelope(envelope);
+    store.setPointer(RUNTIME, SESSION_ID, {
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+    });
+    const record = makeRecord(envelope, { userQuote: "수정 승인한다" });
+
+    const verdict = await reverifySourceMutationApprovalAgainstEnvelope(
+      record,
+      store,
+      IN_SCOPE_TOUCH,
+      NOW_MS,
+    );
+    expect(verdict.authorized).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Case 8 — SCOPE ESCAPE
 // ---------------------------------------------------------------------------
 

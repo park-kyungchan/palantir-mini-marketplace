@@ -18,6 +18,17 @@ describe("kebab", () => {
     expect(kebab("---weird---")).toBe("weird");
     expect(kebab("ABC")).toBe("abc");
   });
+
+  test("preserves Korean (가-힣) instead of stripping it to ''", () => {
+    // Regression: the old /[^a-z0-9]+/ class stripped Hangul, collapsing a
+    // pure-Korean plainName to "" (→ bare bucket rids). Korean must survive.
+    expect(kebab("학생")).toBe("학생");
+    expect(kebab("학생 진도")).toBe("학생-진도");
+    expect(kebab("일차함수")).toBe("일차함수");
+    // Mixed Korean+ASCII: each preserved, symbol runs → "-".
+    expect(kebab("Linear 일차함수")).toBe("linear-일차함수");
+    expect(kebab("학생!!진도")).toBe("학생-진도");
+  });
 });
 
 describe("projectSlug", () => {
@@ -67,5 +78,12 @@ describe("projectPrimitiveRid", () => {
     const a = projectPrimitiveRid("/tmp/p", "object-type", "Linear Function");
     const b = projectPrimitiveRid("/tmp/p", "object-type", "linear  function");
     expect(a).toBe(b);
+  });
+
+  test("Korean plainName mints a non-bare instance segment (no trailing-slash bucket rid)", () => {
+    const rid = projectPrimitiveRid("/tmp/p", "object-type", "학생");
+    // The instance segment must be the preserved Korean slug, NOT empty.
+    expect(rid.endsWith("/object-type/학생")).toBe(true);
+    expect(rid.endsWith("/object-type/")).toBe(false);
   });
 });

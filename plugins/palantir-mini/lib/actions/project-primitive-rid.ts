@@ -41,7 +41,7 @@ export type PrimitiveKindSlug =
 export function kebab(s: string): string {
   return String(s)
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/[^a-z0-9가-힣]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
