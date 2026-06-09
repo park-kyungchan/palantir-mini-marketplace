@@ -144,11 +144,3 @@ export class OntologySimulationRegistry {
 }
 
 export const ONTOLOGY_SIMULATION_REGISTRY = new OntologySimulationRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "OntologySimulation (transient graph copy for AIP Evals edit simulation)",
-};
-export { categoryFoundryEquivalent as ontologySimulationFoundryEquivalent };

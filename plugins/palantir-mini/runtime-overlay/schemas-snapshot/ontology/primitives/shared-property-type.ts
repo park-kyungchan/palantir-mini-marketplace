@@ -56,11 +56,3 @@ export class SharedPropertyTypeRegistry {
 }
 
 export const SHARED_PROPERTY_TYPE_REGISTRY = new SharedPropertyTypeRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "SharedPropertyType",
-};
-export { categoryFoundryEquivalent as sharedPropertyTypeFoundryEquivalent };

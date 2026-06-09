@@ -53,11 +53,3 @@ export class WebhookDeclarationRegistry {
 }
 
 export const WEBHOOK_DECLARATION_REGISTRY = new WebhookDeclarationRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "Webhook",
-};
-export { categoryFoundryEquivalent as webhookDeclarationFoundryEquivalent };

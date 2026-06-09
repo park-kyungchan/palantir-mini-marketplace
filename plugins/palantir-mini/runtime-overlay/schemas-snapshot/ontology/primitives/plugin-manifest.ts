@@ -186,11 +186,3 @@ export class PluginManifestRegistry {
 }
 
 export const PLUGIN_MANIFEST_REGISTRY = new PluginManifestRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Claude Code plugin .claude-plugin/plugin.json schema; no Foundry equivalent",
-};
-export { categoryFoundryEquivalent as pluginManifestFoundryEquivalent };

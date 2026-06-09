@@ -153,12 +153,3 @@ export const HARNESS_SPECIES_DESCRIPTIONS: Readonly<
 export function isHarnessSpeciesId(s: string): s is HarnessSpeciesId {
   return (HARNESS_SPECIES_IDS as readonly string[]).includes(s);
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Architectural species taxonomy spanning multi-vendor harness loops; palantir-mini Brain-of-Swarms substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as harnessSpeciesEnumFoundryEquivalent };

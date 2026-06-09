@@ -127,11 +127,3 @@ export class HarnessAgentRegistry {
 }
 
 export const HARNESS_AGENT_REGISTRY = new HarnessAgentRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "palantir-mini-sprint-harness species role binding; one of 5 harness species, not Foundry surface",
-};
-export { categoryFoundryEquivalent as harnessAgentFoundryEquivalent };

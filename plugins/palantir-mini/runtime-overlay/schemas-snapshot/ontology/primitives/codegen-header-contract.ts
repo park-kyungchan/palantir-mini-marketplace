@@ -107,11 +107,3 @@ export const DEFAULT_CONTRACT: CodegenHeaderContractDeclaration = {
   pattern: String.raw`^// @generated\s+\{[^}]*\}$`,
   appliesTo: "**/src/generated/**/*.ts",
 };
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Generated-file header contract for pm-codegen drift detection; no Foundry equivalent",
-};
-export { categoryFoundryEquivalent as codegenHeaderContractFoundryEquivalent };

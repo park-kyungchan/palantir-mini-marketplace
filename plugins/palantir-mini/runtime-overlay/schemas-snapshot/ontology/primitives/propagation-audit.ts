@@ -211,11 +211,3 @@ export function isPropagationAuditPayload(
     typeof v.auditedAt === "string"
   );
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "ForwardProp authority-chain audit primitive; palantir-mini meta-substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as propagationAuditFoundryEquivalent };

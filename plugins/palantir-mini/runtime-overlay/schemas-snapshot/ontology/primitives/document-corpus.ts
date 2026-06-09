@@ -31,7 +31,6 @@
  * @since v1.56.0
  */
 
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
 
 export const DOCUMENT_CORPUS_SCHEMA_VERSION =
   "palantir-mini/document-corpus/v1" as const;
@@ -98,11 +97,3 @@ export function isDocumentCorpus(candidate: unknown): candidate is DocumentCorpu
     corpus.topK >= 0
   );
 }
-
-// --- Foundry equivalence ---
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Project document corpus for local-runtime retrieval alongside ontology context; no Foundry object-type equivalent (palantir-mini control-plane primitive, AIP #3 Chatbot Studio document-retrieval layer).",
-};
-export { categoryFoundryEquivalent as documentCorpusFoundryEquivalent };

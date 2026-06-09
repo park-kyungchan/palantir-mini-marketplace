@@ -40,12 +40,3 @@ export class InterfaceTypeRegistry {
 }
 
 export const INTERFACE_TYPE_REGISTRY = new InterfaceTypeRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "partial",
-  foundryType: "InterfaceType",
-  gaps: ["interface-level constraints", "interface aliases"],
-};
-export { categoryFoundryEquivalent as interfaceTypeFoundryEquivalent };

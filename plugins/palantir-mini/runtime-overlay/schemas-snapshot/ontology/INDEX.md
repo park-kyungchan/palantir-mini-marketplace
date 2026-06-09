@@ -45,7 +45,6 @@ New AIP/Foundry operational primitives added in v1.37:
 | `primitives/object-view.ts` | Object View exposure boundary for apps/workflows/agent tools |
 | `primitives/ontology-branch-proposal.ts` | Global Branching / AI FDE proposal lifecycle |
 | `primitives/aip-evaluation.ts` | AIP Evals suites, test cases, runs, experiments |
-| `primitives/aip-agent.ts` | AIP Chatbot / AI FDE agent tool, ontology, eval, deployment binding |
 
 **Provenance**: Derived from the kosmos TechBlueprint
 (`park-kyungchan/kosmos@767fa10`) produced by the 7-agent Agent Teams

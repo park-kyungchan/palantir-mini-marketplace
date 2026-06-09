@@ -57,11 +57,3 @@ export class ScenarioSandboxRegistry {
 }
 
 export const SCENARIO_SANDBOX_REGISTRY = new ScenarioSandboxRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "Scenario / Sandbox",
-};
-export { categoryFoundryEquivalent as scenarioSandboxFoundryEquivalent };

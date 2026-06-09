@@ -65,11 +65,3 @@ export interface FeedbackLoopClosedPayload {
   readonly iterationCount: number;
   readonly terminationCondition: FeedbackLoopClosedTerminationCondition;
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Feedback loop close event payload; palantir-mini-sprint-harness substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as feedbackLoopClosedFoundryEquivalent };

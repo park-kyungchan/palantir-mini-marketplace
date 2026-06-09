@@ -95,11 +95,3 @@ export class DeadCodeMarkerRegistry {
 }
 
 export const DEAD_CODE_MARKER_REGISTRY = new DeadCodeMarkerRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Dead-code marker for substrate cleanup; codebase-governance, not Foundry surface",
-};
-export { categoryFoundryEquivalent as deadCodeMarkerFoundryEquivalent };

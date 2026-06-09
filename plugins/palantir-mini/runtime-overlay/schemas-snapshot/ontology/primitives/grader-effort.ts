@@ -157,11 +157,3 @@ export function tierRequiresModelCall(tier: GraderEffortLevel): boolean {
 export function tierSelectsOpus(tier: GraderEffortLevel): boolean {
   return tier === "critical";
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "5-level grader-effort enum bridging palantir-mini criterion.tier to Anthropic /effort + GPT-5.5 reasoning.effort; palantir-mini-native",
-};
-export { categoryFoundryEquivalent as graderEffortFoundryEquivalent };

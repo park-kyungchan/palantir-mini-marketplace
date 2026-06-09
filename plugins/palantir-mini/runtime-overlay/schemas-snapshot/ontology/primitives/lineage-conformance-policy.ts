@@ -262,11 +262,3 @@ export const FOUR_DIM_LIFECYCLE_POLICIES: ReadonlyArray<LineageConformancePolicy
     requiredDims: FOUR_DIM_REQUIRED,
     enforcement: "hard",
   }));
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "5-dim envelope conformance policy for events.jsonl substrate (rule 10); palantir-mini-native",
-};
-export { categoryFoundryEquivalent as lineageConformancePolicyFoundryEquivalent };

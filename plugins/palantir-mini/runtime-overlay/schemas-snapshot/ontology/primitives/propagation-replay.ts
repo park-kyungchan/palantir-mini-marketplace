@@ -103,11 +103,3 @@ export function isPropagationReplayPayload(
     typeof v.replayedAt === "string"
   );
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "BackwardProp 5-dim replay primitive; palantir-mini meta-substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as propagationReplayFoundryEquivalent };

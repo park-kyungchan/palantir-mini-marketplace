@@ -8,7 +8,7 @@
  *   - failure-mode.ts (this):     GRAPH-NODE identity linking both
  *
  * FailureModeDeclaration links the two existing primitives by reference and
- * optionally cross-refs the originating EventRid (the failure_mode_synthesized
+ * optionally cross-refs the originating event id (the failure_mode_synthesized
  * event that spawned this node). The existing primitives are NOT collapsed.
  *
  * Decision: alias-wrapper (b1) per spec.md §4 row 8.
@@ -27,10 +27,8 @@
  */
 
 import type { FailureCategory } from "./failure-category";
-import type { EventRid } from "./event";
 
 export type { FailureCategory } from "./failure-category";
-export type { EventRid } from "./event";
 
 export type FailureModeRid = string & { readonly __brand: "FailureModeRid" };
 export const failureModeRid = (s: string): FailureModeRid => s as FailureModeRid;
@@ -40,10 +38,10 @@ export interface FailureModeDeclaration {
   /** Root-cause category tag for cross-sprint pattern queries. */
   readonly category: FailureCategory;
   /**
-   * RID of the failure_mode_synthesized event that produced this node.
+   * Event id of the failure_mode_synthesized event that produced this node.
    * Absent when the failure was manually recorded rather than auto-synthesized.
    */
-  readonly originatingEventRef?: EventRid;
+  readonly originatingEventRef?: string;
 }
 
 export function isFailureModeDeclaration(x: unknown): x is FailureModeDeclaration {

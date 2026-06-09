@@ -141,11 +141,3 @@ export class HookEventAllowlistRegistry {
 }
 
 export const HOOK_EVENT_ALLOWLIST_REGISTRY = new HookEventAllowlistRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Claude Code hook event taxonomy; no Foundry equivalent",
-};
-export { categoryFoundryEquivalent as hookEventAllowlistFoundryEquivalent };

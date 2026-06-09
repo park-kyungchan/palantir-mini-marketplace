@@ -328,11 +328,3 @@ export class DispatchContractRegistry {
 }
 
 export const DISPATCH_CONTRACT_REGISTRY = new DispatchContractRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Cross-species harness dispatch contract (7-species discriminated union); palantir-mini Brain-of-Swarms substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as dispatchContractFoundryEquivalent };

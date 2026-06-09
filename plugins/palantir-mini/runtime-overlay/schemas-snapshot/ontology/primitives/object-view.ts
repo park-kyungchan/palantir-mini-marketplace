@@ -90,11 +90,3 @@ export class ObjectViewRegistry {
 }
 
 export const OBJECT_VIEW_REGISTRY = new ObjectViewRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "ObjectView",
-};
-export { categoryFoundryEquivalent as objectViewFoundryEquivalent };

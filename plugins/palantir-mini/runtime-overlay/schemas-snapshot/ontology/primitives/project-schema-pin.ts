@@ -96,11 +96,3 @@ export class ProjectSchemaPinRegistry {
 }
 
 export const PROJECT_SCHEMA_PIN_REGISTRY = new ProjectSchemaPinRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Schema package version pin in consumer-project package.json; no Foundry equivalent",
-};
-export { categoryFoundryEquivalent as projectSchemaPinFoundryEquivalent };

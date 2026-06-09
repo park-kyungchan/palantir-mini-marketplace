@@ -8,6 +8,28 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.82.0 — 2026-06-10 (PR-C schema structural minimalism: dead-primitive removal + edge-subtype fold + FoundryEquivalence metadata removal)
+
+MINOR (rule 08 — removals of 0-consumer primitives + an additive `kind` discriminator on `EdgeBaseDeclaration`; no real consumer breaks — every removed symbol was verified to have zero real-logic importers).
+
+### Removed — dead primitives (zero real-logic consumers)
+
+- `ontology/primitives/aip-agent.ts` — `AIPAgentDeclaration` / `AIPAgentRid` / `AIP_AGENT_REGISTRY`. Migrated its only cross-primitive importer: `source-executor.ts` drops the `"aip-agent"` `SourceExecutor` variant (`SourceExecutorAIPAgent` interface + kind + guard + `isSourceExecutor` branch).
+- `ontology/primitives/aip-mode-and-skill.ts` — `AIPMode` / `AIPSkill` / `AIP_MODES` / `AIP_SKILL_REGISTRY` / `isAIPMode` / `aipSkillId`.
+- `ontology/primitives/aip-architecture-axis.ts` — `AIPAxisName` / `AIP_AXIS_NAMES` / `AIPArchitectureAxisRid` / `AIPArchitectureAxisDeclaration`.
+- `ontology/primitives/event.ts` — `EventRid` / `EventDeclaration` / `eventRid` / `isEventDeclaration` (prim-learn-27 graph-node identity). NOTE: `event-envelope.ts` (the live 5-dim envelope) is unaffected and retained.
+- `ontology/primitives/learning.ts` — `LearningRid` / `LearningDeclaration` / `learningRid` / `isLearningDeclaration`. The live durable-lesson shape (`FeedbackLoopClosedPayload` in `feedback-loop-closed.ts`) is retained.
+- `ontology/primitives/grader-domain-extension.ts` — `AIPEvalsEvaluatorType` / `AIP_EVALS_EVALUATOR_TYPES` / `AIP_EVALS_EVALUATOR_TYPE_TO_RUBRIC_DOMAIN` / `rubricDomainForEvaluator` / `isAIPEvalsEvaluatorType`. `grading-rubric.ts` / `grading-criterion.ts` (the `RubricDomain` source) are retained.
+
+### Changed — edge-type cluster fold (6 subtypes → 1 base + discriminator)
+
+- `ontology/primitives/edge-base-type.ts` — added the `EdgeKind` cluster discriminator (`lineage` / `governance` / `refinement` / `routing` / `structural` / `taxonomy`) + `EDGE_KINDS` and a required `kind: EdgeKind` field on `EdgeBaseDeclaration`. No code constructs an `EdgeBaseDeclaration`, so the required-field addition breaks no consumer.
+- Removed the 6 cluster-subtype files folded into the above: `structural-edge.ts`, `governance-edge.ts`, `routing-edge.ts`, `lineage-edge.ts`, `refinement-edge.ts`, `taxonomy-edge.ts` (their fine-grained sub-kinds were never read by any typed consumer). `impact-edge.ts` is a distinct primitive (different brand + live runtime registry) and is retained.
+
+### Removed — FoundryEquivalence write-only metadata
+
+- `ontology/primitives/category-foundry-equivalent.ts` — `FoundryEquivalence` type + helpers + the per-primitive `categoryFoundryEquivalent` markers on 84 satellite primitives + the `FOUNDRY_EQUIVALENTS_REGISTRY` registry + `getFoundryEquivalents()` aggregator in the primitives barrel. The promised consumers (audits / codegen / migration tooling) were never built — the metadata was write-only dead weight. The barrel, package.json subpath exports, MANIFEST.json hash index, and INDEX.md catalog rows were updated accordingly.
+
 ## v1.81.0 — 2026-06-10 (PR-B lineage substrate hardening: XRUN-1 strict 5-dim predicate + XRUN-2 canonical 0-4 propagationDepth + ENVELOPE-1 primitive wiring)
 
 Additive MINOR (rule 08 — additive exports + optional fields on existing primitives; no removals, no breaking edits).

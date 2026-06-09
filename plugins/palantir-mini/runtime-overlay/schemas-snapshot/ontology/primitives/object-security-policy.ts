@@ -115,11 +115,3 @@ export class ObjectSecurityPolicyRegistry {
 }
 
 export const OBJECT_SECURITY_POLICY_REGISTRY = new ObjectSecurityPolicyRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "ObjectSecurityPolicy",
-};
-export { categoryFoundryEquivalent as objectSecurityPolicyFoundryEquivalent };

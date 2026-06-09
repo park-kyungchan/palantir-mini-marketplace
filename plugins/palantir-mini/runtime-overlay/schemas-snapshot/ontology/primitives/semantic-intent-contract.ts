@@ -254,12 +254,3 @@ export function isSemanticIntentContract(x: unknown): x is SemanticIntentContrac
     Array.isArray(contract.affectedSurfaces)
   );
 }
-
-// --- Foundry equivalence (Prompt-to-DTC semantic contract) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "User-approved semantic intent contract for palantir-mini routing; analogous to pre-action clarification/confirmation, not Foundry data",
-};
-export { categoryFoundryEquivalent as semanticIntentContractFoundryEquivalent };

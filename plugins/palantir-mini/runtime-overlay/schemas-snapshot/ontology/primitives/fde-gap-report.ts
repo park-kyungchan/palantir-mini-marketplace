@@ -194,17 +194,3 @@ export interface FDEGapReportDetailed {
 // =============================================================================
 
 export type { FDEOntologyBuildSession };
-
-// =============================================================================
-// Foundry equivalence (R5-F14 / S3)
-// =============================================================================
-
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "FDE detailed gap report combines AIP Evals scorecard semantics with " +
-    "palantir-mini-local 9-level review structure + deferred-submission-criteria " +
-    "invariant; no direct Foundry counterpart.",
-};
-export { categoryFoundryEquivalent as fdeGapReportFoundryEquivalent };

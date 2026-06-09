@@ -74,11 +74,3 @@ export function isAgenticMemoryLayerArray(xs: unknown): xs is AgenticMemoryLayer
     )
   );
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "4-layer agentic memory enum (working/episodic/semantic/procedural); typed reflection of Palantir A1 2026-04-29 blog, palantir-mini-native primitive form",
-};
-export { categoryFoundryEquivalent as agenticMemoryLayerFoundryEquivalent };

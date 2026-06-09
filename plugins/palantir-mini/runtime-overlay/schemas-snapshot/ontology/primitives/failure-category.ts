@@ -60,11 +60,3 @@ export const FAILURE_CATEGORIES: readonly FailureCategory[] = [
 export function isFailureCategory(s: string): s is FailureCategory {
   return (FAILURE_CATEGORIES as readonly string[]).includes(s);
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "6-member failure-category enum for analyzer hypothesis tagging; BackProp substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as failureCategoryFoundryEquivalent };

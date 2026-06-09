@@ -144,11 +144,3 @@ export class FeedbackLoopRegistry {
 }
 
 export const FEEDBACK_LOOP_REGISTRY = new FeedbackLoopRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Generator↔Evaluator feedback loop primitive; palantir-mini-sprint-harness IPC, not Foundry surface",
-};
-export { categoryFoundryEquivalent as feedbackLoopFoundryEquivalent };

@@ -295,16 +295,3 @@ export const FDE_GRADING_RUBRIC: GradingRubricDeclaration = {
 };
 
 GRADING_RUBRIC_REGISTRY.register(FDE_GRADING_RUBRIC);
-
-// =============================================================================
-// Foundry equivalence (R5-F14 / S3)
-// =============================================================================
-
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "FDE rubric blends AIP Evals 5-evaluator semantics with palantir-mini-local " +
-    "9-level review levels; no direct Foundry counterpart.",
-};
-export { categoryFoundryEquivalent as fdeGradingRubricFoundryEquivalent };

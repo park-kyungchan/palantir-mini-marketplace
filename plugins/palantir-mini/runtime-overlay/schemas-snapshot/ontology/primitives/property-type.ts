@@ -70,11 +70,3 @@ export const PROPERTY_TYPES: Readonly<Record<PropertyTypeName, PropertyTypeDecla
 });
 
 export const PROPERTY_TYPE_NAMES: readonly PropertyTypeName[] = Object.keys(PROPERTY_TYPES) as PropertyTypeName[];
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "PropertyType (24-type set)",
-};
-export { categoryFoundryEquivalent as propertyTypeFoundryEquivalent };

@@ -146,11 +146,3 @@ export class OutcomePairingRegistry {
 }
 
 export const OUTCOME_PAIRING_REGISTRY = new OutcomePairingRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Before/after intervention measurement pairing (rule 26 Axis B1); palantir-mini-native",
-};
-export { categoryFoundryEquivalent as outcomePairingFoundryEquivalent };

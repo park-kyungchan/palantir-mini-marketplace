@@ -21,7 +21,6 @@
  * @owner palantirkc-ontology
  */
 
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
 
 // ---------------------------------------------------------------------------
 // RID + branded type
@@ -150,15 +149,3 @@ export function isRetentionManifestEntry(v: unknown): v is RetentionManifestEntr
     obj["provenance"] !== null
   );
 }
-
-// ---------------------------------------------------------------------------
-// FoundryEquivalence metadata (prim-meta-01 pattern)
-// ---------------------------------------------------------------------------
-
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "RetentionManifest is a palantir-mini-originated event-substrate lifecycle policy aligned with rule 26 valuable-data T0-T4 tier routing; no direct Palantir Foundry counterpart.",
-};
-
-export { categoryFoundryEquivalent as retentionManifestFoundryEquivalent };

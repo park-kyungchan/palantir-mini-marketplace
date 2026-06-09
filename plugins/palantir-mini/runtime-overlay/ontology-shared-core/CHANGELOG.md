@@ -9,6 +9,15 @@ Versioning: SemVer.
 
 ---
 
+## 1.24.0 — 2026-06-10
+
+PR-C schema structural minimalism. Drops the consumer-surface re-exports for the dead 0-consumer primitives removed in schemas-snapshot v1.82.0 / ontology axis 1.72.0, and folds the 6 edge-cluster re-exports into a single `EdgeBaseDeclaration` + `EdgeKind` discriminator surface. Every dropped re-export was verified to have zero real-logic consumers, so this is graded MINOR despite the export-surface reduction (no consumer breaks).
+
+- Removed re-exports: `aip-mode-and-skill` (`AIPMode`/`AIPSkill`/…), `grader-domain-extension` (`AIPEvalsEvaluatorType` + 4 values), `aip-architecture-axis` (`AIPArchitectureAxis*`/`AIP_AXIS_NAMES`), `event` (`EventRid`/`EventDeclaration`/`eventRid`), `learning` (`LearningRid`/`LearningDeclaration`/`learningRid`), and the 6 edge cluster types `structural-edge`/`governance-edge`/`routing-edge`/`lineage-edge`/`refinement-edge`/`taxonomy-edge`.
+- Edge surface: `edge-base-type` re-export now also exposes `EdgeKind` + `EDGE_KINDS` (the 6 cluster discriminators folded onto `EdgeBaseDeclaration.kind`). `impact-edge` is unaffected.
+
+`SHARED_CORE_VERSION` bumped 1.23.0 → 1.24.0.
+
 ## 1.23.0 — 2026-05-13
 
 MINOR bump. Re-exports schemas v1.65.0 RetentionManifest primitive (sprint-106 PR 4.4).

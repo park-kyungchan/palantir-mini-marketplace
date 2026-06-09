@@ -25,7 +25,6 @@
  * @owner palantirkc-ontology
  */
 
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
 
 /** Branded RID for a BackPropValueIndex entry. */
 export type BackPropValueIndexRid = string & {
@@ -100,11 +99,3 @@ export function isBackPropValueIndexEntry(
   const v = value as Record<string, unknown>;
   return typeof v["eventId"] === "string" && typeof v["when"] === "string";
 }
-
-// Foundry equivalence metadata (prim-meta-01 pattern)
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "BackPropValueIndex is palantir-mini-originated event-substrate retrieval index aligned with rule 26 valuable-data 5-axes; no direct Foundry counterpart.",
-};
-export { categoryFoundryEquivalent as backPropValueIndexFoundryEquivalent };

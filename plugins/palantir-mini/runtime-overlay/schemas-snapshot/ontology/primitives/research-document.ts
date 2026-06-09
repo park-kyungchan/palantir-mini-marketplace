@@ -80,11 +80,3 @@ export class ResearchDocumentRegistry {
 }
 
 export const RESEARCH_DOCUMENT_REGISTRY = new ResearchDocumentRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Research evidence corpus document with provenance; no Foundry equivalent",
-};
-export { categoryFoundryEquivalent as researchDocumentFoundryEquivalent };

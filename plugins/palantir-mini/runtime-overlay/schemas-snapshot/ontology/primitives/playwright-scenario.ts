@@ -169,11 +169,3 @@ export class PlaywrightScenarioRegistry {
  * @deprecated Since schemas v1.16.0 — see `PlaywrightScenarioRegistry` docstring.
  */
 export const PLAYWRIGHT_SCENARIO_REGISTRY = new PlaywrightScenarioRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Playwright MCP scenario for visual-grader rubric evidence; harness-substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as playwrightScenarioFoundryEquivalent };

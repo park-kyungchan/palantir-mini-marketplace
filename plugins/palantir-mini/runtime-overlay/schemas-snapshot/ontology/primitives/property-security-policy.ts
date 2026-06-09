@@ -123,11 +123,3 @@ export class PropertySecurityPolicyRegistry {
 }
 
 export const PROPERTY_SECURITY_POLICY_REGISTRY = new PropertySecurityPolicyRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "PropertySecurityPolicy",
-};
-export { categoryFoundryEquivalent as propertySecurityPolicyFoundryEquivalent };

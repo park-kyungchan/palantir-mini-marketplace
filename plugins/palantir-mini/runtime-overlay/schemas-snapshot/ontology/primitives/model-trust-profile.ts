@@ -14,7 +14,6 @@
  * @owner palantirkc-ontology
  */
 
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
 
 export const MODEL_TRUST_PROFILE_SCHEMA_VERSION = "palantir-mini/model-trust-profile/v1" as const;
 
@@ -49,11 +48,3 @@ export const DEFAULT_MODEL_TRUST_PROFILE_TEMPLATE = {
   mayBypassWorkflowTrace: false as const,
   mayBypassProjectScopeBoundary: false as const,
 } satisfies Omit<ModelTrustProfile, "modelId">;
-
-// --- Foundry equivalence ---
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Per-model governance trust posture with 5 literal-false bypass invariants; no Foundry object-type equivalent (palantir-mini control-plane primitive, governance layer).",
-};
-export { categoryFoundryEquivalent as modelTrustProfileFoundryEquivalent };

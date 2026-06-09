@@ -454,19 +454,6 @@ export * from "@palantirKC/claude-schemas/ontology/primitives/object-security-po
 export * from "@palantirKC/claude-schemas/ontology/primitives/property-security-policy";
 export * from "@palantirKC/claude-schemas/ontology/primitives/source-executor";
 export * from "@palantirKC/claude-schemas/ontology/primitives/workflow-lineage-graph";
-export * from "@palantirKC/claude-schemas/ontology/primitives/aip-mode-and-skill";
-// grader-domain-extension uses named explicit exports to avoid ambient
-// ambiguity with the existing `RubricDomain` symbol re-exported earlier
-// via the v1.14 grading-criterion surface.
-export type {
-  AIPEvalsEvaluatorType,
-} from "@palantirKC/claude-schemas/ontology/primitives/grader-domain-extension";
-export {
-  AIP_EVALS_EVALUATOR_TYPES,
-  AIP_EVALS_EVALUATOR_TYPE_TO_RUBRIC_DOMAIN,
-  isAIPEvalsEvaluatorType,
-  rubricDomainForEvaluator,
-} from "@palantirKC/claude-schemas/ontology/primitives/grader-domain-extension";
 export * from "@palantirKC/claude-schemas/ontology/primitives/retry-policy";
 
 // --- v1.46 sprint-059 W2.1 — DerivedPropertyDeclaration (prim-data-26) ---
@@ -568,16 +555,6 @@ export type {
 export { contextCapsuleRid } from "@palantirKC/claude-schemas/ontology/primitives/context-capsule";
 
 export type {
-  AIPArchitectureAxisRid,
-  AIPArchitectureAxisDeclaration,
-  AIPAxisName,
-} from "@palantirKC/claude-schemas/ontology/primitives/aip-architecture-axis";
-export {
-  AIP_AXIS_NAMES,
-  aipArchitectureAxisRid,
-} from "@palantirKC/claude-schemas/ontology/primitives/aip-architecture-axis";
-
-export type {
   ProjectBrowseDocRid,
   ProjectBrowseDocDeclaration,
 } from "@palantirKC/claude-schemas/ontology/primitives/project-browse-doc";
@@ -672,71 +649,28 @@ export type {
 export { generatedArtifactRid } from "@palantirKC/claude-schemas/ontology/primitives/generated-artifact";
 
 export type {
-  EventRid,
-  EventDeclaration,
-} from "@palantirKC/claude-schemas/ontology/primitives/event";
-export { eventRid } from "@palantirKC/claude-schemas/ontology/primitives/event";
-
-export type {
   FailureModeRid,
   FailureModeDeclaration,
 } from "@palantirKC/claude-schemas/ontology/primitives/failure-mode";
 export { failureModeRid } from "@palantirKC/claude-schemas/ontology/primitives/failure-mode";
 
-export type {
-  LearningRid,
-  LearningDeclaration,
-} from "@palantirKC/claude-schemas/ontology/primitives/learning";
-export { learningRid } from "@palantirKC/claude-schemas/ontology/primitives/learning";
-
 // --- v1.17.0 additive: Phase 2 edge-type primitives (sprint-079 PR 2.2) ---
-// Schema v1.59.0 (2026-05-13). 7 new edge-type primitives (1 base + 6 cluster
-// files, 22 total edge kinds) that complete the Phase 2 edge-type surface so
-// PR 2.3 (lib/ontology-graph/store.ts) can persist edges between the 32 PR 2.1
-// nodes against canonical names. Authority chain:
+// Schema v1.59.0 (2026-05-13). EdgeBaseDeclaration is the single edge primitive;
+// it carries an `EdgeKind` cluster discriminator (lineage / governance /
+// refinement / routing / structural / taxonomy) folding what were previously 6
+// separate cluster-subtype files. PR 2.3 (lib/ontology-graph/store.ts) persists
+// edges between the 32 PR 2.1 nodes against canonical names. Authority chain:
 // proposal §7.2 -> plan §4 row 2.2 -> schemas v1.59.0 -> this file.
 
 export type {
   EdgeRid,
+  EdgeKind,
   EdgeBaseDeclaration,
 } from "@palantirKC/claude-schemas/ontology/primitives/edge-base-type";
-export { edgeRid } from "@palantirKC/claude-schemas/ontology/primitives/edge-base-type";
-
-export type {
-  StructuralEdgeRid,
-  StructuralEdgeKind,
-  StructuralEdgeDeclaration,
-} from "@palantirKC/claude-schemas/ontology/primitives/structural-edge";
-
-export type {
-  GovernanceEdgeRid,
-  GovernanceEdgeKind,
-  GovernanceEdgeDeclaration,
-} from "@palantirKC/claude-schemas/ontology/primitives/governance-edge";
-
-export type {
-  RoutingEdgeRid,
-  RoutingEdgeKind,
-  RoutingEdgeDeclaration,
-} from "@palantirKC/claude-schemas/ontology/primitives/routing-edge";
-
-export type {
-  LineageEdgeRid,
-  LineageEdgeKind,
-  LineageEdgeDeclaration,
-} from "@palantirKC/claude-schemas/ontology/primitives/lineage-edge";
-
-export type {
-  RefinementEdgeRid,
-  RefinementEdgeKind,
-  RefinementEdgeDeclaration,
-} from "@palantirKC/claude-schemas/ontology/primitives/refinement-edge";
-
-export type {
-  TaxonomyEdgeRid,
-  TaxonomyEdgeKind,
-  TaxonomyEdgeDeclaration,
-} from "@palantirKC/claude-schemas/ontology/primitives/taxonomy-edge";
+export {
+  EDGE_KINDS,
+  edgeRid,
+} from "@palantirKC/claude-schemas/ontology/primitives/edge-base-type";
 
 // --- v1.20.0 OntologyContextSeed promotion + SemanticIntentContract strengthening ---
 // Schema v1.62.0 (2026-05-13, sprint-120 PR 5.9).
@@ -805,4 +739,4 @@ export {
   isRetentionManifestEntry,
 } from "@palantirKC/claude-schemas/ontology/primitives/retention-manifest";
 
-export const SHARED_CORE_VERSION = "1.23.0";
+export const SHARED_CORE_VERSION = "1.24.0";

@@ -93,12 +93,3 @@ export function isDigitalTwinChangeContract(x: unknown): x is DigitalTwinChangeC
     Array.isArray(contract.risks)
   );
 }
-
-// --- Foundry equivalence (Prompt-to-DTC change boundary) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Approved Digital Twin change boundary for palantir-mini Prompt-to-DTC governance; plugin control-plane primitive",
-};
-export { categoryFoundryEquivalent as digitalTwinChangeContractFoundryEquivalent };

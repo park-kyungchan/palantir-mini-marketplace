@@ -113,11 +113,3 @@ export function hasAnyLineageRef(refs: LineageRefs): boolean {
     refs.playgroundSandboxId !== undefined
   );
 }
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Typed lineage cross-reference (actionRid/dryRunRef/outcomePairId); palantir-mini event-log substrate, not Foundry surface",
-};
-export { categoryFoundryEquivalent as lineageRefsFoundryEquivalent };

@@ -97,11 +97,3 @@ export class SemanticRidRegistry {
 }
 
 export const SEMANTIC_RID_REGISTRY = new SemanticRidRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale: "Semantic-RID parsed-form primitive for impact-query traversal; palantir-mini-native",
-};
-export { categoryFoundryEquivalent as semanticRidFoundryEquivalent };

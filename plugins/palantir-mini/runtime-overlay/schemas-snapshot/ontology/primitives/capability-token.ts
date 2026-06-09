@@ -55,11 +55,3 @@ export class CapabilityTokenRegistry {
 }
 
 export const CAPABILITY_TOKEN_REGISTRY = new CapabilityTokenRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "CapabilityToken (RBAC purpose-of-use binding)",
-};
-export { categoryFoundryEquivalent as capabilityTokenFoundryEquivalent };

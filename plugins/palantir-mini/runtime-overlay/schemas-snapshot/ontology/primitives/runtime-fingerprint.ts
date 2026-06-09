@@ -207,17 +207,3 @@ export function detectRuntimeFingerprint(
       : {}),
   };
 }
-
-// ─── Foundry equivalence ──────────────────────────────────────────────────────
-
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "RuntimeFingerprint is a palantir-mini-originated cross-runtime attribution layer; " +
-    "no direct Palantir Foundry counterpart. Provides structured byWhom companion " +
-    "per rule 27 §Cross-runtime substrate + canonical plan v2 §4 row 6.6.",
-};
-
-export { categoryFoundryEquivalent as runtimeFingerprintFoundryEquivalent };

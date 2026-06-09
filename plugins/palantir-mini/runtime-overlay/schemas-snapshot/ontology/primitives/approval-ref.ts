@@ -67,12 +67,3 @@ export function isApprovalRef(ref: unknown): ref is ApprovalRef {
     structured.userAnswerExcerpt.length > 0
   );
 }
-
-// --- Foundry equivalence (Prompt-to-DTC control-plane provenance) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "claude-extension",
-  rationale:
-    "Prompt-to-DTC user approval provenance; analogous to action submission confirmation evidence, but palantir-mini-native",
-};
-export { categoryFoundryEquivalent as approvalRefFoundryEquivalent };

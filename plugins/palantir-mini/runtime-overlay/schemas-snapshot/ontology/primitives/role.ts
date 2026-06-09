@@ -75,11 +75,3 @@ export class RoleRegistry {
 }
 
 export const ROLE_REGISTRY = new RoleRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "Role (principal->permission RBAC grant)",
-};
-export { categoryFoundryEquivalent as roleFoundryEquivalent };

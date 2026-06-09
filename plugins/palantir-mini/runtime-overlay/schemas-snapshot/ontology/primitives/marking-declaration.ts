@@ -50,11 +50,3 @@ export class MarkingDeclarationRegistry {
 }
 
 export const MARKING_DECLARATION_REGISTRY = new MarkingDeclarationRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "Marking",
-};
-export { categoryFoundryEquivalent as markingDeclarationFoundryEquivalent };

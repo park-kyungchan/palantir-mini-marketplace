@@ -156,11 +156,3 @@ export class GlobalBranchingProposalRegistry {
 }
 
 export const GLOBAL_BRANCHING_PROPOSAL_REGISTRY = new GlobalBranchingProposalRegistry();
-
-// --- Foundry equivalence (R5-F14 / S3) ---
-import type { FoundryEquivalence } from "./category-foundry-equivalent";
-const categoryFoundryEquivalent: FoundryEquivalence = {
-  kind: "equivalent",
-  foundryType: "GlobalBranchingProposal",
-};
-export { categoryFoundryEquivalent as globalBranchingProposalFoundryEquivalent };
