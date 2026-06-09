@@ -14,6 +14,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { RULE_REGISTRY_ENTRIES } from "#schemas/src/generated/rule-registry";
 import { isRuleRetired, isRuleScopeMigrated } from "#schemas/ontology/primitives/rule";
+import { HOOK_INSTANCES } from "#schemas/ontology/self";
 import { HOOKS_DIR } from "./pm-rule-audit/types";
 
 // ─── Permanent gap IDs (rule CONTEXT.md §19) — retired with no stub file ────
@@ -118,6 +119,13 @@ export default async function validateHookCitations(
     }
   }
 
+  // SSoT for the wired/unwired axis (self-Ontology seed, drift-guarded by the hook
+  // registration test): a rule whose cited hook exists but is UNWIRED in hooks.json
+  // promises enforcement that never fires.
+  const orphanIds = new Set(
+    HOOK_INSTANCES.filter((h) => h.orphanInRegistry).map((h) => h.hookId),
+  );
+
   for (const rule of RULE_REGISTRY_ENTRIES) {
     if (rule.scope !== "global") continue;
     if (isRuleRetired(rule) || isRuleScopeMigrated(rule)) continue;
@@ -132,6 +140,16 @@ export default async function validateHookCitations(
           slug: rule.slug,
           citedHook,
           reason: `hook "${citedHook}.ts" does not exist in hooks/`,
+        });
+        continue;
+      }
+
+      if (orphanIds.has(citedHook)) {
+        reverseMismatches.push({
+          ruleId: rule.ruleId,
+          slug: rule.slug,
+          citedHook,
+          reason: `hook "${citedHook}.ts" exists but is UNWIRED in hooks/hooks.json (orphanInRegistry) — rule promises enforcement that never fires`,
         });
         continue;
       }

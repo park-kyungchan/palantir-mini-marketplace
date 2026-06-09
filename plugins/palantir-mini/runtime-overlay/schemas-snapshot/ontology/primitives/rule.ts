@@ -127,6 +127,7 @@ export interface RuleAuditFinding {
     | "bottleneck:t2-total"
     | "stale-crossref"
     | "stale-hook-citation"
+    | "unwired-hook-citation"
     | "missing-frontmatter"
     | "recycled-rule-id"
     | "unused_rule_30d";

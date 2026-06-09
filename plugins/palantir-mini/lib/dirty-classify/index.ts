@@ -26,7 +26,6 @@
  *                           it's because the gitignore pattern is missing.
  *
  * Used by:
- *   - hooks/session-start-dirty-classify.ts (advisory + auto-stage when strict)
  *   - hooks/pre-pr-dirty-gate.ts             (block when user-WIP outside scope)
  *   - hooks/session-end-cleanup.ts           (auto-stage auto-regen at Stop)
  *   - skills/pm-dirty-classify                (manual triage)

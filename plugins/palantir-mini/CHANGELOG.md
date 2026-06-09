@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.132.0] - 2026-06-10 — chore: hook surface minimalism — remove 18 orphan hooks + coalesce emit_event fan-out + Codex PreCompact parity
+
+Bold, confirm-gated hook minimalism (user-authorized). Every orphan verified UNWIRED (self-ontology orphanInRegistry) with no live caller before removal.
+
+### Removed
+- **18 orphan hook files** (declared on disk, wired NOWHERE in hooks.json/codex-hooks.json — all self-tagged orphanInRegistry) + their test files + their self-ontology `hook.objecttype.ts` entries: `validate-hook-citations-startup` (superseded by the wired rule-audit citation handler), `session-start-cleanliness` + `session-start-dirty-classify` + `session-drift-check` (superseded by the wired pre-pr-dirty-gate + session-end-cleanup; `lib/dirty-classify` KEPT for the wired skill), `plans-index-drift-detect` (rule 02 v3.3.0 already retired it), `task-completed-gate` + `task-completed-inbox-clean` + `task-created` (TaskCompleted lifecycle ceremony), `lead-idle-digest` + `lead-model-availability-check` (multi-agent-team ceremony, no solo path), `agent-frontmatter-validate`, `user-prompt-submit` + `user-prompt-overlay-advisory` (overlay injection handled elsewhere), `prompt-fde-readiness-advisory`, `cold-start-browse-index-loader`, `memory-reflect-stop`, `research-staleness-check`, `session-start-overlay-injector`. One orphan (`user-prompt-ontology-intent-extract`) was REWIRED (front-door intent extraction earns its slot). `prompt-dtc-enforcement-gate` deliberately deferred to the OE-ceremony PR.
+
+### Changed
+- **HOOK-3 emit_event firehose coalesce:** the 4 async PostToolUse:emit_event hooks (outcome-pair-tracker, memory-layer-validator, t3-circuit-feeder, t4-canonical-emit-watch) — each cold-starting a `bun` process and re-reading `events.jsonl` per emit — are merged into ONE in-process dispatcher `emit-event-postdispatch.ts` that parses the envelope once and runs all four consumers. Behaviors + ordering byte-equivalent (verified); only process topology changes (4 cold-starts → 1).
+- **Codex PreCompact parity (rule 27):** `codex-hooks.json` now mounts PreCompact so `events-5d-gate` + `pre-compact-state` fire under Codex (was Claude-only — a cross-runtime governance gap where a Codex session could compact through non-conformant events).
+- **`checkHookCitations` now asserts WIRING** (cross-checks hooks.json/codex-hooks.json via the orphanInRegistry axis) instead of merely file-existence, so a future declared-but-unwired hook is caught. `hook.objecttype.ts` regenerated to the trimmed registry; the registration-split test updated.
+
+`tsc --noEmit` exit 0; `tests/hooks` emit-consumer behavior suites 100 pass / 0 fail; zero NEW failures vs baseline (the 12 pre-existing `agent-ownership-validate` failures are present on clean main, un-ledgered — out of scope, to be addressed with the agent-surface PR). Lead-orchestrated confirm→implement→verify→test workflow (3 adversarial verifiers all correct=true + green gate); re-verified by Lead against ground truth (intermediate codemod LSP diagnostics resolved by completion; the 12 ownership failures confirmed pre-existing via stash-and-retest on clean main).
+
 ## [6.131.0] - 2026-06-10 — chore: schema structural minimalism — remove dead primitives + fold edge subtypes [schemas-snapshot 1.82.0]
 
 Bold minimalism (user-authorized: many recent updates → remove legacy/dead surface). Every removal confirm-gated against ground-truth grep for zero real-logic consumers before deletion. Shrinks every `get_ontology` fold + schema read (serves the token-efficient-impact-analysis goal).

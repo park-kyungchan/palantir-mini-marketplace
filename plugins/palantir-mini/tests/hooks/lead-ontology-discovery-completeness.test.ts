@@ -320,7 +320,7 @@ describe("passed_discovery_call_found", () => {
       type:        "validation_phase_completed",
       when:        new Date().toISOString(),
       atopWhich:   "abc123",
-      throughWhich: { toolName: "user-prompt-ontology-intent-extract", sessionId: "test", cwd: root },
+      throughWhich: { toolName: "prompt-front-door-capture", sessionId: "test", cwd: root },
       byWhom:       { identity: "monitor" },
       payload:      { errorClass: "intent_to_ontology_protocol_advised" },
     });

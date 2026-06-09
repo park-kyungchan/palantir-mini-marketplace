@@ -9,7 +9,7 @@
 //
 // Handler names (map to hooks/<name>.ts):
 //   pre-edit-ontology, post-edit-propagate, pre-compact-state,
-//   task-completed-gate, stop-validate, session-start
+//   emit-event-postdispatch, stop-validate, session-start
 
 import * as path from "path";
 

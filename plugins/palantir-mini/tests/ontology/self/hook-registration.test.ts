@@ -15,9 +15,23 @@ import {
   HOOK_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_HOOK_COUNT = 64;
-const EXPECTED_WIRED_COUNT = 44;
-const EXPECTED_ORPHAN_COUNT = 20;
+const EXPECTED_HOOK_COUNT = 47;
+const EXPECTED_WIRED_COUNT = 45;
+const EXPECTED_ORPHAN_COUNT = 2;
+
+// HOOK-3 coalesce: the four emit_event PostToolUse consumers are no longer listed
+// individually in hooks.json — they fire as in-process members of the
+// `emit-event-postdispatch` aggregator (the single wired hooks.json entry). They remain
+// genuinely wired (orphanInRegistry:false). The hooks.json wiring drift guard parses
+// commands literally, so it must add these aggregator members to the computed wired set.
+const AGGREGATOR_MEMBERS: Record<string, readonly string[]> = {
+  "emit-event-postdispatch": [
+    "outcome-pair-tracker",
+    "memory-layer-validator",
+    "t3-circuit-feeder",
+    "t4-canonical-emit-watch",
+  ],
+};
 
 test("self Hook ObjectType is registered with hookId identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(HOOK_OBJECT_TYPE_RID);
@@ -81,6 +95,14 @@ test("Hook seed orphanInRegistry matches the LIVE hooks/hooks.json wiring (drift
         const disp = cmd.match(/\/scripts\/run\.ts"?\s+([a-z0-9-]+)/);
         if (disp) wired.add(disp[1]!);
       }
+    }
+  }
+
+  // Expand in-process aggregators: a wired aggregator (e.g. emit-event-postdispatch)
+  // transitively wires its member consumers, which do NOT appear literally in hooks.json.
+  for (const [aggregator, members] of Object.entries(AGGREGATOR_MEMBERS)) {
+    if (wired.has(aggregator)) {
+      for (const m of members) wired.add(m);
     }
   }
 

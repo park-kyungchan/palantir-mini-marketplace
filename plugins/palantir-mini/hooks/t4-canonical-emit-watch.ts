@@ -95,36 +95,33 @@ function countDistinctIdentities(
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-async function main(): Promise<void> {
-  // Read hook payload from stdin
-  let rawInput = "";
-  for await (const chunk of process.stdin) rawInput += chunk;
-
-  let payload: PostToolUsePayload = {};
-  try {
-    payload = JSON.parse(rawInput) as PostToolUsePayload;
-  } catch {
-    // Malformed input — exit silently (advisory hook, never blocks)
-    process.exit(0);
-  }
+/**
+ * Default export — advisory PostToolUse(emit_event) logic as an importable module.
+ * Accepts a pre-parsed payload (the emit-event-postdispatch aggregator parses stdin
+ * once and fans out to this + the 3 sibling consumers). Never throws to the caller
+ * and never blocks: early-returns instead of process.exit, mirroring the prior
+ * stdin/main self-exec contract. Advisory hook — always continues.
+ */
+export default async function t4CanonicalEmitWatch(rawPayload: unknown): Promise<void> {
+  const payload = (rawPayload ?? {}) as PostToolUsePayload;
 
   const cwd = payload.cwd ?? process.env.PALANTIR_MINI_PROJECT ?? process.cwd();
 
   // Extract the emitted envelope
   const envelope = extractEnvelope(payload);
   if (!envelope) {
-    process.exit(0); // Not an emit_event call with envelope — skip
+    return; // Not an emit_event call with envelope — skip
   }
 
   // Only care about validation_phase_completed
   if (envelope["type"] !== "validation_phase_completed") {
-    process.exit(0);
+    return;
   }
 
   // Must have lineageRefs.actionRid to trace K-LLM consensus
   const actionRid = extractActionRid(envelope);
   if (!actionRid) {
-    process.exit(0);
+    return;
   }
 
   // Read events.jsonl for K-LLM check
@@ -189,12 +186,4 @@ async function main(): Promise<void> {
   process.stderr.write(
     `[t4-canonical-emit-watch] actionRid=${actionRid} K=${k} identities=[${[...identities].join(",")}] → ${k >= 2 ? "D2-canonical" : "D2-fallback"}\n`,
   );
-
-  // Advisory hook — always continue
-  process.stdout.write(JSON.stringify({ continue: true }) + "\n");
 }
-
-main().catch((err) => {
-  process.stderr.write(`[t4-canonical-emit-watch] error: ${String(err)}\n`);
-  process.exit(0); // Advisory — never block on failure
-});

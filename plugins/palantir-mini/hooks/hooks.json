@@ -266,31 +266,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" outcome-pair-tracker",
-            "timeout": 15,
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" emit-event-postdispatch",
+            "timeout": 40,
             "async": true,
-            "statusMessage": "rule 26 \u00a7Axis B1 \u2014 outcome pair tracking\u2026"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" memory-layer-validator",
-            "timeout": 15,
-            "async": true,
-            "statusMessage": "rule 26 \u00a7Axis E \u2014 memory layer validation\u2026"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" t3-circuit-feeder",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "rule 26 \u00a7Substrate routing T3 \u2014 BackProp circuit feeder\u2026"
-          },
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/t4-canonical-emit-watch.ts\"",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "checking T4 canonical/fallback eligibility (sprint-062 W2-\u03b1)\u2026"
+            "statusMessage": "rule 26 \u2014 emit_event post-dispatch (outcome-pair + memory-layer + T3 circuit + T4 canonical)\u2026"
           }
         ],
         "surfaceStatus": "public-core"

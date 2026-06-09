@@ -1,20 +1,23 @@
 /**
- * palantir-mini SELF-ONTOLOGY — Hook as a registered ObjectType + its 64 instances
+ * palantir-mini SELF-ONTOLOGY — Hook as a registered ObjectType + its 47 instances
  * (Wave 1 self-model build). pm's lifecycle-hook surface modeled AS ontology: each
  * hook is a gate / automation / audit-writer node fired at a runtime lifecycle event.
  *
- * This file declares ONE `Hook` ObjectType (the type) and seeds the 64 hook identities
+ * This file declares ONE `Hook` ObjectType (the type) and seeds the 47 hook identities
  * as instances — the snapshot OWNS the seed (it is the authority), so it does NOT import
- * the hooks layer uphill. The paired registration test cross-checks these 64 names
+ * the hooks layer uphill. The paired registration test cross-checks these 47 names
  * against the LIVE `hooks/*.ts` filesystem AND the wired set in `hooks/hooks.json`, so
  * the self-model fails loud if pm's hook surface drifts (a hook added/removed, or the
  * wired/orphan split changes, without updating this seed).
  *
- * Wired vs orphan (LIVE-verified): the hooks/ dir holds EXACTLY 64 hook files; 44 are
- * wired into a lifecycle event in `hooks/hooks.json` (`orphanInRegistry: false`) and 20
+ * Wired vs orphan (LIVE-verified): the hooks/ dir holds EXACTLY 47 hook files; 45 are
+ * wired into a lifecycle event in `hooks/hooks.json` (`orphanInRegistry: false`) and 2
  * are present-but-unwired (`orphanInRegistry: true`). Wired hooks fire via either a
- * direct `hooks/<id>.ts` command or the `scripts/run.ts <id>` dispatcher; orphans carry
- * an inferred lifecycle event from their source header (best-effort metadata — the
+ * direct `hooks/<id>.ts` command, the `scripts/run.ts <id>` dispatcher, or membership in
+ * an in-process aggregator (the four emit_event consumers — outcome-pair-tracker,
+ * memory-layer-validator, t3-circuit-feeder, t4-canonical-emit-watch — fire via the
+ * `emit-event-postdispatch` aggregator, which is the wired hooks.json entry). Orphans
+ * carry an inferred lifecycle event from their source header (best-effort metadata — the
  * load-bearing facts are hookId identity + the orphanInRegistry filesystem fact).
  * Per-hook policy / blocking descriptor metadata is the runtime concern of the hooks
  * themselves; this self-model carries the stable hook IDENTITY + wiring axes only.
@@ -68,18 +71,17 @@ export interface HookInstance {
 }
 
 /**
- * The 64 Hook instances — pm's LIVE hooks/ surface (44 wired + 20 orphan), sorted by
+ * The 47 Hook instances — pm's LIVE hooks/ surface (45 wired + 2 orphan), sorted by
  * hookId. Snapshot-owned seed (no hooks-layer import); the registration test cross-checks
  * this set against the live `hooks/*.ts` files AND the wired set in `hooks/hooks.json`,
  * failing loud on any drift in the hook surface or the wired/orphan split.
  */
 export const HOOK_INSTANCES: readonly HookInstance[] = [
-  { hookId: "agent-frontmatter-validate", lifecycleEvent: "SessionStart", orphanInRegistry: true },
   { hookId: "agent-ownership-validate", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "bypass-budget-monitor", lifecycleEvent: "Stop", orphanInRegistry: false },
-  { hookId: "cold-start-browse-index-loader", lifecycleEvent: "SessionStart", orphanInRegistry: true },
   { hookId: "context-capsule-init", lifecycleEvent: "UserPromptSubmit", orphanInRegistry: false },
   { hookId: "doc-edit-drift", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
+  { hookId: "emit-event-postdispatch", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "events-5d-gate", lifecycleEvent: "PreCompact", orphanInRegistry: false },
   { hookId: "generated-header-check", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "heartbeat-validate", lifecycleEvent: "SubagentStop", orphanInRegistry: false },
@@ -87,18 +89,14 @@ export const HOOK_INSTANCES: readonly HookInstance[] = [
   { hookId: "impact-graph-cascade-delete", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "impact-graph-maintain", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "impact-graph-session-end-flush", lifecycleEvent: "Stop", orphanInRegistry: false },
-  { hookId: "lead-idle-digest", lifecycleEvent: "TeammateIdle", orphanInRegistry: true },
-  { hookId: "lead-model-availability-check", lifecycleEvent: "SessionStart", orphanInRegistry: true },
   { hookId: "lead-ontology-discovery-completeness", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "manifest-validate", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "memory-layer-validator", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
-  { hookId: "memory-reflect-stop", lifecycleEvent: "Stop", orphanInRegistry: true },
   { hookId: "ontology-domain-classification-validate", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "ontology-engineering-workflow-enforcement-gate", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "ontology-import-guard", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "orphan-pair-watchdog", lifecycleEvent: "PreCompact", orphanInRegistry: false },
   { hookId: "outcome-pair-tracker", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
-  { hookId: "plans-index-drift-detect", lifecycleEvent: "SessionStart", orphanInRegistry: true },
   { hookId: "post-compact", lifecycleEvent: "PostCompact", orphanInRegistry: false },
   { hookId: "post-edit-propagate", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "post-edit-verifier-suggest", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
@@ -111,16 +109,11 @@ export const HOOK_INSTANCES: readonly HookInstance[] = [
   { hookId: "prompt-dtc-enforcement-gate", lifecycleEvent: "PreToolUse", orphanInRegistry: true },
   { hookId: "prompt-fde-readiness-advisory", lifecycleEvent: "UserPromptSubmit", orphanInRegistry: true },
   { hookId: "prompt-front-door-capture", lifecycleEvent: "UserPromptSubmit", orphanInRegistry: false },
-  { hookId: "research-staleness-check", lifecycleEvent: "SessionStart", orphanInRegistry: true },
   { hookId: "researcher-citation-precision", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "rule-audit", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "semantic-frontmatter-validate", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
-  { hookId: "session-drift-check", lifecycleEvent: "SessionStart", orphanInRegistry: true },
   { hookId: "session-end-cleanup", lifecycleEvent: "Stop", orphanInRegistry: false },
   { hookId: "session-start", lifecycleEvent: "SessionStart", orphanInRegistry: false },
-  { hookId: "session-start-cleanliness", lifecycleEvent: "SessionStart", orphanInRegistry: true },
-  { hookId: "session-start-dirty-classify", lifecycleEvent: "SessionStart", orphanInRegistry: true },
-  { hookId: "session-start-overlay-injector", lifecycleEvent: "SessionStart", orphanInRegistry: true },
   { hookId: "stop-validate", lifecycleEvent: "Stop", orphanInRegistry: false },
   { hookId: "subagent-start", lifecycleEvent: "SubagentStart", orphanInRegistry: false },
   { hookId: "subagent-stop", lifecycleEvent: "SubagentStop", orphanInRegistry: false },
@@ -128,18 +121,11 @@ export const HOOK_INSTANCES: readonly HookInstance[] = [
   { hookId: "t4-canonical-emit-watch", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "t4-promotion-trigger", lifecycleEvent: "Stop", orphanInRegistry: false },
   { hookId: "task-completed-enrichment", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
-  { hookId: "task-completed-gate", lifecycleEvent: "TaskCompleted", orphanInRegistry: true },
-  { hookId: "task-completed-inbox-clean", lifecycleEvent: "TaskCompleted", orphanInRegistry: true },
-  { hookId: "task-created", lifecycleEvent: "TaskCreated", orphanInRegistry: true },
-  { hookId: "user-prompt-ontology-intent-extract", lifecycleEvent: "UserPromptSubmit", orphanInRegistry: true },
-  { hookId: "user-prompt-overlay-advisory", lifecycleEvent: "UserPromptSubmit", orphanInRegistry: true },
-  { hookId: "user-prompt-submit", lifecycleEvent: "UserPromptSubmit", orphanInRegistry: true },
-  { hookId: "validate-hook-citations-startup", lifecycleEvent: "SessionStart", orphanInRegistry: true },
   { hookId: "value-grade-assigner", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "workflow-trace-leak-detect", lifecycleEvent: "PreCompact", orphanInRegistry: false },
   { hookId: "write-scope-runtime-enforce", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
 ];
 
-// Register the Hook ObjectType (the type). The 64 instances above are data the
+// Register the Hook ObjectType (the type). The 47 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(HOOK_OBJECT_TYPE);
