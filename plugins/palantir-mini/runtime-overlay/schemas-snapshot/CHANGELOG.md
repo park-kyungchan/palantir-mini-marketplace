@@ -8,6 +8,16 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.77.0 — 2026-06-09 (self-Ontology O-1: StructuredOutput ActionType + structuredOutputFillOrFallback Function)
+
+Additive MINOR (rule 08 — additive self-model ActionType + Function seeds, no edits to existing primitives).
+O-1 structured_output capability: seeds the `StructuredOutput` ActionType (#21, Tier-2 Function-backed,
+`editFunctionName: "pm.structuredOutput.fillOrFallback"`) into `ontology/self/action-types.ts` (SELF_ACTION_TYPES
+20 -> 21 catalog verbs; self/ register-grep 22 -> 23 with Executor) and the `structuredOutputFillOrFallback` Function
+into `ontology/self/functions.ts` (FUNCTION_INSTANCES 76 -> 77, `lib/structured-output/index.ts`). Paired LIVE-cross-checking
+self-model instance seeds lifted to match pm's grown surface: McpTool 29 -> 30, McpHandler 63 -> 64, ManagedSettingsFragment
+grantedTools 62 -> 63. No edits to existing primitive bodies.
+
 ## v1.76.1 — 2026-06-09 (self-Ontology Wave 8: FDE rubric-grader criterion-prefix bug-fix)
 
 Additive PATCH (rule 08 — additive self-model instance seed, no edits to existing primitives).

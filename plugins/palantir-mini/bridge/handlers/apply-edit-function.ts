@@ -10,6 +10,9 @@ import { applyEditFunction } from "../../lib/actions/tier2-function";
 // O-2: side-effect import — fires the four pm.actions.ontology.applyRegister*
 // registerEditFunction() registrations on the live apply path.
 import "../../lib/actions/ontology-register";
+// O-1: side-effect import — fires the pm.structuredOutput.fillOrFallback
+// registerEditFunction() registration (ActionType↔editFunctionName parity) on the live path.
+import "../../lib/structured-output";
 import { appendEventAtomic } from "../../lib/event-log/append";
 import { resolveHostRuntimeIdentity } from "../../lib/runtime/identity";
 import * as fs from "fs";

@@ -37,11 +37,12 @@ import {
   PROMOTE_EVIDENCE_ACTION_TYPE,
   REGISTER_CAPABILITY_TOKEN_ACTION_TYPE,
   EVALUATE_RELEASE_GATE_ACTION_TYPE,
+  STRUCTURED_OUTPUT_ACTION_TYPE,
   EXECUTOR_ACTION_TYPE,
 } from "#schemas/ontology/self";
 
-// Catalog §4 = 20 verb rows; Executor is the +1 pre-existing self ActionType.
-const EXPECTED_CATALOG_VERB_COUNT = 20;
+// Catalog §4 = 20 verb rows + structuredOutput (O-1) = 21; Executor is the +1 pre-existing self ActionType.
+const EXPECTED_CATALOG_VERB_COUNT = 21;
 const EXPECTED_SELF_ACTION_TYPE_COUNT = EXPECTED_CATALOG_VERB_COUNT + 1; // + Executor
 
 // The 20 catalog verbs as a flat list (the source of truth for "all resolve" + "no dupes").
@@ -66,9 +67,10 @@ const CATALOG_VERBS: readonly ActionTypeDeclaration[] = [
   PROMOTE_EVIDENCE_ACTION_TYPE,
   REGISTER_CAPABILITY_TOKEN_ACTION_TYPE,
   EVALUATE_RELEASE_GATE_ACTION_TYPE,
+  STRUCTURED_OUTPUT_ACTION_TYPE,
 ];
 
-test(`SELF_ACTION_TYPES is the 20-verb catalog (catalog §4)`, () => {
+test(`SELF_ACTION_TYPES is the 21-verb catalog (catalog §4 + O-1 structuredOutput)`, () => {
   expect(SELF_ACTION_TYPES.length).toBe(EXPECTED_CATALOG_VERB_COUNT);
   // The exported array and the flat catalog list agree (same identities, same order).
   expect([...SELF_ACTION_TYPES]).toEqual([...CATALOG_VERBS]);
@@ -97,10 +99,10 @@ test(`ACTION_TYPE_REGISTRY holds all 21 self ActionTypes (20 catalog + Executor)
   for (const a of all) expect(registeredRids.has(a.rid)).toBe(true);
 });
 
-test(`tier split = 18 Tier-2 + 2 Tier-1 (catalog §4)`, () => {
+test(`tier split = 19 Tier-2 + 2 Tier-1 (catalog §4 + O-1 structuredOutput)`, () => {
   const tier2 = CATALOG_VERBS.filter((a) => a.tier === "tier-2");
   const tier1 = CATALOG_VERBS.filter((a) => a.tier === "tier-1");
-  expect(tier2.length).toBe(18);
+  expect(tier2.length).toBe(19);
   expect(tier1.length).toBe(2);
 });
 

@@ -1,18 +1,20 @@
 /**
- * palantir-mini SELF-ONTOLOGY — McpTool as a registered ObjectType + its 29 instances
- * (M-SELF deliverable #3, harness redesign W3e-3a). Together with the Executor
- * ActionType this takes the self/ ObjectType+ActionType register count from 1 → 3.
+ * palantir-mini SELF-ONTOLOGY — McpTool as a registered ObjectType + its 30 instances
+ * (M-SELF deliverable #3, harness redesign W3e-3a; +1 = O-1 structured_output).
+ * Together with the Executor ActionType this takes the self/ ObjectType+ActionType
+ * register count from 1 → 3.
  *
  * pm's MCP surface modeled AS ontology: the bridge exposes a fixed set of MCP tools
  * (the runtime's callable surface). This file declares ONE `McpTool` ObjectType (the
- * type) and seeds the 29 tool identities as instances — the snapshot OWNS the seed
+ * type) and seeds the 30 tool identities as instances — the snapshot OWNS the seed
  * (it is the authority), so it does NOT import `bridge/mcp-server.ts` uphill. The
- * paired registration test cross-checks these 29 names against the LIVE bridge TOOLS
+ * paired registration test cross-checks these 30 names against the LIVE bridge TOOLS
  * array so the self-model fails loud if pm's surface drifts (a tool added/removed in
  * the bridge without updating this seed).
  *
- * Count provenance (W3e-3a grounding, LIVE-verified): bridge has EXACTLY 29 tools —
- * 27 prior + W3e-1's `grade_outcome_with_rubric` + `pm_grader_dispatch`. (The bridge's
+ * Count provenance (W3e-3a grounding, LIVE-verified): bridge has EXACTLY 30 tools —
+ * 27 prior + W3e-1's `grade_outcome_with_rubric` + `pm_grader_dispatch` + O-1's
+ * `structured_output`. (The bridge's
  * in-file section-header comments — "14 / 8 / 5" — are STALE; the SSoT is the TOOLS
  * array length / HANDLER_MODULES map.) Richer per-tool metadata (category / audience /
  * lifecycle / classifier projection) is the RUNTIME projection at
@@ -66,7 +68,7 @@ export interface McpToolInstance {
 }
 
 /**
- * The 29 McpTool instances — pm's LIVE bridge tool surface, in TOOLS-array order.
+ * The 30 McpTool instances — pm's LIVE bridge tool surface, in TOOLS-array order.
  * Snapshot-owned seed (no bridge import); the registration test cross-checks this set
  * against the live `bridge/mcp-server.ts` TOOLS array and fails on any drift.
  */
@@ -100,8 +102,9 @@ export const MCP_TOOL_INSTANCES: readonly McpToolInstance[] = [
   { toolName: "pm_rule_audit" },
   { toolName: "validate_managed_settings_fragments" },
   { toolName: "ontology_context_query" },
+  { toolName: "structured_output" },
 ];
 
-// Register the McpTool ObjectType (the type). The 29 instances above are data the
+// Register the McpTool ObjectType (the type). The 30 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(MCP_TOOL_OBJECT_TYPE);
