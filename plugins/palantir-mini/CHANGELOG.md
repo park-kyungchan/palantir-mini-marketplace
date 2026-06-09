@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.130.0] - 2026-06-10 — fix: lineage substrate conformance (XRUN-1/2/6 + ENVELOPE-1) [schemas-snapshot 1.81.0]
+
+### Fixed
+- **XRUN-1: single-source the 5-dim completeness predicate.** New canonical `isDimensionComplete(event, dim)` in the `lineage-conformance-policy` primitive DESCENDS into sub-fields (`throughWhich.{sessionId,toolName,cwd}` + `byWhom.identity`, the latter also required by rule 27); `audit()` gains an additive `strict` param and the PreCompact `audit-events-5d-conformance` path opts into strict descent. Closes the empty-`{}`-sub-object leak where T0-incomplete envelopes passed the gate. Deliberate read-vs-audit asymmetry: `lib/event-log/read.ts` stays lenient (rule 10 NEVER blind-deletes historical append-only rows; the audit measures, never quarantines).
+- **XRUN-6: the PreCompact gate now audits rotated archives.** `audit-events-5d-conformance` reads via `readEvents` (auto-merges `archive/events-rotated-*.jsonl`) + re-applies the time-window filter + includes quarantined rows — closing the post-rotation masking window where the gate waved through a corpus whose archived majority was never audited.
+- **XRUN-2: propagationDepth auto-derivation + canonical 0-4 scale.** `scripts/log.ts emit()` (the shared write path for MCP + hooks + compactor) auto-derives `propagationDepth` from the emitter context path and tags `propagationDepthSource: "auto"|"explicit"` (explicit wins). The three divergent code numberings (emit, hook `inferPropagationDepth`, backward-audit `classifyStep`) are reconciled to ONE 0-4 layer scale single-sourced in the `propagation-audit` primitive (research/schema collapsed to 0); fixes `classifyStep` mis-indexing every depth≥1. The 6-value `PropagationStep` ForwardProp authority vocabulary is unchanged (bridged via `PROPAGATION_DEPTH_TO_STEP`).
+- **ENVELOPE-1: the canonical EventEnvelope primitive is now wired (was a pure orphan with 3/73/83 divergent counts).** `lib/event-log/types.ts` imports `EventEnvelopeBase` + brands FROM the schema primitive and builds the runtime variant union atop it (5-dim substrate single-sourced, not duplicated); `isEventEnvelope` runs as an advisory machine-check at `emit()`; the primitive references `EVENT_TYPE_NAMES` as the discriminant SSoT. New `envelope-primitive-parity` test guards primitive↔runtime drift.
+
+schemas-snapshot 1.80.0→1.81.0 (lineage-conformance-policy + propagation-audit + event-envelope, additive MINOR); ontology axis 1.71.0. `tsc --noEmit` exit 0; touched-area suite green (append-telemetry flake is a pre-existing baseline timing race, passes 6/6 isolated). Lead-orchestrated; opus subagents implemented + 4 adversarial verifiers (all correct=true) + green test gate; re-verified by Lead.
+
 ## [6.129.0] - 2026-06-10 — fix: operative fold + impact bridge (impact analysis THROUGH the Ontology)
 
 ### Fixed

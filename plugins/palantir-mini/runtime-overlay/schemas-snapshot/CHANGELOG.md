@@ -8,6 +8,35 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.81.0 — 2026-06-10 (PR-B lineage substrate hardening: XRUN-1 strict 5-dim predicate + XRUN-2 canonical 0-4 propagationDepth + ENVELOPE-1 primitive wiring)
+
+Additive MINOR (rule 08 — additive exports + optional fields on existing primitives; no removals, no breaking edits).
+
+- `ontology/primitives/lineage-conformance-policy.ts` — XRUN-1: added the canonical `isDimensionComplete(event, dim)`
+  predicate that DESCENDS into sub-fields (`throughWhich.{sessionId,toolName,cwd}` + `byWhom.identity`), single-sourcing
+  the "5-dim complete" definition for the AUDIT/gate path. `LineageConformancePolicyRegistry.audit()` gains an additive
+  `strict` parameter (default `false` preserves the legacy top-level-only check) so the audit handler opts into strict
+  descent. Closes the empty-`{}`-sub-object leak. Deliberate read-vs-audit asymmetry documented: `lib/event-log/read.ts`
+  stays lenient (never mass-quarantines historical rows; rule 10 no-blind-delete).
+- `ontology/primitives/propagation-audit.ts` — XRUN-2: added the canonical 0-4 `PropagationDepth` layer scale
+  (`MIN/MAX_PROPAGATION_DEPTH`, `isPropagationDepth`, `PROPAGATION_DEPTH_TO_STEP` depth→step map, and
+  `derivePropagationDepthFromPath` path-heuristic). Single source of the 5-layer scale (research/schema collapsed to 0).
+  The 6-value `PropagationStep` authority vocabulary is UNCHANGED (separate axis).
+- `ontology/primitives/event-envelope.ts` — added optional `propagationDepthSource: "auto" | "explicit"` to
+  `EventEnvelopeBase` (typed home for rule 10 v2.2.0 §Auto-derivation provenance). ENVELOPE-1: now references the canonical
+  `EVENT_TYPE_NAMES` discriminant vocabulary (`EVENT_ENVELOPE_DISCRIMINANTS` / `EventEnvelopeDiscriminant`) instead of
+  pinning a prose variant count; prose "~40 / 3 representative" reconciled to "SSoT = EVENT_TYPE_NAMES.length".
+
+Runtime consumers (non-schema, listed for traceability): `lib/event-log/types.ts` now imports `EventEnvelopeBase` + brands
+FROM the primitive and extends them (no duplicated 5-dim shape); `bridge/handlers/audit-events-5d-conformance.ts` reads via
+`readEvents` (archive-merged + quarantine-included) with strict descent; `scripts/log.ts emit()` auto-derives
+propagationDepth + tags provenance and advisory-checks `isEventEnvelope`; `hooks/value-grade-assigner.ts` +
+`bridge/handlers/propagation-audit-backward.ts` reconciled to the 0-4 scale.
+
+## v1.80.0 — 2026-06-09 (EventEnvelope primitive — canonical 5-dim Decision Lineage envelope promoted from runtime, audit G3; plugin v6.128.0)
+
+Additive MINOR (rule 08). Backfilled root-aggregator entry: the EventEnvelope addition bumped this package to 1.80.0 (package.json) and was logged under `ontology/CHANGELOG.md` 1.70.0; this root entry records the package-lane bump for traceability.
+
 ## v1.79.0 — 2026-06-09 (self-Ontology: DATA→Property register path — REGISTER_PROPERTY ActionType + EventSnapshot.registeredPrimitives.properties bin)
 
 Additive MINOR (rule 08 — additive self-model ActionType + EventSnapshot bin, no edits to existing primitives).

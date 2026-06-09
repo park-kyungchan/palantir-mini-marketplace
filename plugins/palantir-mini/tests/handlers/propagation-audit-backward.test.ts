@@ -114,7 +114,7 @@ describe("propagation_audit_backward", () => {
       baseEvent(1, {
         type: "doc_drift_detected",
         payload: { driftDetected: true, driftScore: 0.8 },
-        propagationDepth: 3, // project-ontology
+        propagationDepth: 2, // project-ontology (canonical 0-4 scale; XRUN-2)
       }),
     ]);
     const handler = await importHandler(project);
@@ -129,7 +129,7 @@ describe("propagation_audit_backward", () => {
       baseEvent(1, {
         type: "validation_phase_completed",
         payload: { errorClass: "dry_run_skipped_validation_errors", verdict: "fail" },
-        propagationDepth: 4, // contracts
+        propagationDepth: 3, // contracts (canonical 0-4 scale; XRUN-2)
       }),
     ]);
     const handler = await importHandler(project);

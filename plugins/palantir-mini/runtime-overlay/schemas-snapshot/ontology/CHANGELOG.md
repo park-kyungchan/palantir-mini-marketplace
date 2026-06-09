@@ -1,5 +1,31 @@
 # Ontology Schema Changelog
 
+## 1.71.0 — PR-B lineage substrate hardening (XRUN-1 / XRUN-2 / ENVELOPE-1) — 2026-06-10
+
+Additive MINOR (rule 08 — additive exports + optional fields; no removals/breaking edits).
+
+### Added
+
+- `primitives/lineage-conformance-policy.ts` — `isDimensionComplete(event, dim)` (XRUN-1): canonical 5-dim
+  completeness predicate that descends into `throughWhich.{sessionId,toolName,cwd}` + `byWhom.identity`
+  (rule 27 self-attribution). `LineageConformancePolicyRegistry.audit()` gains an additive `strict` flag
+  (default `false`) — the audit/PreCompact gate passes `true` to flag empty-`{}` sub-objects that the legacy
+  top-level-only check silently admitted.
+- `primitives/propagation-audit.ts` — canonical 0-4 `propagationDepth` layer scale (XRUN-2): `PropagationDepth`
+  type, `MIN_PROPAGATION_DEPTH` / `MAX_PROPAGATION_DEPTH`, `isPropagationDepth`, `PROPAGATION_DEPTH_TO_STEP`
+  (depth→`PropagationStep` map, research+schema collapsed to layer 0), and `derivePropagationDepthFromPath`
+  path-heuristic. The 6-value `PropagationStep` authority vocabulary is unchanged.
+- `primitives/event-envelope.ts` — optional `propagationDepthSource: "auto" | "explicit"` on `EventEnvelopeBase`
+  (rule 10 v2.2.0 §Auto-derivation provenance tag). `EVENT_ENVELOPE_DISCRIMINANTS` / `EventEnvelopeDiscriminant`
+  (ENVELOPE-1) re-export the canonical `EVENT_TYPE_NAMES` vocabulary; prose variant-count claims reconciled to
+  `EVENT_TYPE_NAMES.length` as the single source.
+
+### Notes
+
+- Deliberate read-vs-audit asymmetry: `lib/event-log/read.ts` validateEnvelope stays lenient (4-dim, undefined/null
+  only) so historical append-only rows with empty sub-objects are never mass-quarantined (rule 10 no-blind-delete);
+  only the AUDIT applies the strict descent.
+
 ## 1.70.0 — EventEnvelope primitive: canonical 5-dim envelope promoted from runtime (audit G3) — 2026-06-09
 
 ### Added

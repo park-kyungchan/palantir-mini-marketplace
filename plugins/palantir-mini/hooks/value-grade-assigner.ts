@@ -281,23 +281,26 @@ function inferMemoryLayers(
 }
 
 // ─── propagationDepth inference (sprint-059 W2.6 R2-F5 Major) ──────────────
-// Rule 10 v2.1.0 §propagationDepth: optional integer indicating depth in the
-// ForwardProp/BackwardProp chain (0=research, 1=schema, 2=shared-core,
-// 3=project-ontology, 4=contracts, 5=runtime). With only 0.7% field adoption
-// (15/2196 events), every backward audit falls through to brittle regex
-// heuristics. This function auto-derives the depth from emitter identity so
-// every future envelope carries the field automatically.
+// Rule 10 v2.2.0 §propagationDepth: optional integer indicating depth in the
+// ForwardProp/BackwardProp chain. CANONICAL 0-4 SCALE (5 layers — XRUN-2):
+//   0=research/schemas, 1=shared-core, 2=project-ontology, 3=contracts/hooks,
+//   4=runtime/src. (Reconciled from the prior divergent 0-5 / 6-layer code.)
+// The single source of the scale is propagation-audit.ts (PropagationDepth +
+// MIN/MAX_PROPAGATION_DEPTH). With only 0.7% field adoption (15/2196 events),
+// every backward audit falls through to brittle regex heuristics. This function
+// auto-derives the depth from emitter identity so every future envelope carries
+// the field automatically.
 //
 // Mapping (in priority order):
 //   1. Envelope already has numeric propagationDepth → keep as-is (caller wins).
-//   2. agent === "monitor" | "monitor-async" → 5 (runtime layer; hook/monitor emit).
-//   3. agent === "claude-code" | "claude-opus-4-7" → refine by refinementTarget.kind:
-//        "schema-primitive"    → 1  (schema layer)
-//        "shared-core-binding" → 2  (shared-core layer)
-//        "rule-conformance-policy" → 4  (contracts layer)
-//        (default)             → 4  (contracts layer — Lead/subagent most common)
-//   4. Fallback → 4 (safe default; contracts layer is the most frequent origin
-//      for tool-invocation events).
+//   2. agent === "monitor" | "monitor-async" → 4 (runtime layer; hook/monitor emit).
+//   3. agent === "claude-code" | "claude-opus-*" → refine by refinementTarget.kind:
+//        "schema-primitive"        → 0  (research/schema layer)
+//        "shared-core-binding"     → 1  (shared-core layer)
+//        "rule-conformance-policy" → 3  (contracts/hooks layer)
+//        (default)                 → 3  (contracts/hooks layer — most common)
+//   4. Fallback → 3 (safe default; contracts/hooks layer is the most frequent
+//      origin for tool-invocation events).
 //
 // The hook cannot mutate tool_input at runtime (PreToolUse hooks receive a
 // read-only snapshot of the pending tool call). The inferred depth is returned
@@ -316,28 +319,28 @@ function inferPropagationDepth(
   const agent = (byWhomRaw.agent ?? byWhomRaw.agentName ?? "") as string;
   const identity = (byWhomRaw.identity ?? "") as string;
 
-  // Monitor/hook emitters live at the runtime layer (depth 5).
+  // Monitor/hook emitters live at the runtime layer (depth 4 on the 0-4 scale).
   if (agent === "monitor" || agent === "monitor-async" || identity === "monitor") {
-    return 5;
+    return 4;
   }
 
   // Lead / subagent emitters — refine by refinementTarget.kind if present.
   if (
     agent === "claude-code" ||
-    agent === "claude-opus-4-7" ||
+    agent.startsWith("claude-opus") ||
     identity === "claude-code" ||
     identity === "codex"
   ) {
     const target = (envelope.withWhat as { refinementTarget?: { kind?: string } } | undefined)
       ?.refinementTarget;
-    if (target?.kind === "schema-primitive") return 1;      // schema layer
-    if (target?.kind === "shared-core-binding") return 2;   // shared-core layer
-    if (target?.kind === "rule-conformance-policy") return 4; // contracts layer
-    return 4; // default to contracts layer (most common Lead/subagent emit)
+    if (target?.kind === "schema-primitive") return 0;      // research/schema layer
+    if (target?.kind === "shared-core-binding") return 1;   // shared-core layer
+    if (target?.kind === "rule-conformance-policy") return 3; // contracts/hooks layer
+    return 3; // default to contracts/hooks layer (most common Lead/subagent emit)
   }
 
-  // Safe fallback — contracts layer.
-  return 4;
+  // Safe fallback — contracts/hooks layer.
+  return 3;
 }
 
 // ─── 14-criteria axis scorer (sprint-060 W1.9) ──────────────────────────────

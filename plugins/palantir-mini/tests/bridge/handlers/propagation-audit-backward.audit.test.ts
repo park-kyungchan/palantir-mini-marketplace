@@ -141,7 +141,7 @@ describe("propagation_audit_backward — VALID", () => {
         eventId: violationId,
         sequence: 5,
         type: "validation_phase_completed",
-        propagationDepth: 5, // runtime step
+        propagationDepth: 4, // runtime step (canonical 0-4 scale; XRUN-2)
         payload: { verdict: "fail", errorClass: "some_error" },
       }),
     ]);
@@ -154,7 +154,7 @@ describe("propagation_audit_backward — VALID", () => {
 
     // payload.errorClass is set → isViolationRow should detect it
     expect(result.lineageNodes.length).toBeGreaterThanOrEqual(1);
-    // propagationDepth=5 → "runtime" step classification
+    // propagationDepth=4 → "runtime" step classification
     expect(result.firstViolationStep).toBe("runtime");
   });
 
@@ -219,7 +219,7 @@ describe("propagation_audit_backward — LINEAGE", () => {
         eventId: violationId,
         sequence: 1,
         type: "validation_phase_completed",
-        propagationDepth: 4, // contracts step
+        propagationDepth: 3, // contracts step (canonical 0-4 scale; XRUN-2)
         payload: { verdict: "fail", errorClass: "test_failure" },
       }),
     ]);

@@ -25,15 +25,37 @@
  *
  * OCP: new event variants extend `EventEnvelope` without modifying existing
  * variants. PECS: consumers use exhaustive visitors over the supertype. Only a
- * REPRESENTATIVE subset of variant kinds is enumerated here (the runtime mirror
- * carries the full ~40-variant union); the discriminant is the `type` string.
+ * small REPRESENTATIVE subset of variant kinds is enumerated here for
+ * illustration; the discriminant is the `type` string and the CANONICAL
+ * discriminant vocabulary is the `EVENT_TYPE_NAMES` registry in the sibling
+ * `ontology/lineage/event-types.ts` (re-exported below as
+ * `EVENT_ENVELOPE_DISCRIMINANTS` / `EventEnvelopeDiscriminant`), NOT a count
+ * pinned in prose. The runtime mirror (lib/event-log/types.ts) carries the
+ * subset of those discriminants that have dedicated typed payload variants.
+ *
+ * COUNT RECONCILIATION (ENVELOPE-1): three numbers used to diverge — this
+ * primitive's prose ("~40"), the runtime union (typed-payload variants), and
+ * the self ObjectType seed. The single SOURCE OF TRUTH for the discriminant
+ * count is `EVENT_TYPE_NAMES.length`; the self ObjectType's drift test asserts
+ * its seed equals that array, and the runtime-parity test (below / sibling
+ * test) asserts the runtime base mirrors this primitive's 5-dim shape.
  *
  * D/L/A domain: DATA (append-only event row — immutable once emitted).
  * @owner palantirkc-ontology
  * @purpose Canonical 5-dim Decision Lineage envelope (rule 10 substrate)
  */
 
+// The canonical discriminant vocabulary lives in the sibling lineage registry
+// (same schemas-snapshot authority layer). Reference it instead of pinning a
+// representative count in prose.
+import { EVENT_TYPE_NAMES, type EventTypeName } from "../lineage/event-types";
+
 export const EVENT_ENVELOPE_SCHEMA_VERSION = "events-jsonl/event-envelope/v1";
+
+/** Canonical discriminant vocabulary for events.jsonl rows (SSoT = EVENT_TYPE_NAMES). */
+export const EVENT_ENVELOPE_DISCRIMINANTS: readonly EventTypeName[] = EVENT_TYPE_NAMES;
+/** The `type` discriminant of any events.jsonl row (canonical vocabulary). */
+export type EventEnvelopeDiscriminant = EventTypeName;
 
 // ─── Branded value types (mirror lib/event-log/types.ts brand convention) ────
 
@@ -122,10 +144,18 @@ export interface EventEnvelopeBase {
   readonly sequence: number;
   /**
    * PROPAGATION_DEPTH — optional FwdProp/BwdProp chain depth (rule 10
-   * §propagationDepth; 0 = origin layer). Omitting the field is valid;
-   * present value must be ≥ 0.
+   * §propagationDepth; canonical 0-4 layer scale — see propagation-audit.ts
+   * `PropagationDepth`). Omitting the field is valid; present value must be in
+   * [0, 4].
    */
   readonly propagationDepth?: number;
+  /**
+   * PROPAGATION_DEPTH_SOURCE — provenance of `propagationDepth` (rule 10 v2.2.0
+   * §Auto-derivation). "auto" = heuristically derived by emit() from the
+   * emitter context path; "explicit" = supplied by the caller (explicit wins).
+   * Present only when `propagationDepth` is set.
+   */
+  readonly propagationDepthSource?: "auto" | "explicit";
 }
 
 // ─── Representative variant subset ───────────────────────────────────────────
