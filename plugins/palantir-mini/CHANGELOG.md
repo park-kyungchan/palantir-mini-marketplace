@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.122.0] - 2026-06-09 — 8 construction anti-pattern lints (action:lint)
+
+### Added
+- **8 ontology-construction anti-pattern lints as a callable pass + an `action:"lint"` seam, so the OE candidate set is now checked for construction smells — surfaced as findings, never blocking the commit.**
+  - `lib/construction-lint/lint-candidates.ts`: 8 pure heuristics over the OE candidate set — System Silos, Kitchen Sink, Department Silos, God Object, Golden Hammer, Action Sprawl, Time Machine, Misnomer.
+  - severity split: **Action Sprawl + Misnomer = "blocking"**; the other 6 = "advisory".
+  - wired as ungated `action:"lint"` (read-only analysis, pre-approval); `handleRegister` attaches findings **ADVISORY (non-blocking)** — commit proceeds with findings surfaced.
+  - direct-caller action (consistent with register/ingest): NOT added to the public MCP action enum, which stays `start`/`turn`/`draft_sic`/`status`.
+  - tests 24/0: 8 lints trigger+clean, aggregate/defensive, ungated lint, register advisory-attach; tsc clean.
+
+Regression: 1861 pass / 1 skip / 1 PRE-EXISTING-unrelated fail (capability-registry/loader.test.ts, not introduced); 0 NEW regressions.
+
+Lead-orchestrated; opus subagent implemented.
+
 ## [6.121.0] - 2026-06-09 — jsonl-SOURCE ingestion adapter (action:ingest)
 
 ### Added

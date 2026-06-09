@@ -3,6 +3,7 @@ import type {
   FDEOntologyEngineeringSession,
 } from "../fde-ontology-engineering/types";
 import type { LeadOntologyTurnCardV2Choice } from "../chatbot-studio/lead-ontology-turn-card";
+import type { ConstructionLintFinding } from "../construction-lint/lint-candidates";
 
 export const ONTOLOGY_ENGINEERING_WORKFLOW_SCHEMA_VERSION =
   "palantir-mini/ontology-engineering-workflow/v1" as const;
@@ -13,7 +14,17 @@ export type OntologyEngineeringWorkflowAction =
   | "draft_sic"
   | "ingest"
   | "register"
+  | "lint"
   | "status";
+
+/**
+ * Result of the `lint` seam — a callable, read-only pass that runs the 8
+ * ontology-construction anti-pattern lints over the session candidate arrays.
+ * UNGATED (no approval needed): pure analysis, surfaces findings, mutates nothing.
+ */
+export interface OntologyEngineeringLintResult {
+  readonly findings: readonly ConstructionLintFinding[];
+}
 
 /**
  * Result of the `ingest` seam — parse a frozen NC1 SOURCE jsonl into the session
@@ -59,6 +70,11 @@ export interface OntologyEngineeringRegisterResult {
   readonly commitResult?: unknown;
   /** Why the register call was refused (precondition gate not met / no edits). */
   readonly invalidReason?: string;
+  /**
+   * Construction anti-pattern lint findings over the registered candidate set.
+   * ADVISORY: surfaced alongside the commit, never blocks it (slice default).
+   */
+  readonly lint?: readonly ConstructionLintFinding[];
 }
 
 export type OntologyEngineeringWorkflowPhase =
