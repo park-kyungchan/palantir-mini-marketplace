@@ -4,6 +4,8 @@ import type {
 } from "../fde-ontology-engineering/types";
 import type { LeadOntologyTurnCardV2Choice } from "../chatbot-studio/lead-ontology-turn-card";
 import type { ConstructionLintFinding } from "../construction-lint/lint-candidates";
+import type { StructuredApprovalRef } from "../prompt-front-door/approval-ref";
+import type { PromptRuntime } from "../prompt-front-door/envelope";
 
 export const ONTOLOGY_ENGINEERING_WORKFLOW_SCHEMA_VERSION =
   "palantir-mini/ontology-engineering-workflow/v1" as const;
@@ -16,6 +18,7 @@ export type OntologyEngineeringWorkflowAction =
   | "register"
   | "lint"
   | "elevate"
+  | "approve_source_mutation"
   | "status";
 
 /**
@@ -116,6 +119,44 @@ export interface UserDecisionRecord {
   readonly approvedMutationBoundary?: string;
 }
 
+/**
+ * Developer/source-mutation fast-path approval record (Improvement #2).
+ *
+ * DISTINCT from {@link UserDecisionRecord}: this authorizes ontology-ENGINEERING
+ * *source/developer* edits to pm's own protected surfaces (hooks, gate/router
+ * handlers, workflow libs, skills, managed-settings) WITHOUT the SIC/DTC ceremony.
+ * It is stored on a SEPARATE state array ({@link OntologyEngineeringWorkflowState.sourceMutationApprovals})
+ * so it is INVISIBLE to `deriveMutationAuthorized` / `hasApprovedMutationDecisionRecord`
+ * — the ontology-data gate is unchanged by construction.
+ *
+ * Unforgeable by the LLM: bound to a hook-captured real `PromptEnvelope`
+ * (promptId + promptHash), substring-verified against the verbatim
+ * `promptExcerpt`, turn-bound to the current/just-prior front-door pointer, and
+ * short-TTL + single-use. The persisted record is NEVER trusted on its own — the
+ * gate RE-VERIFIES it against the captured envelope at read time (HOLE-1 closure;
+ * see `reverifySourceMutationApprovalAgainstEnvelope`).
+ */
+export interface SourceMutationApprovalRecord {
+  readonly kind: "developer-source-mutation";
+  /** StructuredApprovalRef bound to promptId + promptHash (unforgeable anchor). */
+  readonly approvalRef: StructuredApprovalRef;
+  /** SCOPE — normalized path/glob prefixes the user named. Never empty / never `**`-only. */
+  readonly approvedSourcePaths: readonly string[];
+  /** Turn binding — the captured prompt this approval points at. */
+  readonly approvedAtPromptId: string;
+  /** sha256 of the captured prompt — re-checked against the envelope at read time. */
+  readonly approvedPromptHash: string;
+  /** Front-door runtime + session the approval was minted under (pointer re-check). */
+  readonly runtime: PromptRuntime;
+  readonly sessionId: string;
+  /** ISO8601 freshness anchor (short TTL). */
+  readonly approvedAt: string;
+  /** Set once a protected mutation consumes the record (single-use). */
+  readonly consumedByToolCallId?: string;
+  /** Substring-verified against `envelope.promptExcerpt` (the hook's verbatim capture). */
+  readonly userQuote: string;
+}
+
 export interface DecisionLedgerAuditFinding {
   readonly findingId: "decision-ledger.forward-only-existing-gap";
   readonly severity: "warn";
@@ -154,6 +195,14 @@ export interface OntologyEngineeringWorkflowState
   readonly turnDecisionSpecs: readonly TurnCardDecisionSpec[];
   readonly userDecisionRecords: readonly UserDecisionRecord[];
   readonly decisionLedgerAuditFindings: readonly DecisionLedgerAuditFinding[];
+  /**
+   * Improvement #2 — developer/source-mutation fast-path approvals. SEPARATE
+   * from `userDecisionRecords` so `deriveMutationAuthorized` sees nothing new.
+   * Optional + additive: `deriveOntologyEngineeringWorkflowState` never populates
+   * it (the value is merged in by the `approve_source_mutation` handler and
+   * preserved across re-derivations). Absent ⇒ no fast-path approvals.
+   */
+  readonly sourceMutationApprovals?: readonly SourceMutationApprovalRecord[];
 }
 
 export interface DeriveWorkflowStateInput {

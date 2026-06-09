@@ -1081,6 +1081,50 @@ export type DtcEvalRefsBypassInvokedEnvelope = EventEnvelopeBase & {
   payload: DtcEvalRefsBypassInvokedPayload;
 };
 
+// ─── Improvement #2 — developer/source-mutation fast-path audit events ─────
+//
+// Two 5-dim audit events (rule 10) that make the LLM-unforgeable user-approval
+// fast-path auditable: the GRANT (at mint, identity="user") and the DENIAL (at
+// mint-time verification failure). Mirror the dtc_eval_refs_bypass_invoked
+// audit precedent. The fast-path NEVER sets mutationAuthorized; it authorizes a
+// scoped, single-use, short-TTL source edit in lieu of the SIC/DTC ceremony.
+
+/** Payload for `source_mutation_approval_granted` (minted; identity="user"). */
+export interface SourceMutationApprovalGrantedPayload {
+  /** Stringified or structured approvalRef bound to promptId+promptHash. */
+  approvalRef: string;
+  /** SCOPE — normalized path/glob prefixes the user named. */
+  approvedSourcePaths: readonly string[];
+  /** Turn binding — the captured prompt this approval points at. */
+  promptId: string;
+  /** sha256 of the captured prompt. */
+  promptHash: string;
+  /** sha256 of the verified user quote (avoids logging raw quote verbatim). */
+  userQuoteHash: string;
+  /** Front-door runtime the approval was minted under. */
+  runtime?: string;
+}
+
+export type SourceMutationApprovalGrantedEnvelope = EventEnvelopeBase & {
+  type: "source_mutation_approval_granted";
+  payload: SourceMutationApprovalGrantedPayload;
+};
+
+/** Payload for `source_mutation_approval_denied` (verification failure; no record written). */
+export interface SourceMutationApprovalDeniedPayload {
+  /** Explicit reason the verification failed (first failing check). */
+  invalidReason: string;
+  /** Model-claimed promptId (unverified). */
+  promptId?: string;
+  /** Model-claimed scope (unverified). */
+  approvedSourcePaths?: readonly string[];
+}
+
+export type SourceMutationApprovalDeniedEnvelope = EventEnvelopeBase & {
+  type: "source_mutation_approval_denied";
+  payload: SourceMutationApprovalDeniedPayload;
+};
+
 // ─── The discriminated union ───────────────────────────────────────────────
 export type EventEnvelope =
   | EditProposedEnvelope
@@ -1162,7 +1206,10 @@ export type EventEnvelope =
   | DigitalTwinContractFinalizedEnvelope
   | DtcGradingCompletedEnvelope
   | DtcGraderRuntimeGapEnvelope
-  | DtcEvalRefsBypassInvokedEnvelope;
+  | DtcEvalRefsBypassInvokedEnvelope
+  // Improvement #2 — developer/source-mutation fast-path audit events
+  | SourceMutationApprovalGrantedEnvelope
+  | SourceMutationApprovalDeniedEnvelope;
 
 export type EventType = EventEnvelope["type"];
 
@@ -1283,6 +1330,9 @@ export interface EventSnapshot {
   dtc_grading_completed?:             number;
   dtc_grader_runtime_gap?:            number;
   dtc_eval_refs_bypass_invoked?:      number;
+  // Improvement #2 — developer/source-mutation fast-path audit events
+  source_mutation_approval_granted?:  number;
+  source_mutation_approval_denied?:   number;
   // O-2 — register→commit→materialize→read loop closure. Projection of committed
   // applyRegister* edits into a readable typed-primitive collection (fold-snapshot.ts).
   registeredPrimitives?: {
