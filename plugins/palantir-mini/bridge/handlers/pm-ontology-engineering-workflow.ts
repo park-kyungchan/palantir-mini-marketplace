@@ -29,10 +29,12 @@ import {
   type OntologyEngineeringWorkflowAction,
   type OntologyEngineeringWorkflowState,
   type OntologyEngineeringRegisterResult,
+  type OntologyEngineeringIngestResult,
   type TurnCardDecisionSpec,
   type UserDecisionRecord,
 } from "../../lib/ontology-engineering-workflow";
 import { registerAcceptedCandidates } from "../../lib/ontology-engineering-workflow/register-accepted";
+import { ingestJsonlSourceToCandidates } from "../../lib/fde-ontology-engineering/source-ingest";
 import commitEditsHandler from "./commit-edits";
 import getOntology from "./get-ontology";
 import { COMMIT_EDITS_ACTION_TYPE_RID } from "../../runtime-overlay/schemas-snapshot/ontology/self/action-types";
@@ -69,6 +71,8 @@ export interface OntologyEngineeringWorkflowHandlerInput
   readonly choiceApplications?: readonly HandlerChoiceApplication[];
   readonly affectedSurfaces?: readonly string[];
   readonly recordedDecisionNote?: string;
+  /** Absolute path to a frozen NC1 SOURCE jsonl, required when action is `ingest`. */
+  readonly sourceJsonlPath?: string;
   readonly createdAt?: string;
   readonly emittedAt?: string;
 }
@@ -83,6 +87,7 @@ export interface OntologyEngineeringWorkflowHandlerResult {
   readonly turn?: FDEOntologyTurnHandlerResult;
   readonly semanticIntentContract?: SemanticIntentContract;
   readonly register?: OntologyEngineeringRegisterResult;
+  readonly ingest?: OntologyEngineeringIngestResult;
 }
 
 const MINIMAL_ROOT_PAYLOAD_EXAMPLE =
@@ -102,10 +107,11 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "start" &&
     value.action !== "turn" &&
     value.action !== "draft_sic" &&
+    value.action !== "ingest" &&
     value.action !== "register" &&
     value.action !== "status"
   ) {
-    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, register, or status.");
+    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, ingest, register, or status.");
   }
   if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
     throw new Error(
@@ -118,6 +124,11 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     throw new Error(
       "pm_ontology_engineering_workflow: missing_sanitized_turn_summary: `sanitizedTurnSummary` is required when action is `turn`. " +
         `Minimal turn payload: ${MINIMAL_TURN_PAYLOAD_EXAMPLE}`,
+    );
+  }
+  if (value.action === "ingest" && !hasNonEmptyString(value, "sourceJsonlPath")) {
+    throw new Error(
+      "pm_ontology_engineering_workflow: missing_source_jsonl_path: `sourceJsonlPath` is required when action is `ingest`.",
     );
   }
 }
@@ -375,6 +386,36 @@ function writeState(input: {
 }
 
 /**
+ * `ingest` seam — feed a frozen NC1 SOURCE jsonl into the register pipeline.
+ *
+ * Pre-approval (NO approval gate — like `turn`): parse the SOURCE jsonl into the
+ * five candidate arrays and merge them onto the project's FDE session, so the
+ * elevation flow can continue: ingest → draft_sic → approve → register. Returns
+ * the freshly-derived workflow state plus the ingest counts + skipped report.
+ */
+function handleIngest(
+  input: OntologyEngineeringWorkflowHandlerInput,
+): OntologyEngineeringWorkflowHandlerResult {
+  const root = projectRoot(input);
+  if (root.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow ingest requires a projectRoot.");
+  }
+  const sourceJsonlPath = input.sourceJsonlPath?.trim();
+  if (sourceJsonlPath === undefined || sourceJsonlPath.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow ingest requires a sourceJsonlPath.");
+  }
+
+  const { session, counts, skipped } = ingestJsonlSourceToCandidates({
+    sourceJsonlPath,
+    projectRoot: root,
+    rawUserRequest: input.recordedDecisionNote,
+  });
+
+  const ingest: OntologyEngineeringIngestResult = { counts, skipped };
+  return { ...readState({ handlerInput: input, session }), ingest };
+}
+
+/**
  * ENTRY-loop `register` seam (O-2 closure). An EXPLICIT call materializes an
  * approved ontology-engineering session's accepted candidate set into
  * registered, READABLE primitives: register → commit → materialize → read,
@@ -531,6 +572,9 @@ export async function handleOntologyEngineeringWorkflow(
         },
       );
       return writeState({ handlerInput: input, session, semanticIntentContract });
+    }
+    case "ingest": {
+      return handleIngest(input);
     }
     case "register": {
       return handleRegister(input);

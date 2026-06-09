@@ -245,6 +245,7 @@ const TOOLS: ToolSpec[] = [
         digitalTwinChangeContractRef: { type: "string" },
         digitalTwinChangeContractStatus: { type: "string", enum: ["draft", "approved", "superseded"] },
         workContractRef: { type: "string" },
+        sourceJsonlPath: { type: "string", description: "Absolute path to a frozen NC1 SOURCE jsonl; required for the direct-caller `ingest` action." },
         affectedSurfaces: { type: "array", items: { type: "string" } },
         recordedDecisionNote: { type: "string" },
         rawUserMessage: { type: "string" },

@@ -99,6 +99,7 @@ const ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS = [
   "digitalTwinChangeContractRef",
   "digitalTwinChangeContractStatus",
   "workContractRef",
+  "sourceJsonlPath",
   "affectedSurfaces",
   "recordedDecisionNote",
   "rawUserMessage",
