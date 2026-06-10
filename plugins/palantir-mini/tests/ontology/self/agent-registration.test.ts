@@ -1,5 +1,5 @@
 // Test: Wave-1 self-Ontology Agent ObjectType — pm's governed subagent surface
-// registered AS an ObjectType + 15 agent instances. Proves the self-model gains the
+// registered AS an ObjectType + 8 agent instances. Proves the self-model gains the
 // Agent noun and that the seed (identity + tier + mutationCapability) stays true to the
 // LIVE agents/ directory declarations (drift guard).
 
@@ -14,7 +14,7 @@ import {
   AGENT_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_AGENT_COUNT = 15;
+const EXPECTED_AGENT_COUNT = 8;
 
 test("self Agent ObjectType is registered with agentId identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(AGENT_OBJECT_TYPE_RID);
@@ -32,7 +32,7 @@ test(`Agent seed has ${EXPECTED_AGENT_COUNT} unique agent instances`, () => {
 
 test("Agent seed identity set matches the LIVE agents/ directory (drift guard)", () => {
   // The snapshot OWNS the seed (no agents-tree import); this guard reads the live
-  // agents/ directory and asserts the self-model's 15 agentIds equal pm's actual agent
+  // agents/ directory and asserts the self-model's 8 agentIds equal pm's actual agent
   // surface, so adding or removing an agent fails loud until agent.objecttype.ts is
   // updated.
   const agentsDir = path.join(import.meta.dir, "../../../agents");

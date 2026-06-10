@@ -556,37 +556,6 @@ describe("mcp-server ToolSpec metadata", () => {
     expect(toolSchema("pm_rule_query").required).toBeUndefined();
   });
 
-  test("pm_surface_contract_audit schema exposes advisory rollout controls", () => {
-    const props = toolSchema("pm_surface_contract_audit").properties ?? {};
-
-    expect(props.projectRoot?.type).toBe("string");
-    expect(props.mode?.type).toBe("string");
-    expect(props.mode?.enum).toEqual([
-      "agents",
-      "skills",
-      "mcp-tools",
-      "hooks",
-      "evals",
-      "runtime-adapters",
-      "all",
-    ]);
-    expect(props.failClosed?.type).toBe("boolean");
-  });
-
-  test("local AIP/FDE validator tools expose object contracts", () => {
-    const sourceAuthority = toolSchema("pm_aip_source_authority_validate");
-    const sourceProps = sourceAuthority.properties ?? {};
-    expect(sourceAuthority.required).toEqual(["surfaceContract"]);
-    expect(sourceProps.surfaceContract?.type).toBe("object");
-
-    const parity = toolSchema("pm_runtime_decision_parity");
-    const parityProps = parity.properties ?? {};
-    expect(parity.required).toEqual(["neutral", "claude", "codex"]);
-    expect(parityProps.neutral?.type).toBe("object");
-    expect(parityProps.claude?.type).toBe("object");
-    expect(parityProps.codex?.type).toBe("object");
-  });
-
   test("research_context_select schema exposes authority mode discriminator", () => {
     const props = toolSchema("research_context_select").properties ?? {};
 
@@ -598,16 +567,23 @@ describe("mcp-server ToolSpec metadata", () => {
     ]);
   });
 
-  test("pm_workflow_response_validate schema exposes required text field", () => {
-    const schema = toolSchema("pm_workflow_response_validate");
+  test("pm_substrate_query schema exposes session-opener mode and its fields", () => {
+    const schema = toolSchema("pm_substrate_query");
     const props = schema.properties ?? {};
 
-    expect(schema.required).toEqual(["text"]);
-    expect(props.text?.type).toBe("string");
-    expect(props.promptText?.type).toBe("string");
-    expect(props.runtime?.type).toBe("string");
-    expect(props.enforcementSurface?.type).toBe("string");
-    expect(props.forceRequired?.type).toBe("boolean");
+    expect(props.mode?.enum).toEqual([
+      "lineage",
+      "workflow",
+      "by-grade",
+      "retro",
+      "learn",
+      "agent-export",
+      "post-merge",
+      "session-opener",
+    ]);
+    // Folded pm_lead_brief payload inputs surface on the consolidated tool.
+    expect(props.intent?.type).toBe("string");
+    expect(props.skillName?.type).toBe("string");
   });
 
   test("events_log_rotate schema matches handler input fields", () => {

@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.0.0] - 2026-06-10 — chore: PR-E2 surface trim — MCP 30→23, agents 15→8, skills 62→45 (BREAKING: 7 MCP tools removed)
+
+### Removed (BREAKING)
+- 7 MCP tools (0 operational consumers, confirm-gated; machine-readable record in `_deprecation-map.ts`): `pm_surface_contract_audit`, `pm_aip_source_authority_validate`, `pm_runtime_decision_parity`, `validate_managed_settings_fragments` (→ `pm_plugin_self_check` covers all four), `grade_semantic_intent_contract` (lib scorer stays reachable), `pm_workflow_response_validate` (→ `pm_plugin_self_check`), `pm_lead_brief` (→ `pm_substrate_query` session-opener mode).
+- 6 dead agents (`lead-orchestrator`, `scrapling-fetcher`, `code-grader`, `model-grader`, `eval-judge`, `agent-author`) + `verifier-adversarial`/`verifier-correctness` merged → `verifier` (agents 15→8; grader RUNTIME untouched).
+- 17 skill dirs net (19 removed, 2 added): 8 standalone zero-consumer (incl. org-persona trio) + merge clusters → `pm-eval-suite` / `pm-lineage` + `pm-replay` / `pm-value-audit` (absorbed `pm-three-questions`) / `pm-research`; FDE-grade scorecard full lib cascade (handler + rubric-grader + twin rows).
+
+### Changed
+- 4 expert-gate skills flipped `disable-model-invocation: true` (`pm-self-test`, `pm-lsp-audit`, `pm-mcp-reload` incl. codex mirror, `pm-aip-agent-author`).
+- Self-ontology twins reconciled to the live surface (mcp-tool/agent/roles/agent-definitions/plugin-manifest/skill seeds + counts; skill-definitions seed stale entries dropped).
+- ROOT-CAUSE fix for the 12 long-failing `agent-ownership-validate` tests + 2 capability-registry tests: a leaked `PALANTIR_MINI_PLUGIN_ROOT` (stale 6.84.1 cache) — tests now env-isolated (hermetic); they were never code defects.
+
+PR-E2 surface trim (BREAKING: 7 MCP tools removed). `tsc --noEmit` exit 0; ownership suite 18/18 WITH the leaked env; self-ontology 131/131; loader 5/5; full suite 0 NEW failures vs clean main (8 pre-existing remain, ledger-class). 4 slice groups adversarially verified; the agents group's 4 blocker seed-drifts were caught by adversarial verify and fixed. Lead ground-truth re-verified.
+
 ## [6.134.0] - 2026-06-10 — fix: DTC-as-synthesis — 9-axis ContextEngineeringPlan, user-approved technology recommendation, SUCCESS-EVAL-derived validationPlan, DTC producer fusion
 
 ### Added

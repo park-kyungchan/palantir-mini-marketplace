@@ -71,11 +71,56 @@ See `bridge/handlers/replay-lineage.ts` for the exact shape.
 - `derivedState` reflects the fold of only the matched events.
 - `lineageGraph` has one entry per event with impactedObjects resolved.
 
+## BackProp circuit mode (`--circuit`) — absorbed from pm-decision-replay
+
+For reviewing what decisions DROVE refinements (T3+ circuit inputs only), invoke with `--circuit`:
+
+```
+/palantir-mini:pm-replay --circuit
+/palantir-mini:pm-replay --circuit since 2026-04-29
+```
+
+This defaults `gradeFilter` to `"T3+"` (T3 + T4 only — the BackPropagation circuit), composing the same 2 handlers:
+
+1. `pm_event_query_by_grade({ project, gradeFilter: "T3+", sinceWhen?, eventTypeFilter?, limit })` — narrows the read window to circuit inputs.
+2. `replay_lineage({ project, filter: { eventIds: [...] } })` — deterministic 5-dim reconstruction of the filtered set.
+
+Grade-filter escalation:
+
+- `--circuit` (default) → `gradeFilter: "T3+"`.
+- `--circuit --include-noise` → `gradeFilter: "T2+"` (extends to T2 candidates).
+- `--circuit --include-all` → `gradeFilter: "all"` (equivalent to the default `pm-replay` behavior above).
+
+Use `--circuit` when:
+
+- Auditing whether the BackProp circuit produces `learning_captured` + `retro_emitted` + `failure_mode_synthesized` at expected cadence.
+- Investigating a regression — which T3+ events preceded the failure?
+
+### Circuit output format
+
+```
+# Decision Replay (T3+ circuit) — <timestamp>
+Window: <sinceWhen ?? "all">   Filter: <gradeFilter>
+Matched: <N> events of <totalScanned> scanned
+Distribution: T0=<c0>, T1=<c1>, T2=<c2>, T3=<c3>, T4=<c4>
+
+## Decisions (chronological)
+### <when> — <event-type> (grade=<T3|T4>, agent=<agentName>)
+- atopWhich: <git-sha>  through: <toolName> in <cwd>  byWhom: <identity>/<agentName>
+- with: reasoning="<excerpt>" hypothesis="<excerpt>"
+- lineageRefs: actionRid=<...> dryRunRef=<...> outcomePairId=<...>
+- refinementTarget: kind=<...> filePath=<...> confidence=<...>
+
+## Summary
+- Top event types in circuit: <type>: <count>, ...
+- Refinement targets touched: <kind>: <count>, ...
+```
+
 ## Rule citations
 
 - `~/.claude/rules/10-events-jsonl.md` — events.jsonl is the BackwardProp substrate; replay operates over it without mutation.
 - `~/.claude/rules/01-ontology-first-core.md §BackwardProp Audit` — Workflow Lineage records what executed; pm-replay reconstructs it deterministically.
-- `~/.claude/rules/26-valuable-data-standard.md §Grading` — T2+ filter default; T0/T1 excluded as noise unless `--include-noise` is set.
+- `~/.claude/rules/26-valuable-data-standard.md §Grading` — T2+ filter default; T0/T1 excluded as noise unless `--include-noise` is set; `--circuit` defaults to T3+ (BackProp circuit inputs).
 
 ## Memory layer declaration
 

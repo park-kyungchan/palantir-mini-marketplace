@@ -22,7 +22,7 @@ disable-model-invocation: false
 
 ## Three Q anchor
 
-This skill complements `/pm-three-questions` (W2.C) — Q3 Refine surfaces "did the sprint refine substrate?" while this skill answers "is the refinement durable enough to canonize?". T4 = T3 + D2 (K-LLM consensus per rule 26 §D2).
+This skill complements `/palantir-mini:pm-value-audit --three-questions` (W2.C) — Q3 Refine surfaces "did the sprint refine substrate?" while this skill answers "is the refinement durable enough to canonize?". T4 = T3 + D2 (K-LLM consensus per rule 26 §D2).
 
 ## How to run
 
@@ -110,5 +110,5 @@ Take action on <count> candidates this cycle. Defer <count>. Reject <count>.
 
 - Rule 26 §D2 (K-LLM consensus) + §Substrate routing (T4 promotion gate).
 - Schemas: `value-grade.ts` (v1.35.0; T0-T4 enum).
-- Companion: `/pm-three-questions` (Q3 Refine), `/pm-value-audit` (substrate health).
+- Companion: `/palantir-mini:pm-value-audit --three-questions` (Q3 Refine + substrate health).
 - Plan §3.W4.C — `~/.claude/plans/mossy-mapping-eich.md`.

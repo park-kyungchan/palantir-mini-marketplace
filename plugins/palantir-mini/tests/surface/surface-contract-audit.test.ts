@@ -207,7 +207,6 @@ describe("local AIP/FDE surface contract parsing and audit", () => {
   test("parses migrated high-priority agent and skill surface contracts", () => {
     const pluginRoot = path.resolve(import.meta.dir, "../..");
     const migratedFiles = [
-      "agents/lead-orchestrator.md",
       "agents/ontology-steward.md",
       "agents/plugin-maintainer.md",
       "agents/hook-builder.md",

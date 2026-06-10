@@ -1,8 +1,7 @@
 // palantir-mini v1.36 — post-edit-verifier-suggest hook (sprint-028 W3.1)
 // Fires on: PostToolUse (Edit|Write|MultiEdit; advisory, async)
 //
-// Suggests Lead spawn `verifier-correctness` + `verifier-adversarial` in
-// parallel after a meaningful edit. Closes Agent #4 audit gap (researcher
+// Suggests Lead spawn `verifier` after a meaningful edit. Closes Agent #4 audit gap (researcher
 // 2026-05-06): 15 edit_committed events across 3 projects → 0 verifier
 // spawns (0% coverage) despite both agents' frontmatter mandating
 // "use proactively after any teammate completes a task".
@@ -80,7 +79,7 @@ export default async function postEditVerifierSuggest(
     "[verifier fan-out advisory]",
     `${meaningful.length} meaningful edit(s) committed: ${meaningful.slice(0, 3).map((f) => path.basename(f)).join(", ")}${meaningful.length > 3 ? ` (+${meaningful.length - 3} more)` : ""}.`,
     "Per the former Lead-Protocol policy v3.3.0 §Briefing + agent frontmatter ('use proactively after any teammate completes a task'),",
-    "consider spawning verifier-correctness + verifier-adversarial in parallel for review.",
+    "consider spawning verifier for review.",
     "Lead's discretion — this advisory does not block.",
   ].join(" ");
 

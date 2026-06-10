@@ -61,7 +61,7 @@ pm-recap scans `<project>/.palantir-mini/session/workflow-traces/*.json` and rep
 - **closed-this-session count**: snapshots where `lastEvent` is `"closed"` and `updatedAt` falls within the current session window (approx. last 2 hours)
 
 Data source: `workflow-traces/*.json` files written by `lib/ontology-workflow/emit.ts`.
-Use `/palantir-mini:pm-trace <traceId>` for per-trace lifecycle rendering.
+Use `/palantir-mini:pm-lineage --traceId=<traceId>` for per-trace lifecycle rendering.
 
 Example recap section:
 ```

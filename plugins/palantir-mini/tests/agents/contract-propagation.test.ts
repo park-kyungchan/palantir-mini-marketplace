@@ -25,24 +25,17 @@ const REQUIRED_CONTRACT_MENTIONS = [
 ];
 
 const EXPECTED_MUTATION_CAPABLE = [
-  "agent-author",
   "docs-researcher",
   "hook-builder",
   "implementer",
-  "lead-orchestrator",
   "ontology-steward",
   "plugin-maintainer",
   "protocol-designer",
 ];
 
 const EXPECTED_EXEMPT = [
-  "code-grader",
-  "eval-judge",
-  "model-grader",
   "researcher",
-  "scrapling-fetcher",
-  "verifier-adversarial",
-  "verifier-correctness",
+  "verifier",
 ];
 
 describe("contract-propagation: agent authority chain section", () => {
@@ -73,9 +66,9 @@ describe("contract-propagation: agent authority chain section", () => {
 describe("PR-G agent inventory", () => {
   const inventory = loadPluginAgentInventory(PLUGIN_ROOT);
 
-  test("parses all 19 plugin agents", () => {
-    expect(inventory.length).toBe(15);
-    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(15);
+  test("parses all 8 plugin agents", () => {
+    expect(inventory.length).toBe(8);
+    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(8);
   });
 
   test("classifies mutation-capable plugin agents", () => {

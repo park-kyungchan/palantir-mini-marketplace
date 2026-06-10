@@ -6,7 +6,6 @@
 // treated as unknown-agent advisory traffic.
 
 export type AgentName =
-  | "agent-author"
   | "docs-researcher"
   | "harness-analyzer"
   | "harness-evaluator"
@@ -16,7 +15,6 @@ export type AgentName =
   | "hook-builder"
   | "implementer"
   | "kosmos-implementer"
-  | "lead-orchestrator"
   | "mc-implementer"
   | "ontology-steward"
   | "plugin-maintainer"
@@ -30,7 +28,6 @@ export type AgentName =
  * writable path inside the palantir-mini plugin source tree.
  */
 export const AGENT_OWNERSHIP_TABLE: Record<AgentName, readonly string[]> = {
-  "agent-author": [],
   "docs-researcher": [],
   "harness-analyzer": [],
   "harness-evaluator": [],
@@ -46,7 +43,6 @@ export const AGENT_OWNERSHIP_TABLE: Record<AgentName, readonly string[]> = {
   ],
   "implementer": [],
   "kosmos-implementer": [],
-  "lead-orchestrator": [],
   "mc-implementer": [],
   "ontology-steward": [],
   "plugin-maintainer": [

@@ -12,7 +12,7 @@
  *     under-represented
  *   - rule-audit.ts → suggests pm-rule-audit when bottleneck/citation findings
  *   - value-grade-assigner.ts → suggests pm-value-audit when T2+ ratio < 15%
- *   - pre-edit-impact-check.ts → suggests pm-decision-replay when blastRadius ≥ 5
+ *   - pre-edit-impact-check.ts → suggests pm-replay when blastRadius ≥ 5
  *
  * Best-effort emit; never blocks the hook's primary path. Errors are silently
  * swallowed (events.jsonl substrate is opportunistic visibility, not the gate).

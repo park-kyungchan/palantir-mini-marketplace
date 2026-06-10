@@ -366,7 +366,7 @@ export type SkillCompletedEnvelope = EventEnvelopeBase & {
 export type SkillInvocationSuggestedEnvelope = EventEnvelopeBase & {
   type: "skill_invocation_suggested";
   payload: {
-    /** Canonical skill slug, e.g. "pm-recap" / "pm-value-audit" / "pm-decision-replay". */
+    /** Canonical skill slug, e.g. "pm-recap" / "pm-value-audit" / "pm-replay". */
     suggestedSkillSlug: string;
     /** Hook that emitted the suggestion. */
     suggestedByHook:    string;

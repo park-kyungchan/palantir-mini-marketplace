@@ -19,9 +19,9 @@ disable-model-invocation: false
 
 ## NOT for
 
-- Re-fetching or updating stale source content — use `/palantir-mini:pm-research-refresh`.
+- Re-fetching or updating stale source content — use `/palantir-mini:pm-research refresh`.
 - Producing a session state recap — use `/palantir-mini:pm-recap`.
-- Auditing staleness percentages — use `/palantir-mini:pm-research-staleness-audit`.
+- Auditing staleness percentages — use `/palantir-mini:pm-research audit`.
 
 ## How it works
 
@@ -165,7 +165,7 @@ Reminder: re-run `/palantir-mini:pm-cold-start-orchestrate` after `/clear` to re
 - `~/.claude/rules/CONTEXT.md §15 Glossary` — harness taxonomy; Palantir 1차 자료 source list.
 - Companion: `cold-start-browse-index-loader.ts` hook (W2.B) — auto-fires this skill at SessionStart.
 - Companion: `CanonicalSourceRegistry` schema primitive (W2.C) — typed registry that governs which files Phase 2 reads.
-- Companion skill: `/palantir-mini:pm-research-staleness-audit` — deeper staleness report with per-source table.
+- Companion skill: `/palantir-mini:pm-research audit` — deeper staleness report with per-source table.
 - Plan §3 Wave 2 W2.A — `~/.claude/plans/vast-giggling-mccarthy.md`.
 
 ## Memory layer declaration

@@ -5,7 +5,7 @@ surfaceStatus: public-core
 description: "Codex default reload entrypoint; delegates to the canonical palantir-mini skill."
 allowed-tools: mcp__palantir-mini__pm_plugin_self_check
 effort: low
-disable-model-invocation: false
+disable-model-invocation: true
 ---
 
 # pm-mcp-reload (Codex default)

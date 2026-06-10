@@ -43,22 +43,15 @@ const PLUGIN_AGENTS: ReadonlyArray<{
   maxTurns: number;
   deprecatedBy?: string;
 }> = [
-  // 9 migrated copies (priority 5 — dormant; user-scope still wins)
+  // 8 live plugin agents — the post-surface-trim roster (chore/pm-surface-trim-2026-06-10)
   { slug: "researcher",            description: "Deep research specialist for multi-angle information gathering", model: "opus",   maxTurns: 30 },
   { slug: "docs-researcher",       description: "Opus-powered research + synthesis + write specialist", model: "opus",   maxTurns: 40 },
   { slug: "implementer",           description: "Focused execution specialist for coding/refactoring/file modifications", model: "sonnet", maxTurns: 30 },
-  { slug: "verifier-correctness",  description: "Verification specialist for correctness/completeness/consistency", model: "opus",   maxTurns: 30 },
-  { slug: "verifier-adversarial",  description: "Adversarial verification specialist — red team lens", model: "opus",   maxTurns: 30 },
+  { slug: "verifier",              description: "Verification specialist for correctness/completeness/consistency + adversarial red-team lens", model: "opus",   maxTurns: 30 },
   { slug: "protocol-designer",     description: "Claude-local rule authoring specialist", model: "sonnet", maxTurns: 25 },
   { slug: "hook-builder",          description: "palantir-mini plugin hook + monitor + script specialist", model: "sonnet", maxTurns: 35 },
   { slug: "plugin-maintainer",     description: "palantir-mini plugin maintenance specialist (version sync + RBAC fragments)", model: "sonnet", maxTurns: 30 },
   { slug: "ontology-steward",      description: "Shared-schema + shared-core ontology steward", model: "opus",   maxTurns: 40 },
-  // 5 new plugin agents (Phase 1 v2.23.0)
-  { slug: "lead-orchestrator",     description: "Formal Lead-as-spawnable-agent — Lead Protocol v2 implementation", model: "opus",   maxTurns: 40 },
-  { slug: "eval-judge",            description: "Explicit rubric grading agent — opus-tier judge for harness rubric criteria", model: "opus",   maxTurns: 30 },
-  { slug: "code-grader",           description: "Shell-expression rubric scoring — sonnet-tier code-domain criterion evaluator", model: "sonnet", maxTurns: 20 },
-  { slug: "model-grader",          description: "claude -p rubric scoring — sonnet-tier model-domain criterion evaluator", model: "sonnet", maxTurns: 20 },
-  { slug: "scrapling-fetcher",     description: "Haiku-tier cost-optimized web fetch agent — pure content delivery", model: "haiku",  maxTurns: 10 },
 
   // (Deprecated documentation-writer agent entry removed 2026-05-04 in
   // palantirkc-sprint-002-quick PR-D follow-up: the .md file had been absent

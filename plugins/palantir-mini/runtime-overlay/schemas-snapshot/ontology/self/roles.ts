@@ -21,11 +21,10 @@
  *     stays honest.
  *
  *  2. CAPABILITY SPLIT (rule 07 §Agent read-only-vs-mutating) — the two capability
- *     classes pm's subagent surface divides into. Read-only agents (eval-judge /
- *     researcher / scrapling-fetcher / verifier-adversarial / verifier-correctness)
- *     get read+execute only; mutating agents get the write/register verbs too. These
- *     are class grants, so their principal is kind:"capability-token" (the capability
- *     class label) and their grantedResourceRids enumerate the member agent RIDs.
+ *     classes pm's subagent surface divides into. Read-only agents (researcher /
+ *     verifier) get read+execute only; mutating agents get the write/register verbs
+ *     too. These are class grants, so their principal is kind:"capability-token" (the
+ *     capability class label) and their grantedResourceRids enumerate the member agent RIDs.
  *
  * @owner palantirkc-ontology
  * @purpose Self-Ontology Role instances (agent file-ownership + capability split as RBAC grants)
@@ -182,24 +181,17 @@ export const SHARED_LIB_ROLE: RoleDeclaration = {
 /** Agent RID helper — references a live Agent ObjectType instance by agentId. */
 const agentRid = (id: string): string => `pm.self.ontology/object-type/agent/${id}`;
 
-/** The 5 read-only agents (rule 07: disallowedTools forbid Write/Edit/NotebookEdit). */
+/** The 2 read-only agents (rule 07: disallowedTools forbid Write/Edit/NotebookEdit). */
 export const READ_ONLY_AGENT_IDS: readonly string[] = [
-  "eval-judge",
   "researcher",
-  "scrapling-fetcher",
-  "verifier-adversarial",
-  "verifier-correctness",
+  "verifier",
 ];
 
-/** The 10 mutating agents (the rest of the 15-agent surface). */
+/** The 6 mutating agents (the rest of the 8-agent surface). */
 export const MUTATING_AGENT_IDS: readonly string[] = [
-  "agent-author",
-  "code-grader",
   "docs-researcher",
   "hook-builder",
   "implementer",
-  "lead-orchestrator",
-  "model-grader",
   "ontology-steward",
   "plugin-maintainer",
   "protocol-designer",
@@ -211,7 +203,7 @@ export const READ_ONLY_CAPABILITY_ROLE_RID = roleRid(
 );
 
 /**
- * read-only capability-class Role — the grant the 5 read-only agents share: they may
+ * read-only capability-class Role — the grant the 2 read-only agents share: they may
  * read+execute over their member agent surfaces but NOT write/register (their
  * disallowedTools forbid Write/Edit/NotebookEdit). Principal is the capability-class
  * label; grantedResourceRids enumerate the member agent RIDs.
@@ -220,10 +212,9 @@ export const READ_ONLY_CAPABILITY_ROLE: RoleDeclaration = {
   rid: READ_ONLY_CAPABILITY_ROLE_RID,
   name: "capability-read-only",
   description:
-    "rule 07 §Agent read-only-vs-mutating: the 5 read-only agents (eval-judge, " +
-    "researcher, scrapling-fetcher, verifier-adversarial, verifier-correctness) may " +
-    "read+execute but not write/register — disallowedTools forbid Write/Edit/" +
-    "NotebookEdit. Capability-class grant over the member agent surfaces.",
+    "rule 07 §Agent read-only-vs-mutating: the 2 read-only agents (researcher, " +
+    "verifier) may read+execute but not write/register — disallowedTools forbid " +
+    "Write/Edit/NotebookEdit. Capability-class grant over the member agent surfaces.",
   principal: { kind: "capability-token", id: "capability-read-only" },
   grantedResourceRids: READ_ONLY_AGENT_IDS.map(agentRid),
   permissions: ["read", "execute"],
@@ -235,7 +226,7 @@ export const MUTATING_CAPABILITY_ROLE_RID = roleRid(
 );
 
 /**
- * mutating capability-class Role — the grant the 10 mutating agents share: read +
+ * mutating capability-class Role — the grant the 6 mutating agents share: read +
  * write + register + execute over their member agent surfaces. Principal is the
  * capability-class label; grantedResourceRids enumerate the member agent RIDs.
  */
@@ -243,7 +234,7 @@ export const MUTATING_CAPABILITY_ROLE: RoleDeclaration = {
   rid: MUTATING_CAPABILITY_ROLE_RID,
   name: "capability-mutating",
   description:
-    "rule 07 §Agent read-only-vs-mutating: the 10 mutating agents may " +
+    "rule 07 §Agent read-only-vs-mutating: the 6 mutating agents may " +
     "read+write+register+execute — their tool sets permit Write/Edit/NotebookEdit. " +
     "Capability-class grant over the member agent surfaces.",
   principal: { kind: "capability-token", id: "capability-mutating" },

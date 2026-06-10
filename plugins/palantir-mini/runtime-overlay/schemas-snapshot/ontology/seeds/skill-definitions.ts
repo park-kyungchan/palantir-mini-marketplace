@@ -34,12 +34,9 @@ const PLUGIN_SKILLS: ReadonlyArray<{
   slug: string;
   description: string;
 }> = [
-  { slug: "pm-autoplan",                description: "Auto-review pipeline — invokes CEO/eng/DX review skills + auto-decides via 6 encoded principles" },
   { slug: "pm-blueprint",               description: "TechBlueprint generation via kosmos 7-agent Agent Teams research pipeline pattern" },
   { slug: "pm-change-plan",             description: "Generate SemanticChangePlan walking the ontology-first semantic graph" },
   { slug: "pm-codegen",                 description: "Run palantir-mini codegen to regenerate <project>/src/generated/ from schemas" },
-  { slug: "pm-decision-replay",         description: "BackProp circuit replay — folds T3+ events only (T2+ optional via flag) for noise-free decision lineage replay" },
-  { slug: "pm-events-rotate",           description: "Rotate a project's events.jsonl when it crosses size or line-count thresholds — atomic rename to <sessionDir>/archive/events-rotated-<ISO>.jsonl" },
   { slug: "pm-guard",                   description: "Full safety mode — destructive command warnings + directory-scoped edits" },
   { slug: "pm-init",                    description: "Bootstrap palantir-mini for a project — create .palantir-mini/session/ + emit session_started" },
   { slug: "pm-investigate",             description: "Systematic root-cause debugging — 4 phases (investigate/analyze/hypothesize/implement)" },
@@ -47,14 +44,10 @@ const PLUGIN_SKILLS: ReadonlyArray<{
   { slug: "pm-lineage",                 description: "Cross-project workflow lineage query — joins events.jsonl across registered + auto-discovered projects + filters by 5-dim Decision Lineage" },
   { slug: "pm-lsp-audit",               description: "Comprehensive codebase audit using LSP-powered TypeScript code analysis" },
   { slug: "pm-memory-map",              description: "4-layer agentic memory balance audit (working / episodic / semantic / procedural) — distribution + per-event-type stats + recommendations" },
-  { slug: "pm-office-hours",            description: "YC Office Hours — startup forcing-questions or builder design-thinking modes" },
   { slug: "pm-orchestrate",             description: "Ontology-Driven work orchestration — 6-phase protocol for complex multi-step tasks" },
-  { slug: "pm-plan-eng-review",         description: "Eng manager-mode plan review — locks in execution architecture" },
   { slug: "pm-pr-impact",               description: "PR-scoped impact analysis — diffs branch vs base + computes blast radius" },
   { slug: "pm-recap",                   description: "Cold-start state surfacing — fold last N events to compact markdown brief" },
   { slug: "pm-replay",                  description: "Deterministic BackwardProp replay of events.jsonl filtered by 5-dim Decision Lineage" },
-  { slug: "pm-research-diff",           description: "Show what changed between local research library and upstream canonical sources" },
-  { slug: "pm-research-refresh",        description: "Audit/refresh/prune palantir-mini research libraries via diff+refresh+prune chain" },
   { slug: "pm-retro",                   description: "Engineering retrospective — aggregates session metrics from event log" },
   { slug: "pm-review",                  description: "Pre-landing PR review — analyzes diff against base for SQL safety / LLM trust / etc." },
   { slug: "pm-rule",                    description: "Fetch or enumerate Claude-local overlay rules via pm_rule_query MCP" },

@@ -8,8 +8,8 @@
  * snapshot-owned `*_INSTANCES` seed-array idiom, the same mechanism every other self-noun
  * uses. The brand + kind union come from the primitive; identity is snapshot-owned.
  *
- * 77 bound-logic Function instances (catalog §4 + O-1 structuredOutput) modeled at IDENTITY
- * level: functionName + group + sourcePath (+ kind/commits/deterministic descriptors). The 63
+ * 76 bound-logic Function instances (catalog §4 + O-1 structuredOutput) modeled at IDENTITY
+ * level: functionName + group + sourcePath (+ kind/commits/deterministic descriptors). The 62
  * handler-backed functions trace 1:1 to `bridge/handlers/*.ts` (the SSoT the catalog commands
  * us to drive from — functional handlers 63 >> exposed tools 29); the remaining 14 are
  * lib-subsystem / recap composite LOGIC bound to `lib/**` (incl. structuredOutputFillOrFallback). CRITICAL (the under-modeling trap): the ~34
@@ -141,8 +141,7 @@ export const FUNCTION_INSTANCES: readonly FunctionInstance[] = [
   { functionName: "pmAgentLineageExport", functionRid: fnRid("pm-agent-lineage-export"), group: "pm-substrate-query-submode", sourcePath: "bridge/handlers/pm-agent-lineage-export.ts", kind: "edit-function", deterministic: true },
   { functionName: "pmSubstrateQueryPostMerge", functionRid: fnRid("pm-substrate-query-post-merge"), group: "pm-substrate-query-submode", sourcePath: "bridge/handlers/pm-substrate-query-post-merge.ts", kind: "edit-function", deterministic: true },
 
-  // ── Grading / readiness (5) ─────────────────────────────────────────────────
-  { functionName: "gradeFdeReadiness", functionRid: fnRid("grade-fde-readiness"), group: "grading-readiness", sourcePath: "bridge/handlers/grade-fde-readiness.ts", kind: "aip-logic" },
+  // ── Grading / readiness (4) ─────────────────────────────────────────────────
   { functionName: "gradeOutcomeWithRubric", functionRid: fnRid("grade-outcome-with-rubric"), group: "grading-readiness", sourcePath: "bridge/handlers/grade-outcome-with-rubric.ts", kind: "aip-logic" },
   { functionName: "gradeSemanticIntentContract", functionRid: fnRid("grade-semantic-intent-contract"), group: "grading-readiness", sourcePath: "bridge/handlers/grade-semantic-intent-contract.ts", kind: "aip-logic" },
   { functionName: "pmGraderDispatch", functionRid: fnRid("pm-grader-dispatch"), group: "grading-readiness", sourcePath: "bridge/handlers/pm-grader-dispatch.ts", kind: "aip-logic" },

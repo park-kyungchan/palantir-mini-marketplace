@@ -25,6 +25,33 @@ import * as path from "path";
 
 const PLUGIN_ROOT = path.resolve(import.meta.dir, "../..");
 
+// Root env vars honored by resolvePalantirMiniRoot (lib/config/root.ts).
+// A session-exported value (e.g. a stale plugin cache) takes precedence and
+// makes the hook resolve in-source paths as out-of-scope SKIP. Clear them so
+// the hook resolves against the package-relative source root.
+const ROOT_ENV_VARS = [
+  "PALANTIR_MINI_ROOT",
+  "PALANTIR_MINI_PLUGIN_ROOT",
+  "PLUGIN_ROOT",
+] as const;
+
+function isolateRootEnv(): void {
+  const savedEnv: Record<string, string | undefined> = {};
+  beforeEach(() => {
+    for (const k of ROOT_ENV_VARS) {
+      savedEnv[k] = process.env[k];
+      delete process.env[k];
+    }
+  });
+  afterEach(() => {
+    for (const k of ROOT_ENV_VARS) {
+      const v = savedEnv[k];
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  });
+}
+
 function makePayload(overrides: {
   filePath?: string;
   agentName?: string;
@@ -50,6 +77,8 @@ function makePayload(overrides: {
 // ─── Main scenarios ───────────────────────────────────────────────────────────
 
 describe("agent-ownership-validate: 5 acceptance scenarios", () => {
+
+  isolateRootEnv();
 
   // 1. hook-builder editing hooks/ — ALLOW
   test("scenario 1: hook-builder editing hooks/ — ALLOW", async () => {
@@ -136,9 +165,12 @@ describe("agent-ownership-validate: 5 acceptance scenarios", () => {
 });
 
 describe("agent-ownership-validate: PR-G inventory coverage", () => {
+
+  isolateRootEnv();
+
   test("ownership table covers all mutation-capable plugin agents", () => {
-    expect(KNOWN_AGENTS.length).toBe(17);
-    expect(KNOWN_AGENTS).toContain("agent-author");
+    expect(KNOWN_AGENTS.length).toBe(15);
+    expect(KNOWN_AGENTS).toContain("implementer");
     expect(KNOWN_AGENTS).toContain("project-implementer");
     expect(KNOWN_AGENTS).toContain("protocol-designer");
   });
@@ -146,7 +178,7 @@ describe("agent-ownership-validate: PR-G inventory coverage", () => {
   test("known mutation-capable non-owner is denied instead of unknown advisory", async () => {
     const payload = makePayload({
       filePath:  `${PLUGIN_ROOT}/hooks/some-hook.ts`,
-      agentName: "agent-author",
+      agentName: "implementer",
     });
     const result = await agentOwnershipValidate(payload) as {
       message: string;
@@ -185,6 +217,8 @@ model: sonnet
 });
 
 describe("agent-ownership-validate: additional coverage", () => {
+
+  isolateRootEnv();
 
   // 6. Lead-direct edits — EXEMPT
   test("Lead-direct (claude-code) editing plugin.json — EXEMPT", async () => {

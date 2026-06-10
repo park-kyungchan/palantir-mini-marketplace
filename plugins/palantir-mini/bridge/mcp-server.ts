@@ -13,7 +13,7 @@
 //
 // The public tool registry below is the source of truth for the live MCP surface.
 // Historical deprecation mappings live in bridge/handlers/_deprecation-map.ts.
-// events_log_rotate remains present to satisfy the pm-events-rotate skill contract.
+// events_log_rotate remains present as the canonical log-rotation control surface.
 
 import * as readline from "readline";
 import * as fs from "node:fs";
@@ -330,36 +330,8 @@ const TOOLS: ToolSpec[] = [
       additionalProperties: false,
     },
   },
-  // ─── B. Harness Engineering (8) ────────────────────────────────────────────
+  // ─── B. Harness Engineering ─────────────────────────────────────────────────
   // Phase H2 (2026-04-20) — 3-agent harness (Prithvi Rajasekaran + AIP Evals 5-evaluator)
-  {
-    name: "grade_semantic_intent_contract",
-    description:
-      "Sprint-124 PR 5.13 — deterministic 7-criterion SIC grader. " +
-      "Scores a SemanticIntentContract against: clarityOfIntent + scopeBoundedness + " +
-      "nounVerbDisambiguation + nonGoalsClarity + downstreamBlastRadius + " +
-      "fillSequenceCompleteness + evidenceGrounding. " +
-      "Equal weights (1/7 each). Verdict: ≥0.7→pass, 0.5-0.7→revise, <0.5→reject. " +
-      "No LLM calls — pure deterministic heuristics. Emits sic_graded event. " +
-      "Per canonical plan v2 §4 row 5.13.",
-    inputSchema: {
-      type: "object",
-      required: ["semanticIntentContract"],
-      properties: {
-        projectPath: {
-          type: "string",
-          description: "Absolute project path (defaults to CWD).",
-        },
-        semanticIntentContract: {
-          type: "object",
-          description: "SemanticIntentContract object to grade.",
-          additionalProperties: true,
-        },
-      },
-      additionalProperties: false,
-    },
-    category: "harness-engineering" as const,
-  },
   {
     name: "grade_outcome_with_rubric",
     description:
@@ -479,21 +451,6 @@ const TOOLS: ToolSpec[] = [
     },
   },
   {
-    name: "pm_lead_brief",
-    description:
-      "Sprint-063 W3.B — 1-call session-opener. Returns session context, recent sprint contracts, " +
-      "value-grade summary, recent T3+ lineage, and dispatch suggestion when intent is provided.",
-    inputSchema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        project:   { type: "string" },
-        skillName: { type: "string" },
-        intent:    { type: "string" },
-      },
-    },
-  },
-  {
     name: "pm_health_audit",
     description:
       "Sprint-063 W4.A — mode-dispatched health audit merger for handler usage, harness base, " +
@@ -522,7 +479,10 @@ const TOOLS: ToolSpec[] = [
     name: "pm_substrate_query",
     description:
       "Sprint-063 W4.B — consolidated substrate query for lineage, workflow, by-grade, retro, " +
-      "learn, agent-export, and post-merge read paths. Mode dispatches with filter passthrough.",
+      "learn, agent-export, post-merge, and session-opener read paths. Mode dispatches with filter " +
+      "passthrough. The `session-opener` mode (folds former pm_lead_brief) returns the 1-call " +
+      "session brief: session context, recent sprint contracts, value-grade summary, recent T3+ " +
+      "lineage, and a dispatch suggestion when `intent` is provided.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -530,13 +490,15 @@ const TOOLS: ToolSpec[] = [
         project:   { type: "string" },
         mode:      {
           type: "string",
-          enum: ["lineage", "workflow", "by-grade", "retro", "learn", "agent-export", "post-merge"],
+          enum: ["lineage", "workflow", "by-grade", "retro", "learn", "agent-export", "post-merge", "session-opener"],
         },
         filter:           { type: "object" },
         newMergeSha:      { type: "string", description: "For mode=post-merge: new merge commit SHA. Handler-required for post-merge calls." },
         previousMainSha:  { type: "string", description: "For mode=post-merge: previous main HEAD SHA. Optional; derived from newMergeSha^ when omitted." },
         includeLegacyRaw: { type: "boolean", description: "Forwarded to lineage, workflow, and retro modes. Ignored by post-merge." },
         agentName:        { type: "string" },
+        intent:           { type: "string", description: "For mode=session-opener: 1-2 sentence task description; drives the dispatch suggestion." },
+        skillName:        { type: "string", description: "For mode=session-opener: skill name recorded on the emitted skill_started event." },
       },
       required: ["mode"],
     },
@@ -618,81 +580,6 @@ const TOOLS: ToolSpec[] = [
       additionalProperties: false,
     },
   },
-  {
-    name: "pm_workflow_response_validate",
-    description:
-      "Validate user-visible palantir-mini workflow response text against the plugin-owned prompt response requirements. " +
-      "Reports missing status fields, runtime-gap disclosure, SSoT basis, forbidden runtime UI markers, and false parity claims.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        text: { type: "string", description: "Assistant response text to validate." },
-        promptText: { type: "string", description: "Optional governing prompt text used to decide whether the template is required." },
-        runtime: { type: "string", description: "Runtime name for diagnostic context." },
-        enforcementSurface: { type: "string", description: "Surface invoking validation, e.g. MCP or Stop." },
-        forceRequired: { type: "boolean", description: "When true, validate as a governed palantir-mini workflow response regardless of promptText." },
-      },
-      required: ["text"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "pm_surface_contract_audit",
-    description:
-      "Audit palantir-mini local AIP/FDE surface contracts across agents, skills, MCP tools, hooks, evals, and runtime adapters. " +
-      "Reports missing or invalid palantirSurface metadata without moving workflow authority into runtime-local overlays.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        projectRoot: { type: "string", description: "Canonical palantir-mini source root. Defaults to the plugin root." },
-        mode: {
-          type: "string",
-          enum: ["agents", "skills", "mcp-tools", "hooks", "evals", "runtime-adapters", "all"],
-          description: "Surface family to audit. Defaults to all.",
-        },
-        failClosed: {
-          type: "boolean",
-          description:
-            "When true, missing contracts fail. Default false keeps the first hardening slice advisory-only.",
-        },
-      },
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "pm_aip_source_authority_validate",
-    description:
-      "Validate local AIP/FDE surface Palantir source authority refs. " +
-      "Requires local ~/.claude/research/palantir-* provenance plus official palantir.com URLs for AIP/FDE claims.",
-    inputSchema: {
-      type: "object",
-      required: ["surfaceContract"],
-      properties: {
-        surfaceContract: {
-          type: "object",
-          description: "AipFdeLocalSurfaceContract to validate.",
-          additionalProperties: true,
-        },
-      },
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "pm_runtime_decision_parity",
-    description:
-      "Compare neutral, Claude, and Codex workflow decisions for semantic parity. " +
-      "Runtime-specific unsupported surfaces are preserved as metadata and do not become native parity claims.",
-    inputSchema: {
-      type: "object",
-      required: ["neutral", "claude", "codex"],
-      properties: {
-        neutral: { type: "object", additionalProperties: true },
-        claude: { type: "object", additionalProperties: true },
-        codex: { type: "object", additionalProperties: true },
-      },
-      additionalProperties: false,
-    },
-  },
   // ── v2.26.0 Phase 2c (D9) — pm_rule_query: consolidated rule lookup ──
   // Replaces pm_rule_get + pm_rule_list + pm_rule_search with a single
   // discriminator-dispatched tool. byId / bySlug / byQuery / list-all.
@@ -726,22 +613,6 @@ const TOOLS: ToolSpec[] = [
       type: "object",
       properties: {
         includeAdvisory: { type: "boolean", description: "Include advisory-level findings (default true)." },
-      },
-      additionalProperties: false,
-    },
-  },
-  // ─── E. Hook validation (1) ────────────────────────────────────────────────
-  {
-    name: "validate_managed_settings_fragments",
-    description:
-      "Audit .claude/managed-settings.d/*.json RBAC fragments against the plugin's current MCP tool surface. " +
-      "Returns per-fragment drift and unknown JSON keys.",
-    inputSchema: {
-      type: "object",
-      required: ["project"],
-      properties: {
-        project:       { type: "string" },
-        expectedTools: { type: "array", items: { type: "string" } },
       },
       additionalProperties: false,
     },
@@ -803,14 +674,12 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
     "commit_edits",
   ],
   "harness-engineering": [
-    "grade_semantic_intent_contract",
     "grade_outcome_with_rubric",
     "pm_grader_dispatch",
   ],
   "lead-routing": [
     "pm_semantic_intent_gate",
     "pm_intent_router",
-    "pm_lead_brief",
     "pm_health_audit",
     "pm_substrate_query",
     "research_context_select",
@@ -821,10 +690,6 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
     "events_log_rotate",
     "research_library_refresh",
     "pm_plugin_self_check",
-    "pm_workflow_response_validate",
-    "pm_surface_contract_audit",
-    "pm_aip_source_authority_validate",
-    "pm_runtime_decision_parity",
     "pm_rule_query",
     "pm_rule_audit",
     // O-1: structural anti-stall (validate-or-bounded-fallback, verify/recover).
@@ -832,7 +697,6 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
   ],
   "hook-validation": [
     "pm_pre_mutation_governance",
-    "validate_managed_settings_fragments",
   ],
 };
 
@@ -847,14 +711,12 @@ const HANDLER_MODULES: Record<string, string> = {
   apply_edit_function:                 "./handlers/apply-edit-function",
   pm_ontology_engineering_workflow:     "./handlers/pm-ontology-engineering-workflow",
   commit_edits:                        "./handlers/commit-edits",
-  // B. Harness Engineering (3)
-  grade_semantic_intent_contract:      "./handlers/grade-semantic-intent-contract",
+  // B. Harness Engineering (2)
   grade_outcome_with_rubric:           "./handlers/grade-outcome-with-rubric",
   pm_grader_dispatch:                  "./handlers/pm-grader-dispatch",
-  // C. Lead Routing (6)
+  // C. Lead Routing (5)
   pm_semantic_intent_gate:              "./handlers/pm-semantic-intent-gate",
   pm_intent_router:                    "./handlers/pm-intent-router",
-  pm_lead_brief:                       "./handlers/pm-lead-brief",
   pm_health_audit:                     "./handlers/pm-health-audit",
   pm_substrate_query:                  "./handlers/pm-substrate-query",
   research_context_select:             "./handlers/research-context-select",
@@ -862,14 +724,8 @@ const HANDLER_MODULES: Record<string, string> = {
   events_log_rotate:                   "./handlers/events-log-rotate",
   research_library_refresh:            "./handlers/research-library-refresh",
   pm_plugin_self_check:                "./handlers/pm-plugin-self-check",
-  pm_workflow_response_validate:        "./handlers/pm-workflow-response-validate",
-  pm_surface_contract_audit:            "./handlers/pm-surface-contract-audit",
-  pm_aip_source_authority_validate:      "./handlers/pm-aip-source-authority-validate",
-  pm_runtime_decision_parity:            "./handlers/pm-runtime-decision-parity",
   pm_rule_query:                       "./handlers/pm-rule-query",
   pm_rule_audit:                       "./handlers/pm-rule-audit",
-  // E. Hook validation (1)
-  validate_managed_settings_fragments: "./handlers/validate-managed-settings-fragments",
   // F. Phase 3 read-path orchestrator (1) — sprint-093 PR 3.1 canonical handler.
   ontology_context_query:              "./handlers/ontology-context-query",
   // G. Structured output (1) — O-1 structural anti-stall (rule 05).

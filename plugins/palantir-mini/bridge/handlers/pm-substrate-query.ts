@@ -6,13 +6,14 @@
 // delegates all arg passing through the `filter` field.
 //
 // Modes:
-//   "lineage"      → replay-lineage.ts            (single-project 5-dim replay)
-//   "workflow"     → pm-workflow-lineage-query.ts  (cross-project graph)
-//   "by-grade"     → pm-event-query-by-grade.ts   (rule 26 T0-T4 filter)
-//   "retro"        → pm-retro-query.ts             (session retrospective)
-//   "learn"        → pm-learn-query.ts             (learning_captured view)
-//   "agent-export" → pm-agent-lineage-export.ts    (per-agent markdown)
-//   "post-merge"   → pm-substrate-query-post-merge.ts (T2+ replay between merge SHAs)
+//   "lineage"        → replay-lineage.ts            (single-project 5-dim replay)
+//   "workflow"       → pm-workflow-lineage-query.ts  (cross-project graph)
+//   "by-grade"       → pm-event-query-by-grade.ts   (rule 26 T0-T4 filter)
+//   "retro"          → pm-retro-query.ts             (session retrospective)
+//   "learn"          → pm-learn-query.ts             (learning_captured view)
+//   "agent-export"   → pm-agent-lineage-export.ts    (per-agent markdown)
+//   "post-merge"     → pm-substrate-query-post-merge.ts (T2+ replay between merge SHAs)
+//   "session-opener" → pm-lead-brief.ts              (1-call session brief; folds pm_lead_brief)
 //
 // Returns: { ok: boolean, mode: string, data?: unknown, error?: string }
 // Best-effort: handler throws → ok=false, error captured, data=undefined.
@@ -31,7 +32,8 @@ export type SubstrateMode =
   | "retro"
   | "learn"
   | "agent-export"
-  | "post-merge";
+  | "post-merge"
+  | "session-opener";
 
 export interface PmSubstrateQueryArgs {
   /**
@@ -70,6 +72,17 @@ export interface PmSubstrateQueryArgs {
    */
   agentName?: string;
   /**
+   * For mode="session-opener" (folds former pm_lead_brief): 1-2 sentence task
+   * description. When present, the brief includes a dispatch suggestion. Ignored
+   * by other modes.
+   */
+  intent?: string;
+  /**
+   * For mode="session-opener": skill name recorded on the emitted skill_started
+   * event. Defaults to "pm_lead_brief" in the delegated handler. Ignored by other modes.
+   */
+  skillName?: string;
+  /**
    * PR 4.7 — Forwarded to delegated handlers that support it (lineage, workflow,
    * retro). When true, those handlers skip the promoted-index path and perform a
    * full raw scan of events.jsonl + archives. Default false (promoted-index T3+).
@@ -96,6 +109,7 @@ const VALID_MODES: ReadonlySet<string> = new Set([
   "learn",
   "agent-export",
   "post-merge",
+  "session-opener",
 ]);
 
 /**
@@ -183,6 +197,14 @@ function buildDelegateArgs(
         newMergeSha: rawArgs.newMergeSha ?? filter.newMergeSha,
         previousMainSha: rawArgs.previousMainSha ?? filter.previousMainSha,
       };
+
+    case "session-opener":
+      // pm-lead-brief: { project?, skillName?, intent? } — 1-call session brief.
+      return {
+        project,
+        intent: rawArgs.intent ?? filter.intent,
+        skillName: rawArgs.skillName ?? filter.skillName,
+      };
   }
 }
 
@@ -219,6 +241,10 @@ async function loadHandler(mode: SubstrateMode): Promise<(args: unknown) => Prom
     case "post-merge": {
       const mod = await import("./pm-substrate-query-post-merge.js");
       return mod.default as unknown as (args: unknown) => Promise<unknown>;
+    }
+    case "session-opener": {
+      const mod = await import("./pm-lead-brief.js");
+      return mod.default;
     }
   }
 }
