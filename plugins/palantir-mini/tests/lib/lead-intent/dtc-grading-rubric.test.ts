@@ -15,6 +15,7 @@ import {
 } from "../../../lib/lead-intent/dtc-grading-rubric";
 import { GradingRubricRegistry } from "#schemas/ontology/primitives/grading-rubric";
 import type { DigitalTwinChangeContract } from "../../../lib/lead-intent/contracts";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 
 // =============================================================================
 // Helpers
@@ -22,6 +23,7 @@ import type { DigitalTwinChangeContract } from "../../../lib/lead-intent/contrac
 
 function minimalDtc(overrides: Partial<DigitalTwinChangeContract> = {}): DtcWithFillFields {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "dtc:test-001",
     status: "approved",
     semanticIntentContractRef: "sic:test-001",

@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { SemanticIntentContract } from "../lead-intent/contracts";
 import type { NineAxisSicContract } from "./nine-axis-sic-fill-sequence";
 import type { SemanticIntentAxes, SicAxis } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import {
   changeMode,
   generatePlan,
@@ -12,6 +13,7 @@ import {
 
 function makeBase(overrides: Partial<SemanticIntentContract> = {}): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:test-agent-skill",
     status: "draft",
     rawIntent: "",

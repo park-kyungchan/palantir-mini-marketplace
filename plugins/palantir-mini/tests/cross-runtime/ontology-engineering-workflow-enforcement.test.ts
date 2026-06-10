@@ -9,6 +9,7 @@ import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
 } from "../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import type { PromptRuntime } from "../../lib/prompt-front-door";
 import {
   createPromptEnvelope,
@@ -184,6 +185,7 @@ async function createCapturedPrompt(
 
 function semanticContract(): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:approved:ontology-engineering-workflow",
     status: "approved",
     rawIntent: WORKFLOW_INTENT,

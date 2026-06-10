@@ -7,8 +7,10 @@ import {
 import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
 import type { FDEOntologyEngineeringSession } from "../../../lib/fde-ontology-engineering/types";
 import type { SemanticIntentAxes, SicAxis } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 
 const semantic: SemanticIntentContract = {
+  schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
   contractId: "semantic-intent:context-plan",
   status: "approved",
   rawIntent: "Plan context engineering",

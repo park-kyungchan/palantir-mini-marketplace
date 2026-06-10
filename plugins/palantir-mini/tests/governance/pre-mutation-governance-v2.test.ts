@@ -6,8 +6,10 @@ import {
 } from "../../lib/governance/pre-mutation-governance-v2";
 import type { DigitalTwinChangeContract } from "../../lib/lead-intent/contracts";
 import { fixtureOutputs } from "../../lib/semantic-consistency/fixtures";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 
 const BASE_DTC: DigitalTwinChangeContract = {
+  schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
   contractId: "digital-twin-change:test",
   status: "approved",
   semanticIntentContractRef: "semantic-intent:test",

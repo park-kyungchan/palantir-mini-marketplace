@@ -19,6 +19,7 @@ import type {
   OntologyEngineeringRef,
   ValidationPackRef,
 } from "#schemas/ontology/primitives/ontology-engineering-ref";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import type {
   ContextEngineeringPlan,
   ContextEngineeringPlanV2,
@@ -410,6 +411,7 @@ export function draftDtcFromContextPlan(
   };
 
   const digitalTwinChangeContract: DigitalTwinChangeContract = {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: `digital-twin-change:${input.contextEngineeringPlan.planId}`,
     status: "draft",
     semanticIntentContractRef,
@@ -636,6 +638,7 @@ export function draftDtcFromContextPlanV2(
     input.fdeSession.projectRoot,
   );
   const digitalTwinChangeContract: OntologyDtcBuildContract = {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: `digital-twin-change:${plan.planId}`,
     status: "draft",
     semanticIntentContractRef,
@@ -712,6 +715,7 @@ export function draftDtcFromContextPlanV3(
     input.fdeSession.projectRoot,
   );
   const digitalTwinChangeContract: OntologyDtcBuildContract = {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: `digital-twin-change:${plan.planId}`,
     status: "draft",
     semanticIntentContractRef,

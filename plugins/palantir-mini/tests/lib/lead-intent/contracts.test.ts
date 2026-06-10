@@ -20,6 +20,8 @@ import type {
   SemanticIntentContract,
   WorkContract,
 } from "../../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import {
   CONTEXT_ENGINEERING_TO_SIC_POLICY,
   advanceContextEngineeringToSicSequence,
@@ -124,6 +126,7 @@ const approvedSemanticConsistencyResult = resolveSemanticConsistency({
 
 function approvedSemantic(): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:test",
     status: "approved",
     rawIntent: "Implement Scene3D ontology and runtime support",
@@ -148,6 +151,7 @@ function approvedSemantic(): SemanticIntentContract {
 
 function baseApprovedDigitalTwin(): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "digital-twin:test",
     status: "approved",
     semanticIntentContractRef: "semantic-intent:test",
@@ -1034,6 +1038,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
   describe("isOntologyAffectingDtc", () => {
     function baseDtc(): DigitalTwinChangeContract {
       return {
+        schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
         contractId: "dtc:test-affecting",
         status: "approved",
         semanticIntentContractRef: "semantic-intent:test",
@@ -1161,6 +1166,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
 
     function ontologyAffectingDtc(): DigitalTwinChangeContract {
       return {
+        schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
         contractId: "dtc:ontology-affecting",
         status: "approved",
         semanticIntentContractRef: "semantic-intent:test",
@@ -1273,6 +1279,7 @@ describe("Lead Intent -> Digital Twin contracts", () => {
 
     test("non-ontology-affecting DTC with no typed refs has no enforcement triggered", () => {
       const dtc: DigitalTwinChangeContract = {
+        schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
         contractId: "dtc:docs-only",
         status: "approved",
         semanticIntentContractRef: "semantic-intent:test",

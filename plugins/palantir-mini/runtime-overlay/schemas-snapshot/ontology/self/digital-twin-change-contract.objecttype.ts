@@ -19,6 +19,13 @@
  * endpoint. The paired registration test asserts the type resolves from the registry (no
  * filesystem drift guard — there is no static source to drift against).
  *
+ * PROJECTION (not a peer definition): this ObjectType is a registry-only PROJECTION of
+ * the unified runtime/primitive DTC core defined at `../primitives/digital-twin-change-contract.ts`
+ * — the primitive interface is the SSoT; this file only models that core AS a registered
+ * Palantir ObjectType. The `dtcId`/`sicRef` ObjectType-property idiom (vs. the primitive's
+ * own field names) is INTENTIONAL — it is the self-model's identity/reference convention,
+ * not drift; do NOT rename it to chase the primitive's field shape.
+ *
  * @owner palantirkc-ontology
  * @purpose Wave-2 self-Ontology ObjectType (M-SELF, harness redesign)
  */

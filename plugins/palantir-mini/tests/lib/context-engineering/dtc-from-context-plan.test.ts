@@ -16,10 +16,12 @@ import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
 } from "../../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import { evaluatePreMutationGovernanceV2 } from "../../../lib/governance/pre-mutation-governance-v2";
 import type { FDEOntologyEngineeringSession } from "../../../lib/fde-ontology-engineering/types";
 
 const semantic: SemanticIntentContract = {
+  schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
   contractId: "semantic-intent:dtc-from-context-plan",
   status: "approved",
   rawIntent: "Draft DTC",
@@ -39,6 +41,7 @@ const semantic: SemanticIntentContract = {
 // SIC carrying structured typed refs at 'exact' confidence (the approved-FDE-session
 // shape Slice D fuses DIRECTLY into the DTC build fields — never the lossy .map(String)).
 const semanticStructured: SemanticIntentContract = {
+  schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
   contractId: "semantic-intent:dtc-structured",
   status: "approved",
   rawIntent: "Build Scene3D ontology",

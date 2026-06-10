@@ -7,6 +7,18 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.1.0] - 2026-06-10 — fix: SIC/DTC definition consolidation — lib extends the primitive shared core; canonical clarification; schemaVersion minted (zero behavior change)
+
+### Changed
+- lib SemanticIntentContract / DigitalTwinChangeContract now EXTEND the snapshot primitives (event-envelope DeepMutable+Omit mechanic) instead of re-declaring the shared core; lib-only runtime fields preserved verbatim; branded/divergent fields (approvalRef, typed-ref unions, seedRid/gradeRubricRid) deliberately kept lib-typed with documented rationale.
+- ONE canonical SemanticClarificationQuestion: primitive gains optional decisionSpec + defaultIfUserAcceptsRecommendation (TurnCardDecisionSpec/Choice promoted to primitives/turn-card-decision-spec.ts; lib re-exports); lib re-tightens with its required fields; lib producers now also emit prompt + recommendedAnswer. clarification-guards.ts compiles unchanged.
+- All fresh SIC/DTC constructors mint schemaVersion (lib interfaces now require it); shared tests/fixtures contract helper absorbs the fixture churn.
+- NEW guard-conformance test: lib-built SIC/DTC pass the primitive isSemanticIntentContract/isDigitalTwinChangeContract guards (guards stay runtime-UNWIRED by design — zero behavior change; reads remain tolerant).
+- Self-ontology SIC/DTC objecttypes documented as projections of the unified core + apiName drift-pin assertions.
+- schemas-snapshot 1.83.0 (additive clarification fields + TurnCardDecisionSpec promotion; root + ontology CHANGELOGs).
+
+Verification: tsc exit 0; touched suites 329/330 green (1 = environmental rule-seed drift, pre-announced); full suite 0 NEW vs main; 2 adversarial verifiers pass with behaviorChange=false.
+
 ## [7.0.0] - 2026-06-10 — chore: PR-E2 surface trim — MCP 30→23, agents 15→8, skills 62→45 (BREAKING: 7 MCP tools removed)
 
 ### Removed (BREAKING)

@@ -7,8 +7,10 @@ import { extractDtcMutationSurfacePolicy } from "../../../lib/governance/dtc-sur
 import type { DigitalTwinChangeContract } from "../../../lib/lead-intent/contracts";
 import type { McpToolCapability } from "../../../lib/capability-registry/mcp-tool-capability";
 import { fixtureOutputs } from "../../../lib/semantic-consistency/fixtures";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 
 const BASE_DTC: DigitalTwinChangeContract = {
+  schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
   contractId: "digital-twin-change:test",
   status: "approved",
   semanticIntentContractRef: "semantic-intent:test",

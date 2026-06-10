@@ -5,6 +5,7 @@ import { describe, expect, it } from "bun:test";
 import { resolveDTCToolSurfaceTerms } from "./ontology-ref-resolver";
 import { evaluateProjectScopeConformanceForDTC } from "./project-scope-policy";
 import type { DigitalTwinChangeContract } from "./contracts";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 
 // ---------------------------------------------------------------------------
 // Minimal DTC factory — only fields needed for these helpers.
@@ -12,6 +13,7 @@ import type { DigitalTwinChangeContract } from "./contracts";
 
 function makeDTC(overrides: Partial<DigitalTwinChangeContract>): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "test-dtc-001",
     status: "draft",
     semanticIntentContractRef: "sic-001",

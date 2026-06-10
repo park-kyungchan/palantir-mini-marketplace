@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { SemanticIntentContract } from "../lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import {
   answerCard,
   isSessionComplete,
@@ -11,6 +12,7 @@ import {
 
 function makeBase(overrides: Partial<SemanticIntentContract> = {}): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:test-nine-axis",
     status: "draft",
     rawIntent: "",

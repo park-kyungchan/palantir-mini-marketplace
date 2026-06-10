@@ -8,6 +8,18 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.83.0 — 2026-06-10 (SIC/DTC consolidation: canonical clarification additive fields + TurnCardDecisionSpec promotion)
+
+Additive MINOR (rule 08 — additive optional fields on an existing primitive + one new primitive; no removals, no breaking edits).
+
+### Added — TurnCardDecisionSpec primitive (1)
+
+- `ontology/primitives/turn-card-decision-spec.ts` — promotes `TurnCardDecisionSpec` + `TurnCardDecisionChoice` from the plugin runtime type `lib/lead-intent/contracts.ts` to schema-level authority, so the canonical `SemanticClarificationQuestion` can reference the runtime-neutral decision contract without an uphill import from `lib/`. As of this consolidation, `lib/lead-intent/contracts.ts` re-exports these shapes from the primitive rather than re-declaring them. Barrel + package.json subpath export added.
+
+### Changed — canonical SemanticClarificationQuestion (additive)
+
+- `ontology/primitives/semantic-intent-contract.ts` — `SemanticClarificationQuestion` gains two OPTIONAL additive fields: `decisionSpec?: TurnCardDecisionSpec` (runtime-neutral decision contract for the turn) and `defaultIfUserAcceptsRecommendation?: string`. `prompt` + `recommendedAnswer` remain REQUIRED; pre-consolidation clarification literals stay valid (back-compat).
+
 ## v1.82.0 — 2026-06-10 (PR-C schema structural minimalism: dead-primitive removal + edge-subtype fold + FoundryEquivalence metadata removal)
 
 MINOR (rule 08 — removals of 0-consumer primitives + an additive `kind` discriminator on `EdgeBaseDeclaration`; no real consumer breaks — every removed symbol was verified to have zero real-logic importers).

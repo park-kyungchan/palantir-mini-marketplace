@@ -12,9 +12,11 @@ import {
   isNineAxisSicComplete,
 } from "../../../lib/semantic-intent/nine-axis-sic-fill-sequence";
 import type { SicWithFillFields } from "../../../lib/semantic-intent/sic-fill-types";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 
 function semantic(overrides: Partial<SemanticIntentContract> = {}): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:approved-shape",
     status: "approved",
     rawIntent: "Build context engineering plan",

@@ -12,6 +12,7 @@ import {
   validatePromptContinuity,
 } from "../../../lib/prompt-front-door";
 import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 
 describe("prompt front door envelope", () => {
   test("creates deterministic hash/id metadata without retaining raw prompt by default", () => {
@@ -245,6 +246,7 @@ describe("prompt front door store", () => {
         capturedAt: "2026-05-10T04:00:00.000Z",
       });
       const contract: SemanticIntentContract = {
+        schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
         contractId: "semantic-intent:test/ref",
         status: "draft",
         rawIntent: "store contract refs",
@@ -294,6 +296,7 @@ describe("prompt front door store", () => {
         approvedAt: "2026-05-10T04:01:00.000Z",
       });
       const contract: SemanticIntentContract = {
+        schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
         contractId: "semantic-intent:test/approved-ref",
         status: "approved",
         rawIntent: "store structured approval refs",

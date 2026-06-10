@@ -24,6 +24,7 @@ import type {
 } from "./ontology-engineering-ref";
 import type { OntologyContextSeedRid } from "./ontology-context-seed";
 import type { GradingRubricRid } from "./grading-rubric";
+import type { TurnCardDecisionSpec } from "./turn-card-decision-spec";
 
 export const SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION =
   "prompt-dtc/semantic-intent-contract/v2";
@@ -97,6 +98,18 @@ export interface SemanticClarificationQuestion {
   readonly materiality: ClarificationMateriality;
   readonly prompt: string;
   readonly recommendedAnswer: string;
+  /**
+   * Runtime-neutral decision contract for this clarification turn (additive).
+   * When present, a Codex/Claude adapter renders it as ordinary assistant text
+   * and records the user's answer as a UserDecisionRecord. Optional — pre-
+   * consolidation clarifications carry only `prompt` + `recommendedAnswer`.
+   */
+  readonly decisionSpec?: TurnCardDecisionSpec;
+  /**
+   * The value applied if the user accepts the recommendation as-is (additive).
+   * Optional — absent for clarifications that require an explicit answer.
+   */
+  readonly defaultIfUserAcceptsRecommendation?: string;
   readonly whyItMatters: string;
   readonly plainLanguageExplanation?: string;
   readonly palantirArchitectureMapping?: {

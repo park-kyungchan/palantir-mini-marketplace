@@ -10,6 +10,7 @@ import {
 } from "../../../lib/context-engineering/ontology-activation";
 import { createSemanticClarificationQuestions } from "../../../lib/lead-intent/contracts";
 import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 
 describe("Layer 0 AIP #3/#4 context engineering", () => {
   test("builds a #3/#4-first bridge and treats #5/#7 as directional axes", () => {
@@ -46,6 +47,23 @@ describe("Layer 0 AIP #3/#4 context engineering", () => {
     ).toBe(true);
   });
 
+  test("clarifications carry decisionSpec plus non-empty primitive prompt + recommendedAnswer", () => {
+    const questions = createSemanticClarificationQuestions({
+      intent: "ontology contract를 바꿔줘",
+      scopePaths: ["ontology/data.ts"],
+    });
+
+    expect(questions.length).toBeGreaterThan(0);
+    for (const question of questions) {
+      // Re-tightened lib clarification keeps decisionSpec mandatory (Slice 3).
+      expect(question.decisionSpec).toBeDefined();
+      expect(question.decisionSpec.choices.length).toBeGreaterThan(0);
+      // …while INHERITING the primitive's now-required prompt + recommendedAnswer.
+      expect(question.prompt.trim().length).toBeGreaterThan(0);
+      expect(question.recommendedAnswer.trim().length).toBeGreaterThan(0);
+    }
+  });
+
   test("#3/#4 omissions fail while #5/#7 omissions warn only", () => {
     const bridge = buildLayer0IntentBridge({
       rawIntent: "ontology proposal을 만들어줘",
@@ -67,6 +85,7 @@ describe("Layer 0 AIP #3/#4 context engineering", () => {
 
   test("approved SemanticIntentContract activates ontology refs and drafts DTC", () => {
     const contract: SemanticIntentContract = {
+      schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
       contractId: "sic:test",
       status: "approved",
       rawIntent: "Add LearningTrace",
@@ -98,6 +117,7 @@ describe("Layer 0 AIP #3/#4 context engineering", () => {
 
   test("unapproved SemanticIntentContract cannot activate #4 Ontology", () => {
     const contract = {
+      schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
       contractId: "sic:draft",
       status: "draft",
       rawIntent: "x",

@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { evaluateFDEGovernancePolicy } from "../../../lib/governance/fde-governance-policy";
 import type { DigitalTwinChangeContract } from "../../../lib/lead-intent/contracts";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 
 const APPROVED_DTC: DigitalTwinChangeContract = {
+  schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
   contractId: "dtc://approved",
   status: "approved",
   semanticIntentContractRef: "sic://approved",

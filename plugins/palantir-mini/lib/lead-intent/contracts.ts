@@ -28,7 +28,18 @@ import type {
   ProjectSurfaceRef,
   ValidationPackRef,
 } from "#schemas/ontology/primitives/ontology-engineering-ref";
-import type { SemanticIntentAxes } from "#schemas/ontology/primitives/semantic-intent-contract";
+import type {
+  SemanticClarificationQuestion as PrimitiveSemanticClarificationQuestion,
+  SemanticIntentAxes,
+  SemanticIntentContract as PrimitiveSemanticIntentContract,
+} from "#schemas/ontology/primitives/semantic-intent-contract";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import type {
+  TurnCardDecisionChoice,
+  TurnCardDecisionSpec,
+} from "#schemas/ontology/primitives/turn-card-decision-spec";
+import type { DigitalTwinChangeContract as PrimitiveDigitalTwinChangeContract } from "#schemas/ontology/primitives/digital-twin-change-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import type { OntologyRefResolutionResult } from "./ontology-ref-resolver";
 import type { ProjectScopePolicyProjection } from "./project-scope-policy";
 
@@ -82,40 +93,37 @@ export type PalantirArchitectureTerm =
   | "Submission Criteria"
   | "Unknown";
 
-export interface TurnCardDecisionChoice {
-  choiceId: string;
-  label: string;
-  consequence: string;
-  recommended?: boolean;
-  stateEffectPreview?: string;
-  contractPatchPreview?: Record<string, unknown>;
-}
+// TurnCardDecisionSpec / TurnCardDecisionChoice are single-sourced from the
+// primitive home (turn-card-decision-spec). Re-exported here so every existing
+// lib importer (`../lead-intent/contracts`) keeps working unchanged.
+export type { TurnCardDecisionChoice, TurnCardDecisionSpec };
 
-export interface TurnCardDecisionSpec {
-  decisionId: string;
-  phase: string;
-  plainKoreanTitle: string;
-  plainKoreanSummary: string;
-  whyItMatters: string;
-  recommendedChoiceId: string;
-  choices: readonly TurnCardDecisionChoice[];
-  evidenceRefs: readonly string[];
-  blocking: boolean;
-  freeTextAllowed: boolean;
-  stateEffectPreview?: string;
-  contractPatchPreview?: Record<string, unknown>;
-}
-
-export interface SemanticClarificationQuestion {
-  questionId: string;
+// Lib clarification = primitive canonical clarification (questionId / materiality
+// / prompt / recommendedAnswer / whyItMatters / requiresUserApproval / answer /
+// status) RE-TIGHTENED: the lib mandates the fields the primitive leaves optional
+// (decisionSpec, plainLanguageExplanation, palantirArchitectureMapping,
+// whatWillNotHappen, ambiguityType, defaultIfUserAcceptsRecommendation), while
+// INHERITING the now-required prompt + recommendedAnswer from the primitive.
+// DeepMutable strips `readonly` (lib mirrors are built field-by-field and mutated)
+// without restating the shared field names. The Omit list is exactly the fields
+// the lib re-requires (optional → required) plus those whose element type the lib
+// re-states with the file-local enum (palantirArchitectureMapping.platformTerm).
+export interface SemanticClarificationQuestion
+  extends Omit<
+    DeepMutable<PrimitiveSemanticClarificationQuestion>,
+    | "ambiguityType"
+    | "decisionSpec"
+    | "plainLanguageExplanation"
+    | "palantirArchitectureMapping"
+    | "whatWillNotHappen"
+    | "defaultIfUserAcceptsRecommendation"
+  > {
   ambiguityType: SemanticClarificationAmbiguityType;
-  materiality: ClarificationMateriality;
   /**
    * Runtime-neutral decision contract. Codex render this as ordinary
    * assistant text and record the user's answer as a UserDecisionRecord.
    */
   decisionSpec: TurnCardDecisionSpec;
-  whyItMatters: string;
   plainLanguageExplanation: string;
   palantirArchitectureMapping: {
     operationalMeaning: string;
@@ -123,41 +131,87 @@ export interface SemanticClarificationQuestion {
   };
   defaultIfUserAcceptsRecommendation: string;
   whatWillNotHappen: string[];
-  requiresUserApproval: boolean;
-  answer?: {
-    value: string;
-    acceptedRecommendation: boolean;
-    capturedAt: string;
-    userApprovalRef: string;
-  };
-  status: SemanticClarificationStatus;
 }
 
-export interface SemanticIntentContract {
-  contractId: string;
-  status: "draft" | "approved" | "superseded";
-  rawIntent: string;
-  confirmedIntent: string;
-  nonGoals: string[];
-  approvedNouns: string[];
-  approvedVerbs: string[];
-  affectedSurfaces: string[];
+// The canonical SIC/DTC primitives declare their fields `readonly` (schema
+// hygiene). The lib mirrors are built field-by-field by many handlers and
+// mutated in tests, so they must be mutable — but we do NOT want to re-declare
+// the shared contract core. DeepMutable strips `readonly` recursively WITHOUT
+// restating any field names, keeping the primitive the single source of the
+// shared SIC/DTC shape. Branded primitives (e.g. `string & { __brand }` refs)
+// are left intact — the leading primitive guard prevents recursing INTO a brand.
+// File-local by design (mirrors lib/event-log/types.ts:48-54); re-declared, not
+// cross-imported, so snapshot primitives never depend on lib.
+type DeepMutable<T> = T extends string | number | boolean | symbol | bigint | null | undefined
+  ? T
+  : T extends ReadonlyArray<infer U>
+    ? Array<DeepMutable<U>>
+    : T extends object
+      ? { -readonly [K in keyof T]: DeepMutable<T[K]> }
+      : T;
+
+// SIC mirror = primitive base (contractId / status / rawIntent / confirmedIntent
+// / approvedNouns / approvedVerbs / affectedSurfaces / typed-ref graph / nonGoals
+// / downstream* / axes / approvalRef / v1.62.0 fill fields) with lib-only fields
+// added on top. The shared contract core lives in ONE place (the primitive); this
+// interface only ADDS lib fields, drops `readonly`, REQUIRES `schemaVersion`
+// (single-sourced from the primitive const; every lib constructor now mints it),
+// and re-declares `clarificationQuestions`
+// with the lib's RE-TIGHTENED SemanticClarificationQuestion (the unified type above
+// that EXTENDS the primitive clarification and re-requires decisionSpec / etc. on top
+// of the primitive's now-required prompt + recommendedAnswer).
+// Omit list:
+//  - schemaVersion          required in primitive; re-stated below as the same
+//                           required literal type but referenced via the lib const.
+//  - clarificationQuestions primitive element leaves decisionSpec/whatWillNotHappen/...
+//                           optional; the lib re-tightens them (re-declared below).
+//  - axes                   primitive's SemanticIntentAxes is deeply readonly; lib
+//                           callers/tests assign the primitive value directly, so the
+//                           field is kept as the (readonly) primitive type rather than
+//                           the DeepMutable-stripped variant.
+//  - approvalRef            lib ApprovalRef (prompt-front-door) has a wider ApprovalSurface
+//                           ("developer-source-mutation") than the primitive ApprovalRef;
+//                           the field is kept as the lib ApprovalRef.
+//  - approved*Refs / seedRid / gradeRubricRid
+//                           typed-ref graph fields whose element types are branded /
+//                           discriminated-union interfaces. DeepMutable would recurse
+//                           INTO those union members and expand them structurally,
+//                           breaking nominal assignment of the lib ref types. They are
+//                           kept as the lib's plain (already-mutable) ref types — the
+//                           same brand-guarding rationale as lib/event-log/types.ts.
+export interface SemanticIntentContract
+  extends Omit<
+    DeepMutable<PrimitiveSemanticIntentContract>,
+    | "schemaVersion"
+    | "clarificationQuestions"
+    | "axes"
+    | "approvalRef"
+    | "approvedObjectTypeRefs"
+    | "approvedActionTypeRefs"
+    | "approvedFunctionRefs"
+    | "approvedLinkTypeRefs"
+    | "approvedSurfaceRefs"
+    | "approvedLaneRefs"
+    | "seedRid"
+    | "gradeRubricRid"
+  > {
+  schemaVersion: typeof SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION;
+  clarificationQuestions: SemanticClarificationQuestion[];
+  axes?: SemanticIntentAxes;
+  approvalRef?: ApprovalRef;
   approvedObjectTypeRefs?: ObjectTypeRef[];
   approvedActionTypeRefs?: ActionTypeRef[];
   approvedFunctionRefs?: FunctionRef[];
   approvedLinkTypeRefs?: LinkTypeRef[];
   approvedSurfaceRefs?: ProjectSurfaceRef[];
   approvedLaneRefs?: ProjectLaneRef[];
+  seedRid?: string;
+  gradeRubricRid?: string;
   approvedCanonicalTermRefs?: string[];
   approvedTermMappingRefs?: string[];
   semanticConsistencyResultRef?: string;
   permissionsAndProposal: string;
   acceptedRisks: string[];
-  downstreamAllowed: string[];
-  downstreamForbidden: string[];
-  clarificationQuestions: SemanticClarificationQuestion[];
-  axes?: SemanticIntentAxes;
-  approvalRef?: ApprovalRef;
 }
 
 export interface DigitalTwinRiskRecord {
@@ -201,31 +255,52 @@ export interface DigitalTwinRequiredUserDecision {
   acceptedRiskRef?: ApprovalRef;
 }
 
-export interface DigitalTwinChangeContract {
-  contractId: string;
-  status: "draft" | "approved" | "superseded";
-  semanticIntentContractRef: string;
-  affectedSurfaces: string[];
-  changeBoundary: string;
-  branchProposalPolicy: string;
-  permissionBoundary: string;
-  replayMigrationPlan: string;
-  observabilityPlan: string;
-  toolSurfaceReadiness: string;
-  evaluationPlan: string;
-  structuredBoundary?: DigitalTwinChangeBoundary;
+// DTC mirror = primitive base (contractId / status / semanticIntentContractRef
+// / affectedSurfaces / changeBoundary / branchProposalPolicy / permissionBoundary
+// / replayMigrationPlan / observabilityPlan / toolSurfaceReadiness / evaluationPlan
+// / typed control-plane refs / risks / approvalRef) with lib-only control fields
+// added on top. The shared contract core is single-sourced from the primitive;
+// this interface only ADDS lib fields, drops `readonly`, and REQUIRES `schemaVersion`
+// (single-sourced from the primitive const; every lib constructor now mints it).
+// `risks`/`DigitalTwinRiskRecord` are
+// structurally identical between lib and primitive, so the primitive `risks` array
+// is inherited as-is (no Omit needed) and the lib `DigitalTwinRiskRecord` export
+// below stays the named type lib constructors reference.
+// Omit list:
+//  - schemaVersion required in primitive; re-stated below as the same required
+//                 literal type but referenced via the lib const.
+//  - approvalRef   kept as the lib ApprovalRef (wider ApprovalSurface), same
+//                  divergence as the SIC approvalRef above.
+//  - touchedOntologyRefs / permittedMutationSurfaces / requiredEvaluationRefs /
+//    requiredBranchPolicyRef / requiredPermissionPolicyRef
+//                  typed-ref graph fields whose element types are branded /
+//                  discriminated-union interfaces; kept as the lib's plain ref types
+//                  so DeepMutable does not expand the union members structurally
+//                  (same brand-guarding rationale as lib/event-log/types.ts).
+export interface DigitalTwinChangeContract
+  extends Omit<
+    DeepMutable<PrimitiveDigitalTwinChangeContract>,
+    | "schemaVersion"
+    | "approvalRef"
+    | "touchedOntologyRefs"
+    | "permittedMutationSurfaces"
+    | "requiredEvaluationRefs"
+    | "requiredBranchPolicyRef"
+    | "requiredPermissionPolicyRef"
+  > {
+  schemaVersion: typeof DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION;
+  approvalRef?: ApprovalRef;
   touchedOntologyRefs?: OntologyEngineeringRef[];
   permittedMutationSurfaces?: MutationSurfaceRef[];
   requiredEvaluationRefs?: ValidationPackRef[];
   requiredBranchPolicyRef?: BranchPolicyRef;
   requiredPermissionPolicyRef?: PermissionPolicyRef;
+  structuredBoundary?: DigitalTwinChangeBoundary;
   fillPolicy?: string;
   ontologyDtcBuildSequence?: readonly unknown[];
   ontologyDtcBuildReadiness?: Record<string, unknown>;
   semanticConsistencyRefs?: string[];
-  risks: DigitalTwinRiskRecord[];
   requiredUserDecisions?: DigitalTwinRequiredUserDecision[];
-  approvalRef?: ApprovalRef;
 }
 
 export type WorkContractStatus = "draft" | "bound" | "superseded";
@@ -813,6 +888,9 @@ export function createSemanticClarificationQuestions(
       evidenceRefs: ["contract:SemanticIntentContract"],
       stateEffectPreview: "Close semantic-intent blocking decision before DTC authoring.",
     }),
+    prompt: "작업 의미 승인",
+    recommendedAnswer:
+      "Create an approved SemanticIntentContract before routing implementation.",
     whyItMatters:
       "The router must not dispatch ontology-affecting execution from privately inferred user meaning.",
     plainLanguageExplanation:
@@ -860,6 +938,9 @@ export function createSemanticClarificationQuestions(
       evidenceRefs: ["contract:DigitalTwinChangeContract"],
       stateEffectPreview: "Close Digital Twin blocking decision before routing.",
     }),
+    prompt: "변경 경계 승인",
+    recommendedAnswer:
+      "Create an approved DigitalTwinChangeContract before routing implementation.",
     whyItMatters:
       "Digital Twin work is broader than a backend schema; the contract must describe surfaces and risk boundaries.",
     plainLanguageExplanation:
@@ -909,6 +990,9 @@ export function createSemanticClarificationQuestions(
         blocking: false,
         stateEffectPreview: "Record a non-blocking 3D runtime portability decision.",
       }),
+      prompt: "3D primitive 경계 승인",
+      recommendedAnswer:
+        "Scene3D is the additive semantic path; SceneV4 remains the graph2D path.",
       whyItMatters:
         "3D geometry changes can split semantic ownership if the renderer path and primitive path disagree.",
       plainLanguageExplanation:
@@ -2010,6 +2094,7 @@ export function draftSemanticIntentContract(input: LeadIntentGateInput): Semanti
   const approvalRequired = requiresContractApproval(input);
   const questions = approvalRequired ? createSemanticClarificationQuestions(input) : [];
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: makeContractId("semantic-intent", input.intent),
     status: "draft",
     rawIntent: input.intent,
@@ -2040,6 +2125,7 @@ export function draftDigitalTwinChangeContract(
 ): DigitalTwinChangeContract {
   const approvalRequired = requiresContractApproval(input);
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: makeContractId("digital-twin-change", input.intent),
     status: "draft",
     semanticIntentContractRef,
