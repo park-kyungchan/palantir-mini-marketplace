@@ -16,6 +16,10 @@ import {
 import {
   writeUniversalOntologyEntry,
 } from "../../../lib/ontology-entry/entry-store";
+import { draftSemanticIntentContract } from "../../../lib/lead-intent/contracts";
+import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
+import { advanceNineAxisSicSequence } from "../../../lib/semantic-intent/nine-axis-sic-fill-sequence";
+import { isApprovedSemanticIntentContract } from "../../../lib/semantic-intent/approved-contract";
 
 let projectRoot: string;
 
@@ -415,5 +419,87 @@ describe("pm-ontology-engineering-workflow handler", () => {
     )?.userDecisionRecords).toHaveLength(1);
     expect(readCurrentOntologyEngineeringWorkflowState(projectRoot)?.fdeSessionId)
       .toBe("fde-session:target");
+  });
+
+  test("approve_sic approves a user-confirmed SIC and persists status=approved", async () => {
+    const entryRef = writeEntry();
+    await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:approve",
+    });
+
+    // Build a complete, USER-confirmed nine-axis SIC (every step source === 'user').
+    const answers = [
+      "build a grading dashboard",
+      "Student, Assignment, Grade",
+      "weighted average per rubric",
+      "publish final grades to students",
+      "teacher approves before publish",
+      "rubric.md, gradebook.csv",
+      "every student has a final grade",
+      "do not expose other students' grades",
+      "teacher runs it, admin authorizes",
+      "prior term's rubric decision",
+    ];
+    let sic: SemanticIntentContract = draftSemanticIntentContract({ intent: "approve via workflow" });
+    for (let turn = 0; turn < answers.length; turn++) {
+      sic = advanceNineAxisSicSequence(sic, turn, answers[turn]) as SemanticIntentContract;
+    }
+
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "approve_sic",
+      projectRoot,
+      sessionId: "fde-session:approve",
+      semanticIntentContract: sic,
+      emittedAt: "2026-05-22T00:05:00.000Z",
+    });
+
+    expect(result.sicApproval?.approved).toBe(true);
+    expect(result.sicApproval?.message).toContain("approved");
+    expect(result.semanticIntentContract?.status).toBe("approved");
+    expect(isApprovedSemanticIntentContract(result.semanticIntentContract)).toBe(true);
+    expect(result.state.semanticIntentContractStatus).toBe("approved");
+    // Approval alone never authorizes protected-surface mutation.
+    expect(result.state.mutationAuthorized).toBe(false);
+
+    const status = await handleOntologyEngineeringWorkflow({
+      action: "status",
+      projectRoot,
+      sessionId: "fde-session:approve",
+    });
+    expect(status.state.semanticIntentContractStatus).toBe("approved");
+  });
+
+  test("approve_sic refuses when axes are not user-confirmed (Q2 gate) and writes no approval", async () => {
+    const entryRef = writeEntry();
+    await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:refuse",
+    });
+
+    // A draft with NO user-confirmed fill steps → Q2 (or completeness) refuses.
+    const draft = draftSemanticIntentContract({ intent: "unconfirmed draft" });
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "approve_sic",
+      projectRoot,
+      sessionId: "fde-session:refuse",
+      semanticIntentContract: draft,
+      emittedAt: "2026-05-22T00:06:00.000Z",
+    });
+
+    expect(result.sicApproval?.approved).toBe(false);
+    expect(result.sicApproval?.message.length).toBeGreaterThan(0);
+    expect(result.state.semanticIntentContractStatus).not.toBe("approved");
+
+    const status = await handleOntologyEngineeringWorkflow({
+      action: "status",
+      projectRoot,
+      sessionId: "fde-session:refuse",
+    });
+    expect(status.state.semanticIntentContractStatus).not.toBe("approved");
   });
 });

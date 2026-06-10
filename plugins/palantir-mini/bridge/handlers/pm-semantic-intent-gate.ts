@@ -144,6 +144,10 @@ import {
   nineAxisSicReadinessIssues,
 } from "../../lib/semantic-intent/nine-axis-sic-fill-sequence";
 import {
+  nineAxisTurnCard,
+  type NineAxisProposedDraft,
+} from "../../lib/semantic-intent/nine-axis-understand-session";
+import {
   CONTEXT_ENGINEERING_TO_SIC_SEQUENCE,
   advanceContextEngineeringToSicSequence,
   isContextEngineeringToSicReady,
@@ -229,6 +233,15 @@ export interface SemanticIntentGateInput {
    * State and returns the resolver run evidence without using an LLM.
    */
   readonly semanticConsistencyResolverInput?: SemanticConsistencyResolverInput;
+  /**
+   * OPTIONAL — Lead-proposed plain-language draft answer for the CURRENT nine-axis
+   * turn. Only meaningful on the nine-axis-sic branch when `turn` is supplied. When
+   * present, fillResult.turnCard renders a recommended "confirm this proposal" choice
+   * FIRST so the user confirms/corrects rather than facing a blank box. The draft is a
+   * proposal — recording it as the answer still requires an explicit user confirmation
+   * turn (source = "user"); it never auto-fills the axis.
+   */
+  readonly proposedAxisDraft?: NineAxisProposedDraft;
 }
 
 export interface SemanticIntentFillResult {
@@ -244,6 +257,20 @@ export interface SemanticIntentFillResult {
   fillIncomplete?: string;
   /** The question for the NEXT turn (undefined when T7 just completed). */
   nextQuestion?: string;
+  /**
+   * OPTIONAL — the full non-dev turn card for the CURRENT turn (nine-axis-sic branch
+   * only). Carries the bilingual question, per-axis "why it matters" + worked example,
+   * and the choice set (confirm-proposal / enter / N/A). Any runtime adapter renders
+   * the same card. The bare `question`/`nextQuestion` strings above are preserved
+   * unchanged for legacy consumers — turnCard is purely additive.
+   */
+  turnCard?: TurnCardDecisionSpec;
+  /**
+   * OPTIONAL — the turn card for the NEXT turn, mirroring `nextQuestion`. Undefined
+   * when the current turn is the last (T9). Built WITHOUT the proposed draft (the
+   * draft applies only to the current turn the user is answering).
+   */
+  nextTurnCard?: TurnCardDecisionSpec;
 }
 
 /**
@@ -1963,8 +1990,9 @@ export async function semanticIntentGate(
       // W3d-2b DEFAULT FLIP: an absent fillPolicy now routes to the 9-axis
       // understand-heart (was the legacy 8-turn path). Legacy 8-turn stays reachable
       // via explicit "default-8-turn" (the final `else` below). DTC policies are
-      // handled above (this block is the non-DTC `else`); `selectFillSequence` keeps
-      // its own absent→8-turn contract (a separate, MAJOR-bump-protected surface).
+      // handled above (this block is the non-DTC `else`); `selectFillSequence` now
+      // also defaults absent→nine-axis-sic (W3d-2b; PR-E E7) — the legacy 8-turn
+      // sequence is explicit-only via "default-8-turn".
       const effectiveFillPolicy: FillPolicy = input.fillPolicy ?? "nine-axis-sic";
       // ADDITIVE: deterministic Context Engineering -> SIC path.
       if (effectiveFillPolicy === "context-engineering-to-sic") {
@@ -2138,6 +2166,16 @@ export async function semanticIntentGate(
               // Non-fatal emit.
             }
           }
+          // Rich non-dev turn card (additive): the CURRENT turn's card carries the
+          // per-axis "why" + worked example (pulled from the descriptor) and renders the
+          // Lead-proposed draft as the recommended confirm-first choice when supplied.
+          // The NEXT turn's card mirrors nextQuestion (no draft — the draft applies only
+          // to the turn the user is answering now).
+          const turnCard = nineAxisTurnCard(
+            input.turn,
+            input.proposedAxisDraft ? { proposedDraft: input.proposedAxisDraft } : undefined,
+          );
+          const nextTurnCard = nextDescriptor ? nineAxisTurnCard(input.turn + 1) : undefined;
           fillResult = {
             appliedTurn: input.turn,
             question: descriptor.question,
@@ -2145,6 +2183,8 @@ export async function semanticIntentGate(
             fillComplete: complete,
             ...(fillIncomplete ? { fillIncomplete } : {}),
             ...(nextDescriptor ? { nextQuestion: nextDescriptor.question } : {}),
+            turnCard,
+            ...(nextTurnCard ? { nextTurnCard } : {}),
           };
         } catch (err) {
           void err;

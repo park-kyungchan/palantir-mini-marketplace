@@ -34,11 +34,73 @@ const AXIS_WHY: Record<SicAxisKey, string> = {
 };
 
 /**
+ * A Lead-proposed plain-language draft answer for the current turn. When present,
+ * the card renders a "confirm this draft" choice FIRST (recommended) so the user
+ * confirms or corrects rather than facing a blank box. The draft is a proposal —
+ * it only becomes the recorded answer (source 'user') once the user confirms.
+ */
+export interface NineAxisProposedDraft {
+  /** Korean draft text (the proposed answer). */
+  readonly textKo?: string;
+  /** English mirror of the draft text. */
+  readonly textEn?: string;
+  /** Korean one-line rationale for the proposal. */
+  readonly rationaleKo?: string;
+  /** English mirror of the rationale. */
+  readonly rationaleEn?: string;
+}
+
+/** Options for {@link nineAxisTurnCard}. Absent options => today's two-choice card (back-compat). */
+export interface NineAxisTurnCardOptions {
+  /** Lead-proposed draft; renders the recommended 'confirm-draft' choice first. */
+  readonly proposedDraft?: NineAxisProposedDraft;
+  /** Lead-proposed reason (KO) for marking the axis not-applicable (rendered in the N/A consequence). */
+  readonly naReasonKo?: string;
+  /** English mirror of `naReasonKo`. */
+  readonly naReasonEn?: string;
+}
+
+/** Render the descriptor's generic worked example as a bilingual body line, or "" when absent. */
+function exampleLine(d: NineAxisTurnDescriptor): string {
+  if (!d.exampleKo && !d.exampleEn) return "";
+  const ko = d.exampleKo ?? "";
+  const en = d.exampleEn ?? "";
+  return `\n좋은 답 예시 / Example of a good answer: ${ko}${ko && en ? " / " : ""}${en}`;
+}
+
+/** Render the proposed draft text as a bilingual fragment for the confirm-draft choice. */
+function draftText(draft: NineAxisProposedDraft): string {
+  const ko = draft.textKo ?? "";
+  const en = draft.textEn ?? "";
+  return `${ko}${ko && en ? " / " : ""}${en}`;
+}
+
+/**
+ * Render the proposed-draft rationale (KO / EN) as a bilingual trailing fragment,
+ * mirroring how `naReason` is appended for the N/A consequence. "" when absent.
+ */
+function draftRationale(draft: NineAxisProposedDraft): string {
+  const ko = draft.rationaleKo ?? "";
+  const en = draft.rationaleEn ?? "";
+  if (!ko && !en) return "";
+  return ` (제안 이유 / Why proposed: ${ko}${ko && en ? " / " : ""}${en})`;
+}
+
+/**
  * Build the non-developer elicitation card for a given turn (0..9).
  * KO question -> plainKoreanTitle; EN mirror -> plainKoreanSummary (bilingual).
- * Choices: free-text answer (recommended) or mark the axis not-applicable.
+ *
+ * Without `opts.proposedDraft`: free-text answer (recommended) or mark the axis
+ * not-applicable — byte-identical to the original two-choice card.
+ *
+ * With `opts.proposedDraft`: a recommended 'confirm-draft' choice is rendered FIRST
+ * (confirming records the draft as the user's own answer); free-text 'answer' is
+ * demoted to a correct-it choice; 'not-applicable' is preserved.
  */
-export function nineAxisTurnCard(turnIndex: number): TurnCardDecisionSpec {
+export function nineAxisTurnCard(
+  turnIndex: number,
+  opts?: NineAxisTurnCardOptions,
+): TurnCardDecisionSpec {
   if (turnIndex < 0 || turnIndex >= NINE_AXIS_SIC_SEQUENCE.length) {
     throw new RangeError(
       `nineAxisTurnCard: turnIndex must be 0-${NINE_AXIS_SIC_SEQUENCE.length - 1}, got ${turnIndex}`,
@@ -46,32 +108,59 @@ export function nineAxisTurnCard(turnIndex: number): TurnCardDecisionSpec {
   }
   const d: NineAxisTurnDescriptor = NINE_AXIS_SIC_SEQUENCE[turnIndex]!;
   const isIntent = d.targetAxis === undefined;
-  const why = isIntent
+  const whyBase = isIntent
     ? "의도를 한 문장으로 고정하면 이후 9축이 거기서 파생됩니다. / Fixing the intent in one sentence anchors the 9 axes that follow."
     : AXIS_WHY[d.targetAxis as SicAxisKey];
+  const why = whyBase + exampleLine(d);
 
-  const choices = isIntent
-    ? [
-        {
-          choiceId: "answer",
-          label: "직접 입력 / Enter",
-          consequence: "rawIntent + confirmedIntent를 기록 / records the intent",
-          recommended: true,
-        },
-      ]
-    : [
-        {
-          choiceId: "answer",
-          label: "직접 입력 / Enter",
-          consequence: `${d.targetAxis} 축을 채움 / fills the ${d.targetAxis} axis`,
-          recommended: true,
-        },
-        {
-          choiceId: "not-applicable",
-          label: "해당 없음 / N/A",
-          consequence: `${d.targetAxis} 축을 not-applicable로 표시 / marks ${d.targetAxis} not-applicable`,
-        },
-      ];
+  const draft = opts?.proposedDraft;
+  const hasDraft =
+    draft !== undefined && ((draft.textKo ?? "").length > 0 || (draft.textEn ?? "").length > 0);
+
+  // Bilingual N/A consequence — Lead-proposed reason (when supplied) + the Q1 invariant:
+  // not-applicable is recorded as the USER's explicit decision, never an agent skip.
+  const naReason =
+    (opts?.naReasonKo ?? "") || (opts?.naReasonEn ?? "")
+      ? ` (제안 이유 / proposed reason: ${opts?.naReasonKo ?? ""}${
+          (opts?.naReasonKo ?? "") && (opts?.naReasonEn ?? "") ? " / " : ""
+        }${opts?.naReasonEn ?? ""})`
+      : "";
+  const naConsequence = isIntent
+    ? ""
+    : `${d.targetAxis} 축을 not-applicable로 표시 — 사용자가 명시적으로 선택한 결정으로 기록됩니다${naReason}` +
+      ` / marks ${d.targetAxis} not-applicable — recorded as the USER's explicit decision${naReason}`;
+
+  const confirmDraftChoice = hasDraft
+    ? {
+        choiceId: "confirm-draft",
+        label: "제안 확정 / Confirm proposal",
+        consequence:
+          `이 제안을 당신의 답으로 기록: "${draftText(draft!)}" / records this proposal as YOUR answer` +
+          draftRationale(draft!),
+        recommended: true,
+      }
+    : null;
+
+  const answerChoice = {
+    choiceId: "answer",
+    label: "직접 입력 / Enter",
+    consequence: isIntent
+      ? "rawIntent + confirmedIntent를 기록 / records the intent"
+      : `${d.targetAxis} 축을 채움 / fills the ${d.targetAxis} axis`,
+    recommended: !hasDraft,
+  };
+
+  const naChoice = isIntent
+    ? null
+    : {
+        choiceId: "not-applicable",
+        label: "해당 없음 / N/A",
+        consequence: naConsequence,
+      };
+
+  const choices = [confirmDraftChoice, answerChoice, naChoice].filter(
+    (c): c is NonNullable<typeof c> => c !== null,
+  );
 
   return {
     decisionId: `nine-axis-sic:T${turnIndex}${isIntent ? ":intent" : ":" + d.targetAxis}`,
@@ -79,7 +168,7 @@ export function nineAxisTurnCard(turnIndex: number): TurnCardDecisionSpec {
     plainKoreanTitle: d.question,
     plainKoreanSummary: d.questionEn,
     whyItMatters: why,
-    recommendedChoiceId: "answer",
+    recommendedChoiceId: hasDraft ? "confirm-draft" : "answer",
     choices,
     evidenceRefs: [],
     blocking: false,
@@ -108,8 +197,15 @@ export function nextCard(session: NineAxisSession): TurnCardDecisionSpec | null 
 }
 
 export interface NineAxisAnswer {
-  /** Free-text answer for the current turn. */
+  /** Free-text answer for the current turn (the user correcting / writing their own). */
   readonly text?: string;
+  /**
+   * The user confirmed the Lead's proposed draft (the 'confirm-draft' choice). The
+   * draft text is recorded as the axis/intent answer with source 'user' — confirming
+   * a proposal IS a user decision, identical to typing it. Takes effect only when
+   * non-empty; `text` (an explicit correction) wins if both are supplied.
+   */
+  readonly confirmedDraftText?: string;
   /** Mark the current axis not-applicable (ignored on the intent turn). */
   readonly notApplicable?: boolean;
 }
@@ -127,7 +223,13 @@ export function answerCard(session: NineAxisSession, answer: NineAxisAnswer): Ni
     const axis: SicAxis = { summary: "(not applicable)", refs: [], status: "not-applicable" };
     next = { ...advanced, axes: { ...axes, [d.targetAxis]: axis } as SemanticIntentAxes };
   } else {
-    next = advanceNineAxisSicSequence(session.contract, turnIndex, answer.text ?? "");
+    // A correction (non-empty text) wins; otherwise a confirmed draft is recorded
+    // as the user's answer; either way source is 'user' via advanceNineAxisSicSequence.
+    const userText =
+      answer.text !== undefined && answer.text.length > 0
+        ? answer.text
+        : answer.confirmedDraftText ?? answer.text ?? "";
+    next = advanceNineAxisSicSequence(session.contract, turnIndex, userText);
   }
   return { contract: next, turnIndex: turnIndex + 1 };
 }

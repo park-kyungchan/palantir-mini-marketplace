@@ -7,6 +7,24 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.133.0] - 2026-06-10 — fix: PR-E — enrich the Altitude-1 understand heart (propose-then-confirm 9-axis, FDE→SIC wiring, SIC approval write-path)
+
+Enriches the Altitude-1 OntologyEngineering understand-phase so the non-dev 9-axis FDE-session is pm-embedded and runtime-agnostic (not SKILL-prose-dependent), with a canonical SIC approval write-path gated on per-axis user confirmation.
+
+### Added
+- **9-axis turn card**: the Lead-proposed draft is surfaced as a recommended confirm-draft choice (+ rationale rendering) alongside generic per-axis worked examples (KO/EN). N/A is recordable ONLY as the USER's explicit decision after a Lead-proposed reason (locked decision Q1 — never auto-not-applicable).
+- **Canonical SIC approval write-path**: `approveSemanticIntentContract` + an `approve_sic` workflow action. A HARD gate refuses approval while any nine-axis fill step lacks user confirmation (locked decision Q2); approver identity resolves via `resolveHostRuntimeIdentity` (runtime-agnostic, no hardcoded runtime).
+- **5 SSoT agent-skill mechanics** (request-clarification / generate-plan / change-mode / load-documentation / manage-context) as pure runtime-neutral lib helpers.
+
+### Changed
+- **`pm_semantic_intent_gate` now returns the full rich turn card additively** (`fillResult.turnCard` + `proposedAxisDraft` input) — the non-dev experience is pm-embedded and runtime-agnostic, not dependent on SKILL prose.
+- **FDE→SIC wiring completed**: SIC drafts from an FDE session now record the 9-axis `axes` (signal-mapped; a missing signal → status `'open'`, never auto-not-applicable) + typed refs from `declaredRid` (confidence `"exact"`).
+- **`declaredRid` plumbing on FDE candidates** (types, source-ingest PASS-1 atoms + PASS-2 edges, register-accepted prefers the declared rid over a minted one) — the static half of roadmap PR-F.
+- **pm-understand SKILL rewritten to propose-then-confirm** (never a blank form); the response template gains a leading plain-language summary block (existing audit fields preserved).
+- **`selectFillSequence` absent-policy default is now the nine-axis heart** (legacy 8-turn is explicit-only); removed the hardcoded `'claude-code'` `approverIdentity` from `pm-intent-router`.
+
+PR-E (understand-phase enrichment); runtime-overlay/schemas-snapshot untouched so their version lanes stay put. `tsc --noEmit` exit 0; 174 targeted tests 0 fail; broad sweep 2005 pass / 1 fail (KNOWN pre-existing on clean main: capability-registry dev-full visibility; the fill-policy default-pin tests were deliberately updated per the approved E7 default flip). Lead-orchestrated; opus subagents implemented + verified; re-verified by Lead against ground truth.
+
 ## [6.132.0] - 2026-06-10 — chore: hook surface minimalism — remove 18 orphan hooks + coalesce emit_event fan-out + Codex PreCompact parity
 
 Bold, confirm-gated hook minimalism (user-authorized). Every orphan verified UNWIRED (self-ontology orphanInRegistry) with no live caller before removal.

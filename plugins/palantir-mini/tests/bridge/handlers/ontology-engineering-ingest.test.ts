@@ -293,4 +293,113 @@ describe("ingest seam — jsonl SOURCE → session candidate arrays", () => {
     // the property atom did NOT leak into objectCandidates
     expect(parsed.objectCandidates.map((c) => c.plainName)).not.toContain("기울기");
   });
+
+  test("declaredRid round-trips from `declared_rid` / `promotion_record.rid`; undefined when absent", () => {
+    // Three DATA atoms: one with a top-level `declared_rid`, one carrying the rid
+    // inside `promotion_record`, one with neither (the common case → undefined).
+    const records = [
+      {
+        kg_layer: "DATA",
+        record_type: "kg_linear_function_data_atom_candidate",
+        candidate_id: "lfa-dt-200",
+        label_ko: "학생",
+        description_ko: "학습자",
+        atom_kind: "entity",
+        source_basis_refs: ["ref:s"],
+        declared_rid: "ri.ontology.main.object-type.pm-self-authored-student",
+      },
+      {
+        kg_layer: "DATA",
+        record_type: "kg_linear_function_data_atom_candidate",
+        candidate_id: "lfa-dt-201",
+        label_ko: "강의",
+        description_ko: "강의 단위",
+        atom_kind: "entity",
+        source_basis_refs: ["ref:l"],
+        promotion_record: { rid: "ri.ontology.main.object-type.pm-self-authored-lesson" },
+      },
+      {
+        kg_layer: "DATA",
+        record_type: "kg_linear_function_data_atom_candidate",
+        candidate_id: "lfa-dt-202",
+        label_ko: "교사",
+        description_ko: "지도자",
+        atom_kind: "entity",
+        source_basis_refs: ["ref:t"],
+      },
+    ];
+    const file = path.join(
+      os.tmpdir(),
+      `pm-ingest-rid-fixture-${Date.now()}-${Math.random().toString(36).slice(2)}.jsonl`,
+    );
+    fs.writeFileSync(file, records.map((r) => JSON.stringify(r)).join("\n") + "\n", "utf8");
+    tmpFiles.push(file);
+
+    const parsed = parseJsonlSourceToCandidateArrays(file);
+    const byName = new Map(parsed.objectCandidates.map((c) => [c.plainName, c]));
+
+    expect(byName.get("학생")!.declaredRid).toBe(
+      "ri.ontology.main.object-type.pm-self-authored-student",
+    );
+    expect(byName.get("강의")!.declaredRid).toBe(
+      "ri.ontology.main.object-type.pm-self-authored-lesson",
+    );
+    expect(byName.get("교사")!.declaredRid).toBeUndefined();
+  });
+
+  test("EDGE declaredRid round-trips onto the resolved linkCandidate; undefined when absent", () => {
+    // Two object atoms so the edges resolve; one EDGE carries `declared_rid`, the
+    // other (also resolving) carries none → its linkCandidate.declaredRid is undefined.
+    const records = [
+      {
+        kg_layer: "DATA",
+        record_type: "kg_linear_function_data_atom_candidate",
+        candidate_id: "lfa-dt-300",
+        label_ko: "학생",
+        description_ko: "학습자",
+        atom_kind: "entity",
+        source_basis_refs: ["ref:s"],
+      },
+      {
+        kg_layer: "DATA",
+        record_type: "kg_linear_function_data_atom_candidate",
+        candidate_id: "lfa-dt-301",
+        label_ko: "강의",
+        description_ko: "강의 단위",
+        atom_kind: "entity",
+        source_basis_refs: ["ref:l"],
+      },
+      {
+        kg_layer: "EDGE",
+        record_type: "kg_linear_function_composition_edge_candidate",
+        candidate_id: "lfe-rid-001",
+        source_candidate_id: "lfa-dt-300",
+        target_candidate_id: "lfa-dt-301",
+        edge_kind: "requires",
+        declared_rid: "ri.ontology.main.link-type.pm-self-authored-requires",
+      },
+      {
+        kg_layer: "EDGE",
+        record_type: "kg_linear_function_composition_edge_candidate",
+        candidate_id: "lfe-rid-002",
+        source_candidate_id: "lfa-dt-301",
+        target_candidate_id: "lfa-dt-300",
+        edge_kind: "enables",
+      },
+    ];
+    const file = path.join(
+      os.tmpdir(),
+      `pm-ingest-edge-rid-fixture-${Date.now()}-${Math.random().toString(36).slice(2)}.jsonl`,
+    );
+    fs.writeFileSync(file, records.map((r) => JSON.stringify(r)).join("\n") + "\n", "utf8");
+    tmpFiles.push(file);
+
+    const parsed = parseJsonlSourceToCandidateArrays(file);
+    const byKind = new Map(parsed.linkCandidates.map((c) => [c.plainName, c]));
+
+    expect(byKind.get("requires")!.declaredRid).toBe(
+      "ri.ontology.main.link-type.pm-self-authored-requires",
+    );
+    expect(byKind.get("enables")!.declaredRid).toBeUndefined();
+  });
 });

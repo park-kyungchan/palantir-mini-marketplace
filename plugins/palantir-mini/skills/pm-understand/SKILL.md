@@ -22,8 +22,16 @@ If this skill and the engine ever diverge, the engine wins.
 - Implicit intent (constraints, non-goals, success criteria) is likely under-specified.
 - `/palantir-mini:pm-understand` is invoked, or phrases like "clarify the intent", "scope this first", "understand-phase", "9-axis", "what exactly do you want" appear.
 
-## Protocol — T0 + 9 axes (10 turns)
-Run one turn at a time. For each, show a **non-developer card**: the KO question (title), the EN mirror, *why it matters*, and two choices — **직접 입력 / Enter** (free-text answer, recommended) or **해당 없음 / N/A** (mark the axis not-applicable; the intent turn has no N/A). Capture the user's answer into the axis, then advance.
+## Protocol — T0 + 9 axes (10 turns), propose → confirm
+Run one turn at a time. **Never show a blank field.** For every turn the Lead first writes a **plain-language DRAFT answer** grounded in the user's prompt + the session so far, then asks the user to confirm or correct it. The user is always in the loop — confirming is one tap; correcting is free-text.
+
+For each turn show a **non-developer card**:
+1. The KO question (title) + the EN mirror + *why it matters* (one line).
+2. The **worked example** for that axis — the `exampleKo` (default) / `exampleEn` fields on each `NINE_AXIS_SIC_SEQUENCE` descriptor (an everyday community-library scenario; illustrative only, never copied into the contract).
+3. The Lead's **제안 / Proposed draft** — a plain-language answer the Lead inferred for *this* request (1-2 sentences, no jargon). If the Lead genuinely has nothing to infer for an axis, say so plainly and ask the user to supply it — still never a blank field.
+4. The user's reply: **확인 / Confirm** (accept the draft as-is), **수정 / Correct** (free-text — this is the correction path; it replaces the draft), or **해당 없음 / N/A** (see the N/A rule below; the T0 intent turn has no N/A).
+
+Capture the confirmed-or-corrected answer into the axis, then advance.
 
 | Turn | Axis | 질문 (KO) | Question (EN) |
 |---|---|---|---|
@@ -42,9 +50,25 @@ Why each axis matters (surface briefly when asking): DATA = wrong objects derail
 
 ## Rules
 - One turn at a time; do not batch all 9. Keep it non-developer-friendly — plain language, no jargon dumps.
-- Recommended default each turn = free-text answer; accept "N/A" to mark an axis not-applicable.
-- Proportional: if the task clearly makes an axis irrelevant (e.g. read-only work → ACTION/GOVERNANCE light), say so and let the user confirm N/A — don't force ceremony.
+- **Every axis is always asked.** Never skip an axis and never auto-derive one away. Each turn = propose a draft → user confirms or corrects.
+- **N/A is the USER's choice only.** The Lead may *propose* a reason an axis might be not-applicable (e.g. "read-only work, so ACTION may not apply — does that sound right?"), but N/A is recorded ONLY after the user explicitly chooses it. The Lead never marks an axis N/A on its own, and never skips a turn to save ceremony. (Engine-enforced: a SIC cannot be approved while any axis fill step lacks the user's confirmation — `source` must be `"user"`.)
+- Free-text is always available as the correction path; confirming the proposed draft is the fast path.
 - Do NOT build the ontology or mutate anything here. The understand-phase only produces the SIC; the LLM constructs the ontology from it afterward, and any mutation is gated by DTC approval.
 
+## Example exchange (KO) — propose → confirm, and propose → correct
+A worked turn (T1 / DATA), showing both outcomes:
+
+> **Lead (T1 · DATA):** 이 일이 다루는 정보나 대상(객체)은 무엇인가요? *(What information or objects does this touch?)*
+> 〔예시〕 회원, 책, 대출기록 세 가지를 다룬다. 책에는 제목·바코드·상태가 있다.
+> **제안:** 말씀하신 내용으로 보아 이 작업은 **주문(order)** 과 **고객(customer)** 두 가지를 다루는 것 같습니다. 맞을까요?
+>
+> — 확인하는 경우 —
+> **User:** 네, 맞아요.  → DATA 축에 "주문, 고객"이 기록되고 다음 축으로 넘어갑니다.
+>
+> — 수정하는 경우 —
+> **User:** 고객 말고 **상품(product)** 도 같이 다뤄요.  → 제안을 버리고 사용자가 적은 "주문, 상품, 고객"이 DATA 축에 기록됩니다.
+
+T0 (intent) has no N/A. For a later axis, N/A looks like: the Lead says "이 작업은 읽기 전용이라 ACTION(실제 변경)이 없을 수도 있는데, 해당 없음으로 둘까요?" and records N/A **only** if the user replies "네, 해당 없음".
+
 ## Output
-When all 10 turns are filled-or-N/A, present the **reviewable 9-axis SIC**: for each axis, its `summary` + captured `refs` + status (filled / not-applicable). Confirm with the user. This SIC is the approved meaning boundary handed downstream (ontology construction, DTC, routing).
+When all 10 turns are confirmed-or-N/A, present the **reviewable 9-axis SIC**. Lead with a short **plain-language summary** (KO + EN, 2-3 sentences: what we understood / what is still open / what happens next), then the **audit detail**: for each axis, its `summary` + captured `refs` + status (filled / not-applicable). Confirm with the user. This SIC is the approved meaning boundary handed downstream (ontology construction, DTC, routing) — recorded only because every axis carries the user's confirmation.

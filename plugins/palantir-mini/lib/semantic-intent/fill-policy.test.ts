@@ -21,6 +21,7 @@ import {
   EIGHT_TURN_FILL_SEQUENCE,
 } from "./fill-sequence";
 import { FDE_FILL_SEQUENCE } from "./fde-fill-sequence";
+import { NINE_AXIS_SIC_SEQUENCE } from "./nine-axis-sic-fill-sequence";
 import {
   CONTEXT_ENGINEERING_TO_SIC_SEQUENCE,
 } from "./context-engineering-sic-fill-sequence";
@@ -119,17 +120,20 @@ describe("selectDtcFillSequence", () => {
 // §3 Backward-compat: selectFillSequence unaffected by dtc-turn-fill addition
 // ---------------------------------------------------------------------------
 
-describe("backward-compat: selectFillSequence unchanged", () => {
+describe("selectFillSequence: explicit-policy compat + nine-axis default", () => {
+  // W3d-2b default flip: absent/no-arg now routes to NINE_AXIS_SIC_SEQUENCE (the
+  // understand-phase heart); legacy 8-turn is reachable only via EXPLICIT "default-8-turn".
+  // (PR-E E7, 2026-06-10.)
   it("selectFillSequence('default-8-turn') returns EIGHT_TURN_FILL_SEQUENCE", () => {
     expect(selectFillSequence("default-8-turn")).toBe(EIGHT_TURN_FILL_SEQUENCE);
   });
 
-  it("selectFillSequence(undefined) returns EIGHT_TURN_FILL_SEQUENCE (default path)", () => {
-    expect(selectFillSequence(undefined)).toBe(EIGHT_TURN_FILL_SEQUENCE);
+  it("selectFillSequence(undefined) returns NINE_AXIS_SIC_SEQUENCE (default path)", () => {
+    expect(selectFillSequence(undefined)).toBe(NINE_AXIS_SIC_SEQUENCE);
   });
 
-  it("selectFillSequence() with no arg returns EIGHT_TURN_FILL_SEQUENCE (default path)", () => {
-    expect(selectFillSequence()).toBe(EIGHT_TURN_FILL_SEQUENCE);
+  it("selectFillSequence() with no arg returns NINE_AXIS_SIC_SEQUENCE (default path)", () => {
+    expect(selectFillSequence()).toBe(NINE_AXIS_SIC_SEQUENCE);
   });
 
   it("selectFillSequence('fde-ontology-build') returns FDE_FILL_SEQUENCE", () => {

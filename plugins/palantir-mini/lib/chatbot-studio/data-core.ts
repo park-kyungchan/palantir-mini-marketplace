@@ -12,6 +12,7 @@ import {
 } from "./retrieval-context";
 import type { SemanticConversationState } from "./semantic-conversation-state";
 import { approvalRefToString } from "../lead-intent/contracts";
+import { requestClarification } from "../semantic-intent/agent-skill-mechanics";
 
 export const CHATBOT_STUDIO_DECLARATION_SCHEMA_VERSION =
   "palantir-mini/chatbot-studio-declaration/v1" as const;
@@ -23,6 +24,12 @@ export const CHATBOT_STUDIO_EVAL_SURFACE_SCHEMA_VERSION =
   "palantir-mini/chatbot-studio-eval-surface/v1" as const;
 export const CHATBOT_STUDIO_SEMANTIC_BOUNDARY_SCHEMA_VERSION =
   "palantir-mini/chatbot-studio-semantic-boundary/v1" as const;
+
+// Wire the static request-clarification descriptor to the runnable SSoT mechanic:
+// the decisionId is sourced from the mechanic itself, so the surface points at the
+// helper rather than a copied label. (lib/semantic-intent/agent-skill-mechanics.ts)
+const requestClarificationMechanicRef =
+  requestClarification("constraintsNonGoals", "placeholder").card.decisionId;
 
 const PALANTIR_CHATBOT_STUDIO_SOURCE_REFS = [
   "/home/palantirkc/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
@@ -487,7 +494,9 @@ function toolSurfaces(conversation: SemanticConversationState): readonly Chatbot
       surfaceId: "tool:chatbot-studio:request-clarification",
       kind: "request-clarification",
       title: "Request clarification",
-      description: "Surface unresolved user-facing meaning questions before DTC approval.",
+      description:
+        "Surface unresolved user-facing meaning questions before DTC approval." +
+        ` Backed by the runnable request-clarification mechanic (${requestClarificationMechanicRef}).`,
       enabled: hasQuestions,
       approvalPolicy: "none",
       inputStateRefs: [conversation.stateId],

@@ -1335,3 +1335,63 @@ describe("T-PR10 — workflow-trace transition wire", () => {
     }
   });
 });
+
+// ─── E7: runtime-agnostic approverIdentity (no hardcoded "claude-code") ───────
+// Regression guard for the E7 fix: the auto-low-risk OntologyContextApproval the router
+// creates must stamp approverIdentity from the env-driven host runtime identity
+// (resolveHostRuntimeIdentity), NOT the previously hardcoded "claude-code" literal —
+// pm-intent-router is a runtime-agnostic handler shared by every adapter (Claude/Codex/…).
+describe("E7 — approverIdentity is env-driven, not the hardcoded literal", () => {
+  function readSingleApproval(project: string): { approverIdentity?: string; approvalKind?: string } | undefined {
+    const dir = path.join(project, ".palantir-mini", "session", "ontology-context-approvals");
+    if (!fs.existsSync(dir)) return undefined;
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
+    if (files.length === 0) return undefined;
+    return JSON.parse(fs.readFileSync(path.join(dir, files[0]!), "utf8"));
+  }
+
+  // Low-risk trivial intent → router auto-creates the approval (all 6 signals pass).
+  const lowRiskInput = (project: string): IntentRouterInput => ({
+    project,
+    intent: "Fix typo in CHANGELOG.md",
+    scopePaths: ["CHANGELOG.md"],
+    complexityHint: "trivial",
+  });
+
+  test("PALANTIR_MINI_HOST_RUNTIME=codex → approval stamped with 'codex', not 'claude-code'", async () => {
+    const project = makeTmpProject();
+    const saved = process.env.PALANTIR_MINI_HOST_RUNTIME;
+    process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
+    try {
+      await routeIntent(lowRiskInput(project));
+      const approval = readSingleApproval(project);
+      expect(approval).toBeDefined();
+      expect(approval!.approvalKind).toBe("auto-low-risk");
+      // The env-driven identity is honored …
+      expect(approval!.approverIdentity).toBe("codex");
+      // … and the old hardcoded literal is gone.
+      expect(approval!.approverIdentity).not.toBe("claude-code");
+    } finally {
+      if (saved === undefined) delete process.env.PALANTIR_MINI_HOST_RUNTIME;
+      else process.env.PALANTIR_MINI_HOST_RUNTIME = saved;
+    }
+  });
+
+  test("PALANTIR_MINI_HOST_RUNTIME unset → resolves to 'unknown' fallback (not 'claude-code')", async () => {
+    const project = makeTmpProject();
+    const saved = process.env.PALANTIR_MINI_HOST_RUNTIME;
+    delete process.env.PALANTIR_MINI_HOST_RUNTIME;
+    try {
+      await routeIntent(lowRiskInput(project));
+      const approval = readSingleApproval(project);
+      expect(approval).toBeDefined();
+      // Bare resolveHostRuntimeIdentity() default — matches the canonical handler usages
+      // (session_resume.ts / apply-edit-function.ts) which pass no fallback arg.
+      expect(approval!.approverIdentity).toBe("unknown");
+      expect(approval!.approverIdentity).not.toBe("claude-code");
+    } finally {
+      if (saved === undefined) delete process.env.PALANTIR_MINI_HOST_RUNTIME;
+      else process.env.PALANTIR_MINI_HOST_RUNTIME = saved;
+    }
+  });
+});

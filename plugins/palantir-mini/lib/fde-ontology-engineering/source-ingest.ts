@@ -122,6 +122,24 @@ function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
 }
 
+/**
+ * Read an authored rid off a SOURCE atom row, if one is present. A frozen NC1
+ * SOURCE may carry the registered rid for an already-promoted atom either as a
+ * top-level `declared_rid` string OR inside a `promotion_record` object (the
+ * promotion-provenance field the header documents) as `promotion_record.rid`.
+ * Returns undefined when neither is present — the common case (most rows declare
+ * no rid; the register seam then mints one).
+ */
+function asDeclaredRid(record: Record<string, unknown>): string | undefined {
+  const direct = asString(record.declared_rid);
+  if (direct !== undefined) return direct;
+  const promotion = record.promotion_record;
+  if (typeof promotion === "object" && promotion !== null && !Array.isArray(promotion)) {
+    return asString((promotion as Record<string, unknown>).rid);
+  }
+  return undefined;
+}
+
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((v): v is string => typeof v === "string")
@@ -206,6 +224,9 @@ export function parseJsonlSourceToCandidateArrays(
     const sourceBasisRefs = asStringArray(record.source_basis_refs);
     // evidenceRefs MUST be non-empty for object/action/function — fall back to candidate_id.
     const evidenceRefs = nonEmpty([...sourceBasisRefs, candidateId]);
+    // Optional authored rid from the SOURCE row (undefined for most rows); when
+    // present it flows to register-accepted, which prefers it over a minted rid.
+    const declaredRid = asDeclaredRid(record);
 
     if (candidateId !== undefined) sourceIdToName.set(candidateId, plainName);
 
@@ -220,6 +241,7 @@ export function parseJsonlSourceToCandidateArrays(
             dataType: asString(record.value_type),
             whyItMayMatter: description,
             evidenceRefs,
+            declaredRid,
           });
         } else {
           objectCandidates.push({
@@ -227,6 +249,7 @@ export function parseJsonlSourceToCandidateArrays(
             plainName,
             whyItMayMatter: description ?? asString(record.atom_kind) ?? "(from NC1 SOURCE)",
             evidenceRefs,
+            declaredRid,
           });
         }
         break;
@@ -237,6 +260,7 @@ export function parseJsonlSourceToCandidateArrays(
           logicIntent: description ?? asString(record.logic_kind) ?? "(SOURCE)",
           deterministic: true,
           evidenceRefs,
+          declaredRid,
         });
         break;
       case "action":
@@ -246,6 +270,7 @@ export function parseJsonlSourceToCandidateArrays(
           operationalIntent: description ?? asString(record.action_kind) ?? "(SOURCE)",
           writebackRisk: "none",
           evidenceRefs,
+          declaredRid,
         });
         break;
       case "governance": {
@@ -291,6 +316,7 @@ export function parseJsonlSourceToCandidateArrays(
       targetObject: tgtName,
       businessMeaning: String(edgeKind),
       evidenceRefs: nonEmpty([candidateId]),
+      declaredRid: asDeclaredRid(record),
     });
   }
 
