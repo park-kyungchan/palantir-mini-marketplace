@@ -187,13 +187,14 @@ export const READ_ONLY_AGENT_IDS: readonly string[] = [
   "verifier",
 ];
 
-/** The 6 mutating agents (the rest of the 8-agent surface). */
+/** The 7 mutating agents (the rest of the 9-agent surface). */
 export const MUTATING_AGENT_IDS: readonly string[] = [
   "docs-researcher",
   "hook-builder",
   "implementer",
   "ontology-steward",
   "plugin-maintainer",
+  "project-implementer",
   "protocol-designer",
 ];
 
@@ -226,7 +227,7 @@ export const MUTATING_CAPABILITY_ROLE_RID = roleRid(
 );
 
 /**
- * mutating capability-class Role — the grant the 6 mutating agents share: read +
+ * mutating capability-class Role — the grant the 7 mutating agents share: read +
  * write + register + execute over their member agent surfaces. Principal is the
  * capability-class label; grantedResourceRids enumerate the member agent RIDs.
  */
@@ -234,7 +235,7 @@ export const MUTATING_CAPABILITY_ROLE: RoleDeclaration = {
   rid: MUTATING_CAPABILITY_ROLE_RID,
   name: "capability-mutating",
   description:
-    "rule 07 §Agent read-only-vs-mutating: the 6 mutating agents may " +
+    "rule 07 §Agent read-only-vs-mutating: the 7 mutating agents may " +
     "read+write+register+execute — their tool sets permit Write/Edit/NotebookEdit. " +
     "Capability-class grant over the member agent surfaces.",
   principal: { kind: "capability-token", id: "capability-mutating" },

@@ -460,6 +460,46 @@ describe("fix2 HOLE-2 — Korean approval lexicon", () => {
   });
 });
 
+describe("fix2 HOLE-2 — F7 Korean imperative directives", () => {
+  test("imperative verb + surface marker co-occur -> true", () => {
+    expect(excerptExpressesSourceMutationApproval("워크플로 라이브러리 소스 제거해.")).toBe(true);
+    expect(excerptExpressesSourceMutationApproval("게이트 핸들러 코드 바꿔.")).toBe(true);
+    expect(excerptExpressesSourceMutationApproval("훅 수정해줘.")).toBe(true);
+    expect(excerptExpressesSourceMutationApproval("플러그인 소스 추가해 주세요.")).toBe(true);
+    expect(excerptExpressesSourceMutationApproval("이 워크플로우 파일 고쳐.")).toBe(true);
+    expect(excerptExpressesSourceMutationApproval("소스 삭제해라.")).toBe(true);
+    expect(excerptExpressesSourceMutationApproval("게이트 정리하세요.")).toBe(true);
+  });
+  test("imperative WITHOUT a protected-surface marker is still rejected", () => {
+    expect(excerptExpressesSourceMutationApproval("그거 제거해.")).toBe(false);
+    expect(excerptExpressesSourceMutationApproval("이거 바꿔.")).toBe(false);
+  });
+  test("NEGATED imperative with surface marker is rejected (fail-closed)", () => {
+    expect(excerptExpressesSourceMutationApproval("워크플로 소스 건드리지 마세요.")).toBe(false);
+    expect(excerptExpressesSourceMutationApproval("그 훅은 제거하지 마.")).toBe(false);
+    expect(excerptExpressesSourceMutationApproval("플러그인 소스 수정하면 안 돼.")).toBe(false);
+    expect(excerptExpressesSourceMutationApproval("플러그인 소스 수정 금지.")).toBe(false);
+  });
+  test("bare 해/줘 and unrelated chatter never approve", () => {
+    expect(excerptExpressesSourceMutationApproval("그냥 해.")).toBe(false);
+    expect(excerptExpressesSourceMutationApproval("빨리 줘.")).toBe(false);
+    expect(excerptExpressesSourceMutationApproval("오늘 날씨 어때?")).toBe(false);
+  });
+  test("안전/안내(safe/guide) do NOT trip the 안 돼 negation guard", () => {
+    expect(excerptExpressesSourceMutationApproval("안전하게 소스 수정해.")).toBe(true);
+  });
+  test("reverify authorizes a record bound to a Korean-imperative envelope", async () => {
+    const rawImperative = "워크플로 라이브러리 소스(hooks/ontology-engineering-workflow-enforcement-gate.ts) 제거해.";
+    const envelope = makeEnvelope({ rawPrompt: rawImperative });
+    const store = new FakeEnvelopeStore();
+    store.putEnvelope(envelope);
+    store.setPointer(RUNTIME, SESSION_ID, { promptId: envelope.promptId, promptHash: envelope.promptHash });
+    const record = makeRecord(envelope, { userQuote: "소스(hooks/ontology-engineering-workflow-enforcement-gate.ts) 제거해" });
+    const verdict = await reverifySourceMutationApprovalAgainstEnvelope(record, store, IN_SCOPE_TOUCH, NOW_MS);
+    expect(verdict.authorized).toBe(true);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Case 8 — SCOPE ESCAPE
 // ---------------------------------------------------------------------------

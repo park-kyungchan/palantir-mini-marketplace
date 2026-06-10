@@ -97,7 +97,7 @@ export const PLUGIN_MANIFEST_INSTANCES: readonly PluginManifestInstance[] = [
   {
     manifestId: "palantir-mini",
     mcpServers: 1,
-    registeredAgents: 8,
+    registeredAgents: 9,
     registeredSkills: 44,
   },
 ];

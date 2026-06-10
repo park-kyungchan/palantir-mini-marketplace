@@ -1,17 +1,17 @@
 /**
- * palantir-mini SELF-ONTOLOGY — Agent as a registered ObjectType + its 8 instances
+ * palantir-mini SELF-ONTOLOGY — Agent as a registered ObjectType + its 9 instances
  * (Wave 1, harness redesign self-model build). Mirrors the `mcp-tool.objecttype.ts`
  * idiom: ONE `Agent` ObjectType (the type) + the live agent declarations seeded as
  * instances.
  *
  * pm's governed subagent surface modeled AS ontology: each `agents/<name>.md` is one
- * Agent identity. This file declares the type and seeds the 8 agents — the snapshot
+ * Agent identity. This file declares the type and seeds the 9 agents — the snapshot
  * OWNS the seed (it is the authority), so it does NOT import the agents tree uphill. The
- * paired registration test cross-checks these 8 names against the LIVE `agents/`
+ * paired registration test cross-checks these 9 names against the LIVE `agents/`
  * directory so the self-model fails loud if pm's agent surface drifts (an agent
  * added/removed without updating this seed).
  *
- * Count provenance (LIVE-verified): `agents/` holds EXACTLY 8 `*.md` declarations.
+ * Count provenance (LIVE-verified): `agents/` holds EXACTLY 9 `*.md` declarations.
  * Each instance carries identity (`agentId` = the `name:` frontmatter, the PK) plus two
  * stored facts read off the declaration: `tier` (the `model:` field — opus/sonnet/haiku)
  * and `mutationCapability` ("read-only" when the agent's `disallowedTools` forbid
@@ -67,7 +67,7 @@ export interface AgentInstance {
 }
 
 /**
- * The 8 Agent instances — pm's LIVE subagent surface, in `agents/` filename order.
+ * The 9 Agent instances — pm's LIVE subagent surface, in `agents/` filename order.
  * Snapshot-owned seed (no agents-tree import); the registration test cross-checks this
  * set against the live `agents/` directory and fails on any drift.
  */
@@ -77,11 +77,12 @@ export const AGENT_INSTANCES: readonly AgentInstance[] = [
   { agentId: "implementer", tier: "sonnet", mutationCapability: "mutating" },
   { agentId: "ontology-steward", tier: "opus", mutationCapability: "mutating" },
   { agentId: "plugin-maintainer", tier: "sonnet", mutationCapability: "mutating" },
+  { agentId: "project-implementer", tier: "sonnet", mutationCapability: "mutating" },
   { agentId: "protocol-designer", tier: "sonnet", mutationCapability: "mutating" },
   { agentId: "researcher", tier: "opus", mutationCapability: "read-only" },
   { agentId: "verifier", tier: "opus", mutationCapability: "read-only" },
 ];
 
-// Register the Agent ObjectType (the type). The 8 instances above are data the
+// Register the Agent ObjectType (the type). The 9 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(AGENT_OBJECT_TYPE);
