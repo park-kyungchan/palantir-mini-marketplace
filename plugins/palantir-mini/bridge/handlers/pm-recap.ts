@@ -12,7 +12,6 @@
 //   falls back to heuristic tool_invocation_completed counting when absent.
 //
 // Authority: plan inherited-discovering-quill.md §3.B.W5
-//            rule 12 v3.10.0 §MCP-First protocol
 //            rule 26 §Grading (substrate routing T0-T4)
 //            rule 10 §Canonical scope (per-project events.jsonl)
 

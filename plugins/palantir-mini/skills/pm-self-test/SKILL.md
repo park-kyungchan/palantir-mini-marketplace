@@ -44,7 +44,7 @@ This MCP aggregates checks 1 + 2 + rule audit + agent/skill existence checks in 
 
 Run a minimal harness sprint against the built-in canary spec to verify the 3-agent loop works end-to-end:
 
-1. Invoke `/palantir-mini:pm-harness-sprint` with argument `canary` (or the canned spec path `~/.claude/plugins/palantir-mini/tests/fixtures/canary-spec.md` if harness-sprint supports file path).
+1. Run the harness loop against the built-in canary spec at `~/.claude/plugins/palantir-mini/tests/fixtures/canary-spec.md`.
 2. Observe: Planner produces `spec.md` + `eval-rubric.md`. Generator produces output. Evaluator scores ≥ threshold. Expected to pass in 1 iteration.
 3. If the harness loop is not available (no active project), skip this check and note "skip — no active project".
 

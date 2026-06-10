@@ -38,7 +38,7 @@ Recognized filter clauses (all optional; combine freely):
 |---|---|---|
 | `--whenRange="<from>..<to>"` | `filter.whenRange` ISO8601 inclusive | `--whenRange="2026-04-25..2026-04-30"` |
 | `--byWhom.identity=<id>` | `filter.byWhom.identity` exact | `--byWhom.identity=claude-code` |
-| `--byWhom.agentName=<name>` | `filter.byWhom.agentName` exact | `--byWhom.agentName=harness-generator` |
+| `--byWhom.agentName=<name>` | `filter.byWhom.agentName` exact | `--byWhom.agentName=implementer` |
 | `--throughWhich.toolName=<tool>` | `filter.throughWhich.toolName` exact | `--throughWhich.toolName=commit_edits` |
 | `--eventTypes=<csv>` | `filter.eventTypes` array | `--eventTypes=grading_completed,sprint_contract_bound` |
 | `--withWhat=<regex>` | `filter.withWhat` regex against reasoning | `--withWhat="dryRunRef=abc"` |

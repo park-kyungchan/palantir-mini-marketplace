@@ -21,9 +21,8 @@
 //   approved contract refs for complex ontology-affecting dispatch.
 //
 // Rule cross-refs:
-//   rule 12 v3.13.0 §Lead routing canonical (pm_intent_router = single dispatch entry)
+//   Lead routing canonical (pm_intent_router = single dispatch entry)
 //   rule 24 v1.2.0  §Cost-aware dispatch
-//   rule 16 v4.1.0  §0 (7 harness species)
 //   rule 20 v1.0.0  §Mode ladder
 //   rule 26 §Axis E (semantic + procedural memory layers)
 //

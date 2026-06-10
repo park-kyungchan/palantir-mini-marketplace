@@ -139,7 +139,7 @@ Total output MUST be ≤25K. Truncate lineage to last 5 events if needed.
 ## Ontology citations
 
 - Sprint-062 Phase 2 W1-alpha (hook-builder task T-W1a-1)
-- Rule 12 v3.10.0 §MCP-First protocol (MCP discovery before edit)
+- MCP-First protocol (MCP discovery before edit)
 - Rule 01 §ForwardProp Audit (propagation_audit_forward required before cross-layer schema promotion)
 - Rule 26 §Axis E (procedural + semantic memory layers)
 - `user-prompt-ontology-intent-extract.ts` — companion UserPromptSubmit hook

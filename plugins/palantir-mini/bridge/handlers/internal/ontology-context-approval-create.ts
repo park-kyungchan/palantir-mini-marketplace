@@ -17,7 +17,7 @@
  * Rule cross-refs:
  *   rule 07 §Plugin authority — file-ownership; handler files are hook-builder owned
  *   rule 10 (events.jsonl)   — emits phase_completed via lib helper
- *   rule 12 §Lead routing    — pm_intent_router is the canonical single dispatch entry
+ *   Lead routing — pm_intent_router is the canonical single dispatch entry
  *
  * @since palantir-mini plugin v5.4.0 (foamy-giggling-kettle PR-4)
  */

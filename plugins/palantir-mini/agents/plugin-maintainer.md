@@ -178,4 +178,4 @@ Layers: `semantic`, `procedural`
 
 Version sync across plugin manifests (`procedural`) + RBAC schema (`semantic`).
 
-Authority: rule 26 v1.0.0 §Axis E (Memory-mapped); rule 12 v3.3.0 §Briefing template (5th section).
+Authority: rule 26 v1.0.0 §Axis E (Memory-mapped).

@@ -7,7 +7,7 @@
 //
 // v2.0.0 (sprint-060 W1.5) — closes architecture review §5.E.1:
 //   "Dry-run pipeline never executed in production telemetry" (0 dry_run_computed
-//   + 0 dry_run_graded events on this machine despite rule 16 §Loop step 3-4
+//   + 0 dry_run_graded events on this machine despite the Loop
 //   requiring dry-run before commit).
 //
 // v2.1.0 (sprint-060 W2.3) — closes architecture review §5.E.6 (R4-F12):
@@ -31,7 +31,7 @@
 //     Caller opts out. An audited dry_run_auto_skip event is emitted.
 //     Useful in test scaffolding or when the caller already ran dry-run explicitly.
 //
-// Authority: rule 16 v4.1.0 §Loop steps 3-5
+// Authority: Loop steps 3-5
 //            (negotiate → propose → dry-run → grade → commit)
 
 import { createHash } from "crypto";
@@ -236,7 +236,7 @@ async function autoInjectDryRun(
       cwd: project,
       sessionId,
       runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
-      reasoning: `commit_edits auto-dry-run dryRunRef=${dryRunRef} actionTypeRid=${actionTypeRid} editCount=${edits.length} — auto-injected because caller did not provide dryRunRef (rule 16 v4.1.0 §Loop step 3-4; closes P1.SP2/M16/E.1)`,
+      reasoning: `commit_edits auto-dry-run dryRunRef=${dryRunRef} actionTypeRid=${actionTypeRid} editCount=${edits.length} — auto-injected because caller did not provide dryRunRef (closes P1.SP2/M16/E.1)`,
       memoryLayers: ["procedural"],
     });
   } catch {

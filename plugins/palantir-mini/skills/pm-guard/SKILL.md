@@ -11,11 +11,7 @@ disable-model-invocation: false
 # /palantir-mini:pm-guard — Full Safety Mode
 
 Activates both destructive command warnings and directory-scoped edit restrictions.
-This is the combination of `/palantir-mini:pm-careful` + `/palantir-mini:pm-freeze` in a single command.
-
-**Dependency note:** This skill references hook scripts from the sibling `/palantir-mini:pm-careful`
-and `/palantir-mini:pm-freeze` skill directories. Both must be installed (they are installed together
-by the palantir-mini plugin).
+This is the combination of destructive-command guarding and edit-boundary freezing in a single command.
 
 ## Setup
 
@@ -45,9 +41,10 @@ Tell the user:
 - "**Guard mode active.** Two protections are now running:"
 - "1. **Destructive command warnings** — rm -rf, DROP TABLE, force-push, etc. will warn before executing (you can override)"
 - "2. **Edit boundary** — file edits restricted to `<path>/`. Edits outside this directory are blocked."
-- "To remove the edit boundary, run `/palantir-mini:pm-unfreeze`. To deactivate everything, end the session."
+- "To remove the edit boundary, delete the freeze-dir state file (`$STATE_DIR/freeze-dir.txt`). To deactivate everything, end the session."
 
 ## What's protected
 
-See `/palantir-mini:pm-careful` for the full list of destructive command patterns and safe exceptions.
-See `/palantir-mini:pm-freeze` for how edit boundary enforcement works.
+**Destructive command patterns** (warn before executing, override allowed): `rm -rf`, `git push --force`/`git push -f`, `git reset --hard`, `git clean -fd`, `DROP TABLE`/`DROP DATABASE`, `TRUNCATE`, and similar irreversible deletes. Safe exceptions: reads, dry-runs, and scoped operations inside temp/build directories pass without a warning.
+
+**Edit boundary enforcement:** the boundary path is read from `$STATE_DIR/freeze-dir.txt` (written during Setup above). Any Edit/Write whose target resolves outside that directory is blocked; targets inside the boundary pass. Removing the state file lifts the restriction.

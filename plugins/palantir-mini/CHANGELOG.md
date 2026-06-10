@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.3.0] - 2026-06-10 — chore: PR-G naming/citation hygiene — retired rule-12/16 cites dropped (substance inlined), dead agent/skill refs repointed (prose-only, zero behavior change)
+
+### Changed
+- Retired rule 12/16 citation tokens dropped across agents/ (17 edits), skills/ (24 edits incl. .md/.md.tmpl lockstep), docs/, README, lib/bridge comments + 3 runtime-visible strings (commit_edits reasoning, pm_grader_dispatch description, DTC_PROVENANCE) — substantive phrasing inlined at the surviving owner; no replacement numbers invented (pointer-not-pin).
+- Dead agent/skill references repointed: claude-code-guide → WebFetch/WebSearch/scrapling; harness-generator → implementer; pm-eval-suite-author/-run → pm-eval-suite; pm-research-context-select → pm-research; pm-freeze/pm-unfreeze/pm-careful → pm-guard (behavior inlined); pm-document-release → pm-ship inline; pm-harness-sprint canary dropped.
+- Naming verified ALREADY current: 'AIP Chatbot Studio' canonical everywhere (one title got the full AIP prefix); 'application state' terminology confirmed complete — no renames needed.
+- Deferred by design (identifier-level, → Altitude-2 audit scope): agent-ownership-table dead harness-* entries; lead-orchestrator references in ontology-graph indexer + workflow-family enforcement ('what does the Lead node resolve to').
+
+Verification: tsc exit 0; release-gate eval + agents + codex-skill-surface suites green; full suite 0 NEW failures vs clean main (implementer stash-retest); 1 adversarial verifier pass (exclusion list honored; 2 residual comments fixed post-verify).
+
 ## [7.2.0] - 2026-06-10 — chore: rules overlay sync — full bodies refreshed post home-slim + rule 29 registered + bottleneck measures real bodies
 
 ### Changed

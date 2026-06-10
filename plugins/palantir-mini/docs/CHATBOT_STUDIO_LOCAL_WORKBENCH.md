@@ -1,4 +1,4 @@
-# Chatbot Studio Local Workbench
+# AIP Chatbot Studio Local Workbench
 
 This document describes the PR7 local workbench and ledger fixture boundary. It
 is source documentation only; it does not claim active runtime support.

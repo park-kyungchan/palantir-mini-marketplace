@@ -15,7 +15,7 @@
 //
 // Backward compat: if subagentId is absent, the caller falls back to legacy dir.
 //
-// Authority: canonical plan v2 §4 row 5.5 + rule 12 §Subagent decision audit invariant
+// Authority: canonical plan v2 §4 row 5.5
 // Cross-refs: hooks/subagent-orchestration-audit.ts (writer), hooks/agent-decision-log.ts (reader)
 
 import * as fs   from "fs";

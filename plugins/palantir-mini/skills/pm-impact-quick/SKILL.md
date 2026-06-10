@@ -106,7 +106,7 @@ Running this skill within 5 min of an Edit/Write/MultiEdit satisfies the MCP-fir
 ## Ontology citations
 
 - Sprint-061 plan §3.B.W3 (MCP-first hook + pm-impact-quick skill — the discipline lever)
-- Rule 12 v3.10.0 §MCP-First protocol (referenced; owned by protocol-designer)
+- MCP-First protocol (owned by protocol-designer)
 - Rule 26 §Axis B1 — outcome-paired events (`lead_mcp_first_compliance` open/close pair)
 - `pre-edit-impact-mcp-first.ts` — paired hook that this skill satisfies
 

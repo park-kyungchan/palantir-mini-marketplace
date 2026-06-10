@@ -24,7 +24,7 @@ disable-model-invocation: true
 ## Prerequisites
 
 - Schemas v1.37.0+ (AIPAgentDeclaration primitive) — current schemas at v1.40.0+.
-- Optional: prior `/palantir-mini:pm-eval-suite-author` for `evaluationSuiteIds[]` cross-ref.
+- Optional: prior `/palantir-mini:pm-eval-suite` for `evaluationSuiteIds[]` cross-ref.
 - Plugin v4.5.0+ (this skill).
 
 ## Inputs (interactive walkthrough)
@@ -37,7 +37,7 @@ Ask user for:
 - `<systemPromptRef>`: file path or RID for the system prompt
 - `<ontologyScope>`: { objectTypeRids[], objectViewRids[], allowObjectSetSearch?, allowMutatingActions? }
 - `<toolBindings>`: 1-N `AIPToolBinding` entries (kind + actionRid?/logicFunctionRid?/objectViewRid?/toolName? + mutability + requiresApproval)
-- `<evaluationSuiteIds>` (optional): cross-ref to AIP Evals suites (per /pm-eval-suite-author)
+- `<evaluationSuiteIds>` (optional): cross-ref to AIP Evals suites (per /pm-eval-suite)
 - `<deploymentStage>`: `draft | dev | staging | production | retired`
 - `<observability>`: { captureSessionTrace, captureToolCalls, lineageRefsRequired? }
 
@@ -61,7 +61,7 @@ mcp__palantir-mini__apply_edit_function({
 })
 ```
 
-Then `mcp__palantir-mini__compute_edits_dry_run({...})` → `mcp__palantir-mini__commit_edits({...})` per rule 16 v4.0.0 §Loop.
+Then `mcp__palantir-mini__compute_edits_dry_run({...})` → `mcp__palantir-mini__commit_edits({...})` per the mandatory dry-run→commit loop.
 
 Persisted at `<project>/.palantir-mini/aip-agents/<agentId>.json` (mkdir if absent).
 
@@ -96,13 +96,12 @@ Eval suites: <count>
 Deployment: <stage>
 
 Persisted: <path>
-Next: bind to a Workshop application or invoke /pm-eval-suite-run for first eval cycle.
+Next: bind to a Workshop application or invoke /pm-eval-suite for first eval cycle.
 ```
 
 ## Authority + cross-refs
 
 - Schemas: `~/.claude/schemas/ontology/primitives/aip-agent.ts` (v1.37+).
 - 1차 자료: `~/.claude/research/palantir-foundry/aip/ai-fde-overview-and-modes-skills-2026-03-12.md` + `~/.claude/research/claude-code/managed-agents.md` (compare/contrast Anthropic Managed Agents vs Palantir AIP Agents).
-- Companion agent: `agent-author` (this plugin's spawnable subagent for autonomous authoring).
-- Companion skills: `/pm-eval-suite-author`, `/pm-ontology-branch-create`, `/pm-ai-fde-route`.
+- Companion skills: `/pm-eval-suite`, `/pm-ontology-branch-create`, `/pm-ai-fde-route`.
 - Plan §3.W3.A — `~/.claude/plans/mossy-mapping-eich.md`.

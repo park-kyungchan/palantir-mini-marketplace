@@ -6,13 +6,12 @@
  * suspiciously perfect 0 `missing_briefing_sections` counts.  Pure label
  * matching accepts boilerplate like "Memory layers: semantic." with no
  * rationale, or "Speed target: TBD".  These validators enforce semantic
- * content requirements per rule 12 v3.3.0 §Briefing template.
+ * content requirements for each of the 5 briefing-template sections.
  *
  * Each validator receives the full briefing text and returns:
  *   { passed: boolean; reason?: string }
  *
- * Authority: ~/.claude/rules/12-lead-protocol-v2.md §Briefing template (5-section)
- *            ~/.claude/rules/26-valuable-data-standard.md §Axis E (Memory-mapped)
+ * Authority: ~/.claude/rules/26-valuable-data-standard.md §Axis E (Memory-mapped)
  */
 
 export interface SectionValidationResult {

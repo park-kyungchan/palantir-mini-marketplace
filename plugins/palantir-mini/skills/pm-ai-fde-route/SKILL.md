@@ -95,5 +95,5 @@ Suggested next: invoke the chosen tool with the retrieved context, OR re-prompt 
 
 - Schemas: `aip-mode-and-skill.ts` (v1.40+).
 - 1차 자료: `~/.claude/research/palantir-foundry/aip/ai-fde-overview-and-modes-skills-2026-03-12.md`.
-- Companion: `/pm-aip-agent-author` (uses mode classifications), `/pm-research-context-select` (for retrieval).
+- Companion: `/pm-aip-agent-author` (uses mode classifications), `/pm-research` (for retrieval).
 - Plan §3.W3.C — `~/.claude/plans/mossy-mapping-eich.md`.

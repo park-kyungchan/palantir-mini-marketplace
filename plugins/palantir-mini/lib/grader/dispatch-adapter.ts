@@ -5,7 +5,7 @@
 // (`claude -p` / `codex exec`) is the ADAPTER binding selected at call time via
 // PALANTIR_MINI_HOST_RUNTIME (lib/runtime/identity.resolveHostRuntimeIdentity).
 //
-// A FRESH subprocess per dispatch eliminates self-grading bias (rule 16 §Roles).
+// A FRESH subprocess per dispatch eliminates self-grading bias.
 // Spawn idiom + graceful ENOENT/EACCES/timeout degrade mirror
 // bridge/handlers/pm-preamble/effort-probe.ts. Adding gemini later = one branch.
 //

@@ -363,7 +363,7 @@ const TOOLS: ToolSpec[] = [
     name: "pm_grader_dispatch",
     description:
       "W3e-1 — runtime-neutral model-grader dispatch. Dispatches ONE model-domain " +
-      "criterion to a FRESH grader subprocess (eliminates self-grading bias, rule 16 §Roles). " +
+      "criterion to a FRESH grader subprocess (eliminates self-grading bias). " +
       "The spawn (claude -p / codex exec) is the adapter binding selected via " +
       "PALANTIR_MINI_HOST_RUNTIME; effort routed by criterion tier. Never throws — " +
       "binary-unavailable / timeout / malformed output degrade to score=0.",

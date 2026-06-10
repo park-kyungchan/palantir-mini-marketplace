@@ -13,7 +13,7 @@ disable-model-invocation: false
 
 # Orchestrate — Ontology-Driven 6-Phase Lead Protocol v1.0
 
-> Note: `model:` param is NEVER passed at Agent spawn — frontmatter `model:` is the single source of truth per rule 12 §Model policy. [Applied — defect #2 fix, 2026-04-19]
+> Note: `model:` param is NEVER passed at Agent spawn — frontmatter `model:` is the single source of truth (Model policy). [Applied — defect #2 fix, 2026-04-19]
 
 This skill replaces ad-hoc orchestration with a rigorous, observable protocol
 derived from proven Ontology-Driven sessions. The Lead (Opus) never codes directly
@@ -118,7 +118,7 @@ mcp__palantir-mini__emit_event({
 
 **The Lead reads (in order)**:
 1. Project CLAUDE.md + .claude/rules/* — already per-turn injected.
-   → rules/12-semantic-surface.md is the Digital Twin if present. Already loaded.
+   → the semantic-surface Digital Twin, if present, is loaded with the rules. Already loaded.
 2. BROWSE.md — already per-turn injected (@import in CLAUDE.md). Do not re-read.
 3. ontology/*.ts — supplement semantic surface with details not captured there.
    Skip full reads of files whose contracts are already in semantic surface.
@@ -463,7 +463,7 @@ Summarize in a table:
 
 ### Documentation Sync
 If session modified ontology, mutations, surface ownership, data flow, or behavior:
-- Update `.claude/rules/12-semantic-surface.md` (Digital Twin)
+- Update the semantic-surface Digital Twin (if present)
 - Update `ontology/BEHAVIOR.md` (if behavior changed)
 - Update `BROWSE.md` domain snapshot and architecture
 - Update `MEMORY.md` session summary and runtime state

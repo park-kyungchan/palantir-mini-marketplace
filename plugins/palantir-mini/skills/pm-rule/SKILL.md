@@ -12,7 +12,7 @@ disable-model-invocation: false
 
 ## When to use
 
-- User asks about a specific numbered rule — "what's rule 12?", "show me rule 10", "rule 16 detail".
+- User asks about a specific numbered rule — "what's rule 08?", "show me rule 10", "rule 27 detail".
 - Hook blocking message cites a rule number and you need the full text.
 - Cold-start discovery — "what rules do we have?" → call `pm_rule_query` with no discriminators (list mode).
 - Keyword search across rule bodies — "any rule about events.jsonl?" → search mode.

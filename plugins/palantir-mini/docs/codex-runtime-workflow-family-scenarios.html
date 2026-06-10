@@ -915,7 +915,7 @@
         summary: "Lead는 즉시 해야 할 일과 병렬 가능한 일을 분리합니다. subagent에게는 역할, source, 범위, 금지 경로, 검증, 출력 계약을 줍니다.",
         support: "manual",
         phases: "dispatch-analysis -> handoff-contract",
-        steps: ["작업 복잡도와 범위를 판정합니다.", "pm_intent_router와 pm_lead_brief로 실행 모드를 고릅니다.", "worker별 쓰기 범위와 금지 범위를 분리합니다.", "각 worker에게 검증 명령과 출력 계약을 줍니다.", "Lead가 결과를 통합하고 충돌을 좁게 해결합니다."],
+        steps: ["작업 복잡도와 범위를 판정합니다.", "pm_intent_router와 pm_substrate_query(session-opener)로 실행 모드를 고릅니다.", "worker별 쓰기 범위와 금지 범위를 분리합니다.", "각 worker에게 검증 명령과 출력 계약을 줍니다.", "Lead가 결과를 통합하고 충돌을 좁게 해결합니다."],
         guard: "두 worker가 같은 파일을 동시에 수정하게 하면 안 됩니다.",
         evidence: ["spawn_agent", "write-scope disjointness", "output contract"]
       },

@@ -11,7 +11,7 @@
  * `emit` calls, no event log writes). The hook continues to perform orphan
  * scan emit; the in-band path performs only marker write/mutate.
  *
- * Authority: rule 26 v1.0.0 §Axis B1 + rule 16 v4.0.0 §Loop step 6.
+ * Authority: rule 26 v1.0.0 §Axis B1.
  */
 
 import * as crypto from "crypto";
