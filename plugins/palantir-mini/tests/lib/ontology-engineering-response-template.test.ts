@@ -10,6 +10,7 @@ import {
   isPalantirMiniPluginExplicitlyDisabled,
   isPalantirMiniWorkflowResponseRequired,
   isOntologyEngineeringResponseRequired,
+  renderPalantirMiniPlainLanguageSummary,
   validateDtcApprovalCardText,
   validatePalantirMiniWorkflowResponseTemplateText,
   validateOntologyEngineeringResponseTemplateText,
@@ -94,6 +95,49 @@ describe("palantir-mini workflow response requirements", () => {
     for (const requirement of PALANTIR_MINI_WORKFLOW_RESPONSE_EXPLANATION_REQUIREMENTS) {
       expect(context).toContain(requirement);
     }
+  });
+
+  test("renders the plain-language summary above the audit detail when supplied", () => {
+    const withoutSummary = buildPalantirMiniWorkflowResponseTemplateContext({
+      runtime: "codex",
+      enforcementSurface: "UserPromptSubmit",
+    });
+    // Omitted summary → byte-identical to the field-only template (gates parse the fields unchanged).
+    expect(withoutSummary).not.toContain("Plain-language summary");
+    expect(withoutSummary).not.toContain("감사 상세");
+
+    const summaryKo =
+      "회원이 책을 빌리고 반납하는 흐름을 만들려는 것으로 이해했습니다. 연체 처리 규칙은 아직 열려 있습니다. 다음으로 9축을 한 축씩 확인합니다.";
+    const summaryEn =
+      "We understood you want a flow where members borrow and return books. The overdue-handling rule is still open. Next we confirm the 9 axes one at a time.";
+    const withSummary = buildPalantirMiniWorkflowResponseTemplateContext({
+      runtime: "codex",
+      enforcementSurface: "UserPromptSubmit",
+      plainLanguageSummary: { ko: summaryKo, en: summaryEn },
+    });
+
+    expect(withSummary).toContain("Plain-language summary");
+    expect(withSummary).toContain(`KO: ${summaryKo}`);
+    expect(withSummary).toContain(`EN: ${summaryEn}`);
+    expect(withSummary).toContain("감사 상세");
+    // Summary precedes the first governed field (rendered ABOVE the audit detail).
+    expect(withSummary.indexOf("Plain-language summary")).toBeLessThan(
+      withSummary.indexOf(ONTOLOGY_ENGINEERING_RESPONSE_REQUIRED_FIELDS[0]),
+    );
+    // Every required field still emits exactly as today.
+    for (const field of ONTOLOGY_ENGINEERING_RESPONSE_REQUIRED_FIELDS) {
+      expect(withSummary).toContain(field);
+    }
+    // The summary is purely additive — the field-only body is unchanged below the heading.
+    expect(withSummary.endsWith(withoutSummary)).toBe(true);
+  });
+
+  test("renderPalantirMiniPlainLanguageSummary returns no lines when summary is absent", () => {
+    expect(renderPalantirMiniPlainLanguageSummary(undefined)).toEqual([]);
+    const lines = renderPalantirMiniPlainLanguageSummary({ ko: "이해함.", en: "Understood." });
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.some((line) => line.includes("KO: 이해함."))).toBe(true);
+    expect(lines.some((line) => line.includes("EN: Understood."))).toBe(true);
   });
 
   test("validates complete and incomplete response text", () => {

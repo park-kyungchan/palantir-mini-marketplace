@@ -112,11 +112,20 @@ export interface FDEOntologyPhaseHistoryEntry {
   readonly previousPhase?: FDEOntologyEngineeringPhase;
 }
 
+/**
+ * Optional rid declared at the SOURCE (e.g. a frozen NC1 SOURCE row that already
+ * carries the registered `pm.self.ontology/*` rid for a previously-promoted atom).
+ * When present, the register seam prefers it over a freshly-minted
+ * `projectPrimitiveRid(...)`, so an authored rid round-trips instead of being
+ * re-minted. Optional + additive: absent on interactively-authored candidates and
+ * on every existing session fixture (zero behavior change when omitted).
+ */
 export interface ObjectTypeCandidate {
   readonly candidateId: string;
   readonly plainName: string;
   readonly whyItMayMatter: string;
   readonly evidenceRefs: readonly string[];
+  readonly declaredRid?: string;
 }
 
 export interface LinkTypeCandidate {
@@ -126,6 +135,7 @@ export interface LinkTypeCandidate {
   readonly targetObject?: string;
   readonly businessMeaning: string;
   readonly evidenceRefs: readonly string[];
+  readonly declaredRid?: string;
 }
 
 export interface ActionTypeCandidate {
@@ -135,6 +145,7 @@ export interface ActionTypeCandidate {
   readonly writebackRisk: "none" | "low" | "medium" | "high";
   readonly submissionCriteria?: readonly string[];
   readonly evidenceRefs: readonly string[];
+  readonly declaredRid?: string;
 }
 
 export interface FunctionCandidate {
@@ -143,6 +154,7 @@ export interface FunctionCandidate {
   readonly logicIntent: string;
   readonly deterministic?: boolean;
   readonly evidenceRefs: readonly string[];
+  readonly declaredRid?: string;
 }
 
 export interface ChatbotContextCandidate {
@@ -151,6 +163,7 @@ export interface ChatbotContextCandidate {
   readonly applicationStateNeed: string;
   readonly retrievalContextNeed?: string;
   readonly evidenceRefs: readonly string[];
+  readonly declaredRid?: string;
 }
 
 export interface RoleCandidate {
@@ -172,6 +185,7 @@ export interface PropertyCandidate {
   readonly dataType?: string;
   readonly whyItMayMatter?: string;
   readonly evidenceRefs?: readonly string[];
+  readonly declaredRid?: string;
 }
 
 export interface LeadClarificationQuestion {

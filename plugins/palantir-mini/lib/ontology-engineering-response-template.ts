@@ -214,9 +214,28 @@ export interface PalantirMiniPluginOptOut {
   readonly reason: string;
 }
 
+/**
+ * Optional plain-language summary block (KO default + EN mirror) rendered ABOVE
+ * the audit-detail fields, so a non-developer reads what we understood / what is
+ * still open / what happens next BEFORE the governed field dump. Each side is
+ * 2-3 plain sentences; jargon stays below in the audit detail.
+ */
+export interface PalantirMiniPlainLanguageSummary {
+  /** 한국어 요약 (2-3문장): 이해한 것 / 아직 열린 것 / 다음에 일어날 일. */
+  readonly ko: string;
+  /** English mirror (2-3 sentences): what we understood / what is still open / what happens next. */
+  readonly en: string;
+}
+
 export interface PalantirMiniWorkflowResponseTemplateContextInput {
   readonly runtime?: string;
   readonly enforcementSurface?: string;
+  /**
+   * Optional non-developer summary. When supplied it renders as a leading block
+   * above the audit-detail fields; when omitted the output is byte-identical to
+   * the field-only template (other gates/tests parse the fields unchanged).
+   */
+  readonly plainLanguageSummary?: PalantirMiniPlainLanguageSummary;
 }
 
 export interface PalantirMiniWorkflowResponseTemplateValidation {
@@ -257,6 +276,26 @@ export function isPalantirMiniWorkflowResponseRequired(text: string): boolean {
   );
 }
 
+/**
+ * Render the optional non-developer summary block (KO default + EN mirror).
+ * Returns the leading lines (summary + the "audit detail" heading that groups the
+ * governed fields below it), or an empty array when no summary is supplied — in
+ * which case the field-only output stays byte-identical to the legacy template.
+ */
+export function renderPalantirMiniPlainLanguageSummary(
+  summary: PalantirMiniPlainLanguageSummary | undefined,
+): readonly string[] {
+  if (summary === undefined) return [];
+  return [
+    "쉬운 설명 (먼저 읽으세요) / Plain-language summary (read first):",
+    `KO: ${summary.ko}`,
+    `EN: ${summary.en}`,
+    "",
+    "— 감사 상세 (governed audit detail; 게이트·검증용) —",
+    "",
+  ];
+}
+
 export function buildPalantirMiniWorkflowResponseTemplateContext(
   input: PalantirMiniWorkflowResponseTemplateContextInput = {},
 ): string {
@@ -268,6 +307,7 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
   const explanationRequirements =
     PALANTIR_MINI_WORKFLOW_RESPONSE_EXPLANATION_REQUIREMENTS.join("; ");
   return [
+    ...renderPalantirMiniPlainLanguageSummary(input.plainLanguageSummary),
     "palantir-mini user requirement prompt response requirements are mandatory for governed palantir-mini turns.",
     `Prompt template authority=${PALANTIR_MINI_WORKFLOW_RESPONSE_TEMPLATE_DOC}; Runtime=${runtime}; Enforcement surface=${surface}`,
     "",

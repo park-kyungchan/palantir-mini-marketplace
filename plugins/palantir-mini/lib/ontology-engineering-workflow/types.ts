@@ -14,6 +14,7 @@ export type OntologyEngineeringWorkflowAction =
   | "start"
   | "turn"
   | "draft_sic"
+  | "approve_sic"
   | "ingest"
   | "register"
   | "lint"

@@ -45,6 +45,7 @@ const SEMANTIC_INTENT_GATE_PUBLIC_FIELDS = [
   "turnUserInput",
   "fillPolicy",
   "semanticConsistencyResolverInput",
+  "proposedAxisDraft",
 ] as const satisfies readonly (keyof SemanticIntentGateInput)[];
 
 const INTENT_ROUTER_PUBLIC_FIELDS = [
@@ -95,6 +96,7 @@ const ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS = [
   "ontologyContextQueryRef",
   "workflowTraceRef",
   "semanticIntentContractRef",
+  "semanticIntentContract",
   "semanticIntentContractStatus",
   "digitalTwinChangeContractRef",
   "digitalTwinChangeContractStatus",
@@ -326,7 +328,7 @@ describe("mcp-server prompt identity schemas", () => {
     );
 
     expect(props.action?.type).toBe("string");
-    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "status", "elevate", "approve_source_mutation"]);
+    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "approve_sic", "status", "elevate", "approve_source_mutation"]);
     expect(props.project?.type).toBe("string");
     expect(props.projectRoot?.type).toBe("string");
     expect(props.fdeSessionRef?.type).toBe("string");

@@ -87,7 +87,10 @@ export async function registerAcceptedCandidates(
 
   // ── 1) Objects ────────────────────────────────────────────────────────────
   for (const candidate of session.objectCandidates ?? []) {
-    const rid = projectPrimitiveRid(projectRoot, "object-type", candidate.plainName);
+    // Prefer a SOURCE-declared rid (e.g. a previously-promoted pm.self.ontology
+    // atom) over a freshly-minted one, so authored rids round-trip; mint when absent.
+    const rid =
+      candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "object-type", candidate.plainName);
     // Always record the name→rid binding so links resolve, even when the object
     // is already registered (idempotent re-register).
     nameToRid.set(candidate.plainName, rid);
@@ -110,7 +113,8 @@ export async function registerAcceptedCandidates(
 
   // ── 2) Actions ────────────────────────────────────────────────────────────
   for (const candidate of session.actionCandidates ?? []) {
-    const rid = projectPrimitiveRid(projectRoot, "action-type", candidate.plainName);
+    const rid =
+      candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "action-type", candidate.plainName);
     nameToRid.set(candidate.plainName, rid);
     if (alreadyRegistered.has(rid)) continue;
     const { edits: e } = await applyEditFunction(
@@ -133,7 +137,8 @@ export async function registerAcceptedCandidates(
 
   // ── 3) Functions ──────────────────────────────────────────────────────────
   for (const candidate of session.functionCandidates ?? []) {
-    const rid = projectPrimitiveRid(projectRoot, "function", candidate.plainName);
+    const rid =
+      candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "function", candidate.plainName);
     nameToRid.set(candidate.plainName, rid);
     if (alreadyRegistered.has(rid)) continue;
     const { edits: e } = await applyEditFunction(
@@ -178,7 +183,8 @@ export async function registerAcceptedCandidates(
 
   // ── 5) Properties (an ObjectType's stored field; owner resolved AFTER objects) ──
   for (const candidate of session.propertyCandidates ?? []) {
-    const rid = projectPrimitiveRid(projectRoot, "property", candidate.plainName);
+    const rid =
+      candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "property", candidate.plainName);
     nameToRid.set(candidate.plainName, rid);
     if (alreadyRegistered.has(rid)) continue;
     // Resolve the owner ObjectType rid via the combined map (objects are registered
@@ -221,7 +227,8 @@ export async function registerAcceptedCandidates(
       });
       continue;
     }
-    const rid = projectPrimitiveRid(projectRoot, "link-type", candidate.plainName);
+    const rid =
+      candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "link-type", candidate.plainName);
     if (alreadyRegistered.has(rid)) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterLinkType",

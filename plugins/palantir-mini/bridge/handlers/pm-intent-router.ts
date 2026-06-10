@@ -88,6 +88,7 @@ import { attachRoutingProjectionToCapsule } from "../../lib/context/context-caps
 import { readCurrentUniversalOntologyEntry } from "../../lib/ontology-entry/entry-store";
 import { transitionUniversalOntologyEntry } from "../../lib/ontology-entry/lifecycle";
 import { readCurrentFDEOntologyEngineeringSession } from "../../lib/fde-ontology-engineering/session-store";
+import { resolveHostRuntimeIdentity } from "../../lib/runtime/identity";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
@@ -1548,7 +1549,9 @@ export async function routeIntent(
           approvedSurfaceRefs: routingScopePaths.slice(),
           forbiddenSurfaceRefs: [],
           approvalKind: "auto-low-risk",
-          approverIdentity: "claude-code",
+          // Runtime-agnostic: resolve the host runtime identity (env-driven) rather
+          // than baking the Claude-specific literal into this adapter-neutral handler.
+          approverIdentity: resolveHostRuntimeIdentity(),
           projectRoot: input.project,
           ...(input.promptId   !== undefined ? { promptId:   input.promptId   } : {}),
           ...(input.promptHash !== undefined ? { promptHash: input.promptHash } : {}),

@@ -30,6 +30,14 @@ export interface NineAxisTurnDescriptor extends SicTurnDescriptor {
   readonly questionEn: string;
   /** Which of the 9 axes this turn fills; undefined for T0 (intent). */
   readonly targetAxis?: SicAxisKey;
+  /**
+   * Generic worked example (KO) — 1-2 plain sentences showing what a good answer
+   * looks like, in an everyday non-dev scenario (a small community library).
+   * Illustrative only; never copied into the contract.
+   */
+  readonly exampleKo?: string;
+  /** English mirror of `exampleKo`. */
+  readonly exampleEn?: string;
 }
 
 export type NineAxisSicContract = SicWithFillFields & {
@@ -57,6 +65,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetField: "rawIntent",
     question: "한 문장으로, 무엇을 하려는 건가요? 그리고 절대 건드리면 안 되는 게 있나요?",
     questionEn: "In one sentence, what are you trying to do — and is there anything that must NOT be touched?",
+    exampleKo: "예) \"동네 도서관에서 회원이 책을 빌리고 반납하는 흐름을 만들고 싶다. 단, 다른 회원의 개인정보는 절대 건드리지 않는다.\"",
+    exampleEn: "e.g. \"I want a flow where library members borrow and return books — but other members' personal data must never be touched.\"",
   },
   {
     turnIndex: 1,
@@ -65,6 +75,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetAxis: "data",
     question: "이 일이 다루는 정보나 대상(객체)은 무엇인가요?",
     questionEn: "What information or objects does this touch?",
+    exampleKo: "예) \"회원, 책, 대출기록 세 가지를 다룬다. 책에는 제목·바코드·상태가 있다.\"",
+    exampleEn: "e.g. \"Three objects: member, book, loan record. A book has a title, barcode, and status.\"",
   },
   {
     turnIndex: 2,
@@ -73,6 +85,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetAxis: "logic",
     question: "어떤 규칙·계산·판단이 적용되나요?",
     questionEn: "What rule, computation, or decision applies?",
+    exampleKo: "예) \"한 회원은 최대 5권까지, 대출기간은 14일. 연체 중이면 새 대출을 막는다.\"",
+    exampleEn: "e.g. \"A member may borrow up to 5 books for 14 days; an overdue member is blocked from new loans.\"",
   },
   {
     turnIndex: 3,
@@ -81,6 +95,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetAxis: "action",
     question: "무엇이 실제로 바뀌거나 실행되나요?",
     questionEn: "What change or execution actually happens?",
+    exampleKo: "예) \"대출하면 책 상태가 '대출중'으로 바뀌고 반납예정일이 기록된다. 반납하면 '비치중'으로 되돌아간다.\"",
+    exampleEn: "e.g. \"Borrowing flips the book's status to 'on loan' and records a due date; returning flips it back to 'available'.\"",
   },
   {
     turnIndex: 4,
@@ -89,6 +105,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetAxis: "governance",
     question: "누가 해도 되나요? 무엇이 안전하고, 무엇이 승인을 필요로 하나요?",
     questionEn: "Who may do it? What is safe, and what needs approval?",
+    exampleKo: "예) \"대출·반납은 사서면 누구나 가능. 단, 연체료 면제는 관리자 승인을 받아야 한다.\"",
+    exampleEn: "e.g. \"Any librarian may check books in or out; waiving a late fee needs manager approval.\"",
   },
   {
     turnIndex: 5,
@@ -97,6 +115,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetAxis: "context",
     question: "어떤 자료·문서·출처를 근거로 써야 하나요?",
     questionEn: "What data, documents, or sources should it rely on?",
+    exampleKo: "예) \"도서 목록은 기존 장서 대장 스프레드시트를, 대출 규칙은 도서관 이용 안내문을 근거로 쓴다.\"",
+    exampleEn: "e.g. \"Use the existing catalog spreadsheet for the book list and the library's policy sheet for the loan rules.\"",
   },
   {
     turnIndex: 6,
@@ -105,6 +125,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetAxis: "successEval",
     question: "'다 됐다' 또는 '맞다'는 것을 무엇으로 판단하나요?",
     questionEn: "How do we judge that it is done or correct?",
+    exampleKo: "예) \"한 회원이 책을 빌리고 반납했을 때 재고 수와 대출기록이 정확히 맞으면 성공으로 본다.\"",
+    exampleEn: "e.g. \"Success = after one member borrows and returns a book, the stock count and loan record match exactly.\"",
   },
   {
     turnIndex: 7,
@@ -113,6 +135,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetAxis: "constraintsNonGoals",
     question: "무엇이 일어나면 안 되나요? 건드리면 안 되는 범위는 어디까지인가요?",
     questionEn: "What must NOT happen, and what is out of bounds?",
+    exampleKo: "예) \"같은 책이 동시에 두 사람에게 대출되면 안 된다. 회원 연락처를 외부로 내보내는 일은 범위 밖이다.\"",
+    exampleEn: "e.g. \"The same book must never be on loan to two people at once; exporting member contact details is out of bounds.\"",
   },
   {
     turnIndex: 8,
@@ -121,6 +145,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetAxis: "actors",
     question: "누가 실행하고, 누구의 권한이 필요한가요?",
     questionEn: "Who runs it, and whose authority is needed?",
+    exampleKo: "예) \"실제 대출·반납은 창구 사서가 실행하고, 장서 폐기는 도서관장 권한이 필요하다.\"",
+    exampleEn: "e.g. \"The front-desk librarian runs check-out/return; discarding a book from the collection needs the head librarian's authority.\"",
   },
   {
     turnIndex: 9,
@@ -129,6 +155,8 @@ export const NINE_AXIS_SIC_SEQUENCE: readonly NineAxisTurnDescriptor[] = [
     targetAxis: "memoryPrior",
     question: "재사용할 만한, 과거의 비슷한 결정이 있나요?",
     questionEn: "Is there a prior, similar decision worth reusing?",
+    exampleKo: "예) \"작년에 만든 DVD 대여 규칙(대출기간·연체 처리)을 거의 그대로 책에 다시 쓸 수 있다.\"",
+    exampleEn: "e.g. \"Last year's DVD-lending rules (loan period, overdue handling) can be reused almost as-is for books.\"",
   },
 ] as const;
 

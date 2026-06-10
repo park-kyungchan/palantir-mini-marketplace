@@ -12,6 +12,10 @@ import { createSemanticIntentContractDraftFromFDEOntologySession } from "../../l
 import type { FDEOntologyTurnChoiceApplication } from "../../lib/fde-ontology-engineering/turn-choice";
 import type { SemanticIntentContract } from "../../lib/lead-intent/contracts";
 import {
+  approveSemanticIntentContract,
+  type ApproveSemanticIntentContractResult,
+} from "../../lib/semantic-intent/approved-contract";
+import {
   readCurrentUniversalOntologyEntry,
   readUniversalOntologyEntry,
   readUniversalOntologyEntryByRef,
@@ -80,6 +84,14 @@ export interface OntologyEngineeringWorkflowHandlerInput
   readonly workflowTraceRef?: string;
   readonly semanticIntentContractRef?: string;
   readonly semanticIntentContractStatus?: "draft" | "approved" | "superseded";
+  /**
+   * The draft SemanticIntentContract to approve (action `approve_sic`). The caller
+   * threads the user-confirmed, nine-axis-filled SIC produced by the fill sequence
+   * (its `fillSequence` carries the per-axis `source` the Q2 gate enforces). When
+   * absent, `approve_sic` reconstructs a draft from the session, which has no
+   * user-confirmed fill steps and is therefore refused by the Q2 gate.
+   */
+  readonly semanticIntentContract?: SemanticIntentContract;
   readonly digitalTwinChangeContractRef?: string;
   readonly digitalTwinChangeContractStatus?: "draft" | "approved" | "superseded";
   /** Caller-supplied readiness grade — gates the composed `elevate` flow's register step. */
@@ -114,6 +126,17 @@ export interface SourceMutationApprovalActionResult {
   readonly invalidReason?: string;
 }
 
+export interface SicApprovalActionResult {
+  /** True iff the SIC was approved (status:'approved' minted). */
+  readonly approved: boolean;
+  /** Plain-language KO/EN outcome (refusal reason when not approved). */
+  readonly message: string;
+  /** Per-axis/field issues when refused. */
+  readonly issues?: readonly { readonly field: string; readonly message: string }[];
+  /** Axis keys whose fill step was not user-confirmed (Q2 gate refusal). */
+  readonly unconfirmedAxes?: readonly string[];
+}
+
 export interface OntologyEngineeringWorkflowHandlerResult {
   readonly action: OntologyEngineeringWorkflowAction;
   readonly state: OntologyEngineeringWorkflowState;
@@ -128,6 +151,7 @@ export interface OntologyEngineeringWorkflowHandlerResult {
   readonly lint?: OntologyEngineeringLintResult;
   readonly elevate?: ElevateResult;
   readonly sourceMutationApproval?: SourceMutationApprovalActionResult;
+  readonly sicApproval?: SicApprovalActionResult;
 }
 
 const MINIMAL_ROOT_PAYLOAD_EXAMPLE =
@@ -147,6 +171,7 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "start" &&
     value.action !== "turn" &&
     value.action !== "draft_sic" &&
+    value.action !== "approve_sic" &&
     value.action !== "ingest" &&
     value.action !== "register" &&
     value.action !== "lint" &&
@@ -154,7 +179,7 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "approve_source_mutation" &&
     value.action !== "status"
   ) {
-    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, ingest, register, lint, elevate, approve_source_mutation, or status.");
+    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, approve_sic, ingest, register, lint, elevate, approve_source_mutation, or status.");
   }
   if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
     throw new Error(
@@ -830,6 +855,79 @@ async function handleApproveSourceMutation(
   };
 }
 
+/**
+ * `approve_sic` seam — the canonical SIC approval write-path (Q2 hard gate).
+ *
+ * Reads the current draft SIC (caller-threaded `semanticIntentContract` carrying
+ * the user-confirmed nine-axis `fillSequence`, or reconstructed from the session
+ * as a fallback), then calls `approveSemanticIntentContract` with the HOST runtime
+ * identity (never a literal name). On approval it persists the approved contract
+ * (status:'approved' + minted approvalRef) back into workflow state — flipping
+ * `semanticIntentContractStatus` to 'approved' through the same
+ * `deriveStateSnapshot` seam `draft_sic` uses. Refusal is a compute-only no-op
+ * (no state write) returning the plain-language KO/EN reason + unconfirmed axes.
+ * mutationAuthorized semantics are untouched: approval alone never authorizes
+ * protected-surface mutation (the gate signal stays tied to SIC+DTC approval).
+ */
+function handleApproveSic(
+  input: OntologyEngineeringWorkflowHandlerInput,
+): OntologyEngineeringWorkflowHandlerResult {
+  const root = projectRoot(input);
+  if (root.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow approve_sic requires a projectRoot.");
+  }
+  const session = readSessionByInput(input);
+
+  const draft: SemanticIntentContract | undefined =
+    input.semanticIntentContract ??
+    (session !== undefined
+      ? createSemanticIntentContractDraftFromFDEOntologySession(session, {
+          contractId: input.semanticIntentContractRef,
+          affectedSurfaces: input.affectedSurfaces,
+        })
+      : undefined);
+
+  if (draft === undefined) {
+    const sicApproval: SicApprovalActionResult = {
+      approved: false,
+      message:
+        "승인할 SIC 초안이 없습니다 (semanticIntentContract 또는 FDE 세션이 필요합니다). " +
+        "No draft SIC to approve (supply semanticIntentContract or an existing FDE session).",
+    };
+    return { ...readState({ handlerInput: input, session }), sicApproval };
+  }
+
+  const result: ApproveSemanticIntentContractResult = approveSemanticIntentContract(draft, {
+    approverIdentity: resolveHostRuntimeIdentity(),
+    capturedAt: input.emittedAt,
+    note: input.recordedDecisionNote,
+  });
+
+  if (!result.ok) {
+    const sicApproval: SicApprovalActionResult = {
+      approved: false,
+      message: result.reason,
+      issues: result.issues,
+      unconfirmedAxes: result.unconfirmedAxes,
+    };
+    return { ...readState({ handlerInput: input, session }), sicApproval };
+  }
+
+  const approved = result.contract;
+  const written = writeState({
+    handlerInput: input,
+    session,
+    semanticIntentContract: approved,
+  });
+  const sicApproval: SicApprovalActionResult = {
+    approved: true,
+    message:
+      `SIC가 승인되었습니다 (contractId=${approved.contractId}). ` +
+      `Semantic Intent Contract approved (contractId=${approved.contractId}).`,
+  };
+  return { ...written, sicApproval };
+}
+
 export async function handleOntologyEngineeringWorkflow(
   input: OntologyEngineeringWorkflowHandlerInput,
 ): Promise<OntologyEngineeringWorkflowHandlerResult> {
@@ -887,6 +985,9 @@ export async function handleOntologyEngineeringWorkflow(
         },
       );
       return writeState({ handlerInput: input, session, semanticIntentContract });
+    }
+    case "approve_sic": {
+      return handleApproveSic(input);
     }
     case "ingest": {
       return handleIngest(input);

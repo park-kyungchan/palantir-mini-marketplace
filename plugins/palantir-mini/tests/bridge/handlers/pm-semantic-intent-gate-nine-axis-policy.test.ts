@@ -129,6 +129,118 @@ test("nine-axis-sic out-of-bounds turn → fillResult absent (non-fatal, no thro
   // Handler should not throw.
 });
 
+test("nine-axis-sic turn → fillResult.turnCard present + well-formed, mirrors question/nextQuestion (Slice E2)", async () => {
+  const project = makeTmpProject();
+  const contract = makeDraftContract("nine-axis turn card");
+
+  const result = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis turn card",
+    turn: 1, // T1 → axes.data
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    turnUserInput: "Member, Book, Loan",
+  });
+
+  expect(result.fillResult).toBeDefined();
+  // Rich card is attached ALONGSIDE the bare strings.
+  const card = result.fillResult!.turnCard;
+  expect(card).toBeDefined();
+  // The card targets the CURRENT turn and carries the bilingual question.
+  expect(card!.decisionId).toBe("nine-axis-sic:T1:data");
+  expect(card!.phase).toBe("data");
+  expect(card!.plainKoreanTitle).toBe(NINE_AXIS_SIC_SEQUENCE[1]!.question);
+  expect(card!.plainKoreanSummary).toBe(NINE_AXIS_SIC_SEQUENCE[1]!.questionEn);
+  // The worked example is folded into whyItMatters (descriptor-sourced).
+  expect(card!.whyItMatters).toContain(NINE_AXIS_SIC_SEQUENCE[1]!.exampleKo!);
+  expect(card!.freeTextAllowed).toBe(true);
+  // Without a proposed draft → 'answer' is the recommended choice (blank-box default).
+  expect(card!.recommendedChoiceId).toBe("answer");
+  expect(card!.choices.some((c) => c.choiceId === "confirm-draft")).toBe(false);
+  // nextTurnCard mirrors nextQuestion (T2), built WITHOUT a draft.
+  const nextCard = result.fillResult!.nextTurnCard;
+  expect(nextCard).toBeDefined();
+  expect(nextCard!.decisionId).toBe("nine-axis-sic:T2:logic");
+  expect(nextCard!.plainKoreanTitle).toBe(NINE_AXIS_SIC_SEQUENCE[2]!.question);
+  expect(nextCard!.recommendedChoiceId).toBe("answer");
+});
+
+test("nine-axis-sic turn + proposedAxisDraft → turnCard renders recommended confirm-draft choice (Slice E2)", async () => {
+  const project = makeTmpProject();
+  const contract = makeDraftContract("nine-axis draft proposal");
+
+  const result = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis draft proposal",
+    turn: 1, // T1 → axes.data
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    proposedAxisDraft: {
+      textKo: "회원, 책, 대출기록 세 객체",
+      textEn: "Three objects: member, book, loan record",
+      rationaleKo: "도서관 흐름의 핵심 객체",
+      rationaleEn: "the core objects of the library flow",
+    },
+  });
+
+  expect(result.fillResult).toBeDefined();
+  const card = result.fillResult!.turnCard;
+  expect(card).toBeDefined();
+  // With a proposed draft → confirm-draft is rendered FIRST and recommended.
+  expect(card!.recommendedChoiceId).toBe("confirm-draft");
+  const confirm = card!.choices.find((c) => c.choiceId === "confirm-draft");
+  expect(confirm).toBeDefined();
+  expect(confirm!.recommended).toBe(true);
+  // The proposed draft text is carried into the card's confirm choice.
+  expect(confirm!.consequence).toContain("회원, 책, 대출기록 세 객체");
+  expect(confirm!.consequence).toContain("Three objects: member, book, loan record");
+  // The draft is a proposal only — the bare strings remain the descriptor question.
+  expect(result.fillResult!.question).toBe(NINE_AXIS_SIC_SEQUENCE[1]!.question);
+});
+
+test("nine-axis-sic turn → legacy fillResult.question unchanged by turnCard (regression pin, Slice E2)", async () => {
+  const project = makeTmpProject();
+  const contract = makeDraftContract("nine-axis regression pin");
+
+  const withDraft = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis regression pin",
+    turn: 0,
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    turnUserInput: "build a grading dashboard",
+    proposedAxisDraft: { textKo: "초안", textEn: "draft" },
+  });
+
+  // The bare question/nextQuestion strings are byte-identical to the descriptor
+  // sequence regardless of turnCard or a supplied proposedAxisDraft.
+  expect(withDraft.fillResult!.question).toBe(NINE_AXIS_SIC_SEQUENCE[0]!.question);
+  expect(withDraft.fillResult!.nextQuestion).toBe(NINE_AXIS_SIC_SEQUENCE[1]!.question);
+  // T0 is the intent turn → its card has no not-applicable choice.
+  expect(withDraft.fillResult!.turnCard!.choices.some((c) => c.choiceId === "not-applicable")).toBe(false);
+});
+
+test("nine-axis-sic last turn (T9) → turnCard present, nextTurnCard absent (mirrors nextQuestion)", async () => {
+  const project = makeTmpProject();
+  const contract = makeDraftContract("nine-axis last card");
+
+  const result = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis last card",
+    turn: 9, // last
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    turnUserInput: "prior rubric decision",
+  });
+
+  expect(result.fillResult).toBeDefined();
+  expect(result.fillResult!.turnCard).toBeDefined();
+  expect(result.fillResult!.turnCard!.decisionId).toBe("nine-axis-sic:T9:memoryPrior");
+  // No next turn after T9 → nextTurnCard mirrors nextQuestion (both absent).
+  expect(result.fillResult!.nextQuestion).toBeUndefined();
+  expect(result.fillResult!.nextTurnCard).toBeUndefined();
+});
+
 test("nine-axis-sic full T0–T9 fill → semantic_intent_contract_finalized emitted at T9 (W3d-2b)", async () => {
   const project = makeTmpProject();
   // One non-empty answer per turn: T0 = intent, T1–T9 = one axis each.
