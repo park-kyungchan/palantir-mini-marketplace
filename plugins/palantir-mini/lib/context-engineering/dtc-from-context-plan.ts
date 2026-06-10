@@ -5,8 +5,20 @@ import type {
   DigitalTwinRiskRecord,
   SemanticIntentContract,
 } from "../lead-intent/contracts";
+import { resolveOntologyRefs } from "../lead-intent/ontology-ref-resolver";
 import type { DigitalTwinChangeBoundary } from "../prompt-front-door/boundary-field";
 import { semanticIntentContractRefFromApproved } from "../semantic-intent/approved-contract";
+import {
+  ONTOLOGY_DTC_BUILD_POLICY,
+  ONTOLOGY_DTC_BUILD_SEQUENCE,
+  type OntologyDtcBuildContract,
+  type OntologyDtcBuildReadiness,
+} from "../semantic-intent/ontology-dtc-build-sequence";
+import type { DtcFillStep } from "../semantic-intent/fill-sequence";
+import type {
+  OntologyEngineeringRef,
+  ValidationPackRef,
+} from "#schemas/ontology/primitives/ontology-engineering-ref";
 import type {
   ContextEngineeringPlan,
   ContextEngineeringPlanV2,
@@ -179,6 +191,198 @@ function riskRecordsV3(plan: ContextEngineeringPlanV3): DigitalTwinRiskRecord[] 
         "Require approved SIC/DTC and governed commit path; review cards, lanes, mirrors, and DTC drafts remain advisory-only.",
     },
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Ontology -> DTC build-field fusion (Slice D, closes G11)
+//
+// The synthesized DTC must satisfy validateDigitalTwinChangeContract for
+// ontology-affecting changes WITHOUT re-typing CSV through the turn engine.
+// We derive the ontology-dtc-build fill fields directly from the approved SIC
+// (structured typed refs at 'exact' confidence) unioned with the project-scoped
+// resolver output, then attach a synthetic readiness/sequence so the deterministic
+// ontology-dtc-build policy is cleared. Status stays 'draft' — the TECHNOLOGY
+// decision and grading gate the flip to 'approved'.
+//
+// Ontology→DTC 빌드 필드 융합: 승인된 SIC의 구조화된 typed ref(‘exact’)와 프로젝트
+// 범위 resolver 출력을 합쳐 ontology-dtc-build 정책 필드를 합성한다. CSV를 다시
+// 입력하지 않는다. status는 'draft' 유지.
+// ---------------------------------------------------------------------------
+
+/** The four primitive kinds the ontology-dtc-build policy requires per-kind evidence for. */
+const ONTOLOGY_DTC_REQUIRED_KINDS = ["ObjectType", "LinkType", "ActionType", "Function"] as const;
+
+export interface SynthesizedOntologyDtcBuildFields {
+  readonly fillPolicy: typeof ONTOLOGY_DTC_BUILD_POLICY;
+  readonly touchedOntologyRefs: readonly OntologyEngineeringRef[];
+  readonly requiredEvaluationRefs: readonly ValidationPackRef[];
+  // Intersected with Record so it satisfies both the base DigitalTwinChangeContract
+  // (ontologyDtcBuildReadiness?: Record<string, unknown>) and OntologyDtcBuildContract.
+  readonly ontologyDtcBuildReadiness: OntologyDtcBuildReadiness & Record<string, unknown>;
+  readonly ontologyDtcBuildSequence: readonly DtcFillStep[];
+  // Top-level semanticConsistencyRefs mirroring the readiness semanticTermRefs (or the
+  // non-applicable evidence marker). validateDigitalTwinChangeContract checks THIS field
+  // (not ontologyDtcBuildReadiness.semanticTermRefs), so both validators agree in every
+  // gate mode — including PALANTIR_MINI_SEMANTIC_CONSISTENCY_GATE=blocking.
+  readonly semanticConsistencyRefs: readonly string[];
+}
+
+function dedupeRefsByKey<T extends { kind?: string; rid?: string }>(
+  refs: readonly T[],
+): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const ref of refs) {
+    const key = `${ref.kind ?? ""}:${ref.rid ?? JSON.stringify(ref)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(ref);
+  }
+  return out;
+}
+
+function ridsForKind(
+  refs: readonly OntologyEngineeringRef[],
+  kind: string,
+): string[] {
+  return [
+    ...new Set(
+      refs
+        .filter((ref) => String(ref.kind ?? "").toLowerCase() === kind.toLowerCase())
+        .map((ref) => ref.rid)
+        .filter((rid): rid is string => typeof rid === "string" && rid.length > 0),
+    ),
+  ];
+}
+
+/**
+ * Synthesize the ontology-dtc-build fill fields (touchedOntologyRefs,
+ * requiredEvaluationRefs, fillPolicy, readiness, 7-turn sequence) for a DTC
+ * draft. Shared by V2 and V3 to avoid divergence.
+ *
+ * - touchedOntologyRefs: the approved SIC's structured typed refs at 'exact'
+ *   confidence (used DIRECTLY — not the lossy .map(String) form), unioned with
+ *   the project-scoped resolver's touchedOntologyRefs.
+ * - requiredEvaluationRefs: real ValidationPack rids from the resolver. When the
+ *   resolver finds none (Q5), we fall back to ONE non-applicable-with-evidence
+ *   Eval marker on the readiness — we NEVER mint a new pack reference.
+ * - readiness: readinessVerdict 'ready-for-dtc'; per-kind arrays from the SIC
+ *   refs; explicit non-applicable evidence for any required kind the SIC did not
+ *   declare; applicationStateRefs from affectedSurfaces; semanticTermRefs from the
+ *   SIC's approved canonical-term / term-mapping refs (or non-applicable evidence).
+ */
+function synthesizeOntologyDtcBuildFields(
+  sic: SemanticIntentContract,
+  affectedSurfaces: readonly string[],
+  projectRoot: string | undefined,
+): SynthesizedOntologyDtcBuildFields {
+  // (a) touchedOntologyRefs — structured SIC refs DIRECTLY (no .map(String)).
+  const sicRefs: OntologyEngineeringRef[] = [
+    ...(sic.approvedObjectTypeRefs ?? []),
+    ...(sic.approvedLinkTypeRefs ?? []),
+    ...(sic.approvedActionTypeRefs ?? []),
+    ...(sic.approvedFunctionRefs ?? []),
+  ];
+  const resolved = resolveOntologyRefs({
+    semanticIntentContract: sic,
+    ...(projectRoot ? { projectRoot } : {}),
+  });
+  const touchedOntologyRefs = dedupeRefsByKey<OntologyEngineeringRef>([
+    ...sicRefs,
+    ...resolved.touchedOntologyRefs,
+  ]);
+
+  // (b) requiredEvaluationRefs — real ValidationPack rids from the resolver only.
+  const requiredEvaluationRefs = dedupeRefsByKey<ValidationPackRef>([
+    ...resolved.requiredEvaluationRefs,
+  ]);
+
+  // (d) per-kind readiness arrays + non-applicable evidence for missing required kinds.
+  const nonApplicablePrimitiveKinds: string[] = [];
+  const objectTypeRefs = ridsForKind(touchedOntologyRefs, "ObjectType");
+  const linkTypeRefs = ridsForKind(touchedOntologyRefs, "LinkType");
+  const actionTypeRefs = ridsForKind(touchedOntologyRefs, "ActionType");
+  const functionRefs = ridsForKind(touchedOntologyRefs, "Function");
+  const refArrayByKind: Record<(typeof ONTOLOGY_DTC_REQUIRED_KINDS)[number], readonly string[]> = {
+    ObjectType: objectTypeRefs,
+    LinkType: linkTypeRefs,
+    ActionType: actionTypeRefs,
+    Function: functionRefs,
+  };
+  for (const kind of ONTOLOGY_DTC_REQUIRED_KINDS) {
+    if (refArrayByKind[kind].length === 0) nonApplicablePrimitiveKinds.push(kind);
+  }
+
+  // applicationStateRefs from affectedSurfaces (T4); non-applicable if none.
+  const applicationStateRefs = [...new Set(affectedSurfaces.filter((s) => s.trim().length > 0))];
+  if (applicationStateRefs.length === 0) nonApplicablePrimitiveKinds.push("ApplicationState");
+
+  // (b cont.) Eval non-applicable evidence when the resolver found no real pack rids (Q5).
+  const evaluationRefs = requiredEvaluationRefs
+    .map((ref) => ref.rid)
+    .filter((rid): rid is string => typeof rid === "string" && rid.length > 0);
+  if (evaluationRefs.length === 0) nonApplicablePrimitiveKinds.push("Eval");
+
+  // SEMANTIC sub-gate: source semanticTermRefs from approved canonical-term / term-mapping
+  // refs (term:/mapping: — match isSemanticConsistencyRef). Non-applicable evidence if none.
+  const semanticTermRefs = [
+    ...new Set([
+      ...(sic.approvedCanonicalTermRefs ?? []),
+      ...(sic.approvedTermMappingRefs ?? []),
+    ].filter((ref) => typeof ref === "string" && ref.trim().length > 0)),
+  ];
+  if (semanticTermRefs.length === 0) nonApplicablePrimitiveKinds.push("SemanticConsistency");
+
+  const nonApplicableEvidenceRefs =
+    nonApplicablePrimitiveKinds.length > 0
+      ? [`evidence:non-applicable:synthesized-from-sic:${sic.contractId}`]
+      : [];
+
+  // Top-level semanticConsistencyRefs: the SAME source the readiness semanticTermRefs use
+  // (approved canonical-term / term-mapping refs), or the SemanticConsistency non-applicable
+  // evidence marker when none. validateDigitalTwinChangeContract (contracts.ts ~1059) checks
+  // contract.semanticConsistencyRefs — NOT readiness.semanticTermRefs — so without this the
+  // synthesized DTC would fail under PALANTIR_MINI_SEMANTIC_CONSISTENCY_GATE=blocking.
+  const semanticConsistencyRefs =
+    semanticTermRefs.length > 0
+      ? semanticTermRefs
+      : [`evidence:non-applicable:synthesized-from-sic:${sic.contractId}`];
+
+  const ontologyDtcBuildReadiness: OntologyDtcBuildReadiness & Record<string, unknown> = {
+    objectTypeRefs,
+    linkTypeRefs,
+    actionTypeRefs,
+    functionRefs,
+    applicationStateRefs,
+    evaluationRefs,
+    semanticTermRefs,
+    ...(nonApplicablePrimitiveKinds.length > 0
+      ? {
+          nonApplicablePrimitiveKinds: [...new Set(nonApplicablePrimitiveKinds)],
+          nonApplicableEvidenceRefs,
+        }
+      : {}),
+    readinessVerdict: "ready-for-dtc",
+  };
+
+  // (e) 7-entry synthesized-from-SIC sequence (length === ONTOLOGY_DTC_BUILD_SEQUENCE.length).
+  const filledAt = "synthesized-from-sic";
+  const ontologyDtcBuildSequence: DtcFillStep[] = ONTOLOGY_DTC_BUILD_SEQUENCE.map((descriptor) => ({
+    step: descriptor.step,
+    question: descriptor.question,
+    answer: "synthesized-from-SIC",
+    filledAt,
+    source: "system",
+  }));
+
+  return {
+    fillPolicy: ONTOLOGY_DTC_BUILD_POLICY,
+    touchedOntologyRefs,
+    requiredEvaluationRefs,
+    ontologyDtcBuildReadiness,
+    ontologyDtcBuildSequence,
+    semanticConsistencyRefs,
+  };
 }
 
 export function draftDtcFromContextPlan(
@@ -426,7 +630,12 @@ export function draftDtcFromContextPlanV2(
       "Before mutation approval, review DATA, LOGIC, ACTION, TECHNOLOGY, and GOVERNANCE separately; this draft is not approval for ontology/schema/reference-pack writeback.",
   };
   const structuredBoundary = structuredBoundaryFromV2(plan, reviewBeforeMutationApproval);
-  const digitalTwinChangeContract: DigitalTwinChangeContract = {
+  const buildFields = synthesizeOntologyDtcBuildFields(
+    input.semanticIntentContract,
+    affectedSurfaces,
+    input.fdeSession.projectRoot,
+  );
+  const digitalTwinChangeContract: OntologyDtcBuildContract = {
     contractId: `digital-twin-change:${plan.planId}`,
     status: "draft",
     semanticIntentContractRef,
@@ -442,6 +651,12 @@ export function draftDtcFromContextPlanV2(
     toolSurfaceReadiness: structuredBoundary.toolSurfaceReadiness.value,
     evaluationPlan: structuredBoundary.evaluationPlan.value,
     structuredBoundary,
+    fillPolicy: buildFields.fillPolicy,
+    touchedOntologyRefs: [...buildFields.touchedOntologyRefs],
+    requiredEvaluationRefs: [...buildFields.requiredEvaluationRefs],
+    ontologyDtcBuildReadiness: buildFields.ontologyDtcBuildReadiness,
+    ontologyDtcBuildSequence: buildFields.ontologyDtcBuildSequence,
+    semanticConsistencyRefs: [...buildFields.semanticConsistencyRefs],
     risks: riskRecordsV2(plan),
     requiredUserDecisions: [...plan.requiredUserDecisions],
   };
@@ -491,7 +706,12 @@ export function draftDtcFromContextPlanV3(
       "Before mutation approval, review DATA, LOGIC, ACTION, SECURITY, TECHNOLOGY, and GOVERNANCE separately; this draft is not approval for ontology/schema/reference-pack writeback.",
   };
   const structuredBoundary = structuredBoundaryFromV3(plan, reviewBeforeMutationApproval);
-  const digitalTwinChangeContract: DigitalTwinChangeContract = {
+  const buildFields = synthesizeOntologyDtcBuildFields(
+    input.semanticIntentContract,
+    affectedSurfaces,
+    input.fdeSession.projectRoot,
+  );
+  const digitalTwinChangeContract: OntologyDtcBuildContract = {
     contractId: `digital-twin-change:${plan.planId}`,
     status: "draft",
     semanticIntentContractRef,
@@ -508,6 +728,12 @@ export function draftDtcFromContextPlanV3(
     toolSurfaceReadiness: structuredBoundary.toolSurfaceReadiness.value,
     evaluationPlan: structuredBoundary.evaluationPlan.value,
     structuredBoundary,
+    fillPolicy: buildFields.fillPolicy,
+    touchedOntologyRefs: [...buildFields.touchedOntologyRefs],
+    requiredEvaluationRefs: [...buildFields.requiredEvaluationRefs],
+    ontologyDtcBuildReadiness: buildFields.ontologyDtcBuildReadiness,
+    ontologyDtcBuildSequence: buildFields.ontologyDtcBuildSequence,
+    semanticConsistencyRefs: [...buildFields.semanticConsistencyRefs],
     risks: riskRecordsV3(plan),
     requiredUserDecisions: [...plan.requiredUserDecisions],
   };

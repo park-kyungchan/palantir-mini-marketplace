@@ -97,6 +97,7 @@ const ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS = [
   "workflowTraceRef",
   "semanticIntentContractRef",
   "semanticIntentContract",
+  "technologyRecommendation",
   "semanticIntentContractStatus",
   "digitalTwinChangeContractRef",
   "digitalTwinChangeContractStatus",
@@ -328,7 +329,7 @@ describe("mcp-server prompt identity schemas", () => {
     );
 
     expect(props.action?.type).toBe("string");
-    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "approve_sic", "status", "elevate", "approve_source_mutation"]);
+    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "approve_sic", "approve_technology_recommendation", "status", "elevate", "approve_source_mutation"]);
     expect(props.project?.type).toBe("string");
     expect(props.projectRoot?.type).toBe("string");
     expect(props.fdeSessionRef?.type).toBe("string");

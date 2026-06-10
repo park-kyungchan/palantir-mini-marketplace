@@ -7,6 +7,19 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [6.134.0] - 2026-06-10 — fix: DTC-as-synthesis — 9-axis ContextEngineeringPlan, user-approved technology recommendation, SUCCESS-EVAL-derived validationPlan, DTC producer fusion
+
+### Added
+- ContextEngineeringPlan now carries all 9 SIC axes: 5 advisory axisProjections (CONTEXT/SUCCESS-EVAL/CONSTRAINTS-NONGOALS/ACTORS/MEMORY-PRIOR) read from the approved SIC's axes + 5 advisory review cards (mutationAuthorizedFromCard:false) — advisory background per locked decision Q4, no new blocking gates.
+- technologyRecommendation USER-APPROVAL (locked Q3): pure approveTechnologyRecommendation minting a StructuredApprovalRef (approvalSurface 'technology-recommendation'), buildTechnologyApprovalCard (nineAxisTurnCard-style confirm/correct, surfaced on the pending/refusal path), approve_technology_recommendation workflow action; the plan's TECHNOLOGY blocking decision stays open until user approval, which validateDigitalTwinChangeContract already enforces.
+- validationPlan derived from the SIC SUCCESS-EVAL axis (locked Q3: shown, no separate approval): deriveValidationPlan parses success signals into entries (reason = signal verbatim; command = 'propose: <id>' placeholder, never fabricated); FALLBACK_VALIDATION_PLAN preserved for axes-less SICs.
+
+### Changed
+- DTC producer fusion (G11 closed): draftDtcFromContextPlanV2/V3 synthesize fillPolicy='ontology-dtc-build', structured touchedOntologyRefs from the approved SIC's typed refs + project-scope resolver, requiredEvaluationRefs from real ValidationPacks (Q5: non-applicable-with-evidence when none — never minted refs), a ready-for-dtc synthetic readiness + 7-entry sequence, AND semanticConsistencyRefs from SIC canonical/mapping terms (blocking-gate-mode parity) — the synthesized DTC passes validateDigitalTwinChangeContract + pre-mutation governance directly.
+- Turn-by-turn DTC build pre-seeded from the approved SIC (G10 closed): advanceOntologyDTCBuildSequence accepts optional sicTypedRefs; empty input → the proposal IS the SIC refs (confirm), typed input → user overrides/extends (correct); raw-CSV path byte-identical without it; raw-intent→DTC stays refused.
+
+DTC-as-synthesis (G10/G11 closed); runtime-overlay/schemas-snapshot untouched so their version lanes stay put. `tsc --noEmit` exit 0; 171 targeted tests 0 fail; broad sweep 2069 pass / 1 KNOWN pre-existing (capability-registry dev-full visibility, fails on clean main). 4 slice groups adversarially verified (all pass; 2 verifier minors fixed: tech-approval card surfaced, semanticConsistencyRefs parity). Lead-orchestrated; opus subagents implemented + verified; Lead ground-truth re-verified.
+
 ## [6.133.0] - 2026-06-10 — fix: PR-E — enrich the Altitude-1 understand heart (propose-then-confirm 9-axis, FDE→SIC wiring, SIC approval write-path)
 
 Enriches the Altitude-1 OntologyEngineering understand-phase so the non-dev 9-axis FDE-session is pm-embedded and runtime-agnostic (not SKILL-prose-dependent), with a canonical SIC approval write-path gated on per-axis user confirmation.

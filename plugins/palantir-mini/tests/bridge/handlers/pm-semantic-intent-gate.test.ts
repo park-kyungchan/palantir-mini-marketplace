@@ -990,6 +990,48 @@ describe("pm_semantic_intent_gate", () => {
     expect(contract?.ontologyDtcBuildReadiness?.objectTypeRefs).toContain("PluginCapability");
   });
 
+  test("ontology-dtc-build pre-seeds T0 from the approved SIC typed refs when userInput is empty (Slice E / G10)", async () => {
+    const project = makeTmpProject();
+    const rawIntent = "Pre-seed the DTC build from the approved SIC's ObjectType refs";
+    const dtcDraft = approvedDigitalTwin("semantic-intent:approved:ontology-dtc-build", {
+      status: "draft",
+      approvalRef: undefined,
+      touchedOntologyRefs: [],
+      requiredEvaluationRefs: [],
+      risks: [],
+    });
+    const sic = approvedSemantic({
+      contractId: "semantic-intent:approved:ontology-dtc-build",
+      approvedObjectTypeRefs: [
+        { kind: "ObjectType", rid: "ri.ontology.main.object-type.invoice", confidence: "exact" },
+        { kind: "ObjectType", rid: "ri.ontology.main.object-type.customer", confidence: "exact" },
+      ],
+    });
+
+    const result = await semanticIntentGate({
+      project,
+      rawIntent,
+      scopePaths: ["lib/semantic-intent/ontology-dtc-build-sequence.ts"],
+      complexityHint: "multi-file",
+      semanticIntentContract: sic,
+      digitalTwinChangeContract: dtcDraft,
+      fillPolicy: "ontology-dtc-build",
+      turn: 0,
+      turnUserInput: "",
+    });
+
+    const contract = result.dtcFillResult?.contract as {
+      ontologyDtcBuildReadiness?: { objectTypeRefs?: readonly string[] };
+    } | undefined;
+
+    expect(result.dtcFillResult?.appliedTurn).toBe(0);
+    // The user confirmed by sending nothing → the proposal carries the SIC ObjectType
+    // refs (the gate derived sicTypedRefs from the approved SIC and threaded them in).
+    const objectTypeRefs = contract?.ontologyDtcBuildReadiness?.objectTypeRefs ?? [];
+    expect(objectTypeRefs).toContain("ri.ontology.main.object-type.invoice");
+    expect(objectTypeRefs).toContain("ri.ontology.main.object-type.customer");
+  });
+
   test("approved prompt envelope records separate structured semantic and digital twin approval refs", async () => {
     const project = makeTmpProject();
     const rawIntent =

@@ -10,11 +10,26 @@ import type {
 } from "../../lib/fde-ontology-engineering/types";
 import { createSemanticIntentContractDraftFromFDEOntologySession } from "../../lib/fde-ontology-engineering/sic-from-session";
 import type { FDEOntologyTurnChoiceApplication } from "../../lib/fde-ontology-engineering/turn-choice";
-import type { SemanticIntentContract } from "../../lib/lead-intent/contracts";
+import type {
+  SemanticIntentContract,
+  DigitalTwinRequiredUserDecision,
+  TurnCardDecisionSpec as TechnologyApprovalCardSpec,
+} from "../../lib/lead-intent/contracts";
+import { isApprovedSemanticIntentContract } from "../../lib/semantic-intent/approved-contract";
 import {
   approveSemanticIntentContract,
   type ApproveSemanticIntentContractResult,
 } from "../../lib/semantic-intent/approved-contract";
+import {
+  approveTechnologyRecommendation,
+  buildTechnologyApprovalCard,
+  type ApproveTechnologyRecommendationResult,
+  type ApprovedTechnologyRecommendation,
+} from "../../lib/semantic-intent/approve-technology-recommendation";
+import {
+  buildContextEngineeringPlanV2,
+  type TechnologyRecommendation,
+} from "../../lib/context-engineering/context-plan-builder";
 import {
   readCurrentUniversalOntologyEntry,
   readUniversalOntologyEntry,
@@ -92,6 +107,13 @@ export interface OntologyEngineeringWorkflowHandlerInput
    * user-confirmed fill steps and is therefore refused by the Q2 gate.
    */
   readonly semanticIntentContract?: SemanticIntentContract;
+  /**
+   * The proposed TechnologyRecommendation to approve (action
+   * `approve_technology_recommendation`). When absent, the handler rebuilds the
+   * recommendation from the current ContextEngineeringPlan; supplying it lets the
+   * caller approve a recommendation it already surfaced on the technology card.
+   */
+  readonly technologyRecommendation?: TechnologyRecommendation;
   readonly digitalTwinChangeContractRef?: string;
   readonly digitalTwinChangeContractStatus?: "draft" | "approved" | "superseded";
   /** Caller-supplied readiness grade — gates the composed `elevate` flow's register step. */
@@ -137,6 +159,32 @@ export interface SicApprovalActionResult {
   readonly unconfirmedAxes?: readonly string[];
 }
 
+export interface TechnologyApprovalActionResult {
+  /** True iff the technology recommendation was approved (approvalRef minted). */
+  readonly approved: boolean;
+  /** Plain-language KO/EN outcome (refusal reason when not approved). */
+  readonly message: string;
+  /** The approved recommendation (input rec + minted approvalRef); absent on refusal. */
+  readonly recommendation?: ApprovedTechnologyRecommendation;
+  /**
+   * The plan's TECHNOLOGY required-user-decision flipped to status:'approved' with the
+   * minted approvalRef (absent on refusal). The ContextEngineeringPlan is rebuilt per
+   * call (the workflow state carries no plan slot), so this flipped decision is the
+   * single hook `validateDigitalTwinChangeContract` consumes to clear the blocking
+   * TECHNOLOGY lane.
+   */
+  readonly technologyDecision?: DigitalTwinRequiredUserDecision;
+  /**
+   * The non-developer confirm/correct card for the PROPOSED recommendation, surfaced while
+   * the TECHNOLOGY decision is still pending approval (Q3 user-approval UX). Carries the
+   * current proposed rec as its draft. Present on the pending/refusal path when a rec is
+   * resolvable; ABSENT once approval succeeds (the decision flipped open → approved).
+   */
+  readonly technologyApprovalCard?: TechnologyApprovalCardSpec;
+  /** Per-field issues when refused. */
+  readonly issues?: readonly { readonly field: string; readonly message: string }[];
+}
+
 export interface OntologyEngineeringWorkflowHandlerResult {
   readonly action: OntologyEngineeringWorkflowAction;
   readonly state: OntologyEngineeringWorkflowState;
@@ -152,6 +200,7 @@ export interface OntologyEngineeringWorkflowHandlerResult {
   readonly elevate?: ElevateResult;
   readonly sourceMutationApproval?: SourceMutationApprovalActionResult;
   readonly sicApproval?: SicApprovalActionResult;
+  readonly technologyApproval?: TechnologyApprovalActionResult;
 }
 
 const MINIMAL_ROOT_PAYLOAD_EXAMPLE =
@@ -172,6 +221,7 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "turn" &&
     value.action !== "draft_sic" &&
     value.action !== "approve_sic" &&
+    value.action !== "approve_technology_recommendation" &&
     value.action !== "ingest" &&
     value.action !== "register" &&
     value.action !== "lint" &&
@@ -179,7 +229,7 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "approve_source_mutation" &&
     value.action !== "status"
   ) {
-    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, approve_sic, ingest, register, lint, elevate, approve_source_mutation, or status.");
+    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, approve_sic, approve_technology_recommendation, ingest, register, lint, elevate, approve_source_mutation, or status.");
   }
   if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
     throw new Error(
@@ -928,6 +978,136 @@ function handleApproveSic(
   return { ...written, sicApproval };
 }
 
+/**
+ * Resolve the proposed TechnologyRecommendation to approve. Caller-threaded
+ * `input.technologyRecommendation` wins; otherwise rebuild it from the current
+ * ContextEngineeringPlan — full V2 plan when the caller threads an approved SIC and
+ * a session is present (so the plan's TECHNOLOGY requiredUserDecision is rebuilt
+ * alongside), else a stand-alone V2 recommendation keyed to the session.
+ */
+function resolveTechnologyRecommendationToApprove(
+  input: OntologyEngineeringWorkflowHandlerInput,
+  session: FDEOntologyEngineeringSession | undefined,
+): {
+  readonly recommendation?: TechnologyRecommendation;
+  readonly technologyDecision?: DigitalTwinRequiredUserDecision;
+} {
+  if (input.technologyRecommendation !== undefined) {
+    return { recommendation: input.technologyRecommendation };
+  }
+
+  const sic = input.semanticIntentContract;
+  if (sic !== undefined && isApprovedSemanticIntentContract(sic) && session !== undefined) {
+    const plan = buildContextEngineeringPlanV2({
+      semanticIntentContract: sic,
+      fdeSession: session,
+      projectIndex: {
+        projectRoot: projectRoot(input),
+        runtimeSurfaceRefs: input.affectedSurfaces ?? [],
+        sourceRefs: session.sourceRefs,
+      },
+    });
+    const technologyDecision = plan.requiredUserDecisions.find(
+      (decision) => decision.domain === "TECHNOLOGY",
+    );
+    return { recommendation: plan.technologyRecommendation, technologyDecision };
+  }
+
+  return {};
+}
+
+/**
+ * Flip the plan's TECHNOLOGY required-user-decision from 'open' to 'approved' with
+ * the minted approvalRef. When the plan was rebuilt the inert decision is flipped in
+ * place; otherwise a TECHNOLOGY decision is synthesized from the approved rec id so
+ * the single hook `validateDigitalTwinChangeContract` consumes always exists.
+ */
+function approvedTechnologyDecision(
+  recommendation: ApprovedTechnologyRecommendation,
+  inert: DigitalTwinRequiredUserDecision | undefined,
+): DigitalTwinRequiredUserDecision {
+  const base: DigitalTwinRequiredUserDecision = inert ?? {
+    decisionId: `${recommendation.recommendationId}:decision:technology`,
+    domain: "TECHNOLOGY",
+    label: "Approve TECHNOLOGY mirror-only boundary",
+    status: "open",
+    blocking: true,
+    evidenceRefs: [],
+  };
+  return { ...base, status: "approved", approvalRef: recommendation.approvalRef };
+}
+
+/**
+ * `approve_technology_recommendation` seam (Q3) — the technology USER-APPROVAL
+ * write-path, mirroring {@link handleApproveSic}.
+ *
+ * Reads the proposed recommendation (caller-threaded or rebuilt from the current
+ * ContextEngineeringPlan), approves it with the HOST runtime identity (never a
+ * literal name), and on success flips the plan's TECHNOLOGY requiredUserDecision
+ * from 'open' to 'approved' with the minted approvalRef. The workflow state carries
+ * no plan slot, so the flipped decision + approved rec ride on the action result;
+ * `writeState` persists like the siblings (advances `updatedAt`). Refusal is a
+ * compute-only no-op returning the plain-language KO/EN reason.
+ */
+function handleApproveTechnologyRecommendation(
+  input: OntologyEngineeringWorkflowHandlerInput,
+): OntologyEngineeringWorkflowHandlerResult {
+  const root = projectRoot(input);
+  if (root.length === 0) {
+    throw new Error(
+      "pm_ontology_engineering_workflow approve_technology_recommendation requires a projectRoot.",
+    );
+  }
+  const session = readSessionByInput(input);
+  const { recommendation, technologyDecision } = resolveTechnologyRecommendationToApprove(
+    input,
+    session,
+  );
+
+  if (recommendation === undefined) {
+    const technologyApproval: TechnologyApprovalActionResult = {
+      approved: false,
+      message:
+        "승인할 기술 추천이 없습니다 (technologyRecommendation 또는 승인된 SIC+FDE 세션이 필요합니다). " +
+        "No technology recommendation to approve (supply technologyRecommendation or an approved SIC plus an FDE session).",
+    };
+    return { ...readState({ handlerInput: input, session }), technologyApproval };
+  }
+
+  const result: ApproveTechnologyRecommendationResult = approveTechnologyRecommendation(
+    recommendation,
+    {
+      approverIdentity: resolveHostRuntimeIdentity(),
+      capturedAt: input.emittedAt,
+      note: input.recordedDecisionNote,
+    },
+  );
+
+  if (!result.ok) {
+    // Pending approval — surface the confirm/correct card carrying the PROPOSED rec as its
+    // draft so the non-dev sees the Q3 user-approval UX instead of a bare refusal.
+    const technologyApproval: TechnologyApprovalActionResult = {
+      approved: false,
+      message: result.reason,
+      technologyApprovalCard: buildTechnologyApprovalCard(recommendation),
+      issues: result.issues,
+    };
+    return { ...readState({ handlerInput: input, session }), technologyApproval };
+  }
+
+  const approved = result.recommendation;
+  const written = writeState({ handlerInput: input, session });
+  const technologyApproval: TechnologyApprovalActionResult = {
+    approved: true,
+    message:
+      `기술 추천이 승인되었습니다 (recommendationId=${approved.recommendationId}). ` +
+      `Technology recommendation approved (recommendationId=${approved.recommendationId}).`,
+    recommendation: approved,
+    technologyDecision: approvedTechnologyDecision(approved, technologyDecision),
+  };
+  return { ...written, technologyApproval };
+}
+
 export async function handleOntologyEngineeringWorkflow(
   input: OntologyEngineeringWorkflowHandlerInput,
 ): Promise<OntologyEngineeringWorkflowHandlerResult> {
@@ -988,6 +1168,9 @@ export async function handleOntologyEngineeringWorkflow(
     }
     case "approve_sic": {
       return handleApproveSic(input);
+    }
+    case "approve_technology_recommendation": {
+      return handleApproveTechnologyRecommendation(input);
     }
     case "ingest": {
       return handleIngest(input);
