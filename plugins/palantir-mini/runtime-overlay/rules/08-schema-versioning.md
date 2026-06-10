@@ -6,7 +6,7 @@ version: 2.1.0
 invariant: "~/.claude/schemas/ is a semver-tracked interface; every edit needs a CHANGELOG entry + semver bump; pm-codegen is sole writer of <project>/src/generated/** with mandatory header (schema version + ontology hash + generator version + timestamp); never hand-edit generated files; pm-verify gates schema-pin + generated-header invariants."
 supersededBy: null
 supersedes: [11]
-crossRefs: [01, 12]
+crossRefs: [01]
 hookCitations: [generated-header-check]
 bodyLocCeiling: 35
 ---

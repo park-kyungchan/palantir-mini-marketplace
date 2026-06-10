@@ -3,9 +3,9 @@ ruleId: 7
 slug: plugins-and-mcp
 scope: global
 version: 1.4.0
-invariant: "Plugin manifest (plugin.json) is authoritative for MCP server registration; per-project managed-settings.d/*.json is RBAC fragment; no duplicate MCP registration; multi-plugin collision resolution per rule 19."
+invariant: "Plugin manifest (plugin.json) is authoritative for MCP server registration; per-project managed-settings.d/*.json is RBAC fragment; no duplicate MCP registration; multi-plugin collision resolution = plugin-scope > user-scope > repo-scope, fails loud on same-scope exact-name collision."
 supersededBy: null
-crossRefs: [08, 19, 21]
+crossRefs: [08]
 hookCitations: [agent-ownership-validate]
 ---
 
@@ -34,11 +34,9 @@ Ownership is authoritative within the private marketplace source `park-kyungchan
 - `agent-ownership-validate` PreToolUse hook blocks Edit/Write/MultiEdit when the caller agent is outside its declared writable set in the ownership table above.
 - Bypass: `PALANTIR_MINI_AGENT_OWNERSHIP_BYPASS=1` (audited via `agent_ownership_bypass_invoked` event).
 - Lead-direct is exempt: Lead is dispatcher, not subject to the ownership table.
-- Cross-ref: rule 21 (project-agent-authority) governs name-collision resolution — a distinct concern.
 
 ## §Multi-plugin precedence
 
-- When multiple plugins register overlapping MCP server or skill names, resolution follows rule 19 (multi-plugin-precedence).
-- Summary: plugin-scope > user-scope > repo-scope; exact-name collision at same scope fails loud.
+- When multiple plugins register overlapping MCP server or skill names: plugin-scope > user-scope > repo-scope; exact-name collision at same scope fails loud.
 
 **Version bumps are plugin-maintainer's sole responsibility.** Hook fix warranting a patch bump → hook-builder surfaces as follow-up task → Lead dispatches plugin-maintainer. PR #103 (2026-04-21) precedent: hook-builder editing plugin.json produced a phantom v1.2.0 that existed only in plugin cache.

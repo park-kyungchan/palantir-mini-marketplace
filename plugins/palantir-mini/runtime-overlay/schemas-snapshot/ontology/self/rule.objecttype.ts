@@ -1,23 +1,25 @@
 /**
- * palantir-mini SELF-ONTOLOGY — Rule as a registered ObjectType + its 8 instances
+ * palantir-mini SELF-ONTOLOGY — Rule as a registered ObjectType + its 9 instances
  * (Wave 2, harness redesign self-model build). Mirrors the `skill.objecttype.ts` /
  * `agent.objecttype.ts` idiom: ONE `Rule` ObjectType (the type) + pm's live global
  * behavioral-overlay rules seeded as instances.
  *
  * pm's governance behavioral overlay modeled AS ontology: each
  * `~/.claude/rules/NN-<slug>.md` numbered file is one Rule identity. This file declares
- * the type and seeds the 8 ACTIVE global rules — the snapshot OWNS the seed (it is the
+ * the type and seeds the 9 ACTIVE global rules — the snapshot OWNS the seed (it is the
  * authority), so it does NOT import the rules tree uphill. The paired registration test
- * cross-checks these 8 ruleIds against the LIVE `~/.claude/rules/` directory so the
+ * cross-checks these 9 ruleIds against the LIVE `~/.claude/rules/` directory so the
  * self-model fails loud if pm's rule surface drifts (a rule added/removed without
  * updating this seed).
  *
- * Count provenance (LIVE-verified): `~/.claude/rules/` holds EXACTLY 8 numbered
- * `NN-<slug>.md` files (the Wave-3 rationalized active set: 01/02/07/08/10/25/26/27).
- * CORE/CONTEXT/BROWSE are materialized-view routers, not Rule instances (excluded by
- * the numbered-prefix filter). Each instance carries identity (`ruleId` = the numeric
- * prefix, the PK) plus the `slug` and `scope` read off the filename + frontmatter; the
- * 3 permanent-gap deletions (`supersededBy`) and richer per-rule body live in each .md.
+ * Count provenance (LIVE-verified): `~/.claude/rules/` holds EXACTLY 9 numbered
+ * `NN-<slug>.md` files (the rationalized active set: 01/02/07/08/10/25/26/27/29 — rule
+ * 29 added 2026-06-10, Fable-5 ultracode workflow archiving).
+ * CORE/CONTEXT/BROWSE/AUTHORING are materialized-view routers, not Rule instances
+ * (excluded by the numbered-prefix filter). Each instance carries identity (`ruleId` =
+ * the numeric prefix, the PK) plus the `slug` and `scope` read off the filename +
+ * frontmatter; the permanent-gap deletions (`supersededBy`) and richer per-rule body
+ * live in each .md.
  *
  * @owner palantirkc-ontology
  * @purpose Wave-2 self-Ontology ObjectType (M-SELF, harness redesign)
@@ -69,7 +71,7 @@ export interface RuleInstance {
 }
 
 /**
- * The 8 Rule instances — pm's LIVE active global behavioral-overlay rules, in numeric
+ * The 9 Rule instances — pm's LIVE active global behavioral-overlay rules, in numeric
  * order. Snapshot-owned seed (no rules-tree import); the registration test cross-checks
  * this set against the live `~/.claude/rules/` directory and fails on any drift.
  */
@@ -82,8 +84,9 @@ export const RULE_INSTANCES: readonly RuleInstance[] = [
   { ruleId: 25, slug: "auto-merge-cleanup-default", scope: "global" },
   { ruleId: 26, slug: "valuable-data-standard", scope: "global" },
   { ruleId: 27, slug: "cross-runtime-substrate", scope: "global" },
+  { ruleId: 29, slug: "fable5-ultracode-workflow-archiving", scope: "global" },
 ];
 
-// Register the Rule ObjectType (the type). The 8 instances above are data the
+// Register the Rule ObjectType (the type). The 9 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(RULE_OBJECT_TYPE);

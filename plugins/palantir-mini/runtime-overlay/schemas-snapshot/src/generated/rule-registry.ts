@@ -2,9 +2,9 @@
  * GENERATED — do NOT edit by hand. Regenerate via:
  *   bun run .claude/schemas/scripts/gen-rule-registry.ts
  *
- * @generatedAt   2026-06-07T07:12:01.045Z
- * @generatedFrom 6ca12f384422d5aa431bc9e2651eec6599f5e4de
- * @ontologyHash  20-rule-registry-v1
+ * @generatedAt   2026-06-10T06:00:41.782Z
+ * @generatedFrom 53ad10ffb2e1e24401ea5982b2cc8b50958b662a
+ * @ontologyHash  21-rule-registry-v1
  * @schemaVersion 1.18.0
  * @generator     gen-rule-registry.ts
  *
@@ -19,14 +19,14 @@ export const RULE_REGISTRY_ENTRIES: ReadonlyArray<RuleDeclaration> = [
     ruleId: 0,
     slug: "context-meta",
     scope: "global",
-    version: "3.3.0",
-    invariant: "Canonical onboarding context for the rules/ system. AI agents read this first to grasp how all other rules work, how to author new ones, and why the system is sized the way it is.",
+    version: "4.0.0",
+    invariant: "Every-turn framing for the rules/ system: what it is, the authority chain, the three-tier load, cross-runtime coexistence, and the confirmed Ontology-First-through-pm / two-altitude north-star (§17). Rule-authoring procedure split out to AUTHORING.md (on-demand).",
     supersededBy: null,
     crossRefs: [1,2,7,8,10,25,26,27],
     hookCitations: ["session-start"],
     bodyPath: ".claude/rules/CONTEXT.md",
-    lastModified: "2026-06-07T07:09:07.826Z",
-    tier: "T2",
+    lastModified: "2026-06-10T03:37:37.249Z",
+    tier: "T1",
     bodyLocCeiling: 400,
   },
   {
@@ -36,10 +36,10 @@ export const RULE_REGISTRY_ENTRIES: ReadonlyArray<RuleDeclaration> = [
     version: "2.1.0",
     invariant: "Meaning → ontology → contracts → runtime; forward/backward propagation is load-bearing; never patch runtime first when the issue is semantic.",
     supersededBy: null,
-    crossRefs: [2,8,10,22],
+    crossRefs: [2,8,10],
     hookCitations: [],
     bodyPath: ".claude/rules/01-ontology-first-core.md",
-    lastModified: "2026-06-06T05:48:18.527Z",
+    lastModified: "2026-06-10T03:38:14.433Z",
     tier: "T2",
   },
   {
@@ -76,7 +76,7 @@ export const RULE_REGISTRY_ENTRIES: ReadonlyArray<RuleDeclaration> = [
     crossRefs: [1,7],
     hookCitations: [],
     bodyPath: ".claude/rules/02-research-retrieval.md",
-    lastModified: "2026-06-07T07:07:54.282Z",
+    lastModified: "2026-06-10T03:38:19.385Z",
   },
   {
     ruleId: 2,
@@ -191,12 +191,12 @@ export const RULE_REGISTRY_ENTRIES: ReadonlyArray<RuleDeclaration> = [
     slug: "plugins-and-mcp",
     scope: "global",
     version: "1.4.0",
-    invariant: "Plugin manifest (plugin.json) is authoritative for MCP server registration; per-project managed-settings.d/*.json is RBAC fragment; no duplicate MCP registration; multi-plugin collision resolution per rule 19.",
+    invariant: "Plugin manifest (plugin.json) is authoritative for MCP server registration; per-project managed-settings.d/*.json is RBAC fragment; no duplicate MCP registration; multi-plugin collision resolution = plugin-scope > user-scope > repo-scope, fails loud on same-scope exact-name collision.",
     supersededBy: null,
-    crossRefs: [8,19,21],
+    crossRefs: [8],
     hookCitations: ["agent-ownership-validate"],
     bodyPath: ".claude/rules/07-plugins-and-mcp.md",
-    lastModified: "2026-06-06T05:48:18.527Z",
+    lastModified: "2026-06-10T03:38:21.333Z",
   },
   {
     ruleId: 8,
@@ -205,23 +205,23 @@ export const RULE_REGISTRY_ENTRIES: ReadonlyArray<RuleDeclaration> = [
     version: "2.1.0",
     invariant: "~/.claude/schemas/ is a semver-tracked interface; every edit needs a CHANGELOG entry + semver bump; pm-codegen is sole writer of <project>/src/generated/** with mandatory header (schema version + ontology hash + generator version + timestamp); never hand-edit generated files; pm-verify gates schema-pin + generated-header invariants.",
     supersededBy: null,
-    crossRefs: [1,12],
+    crossRefs: [1],
     hookCitations: ["generated-header-check"],
     bodyPath: ".claude/rules/08-schema-versioning.md",
-    lastModified: "2026-06-07T07:06:51.838Z",
+    lastModified: "2026-06-10T03:38:24.397Z",
     bodyLocCeiling: 35,
   },
   {
     ruleId: 10,
     slug: "events-jsonl",
     scope: "global",
-    version: "2.2.0",
+    version: "2.2.1",
     invariant: "events.jsonl is append-only; every ontology edit emits a 5-dim event BEFORE writing files; optional 6th field propagationDepth tracks ForwardProp/BackwardProp chain depth with auto-derivation from emitter path. PreCompact gate blocks non-conformant compaction.",
     supersededBy: null,
-    crossRefs: [8,12,16,22],
+    crossRefs: [8],
     hookCitations: ["events-5d-gate","session-start","pre-compact-state"],
     bodyPath: ".claude/rules/10-events-jsonl.md",
-    lastModified: "2026-06-06T05:48:18.527Z",
+    lastModified: "2026-06-10T03:38:32.257Z",
     bodyLocCeiling: 45,
   },
   {
@@ -231,10 +231,10 @@ export const RULE_REGISTRY_ENTRIES: ReadonlyArray<RuleDeclaration> = [
     version: "1.1.0",
     invariant: "Allowlisted PR auto-merges by default with branch/worktree cleanup + working-tree cleanliness check + Wave-split discipline (each Wave PR-merge-cleanup before next); opt-out via --no-merge or PALANTIR_MINI_AUTOMERGE_BYPASS=1 (audited).",
     supersededBy: null,
-    crossRefs: [12,16,22],
+    crossRefs: [],
     hookCitations: ["post-merge-cleanup","pre-pr-dirty-gate","session-end-cleanup"],
     bodyPath: ".claude/rules/25-auto-merge-cleanup-default.md",
-    lastModified: "2026-06-06T05:48:18.527Z",
+    lastModified: "2026-06-10T03:38:35.457Z",
     bodyLocCeiling: 60,
   },
   {
@@ -247,7 +247,7 @@ export const RULE_REGISTRY_ENTRIES: ReadonlyArray<RuleDeclaration> = [
     crossRefs: [10,27],
     hookCitations: ["value-grade-assigner"],
     bodyPath: ".claude/rules/26-valuable-data-standard.md",
-    lastModified: "2026-06-07T07:07:26.146Z",
+    lastModified: "2026-06-10T03:38:40.249Z",
     bodyLocCeiling: 30,
   },
   {
@@ -257,10 +257,22 @@ export const RULE_REGISTRY_ENTRIES: ReadonlyArray<RuleDeclaration> = [
     version: "1.0.0",
     invariant: "events.jsonl is a shared substrate; cross-runtime appends use atomic write+rename; byWhom.identity self-attributes the writing runtime.",
     supersededBy: null,
-    crossRefs: [10,16,19],
+    crossRefs: [10],
     hookCitations: [],
     bodyPath: ".claude/rules/27-cross-runtime-substrate.md",
-    lastModified: "2026-06-06T05:48:18.527Z",
+    lastModified: "2026-06-10T03:38:41.761Z",
+  },
+  {
+    ruleId: 29,
+    slug: "fable5-ultracode-workflow-archiving",
+    scope: "global",
+    version: "1.0.0",
+    invariant: "Every Dynamic Workflow run by a Fable 5 Lead in ultracode mode is archived to ~/harness-upstream/reference/fable5-workflows/ — L0 verbatim artifacts + L1 workflow/campaign card at run end, L2 pattern-catalog delta + FAILURES.md update at campaign close; transcripts and implementation-result JSONs excluded (pointers only); purpose = MetaOptimization.",
+    supersededBy: null,
+    crossRefs: [2,26],
+    hookCitations: [],
+    bodyPath: ".claude/rules/29-fable5-ultracode-workflow-archiving.md",
+    lastModified: "2026-06-10T05:24:14.226Z",
   },
 ] as const;
 

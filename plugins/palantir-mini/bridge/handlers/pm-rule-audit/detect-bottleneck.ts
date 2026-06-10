@@ -1,14 +1,26 @@
 // palantir-mini v3.4.0 — pm-rule-audit sibling: T1 + T2 bottleneck detection.
 
+import * as fs from "fs";
 import * as path from "path";
 import { RULE_REGISTRY_ENTRIES } from "#schemas/src/generated/rule-registry";
 import type { RuleAuditFinding } from "#schemas/ontology/primitives/rule";
 import { CEILINGS, HOME, RULES_DIR, countBodyLines, countLines } from "./types";
+import { OVERLAY_RULES_DIR } from "../../../lib/runtime-overlay/resolve-rule";
+
+/**
+ * Body-LOC measurement reads the plugin-resident overlay (the real rule bodies) so
+ * ceiling checks measure substance, not the external `~/.claude/rules/` stubs. Falls
+ * back to RULES_DIR when an overlay file is absent (keeps the advisory non-blocking).
+ */
+function bodyDir(): string {
+  return fs.existsSync(OVERLAY_RULES_DIR) ? OVERLAY_RULES_DIR : RULES_DIR;
+}
 
 export function checkT1Bottleneck(findings: RuleAuditFinding[]): void {
-  const core = path.join(RULES_DIR, "CORE.md");
-  const context = path.join(RULES_DIR, "CONTEXT.md");
-  const browse = path.join(RULES_DIR, "BROWSE.md");
+  const dir = bodyDir();
+  const core = path.join(dir, "CORE.md");
+  const context = path.join(dir, "CONTEXT.md");
+  const browse = path.join(dir, "BROWSE.md");
 
   const coreLoc = countLines(core);
   const contextLoc = countLines(context);
@@ -59,9 +71,20 @@ export function checkT2Bottleneck(findings: RuleAuditFinding[]): void {
   // This prevents consolidation-hub LOC from inflating "total" warnings.
   let t2Total = 0;
   let t2TotalEffectiveCeiling = 0;
+  const dir = bodyDir();
   for (const r of RULE_REGISTRY_ENTRIES) {
     if (r.scope !== "global" || r.tier === "T1") continue;
-    const abs = path.isAbsolute(r.bodyPath) ? r.bodyPath : path.join(HOME, r.bodyPath);
+    // Prefer the overlay body (real substance) by NN-slug filename; fall back to the
+    // registry bodyPath (external stub) when the overlay file is absent.
+    const overlayFile = path.join(
+      dir,
+      `${String(r.ruleId).padStart(2, "0")}-${r.slug}.md`,
+    );
+    const abs = fs.existsSync(overlayFile)
+      ? overlayFile
+      : path.isAbsolute(r.bodyPath)
+        ? r.bodyPath
+        : path.join(HOME, r.bodyPath);
     const bodyLoc = countBodyLines(abs);
     t2Total += bodyLoc;
     const effectiveCeiling = (r as { bodyLocCeiling?: number }).bodyLocCeiling ?? CEILINGS.t2PerRuleHard;

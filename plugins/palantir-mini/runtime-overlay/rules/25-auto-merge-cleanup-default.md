@@ -6,7 +6,7 @@ version: 1.1.0
 invariant: "Allowlisted PR auto-merges by default with branch/worktree cleanup + working-tree cleanliness check + Wave-split discipline (each Wave PR-merge-cleanup before next); opt-out via --no-merge or PALANTIR_MINI_AUTOMERGE_BYPASS=1 (audited)."
 supersededBy: null
 supersedes: []
-crossRefs: [12, 16, 22]
+crossRefs: []
 hookCitations: [post-merge-cleanup, pre-pr-dirty-gate, session-end-cleanup]
 bodyLocCeiling: 60
 ---

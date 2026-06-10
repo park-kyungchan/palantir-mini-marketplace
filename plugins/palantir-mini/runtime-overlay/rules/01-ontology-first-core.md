@@ -6,7 +6,7 @@ version: 2.1.0
 tier: T2
 invariant: "Meaning → ontology → contracts → runtime; forward/backward propagation is load-bearing; never patch runtime first when the issue is semantic."
 supersededBy: null
-crossRefs: [2, 8, 10, 22]
+crossRefs: [2, 8, 10]
 hookCitations: []
 ---
 
@@ -19,6 +19,7 @@ hookCitations: []
 - Prefer project-local `BROWSE.md` / `INDEX.md` and ontology docs over memory or chat assumptions.
 - Do NOT patch runtime first when the issue is semantic.
 - Keep automation and audits downstream of ontology, not as parallel truth sources.
+- **Why (runtime-agnostic)**: ontology-first THROUGH palantir-mini = canonical machine-checkable meaning + runtime-neutral grounding (any runtime reasons from ONE source) + auditable lineage + compounding capability (M-SELF). Importance is **invariant across runtimes, not optional** — full rationale: memory [[pm-harness-north-star]].
 
 ## Propagation
 
