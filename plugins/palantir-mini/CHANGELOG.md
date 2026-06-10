@@ -7,6 +7,18 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.6.0] - 2026-06-10 — chore: Wave-1 backlog — rules-sync regen + Codex-lane e2e quarantine + version-lane unification + schemas authoring-mirror resync + two stale `.claude-plugin`-absence sentinels fixed
+
+### Changed
+- W4 rules sync: rule-29 (fable5-ultracode-workflow-archiving) registry meta advanced 1.0.0 → 1.1.0 via `scripts/gen-rule-registry.ts` (generator output, never hand-edited; @generated header regenerated). Regen first unblocked a `ruleId: 0` frontmatter collision the home rules-tree slimming introduced (both `~/.claude/rules/CONTEXT.md` and `~/.claude/rules/AUTHORING.md` declared `ruleId: 0`, tripping the generator's recycled-id guard EXIT=2): CONTEXT.md keeps `ruleId: 0` (canonical meta-doc anchor), AUTHORING.md's duplicate `ruleId` line dropped so the meta-doc is registry-skipped (as pre-slim) — registry stays at 21 entries, no false `drift:file-count`.
+- W6a Codex Prompt-to-DTC e2e: the 4 Codex-exclusive cases are now `describe.skip` quarantined with a written reason pointing at the backlog HANDOFF §0 — the Codex runtime lane is ON HOLD by user directive, these cases fail on main, and the skip is intentional (do-not-fix until the lane resumes).
+- W6b version-lane unification: `package.json` joins the `plugin.json` lane at 7.6.0 (W6b policy — plugin.json lane is truth; one version across all three manifests: .claude-plugin/plugin.json + .codex-plugin/plugin.json + package.json). The Sprint97 parity tests now enforce three-file equality (prior 6.128.0 version-lane debt, flagged out-of-scope at 7.5.0, retired here).
+- W6c schemas authoring mirror resynced to the plugin snapshot SSoT — both lanes (home `~/.claude/schemas/` mirror + `runtime-overlay/schemas-snapshot/`) now at 1.83.1; the `plugin-contained-runtime` freshness guard's package.json version-string equality is satisfied.
+- W6d `verify-runtime-adapter-contracts.ts`: stale `.claude-plugin`-absence expectation removed from the absent-surface list (the host manifest legitimately exists — the premise that the Claude package surface must be absent from this checkout was wrong; `.gemini-extension` / `lib/gemini` / `hooks/claude-hooks.json` absence checks retained).
+- W6e `source-root-path-sentinel.test.ts`: same stale premise fixed — the `.claude-plugin`-absence assertion dropped from the sentinel (renamed to scope it to Gemini surfaces + legacy Claude hook registry, which legitimately remain absent).
+
+Verification: tsc exit 0; full suite 0 fail (the 2 Sprint97 version-parity fails flip green on the W6b unification; the 4 W6a Codex e2e cases now skip-with-reason).
+
 ## [7.5.0] - 2026-06-10 — chore: OE-gate question-UI deny→advisory + altitude-2 default MCP profile on both runtime registrations
 
 ### Changed

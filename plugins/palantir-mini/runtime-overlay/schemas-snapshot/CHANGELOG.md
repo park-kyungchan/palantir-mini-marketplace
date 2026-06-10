@@ -8,6 +8,18 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.83.1 — 2026-06-10 (rule-registry regen: rule 29 fable5-ultracode-workflow-archiving 1.0.0→1.1.0 + authoring-mirror resync)
+
+PATCH (rule 08 — generated-content regen only; no primitive type added/removed, no field edits).
+
+### Changed — generated registry (generator output, not hand-edited)
+
+- `src/generated/rule-registry.ts` — regenerated via `scripts/gen-rule-registry.ts` after resolving a `ruleId: 0` collision the rules-tree slimming introduced (both `~/.claude/rules/CONTEXT.md` and `~/.claude/rules/AUTHORING.md` declared `ruleId: 0`, which tripped the generator's recycled-id guard EXIT=2). `CONTEXT.md` keeps `ruleId: 0` (its 06:00 representation, the canonical meta-doc anchor); `AUTHORING.md`'s duplicate `ruleId` line was dropped so the on-demand split-out is skipped from the registry — restoring the exact 06:00 representation (no `rules-authoring` entry; its body is still served from the plugin overlay + archive). This keeps the registry at 21 entries and avoids a false `drift:file-count` warning (the audit excludes `ruleId 0` meta-docs from the numbered-file count, so a fresh `ruleId >= 1` would misrepresent AUTHORING.md as a numbered behavioral rule missing its file). The rule-29 (`fable5-ultracode-workflow-archiving`) entry advances `version` `1.0.0` → `1.1.0`, matching the stub frontmatter (the prior registry was generated at 06:00 UTC, before the stub's 17:29 bump). Header (`@generatedAt`/`@generatedFrom`/`@ontologyHash`) regenerates as part of normal codegen. The plugin snapshot copy is vendored byte-identically from the home-lane output.
+
+### Resync — home authoring mirror → plugin snapshot SSoT
+
+- Resynced the home authoring mirror `~/.claude/schemas/` to the plugin-contained snapshot (the SSoT): mirrored all differing package-source files, added the v1.81–v1.83 primitives the mirror lacked, and removed the v1.82.0-deleted dead primitives the mirror still carried. The two lanes' `package.json` `version` strings are now equal, satisfying the `plugin-contained-runtime` freshness guard.
+
 ## v1.83.0 — 2026-06-10 (SIC/DTC consolidation: canonical clarification additive fields + TurnCardDecisionSpec promotion)
 
 Additive MINOR (rule 08 — additive optional fields on an existing primitive + one new primitive; no removals, no breaking edits).

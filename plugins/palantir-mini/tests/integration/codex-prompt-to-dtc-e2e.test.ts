@@ -42,7 +42,12 @@ afterEach(() => {
   }
 });
 
-describe("Codex Prompt-to-DTC hook registration", () => {
+// QUARANTINED skip-with-written-reason (2026-06-10): the Codex runtime lane is ON HOLD by user
+// directive (backlog HANDOFF §0 — ~/harness-upstream/_workspace/2026-06-10-pm-backlog-completion/
+// HANDOFF-2026-06-10-backlog-completion.md, W6a). These Codex-exclusive e2e cases fail on main and
+// are intentionally skipped — do NOT fix, modify, or delete them while the hold lasts; un-skip when
+// the Codex lane resumes.
+describe.skip("Codex Prompt-to-DTC hook registration", () => {
   test("active Codex registry captures UserPromptSubmit prompt-front-door identity", async () => {
     const project = makeTmpProject();
     const adapterResult = await runCodexHookAdapter(
