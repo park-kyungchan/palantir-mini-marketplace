@@ -43,10 +43,11 @@ const PLUGIN_AGENTS: ReadonlyArray<{
   maxTurns: number;
   deprecatedBy?: string;
 }> = [
-  // 8 live plugin agents — the post-surface-trim roster (chore/pm-surface-trim-2026-06-10)
+  // 9 live plugin agents — surface-trim roster + project-implementer (W3 project-onboard definition)
   { slug: "researcher",            description: "Deep research specialist for multi-angle information gathering", model: "opus",   maxTurns: 30 },
   { slug: "docs-researcher",       description: "Opus-powered research + synthesis + write specialist", model: "opus",   maxTurns: 40 },
   { slug: "implementer",           description: "Focused execution specialist for coding/refactoring/file modifications", model: "sonnet", maxTurns: 30 },
+  { slug: "project-implementer",   description: "Project-scoped execution specialist — implements inside a registered consumer project's writableRoot, respects its .palantir-mini substrate, never edits plugin source", model: "sonnet", maxTurns: 30 },
   { slug: "verifier",              description: "Verification specialist for correctness/completeness/consistency + adversarial red-team lens", model: "opus",   maxTurns: 30 },
   { slug: "protocol-designer",     description: "Claude-local rule authoring specialist", model: "sonnet", maxTurns: 25 },
   { slug: "hook-builder",          description: "palantir-mini plugin hook + monitor + script specialist", model: "sonnet", maxTurns: 35 },

@@ -7,6 +7,18 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.7.0] - 2026-06-10 — chore: Wave-2/3/4 backlog — Korean imperative+negation approval coverage (W8/F7) + project-implementer agent defined (W3) + impact_query canonical typed-graph lane (W1) + W5 coalesce NO-OP decision record
+
+### Added
+- W3 `agents/project-implementer.md` DEFINED — a project-scoped sibling of the plugin-internal `implementer` (sonnet, mutation-capable, `requiresDtcForMutation`, worktree-isolated). Scoped to a registered consumer project's `writableRoot` + `forbiddenPatterns`, reads the project's `.palantir-mini` substrate + `ProjectOntologyIndex`, never edits palantir-mini plugin source. Parity propagated across the 4 self-ontology snapshot seeds: `AGENT_INSTANCES` 8→9 (project-implementer = sonnet/mutating), `MUTATING_AGENT_IDS` 6→7, `PLUGIN_AGENTS` 8→9, plugin-manifest `registeredAgents` 8→9; all count assertions + header provenance comments updated. Auto-discovery retained — the manifest still carries NO `agents` array; the registration test cross-checks the seed against the LIVE `agents/` directory (9 `*.md`) and fails loud on drift.
+- W1 `impact_query` canonical typed-graph lane (uq-persist resolved as option (b)): the in-memory typed graph is PROMOTED to the canonical edge-evidence lane. Additive response fields `canonicalLane` ("typed-graph" | "sqlite" | "none"), `typedGraphForward`, `typedGraphBackward` (edges in NATIVE typed-graph kinds — usesTool/gates/imports/describes — NOT coerced to the legacy `ImpactEdgeKind` enum). The legacy `forwardProp`/`backwardProp`/`source` reads (deferred SQLite uq-persist lane) are UNTOUCHED and stay empty until that lane lands. The tool description now declares the lane explicitly. New F8 acceptance probe test (`impact-query-canonical-lane.test.ts`) binds to the LIVE wiring: the `implementer` canonical RID returns non-empty typed-graph edge evidence (inbound `describes` ALIAS edge) — goes red on purpose if the agent surface drifts. F8 acceptance-criterion restatement ("name the live lane") recorded in the rule-29 archive.
+
+### Changed
+- W8/F7 source-mutation approval surface widened: `APPROVAL_VERB_PATTERNS` extended with Korean IMPERATIVE directives (제거/수정/추가/삭제/적용/정리/변경/교체/구현/반영/개선/보완 + 해/해줘/하세요/해라/해 주세요 variants, and 바꿔/고쳐/만들어/옮겨/없애/지워/빼 + 주세요/주/줘/라) — each requires a real verb stem so bare 해/줘 never match. NEW `NEGATION_PATTERNS` guard (하지 마/말/않, 안 돼/된다/됨, 금지, 건드리지 마/말, don't, do not) wired into `excerptExpressesSourceMutationApproval` as a fail-closed conjunct: `hasApprovalVerb && hasSurfaceMarker && !hasNegation` — a negated directive voids the verb-half even when a protected-surface marker co-occurs; the 안 + space form avoids tripping on 안전/안내. Surface co-occurrence remains mandatory. +6 paired tests.
+- W5 RESOLVED AS NO-OP (decision record): the three PreToolUse Edit-path hook groups are INTENTIONALLY distinct and coalescing cannot preserve semantics — each carries its own `policyRef`, the NotebookEdit matcher is asymmetric between the ownership and governance groups, and the self-ontology Hook RIDs are minted per group. `hooks.json` is unchanged by design.
+
+Verification: `bun run typecheck` exit 0; full suite 0 fail (~3240 pass / 16 skip) — the W8 +6 approval tests, the W3 self-ontology count-assertion updates, and the W1 canonical-lane acceptance probe all green.
+
 ## [7.6.0] - 2026-06-10 — chore: Wave-1 backlog — rules-sync regen + Codex-lane e2e quarantine + version-lane unification + schemas authoring-mirror resync + two stale `.claude-plugin`-absence sentinels fixed
 
 ### Changed

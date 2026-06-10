@@ -143,7 +143,8 @@ const TOOLS: ToolSpec[] = [
     description:
       "Context Engineering core: ForwardProp/BackwardProp impact graph query for a RID. " +
       "Returns single-hop + transitive closure (depth 3). Call BEFORE any edit. " +
-      "Impact RIDs are context selectors and do not prove ObjectType/LinkType/ActionType/Function mutation authority.",
+      "Impact RIDs are context selectors and do not prove ObjectType/LinkType/ActionType/Function mutation authority. " +
+      "Canonical edge evidence is served from the live in-memory typed graph (canonicalLane='typed-graph'); typedGraphForward/typedGraphBackward carry native typed-graph edge kinds. The legacy forwardProp/backwardProp read the deferred SQLite persistence lane and are empty until uq-persist lands.",
     inputSchema: {
       type: "object",
       required: ["rid"],

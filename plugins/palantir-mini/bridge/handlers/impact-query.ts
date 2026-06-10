@@ -70,6 +70,20 @@ interface ImpactQueryResult {
   missingEdges: ReadonlyArray<MissingEdgeRecord>;
   /** PR 2.15: recommended downstream agent-use mode derived from graphConfidence. */
   recommendedAgentUse: RecommendedAgentUse;
+  /**
+   * W1: which lane served the canonical edge evidence. "typed-graph" is the
+   * live in-memory projection (the only non-empty branch today); "sqlite" is
+   * the deferred uq-persist lane; "none" when neither has evidence.
+   */
+  canonicalLane: "typed-graph" | "sqlite" | "none";
+  /**
+   * W1: edges FROM the queried RID in the live typed graph, in their NATIVE
+   * typed-graph kinds (usesTool/gates/imports/describes) — NOT coerced to the
+   * legacy ImpactEdgeKind enum.
+   */
+  typedGraphForward: ReadonlyArray<{ fromRid: string; toRid: string; kind: string }>;
+  /** W1: edges TO the queried RID in the live typed graph (native kinds). */
+  typedGraphBackward: ReadonlyArray<{ fromRid: string; toRid: string; kind: string }>;
 }
 
 /** Convert a StoredEdge to the ImpactEdgeDeclaration contract. */
@@ -89,9 +103,10 @@ function storedToDecl(e: StoredEdge): ImpactEdgeDeclaration {
  * Inspect the typed-graph store for evidence of the queried RID. Matches on
  * literal `rid` AND on `value.filePath` for `file:` RIDs.
  *
- * Returns `{ matched, incidentEdgeCount, edges }` so the handler can:
+ * Returns `{ matched, incidentEdgeCount, edges, forward, backward }` so the handler can:
  *   - feed (matched, incidentEdgeCount) into computeGraphConfidence
- *   - feed `edges` into computeMissingEdges
+ *   - feed `edges` (combined) into computeMissingEdges
+ *   - expose `forward`/`backward` as the canonical typed-graph lane fields
  */
 async function probeTypedGraph(
   projectRoot: string,
@@ -101,6 +116,8 @@ async function probeTypedGraph(
   matched: boolean;
   incidentEdgeCount: number;
   edges: ReadonlyArray<{ fromRid: string; toRid: string; kind: string }>;
+  forward: ReadonlyArray<{ fromRid: string; toRid: string; kind: string }>;
+  backward: ReadonlyArray<{ fromRid: string; toRid: string; kind: string }>;
 }> {
   let cached;
   try {
@@ -109,7 +126,7 @@ async function probeTypedGraph(
     // If graph build fails for any reason (e.g. missing project files),
     // fall back to "no evidence" — handler returns confidence per RID
     // shape only.
-    return { matched: false, incidentEdgeCount: 0, edges: [] };
+    return { matched: false, incidentEdgeCount: 0, edges: [], forward: [], backward: [] };
   }
   const store = cached.store;
 
@@ -136,21 +153,25 @@ async function probeTypedGraph(
   }
 
   if (matchedNode === undefined || matchedRid === undefined) {
-    return { matched: false, incidentEdgeCount: 0, edges: [] };
+    return { matched: false, incidentEdgeCount: 0, edges: [], forward: [], backward: [] };
   }
 
   const out = store.getEdgesFrom(matchedRid as never);
   const inn = store.getEdgesTo(matchedRid as never);
-  const combinedEdges = [...out, ...inn].map((e) => ({
+  const toShape = (e: { fromRid: unknown; toRid: unknown; kind: string }) => ({
     fromRid: e.fromRid as unknown as string,
     toRid: e.toRid as unknown as string,
     kind: e.kind,
-  }));
+  });
+  const forward = out.map(toShape);   // edges FROM the matched node
+  const backward = inn.map(toShape);  // edges TO the matched node
 
   return {
     matched: true,
     incidentEdgeCount: out.length + inn.length,
-    edges: combinedEdges,
+    edges: [...forward, ...backward],
+    forward,
+    backward,
   };
 }
 
@@ -242,7 +263,9 @@ export default async function impactQuery(
     matched: boolean;
     incidentEdgeCount: number;
     edges: ReadonlyArray<{ fromRid: string; toRid: string; kind: string }>;
-  } = { matched: false, incidentEdgeCount: 0, edges: [] };
+    forward: ReadonlyArray<{ fromRid: string; toRid: string; kind: string }>;
+    backward: ReadonlyArray<{ fromRid: string; toRid: string; kind: string }>;
+  } = { matched: false, incidentEdgeCount: 0, edges: [], forward: [], backward: [] };
 
   if (!skipTypedGraph) {
     typedProbe = await probeTypedGraph(projectRoot, rid, { noCache });
@@ -282,5 +305,14 @@ export default async function impactQuery(
     graphConfidence,
     missingEdges,
     recommendedAgentUse,
+    // W1: canonical edge lane. Typed-graph-first — it is the only reachable
+    // non-empty branch today (SQLite uq-persist lane is deferred/empty).
+    canonicalLane: typedProbe.matched
+      ? "typed-graph"
+      : source === "sqlite" && sqliteHadEvidence
+        ? "sqlite"
+        : "none",
+    typedGraphForward: typedProbe.forward,
+    typedGraphBackward: typedProbe.backward,
   };
 }

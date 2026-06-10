@@ -30,6 +30,7 @@ const EXPECTED_MUTATION_CAPABLE = [
   "implementer",
   "ontology-steward",
   "plugin-maintainer",
+  "project-implementer",
   "protocol-designer",
 ];
 
@@ -66,9 +67,9 @@ describe("contract-propagation: agent authority chain section", () => {
 describe("PR-G agent inventory", () => {
   const inventory = loadPluginAgentInventory(PLUGIN_ROOT);
 
-  test("parses all 8 plugin agents", () => {
-    expect(inventory.length).toBe(8);
-    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(8);
+  test("parses all 9 plugin agents", () => {
+    expect(inventory.length).toBe(9);
+    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(9);
   });
 
   test("classifies mutation-capable plugin agents", () => {

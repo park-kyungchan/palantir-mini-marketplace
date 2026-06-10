@@ -71,6 +71,11 @@ describe("impact_query — handler exports", () => {
         "bounded-explorer",
         "none",
       ]).toContain(result.recommendedAgentUse);
+      // W1: canonical typed-graph lane additive fields are always present.
+      expect(typeof result.canonicalLane).toBe("string");
+      expect(["typed-graph", "sqlite", "none"]).toContain(result.canonicalLane);
+      expect(Array.isArray(result.typedGraphForward)).toBe(true);
+      expect(Array.isArray(result.typedGraphBackward)).toBe(true);
       fs.rmSync(tmpProject, { recursive: true, force: true });
     });
 

@@ -56,6 +56,12 @@ const APPROVAL_VERB_PATTERNS: readonly RegExp[] = [
   /허용/,
   /진행해/,
   /해도\s*(좋|돼|된다)/,
+  // F7 — Korean IMPERATIVE directives (permission-by-command). A genuine user
+  // command to mutate a protected surface carries the same illocutionary force
+  // as a declarative approval. Each requires a real verb STEM, so bare 해/줘
+  // never match. Negation is handled separately by NEGATION_PATTERNS.
+  /(제거|수정|추가|삭제|적용|정리|변경|교체|구현|반영|개선|보완)\s*(해라|해줘|해\s*주세요|해\s*주|하세요|하라|해)/,
+  /(바꿔|고쳐|만들어|옮겨|없애|지워|빼)\s*(주세요|주|줘|라)?/,
 ];
 
 /**
@@ -85,6 +91,22 @@ const PROTECTED_SURFACE_INTENT_MARKERS: readonly RegExp[] = [
   /게이트/,
   /핸들러/,
   /플러그인/,
+];
+
+/**
+ * F7 — negation guard. If ANY of these fire anywhere in the excerpt, the
+ * approval/imperative verb-half is voided: a negated imperative (하지 마 / 안 돼 /
+ * 금지 / 건드리지 마 / don't / do not) must NEVER clear the gate even when a
+ * protected-surface marker co-occurs. The 안\s*(돼|된다|됨) form requires a space
+ * so 안전(safe)/안내 do not trip it.
+ */
+const NEGATION_PATTERNS: readonly RegExp[] = [
+  /하지\s*(마|말|않)/,
+  /안\s*(돼|된다|됨)/,
+  /금지/,
+  /건드리지\s*(마|말)/,
+  /\bdon'?t\b/i,
+  /\bdo not\b/i,
 ];
 
 export interface VerifyAndMintSourceMutationApprovalInput {
@@ -154,7 +176,9 @@ export function excerptExpressesSourceMutationApproval(promptExcerpt: string): b
   const excerpt = promptExcerpt; // case handled per-pattern (i-flag / unicode)
   const hasApprovalVerb = APPROVAL_VERB_PATTERNS.some((re) => re.test(excerpt));
   const hasSurfaceMarker = PROTECTED_SURFACE_INTENT_MARKERS.some((re) => re.test(excerpt));
-  return hasApprovalVerb && hasSurfaceMarker;
+  // F7 — a negated directive voids the verb-half even with surface co-occurrence.
+  const hasNegation = NEGATION_PATTERNS.some((re) => re.test(excerpt));
+  return hasApprovalVerb && hasSurfaceMarker && !hasNegation;
 }
 
 interface CoreVerifyArgs {
