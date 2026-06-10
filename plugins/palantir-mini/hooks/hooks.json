@@ -48,7 +48,7 @@
             "failureMode": "fail-closed",
             "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
             "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
-            "statusMessage": "Ontology Engineering workflow gate: FDE provenance + no runtime-native question UI\u2026"
+            "statusMessage": "Ontology Engineering workflow gate: FDE provenance + advisory runtime-native question UI\u2026"
           }
         ],
         "surfaceStatus": "public-core"

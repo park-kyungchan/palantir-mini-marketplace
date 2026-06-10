@@ -1,7 +1,9 @@
 // palantir-mini — PreToolUse hook: ontology-engineering-workflow-enforcement-gate
 //
 // Blocking policy for Ontology Engineering control-plane work:
-// 1. Runtime-native question widgets are forbidden in the Ontology Engineering path.
+// 1. Runtime-native question widgets are ADVISORY-only in the Ontology Engineering
+//    path: detection still fires, but the verdict CONTINUES (suggest-only) and
+//    points at the plugin-owned WorkflowContract turn-card / UserDecisionRecord path.
 // 2. SIC/DTC authoring and routing for Ontology Engineering require prior FDE workflow provenance.
 // 3. Mutations to Ontology Engineering workflow surfaces require mutationAuthorized=true.
 //
@@ -371,10 +373,15 @@ export function assessOntologyEngineeringWorkflowHook(
   const legacyRuntimeUi = hasLegacyRuntimeUi(payload);
 
   if (legacyRuntimeUi && (toolNameIsLegacyRuntimeUi(payload) || !classification.isReadOnly)) {
-    return deny(
-      "runtime-native question UI is forbidden for Ontology Engineering workflow turns",
-      "Use the plugin-owned WorkflowContract turn-card decision queue and UserDecisionRecord path. Do not route clarification through runtime-specific UI widgets or legacy question payload fields.",
-    );
+    // ADVISORY (suggest-only): detection still fires, but runtime-native question
+    // UI is no longer hard-denied for Ontology Engineering turns. We CONTINUE and
+    // suggest the plugin-owned turn-card decision path; the call proceeds.
+    return {
+      message: "palantir-mini: ontology-engineering workflow gate ADVISORY - runtime-native question UI detected (suggest-only)",
+      decision: "continue",
+      additionalContext:
+        "Advisory: prefer the plugin-owned WorkflowContract turn-card decision queue and UserDecisionRecord path over runtime-specific UI widgets or legacy question payload fields. This is a suggestion, not a block.",
+    };
   }
 
   if (isProvenanceExemptWorkflowAction(payload)) {

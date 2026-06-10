@@ -325,7 +325,7 @@ export function buildPalantirMiniWorkflowResponseTemplateContext(
     "",
     `Plain-language explanation for non-developers must cover: ${explanationRequirements}.`,
     "",
-    "Question UI boundary: do not use runtime-native question UI for palantir-mini workflow decisions; render WorkflowContract / TurnCardDecisionSpec in assistant text and interpret the user's text answer as UserDecisionRecord.",
+    "Question UI boundary: prefer the plugin-owned turn-card decision path (WorkflowContract / TurnCardDecisionSpec in assistant text, user answer as UserDecisionRecord) over runtime-native question UI.",
   ].join("\n");
 }
 
