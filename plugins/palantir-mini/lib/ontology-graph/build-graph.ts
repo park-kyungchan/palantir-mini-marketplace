@@ -1,7 +1,7 @@
 /**
  * lib/ontology-graph/build-graph.ts — Top-level orchestrator that combines
- * all 11 concrete indexers (PR 2.4-2.13 + IMPACT-1) into a single typed
- * traversal over `OntologyGraphStore` (PR 2.3 sprint-080).
+ * all 12 concrete indexers (PR 2.4-2.13 + IMPACT-1 + PR-I S2) into a single
+ * typed traversal over `OntologyGraphStore` (PR 2.3 sprint-080).
  *
  * @stable
  *
@@ -10,7 +10,7 @@
  *     → ~/ontology/shared-core/index.ts (consumer surface)
  *     → lib/ontology-graph/types.ts (NodeRecord, EdgeRecord, NodeRid, EdgeRid)
  *     → lib/ontology-graph/store.ts (OntologyGraphStore + createOntologyGraphStore)
- *     → lib/ontology-graph/indexers/*.ts (10 concrete indexers)
+ *     → lib/ontology-graph/indexers/*.ts (12 concrete indexers)
  *     → this file (orchestration layer — passive; no event emission, no Convex)
  *     → PR 2.15 (pm_impact_query MCP handler — wraps this orchestrator)
  *
@@ -19,7 +19,7 @@
  * the underlying indexers perform. The orchestrator itself is passive.
  *
  * Sprint X3 PR 4/5. The `IndexerName` union below is the source of truth for
- * the count (now 11 after IMPACT-1 wired the registered-primitives indexer):
+ * the count (now 12 after PR-I S2 wired the self-instance-edges indexer):
  *   1. browse-index    (PR 2.4 sprint-081)
  *   2. agents-rules    (PR 2.5 sprint-082)
  *   3. plugin-manifest (PR 2.6 sprint-083)
@@ -31,15 +31,17 @@
  *   9. events          (PR 2.12 sprint-089)
  *  10. git-history     (PR 2.13 sprint-090)
  *  11. registered-primitives (IMPACT-1 — registered ontology primitives as nodes)
+ *  12. self-instance-edges (PR-I S2 — pm's wiring surface projected onto the
+ *      canonical self-ontology namespace + file-hash→canonical ALIAS edges)
  *
  * IMPLEMENTATION NOTE: Generic-only emission (Option A; inherits from PR 2.3
  * substrate). Orchestrator is generic over `TNode` / `TEdge` with `unknown`
  * defaults so a future snapshot-refresh chore can narrow the type
  * parameters without changing the public signature.
  *
- * Error containment: `Promise.allSettled` runs all 10 indexers concurrently
+ * Error containment: `Promise.allSettled` runs all 12 indexers concurrently
  * (when `opts.parallel ?? true`); a single rejection does NOT short-circuit
- * the other 9. The failed slot records `{ nodeCount: 0, edgeCount: 0,
+ * the other 11. The failed slot records `{ nodeCount: 0, edgeCount: 0,
  * durationMs, error: <message> }`. Sequential mode wraps each call in
  * try/catch for equivalent semantics.
  *
@@ -68,11 +70,12 @@ import { indexTestsAndEvals } from "./indexers/tests-evals";
 import { indexEventsT2Plus } from "./indexers/events";
 import { indexGitHistory } from "./indexers/git-history";
 import { indexRegisteredPrimitives } from "./indexers/registered-primitives";
+import { indexSelfInstanceEdges } from "./indexers/self-instance-edges";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
 /**
- * Literal-union of the 10 concrete indexer slugs registered with the
+ * Literal-union of the 12 concrete indexer slugs registered with the
  * orchestrator. Order matches `lib/ontology-graph/indexers/` file order.
  */
 export type IndexerName =
@@ -87,7 +90,9 @@ export type IndexerName =
   | "events"
   | "git-history"
   // IMPACT-1 — registered ontology primitives projected as first-class nodes.
-  | "registered-primitives";
+  | "registered-primitives"
+  // PR-I S2 — pm's wiring surface on the canonical self-ontology namespace.
+  | "self-instance-edges";
 
 /** All indexer names in canonical order. */
 export const ALL_INDEXER_NAMES: ReadonlyArray<IndexerName> = [
@@ -102,6 +107,7 @@ export const ALL_INDEXER_NAMES: ReadonlyArray<IndexerName> = [
   "events",
   "git-history",
   "registered-primitives",
+  "self-instance-edges",
 ];
 
 /**
@@ -119,7 +125,7 @@ export interface IndexerStats {
 
 /** Options bag for `buildOntologyGraph`. */
 export interface BuildOntologyGraphOpts {
-  /** Allowlist of indexer names. Defaults to all 10. */
+  /** Allowlist of indexer names. Defaults to all of `ALL_INDEXER_NAMES`. */
   readonly indexers?: ReadonlyArray<IndexerName>;
   /** Subtract from the active set. Default empty. */
   readonly skip?: ReadonlyArray<IndexerName>;
@@ -165,6 +171,8 @@ const INDEXER_REGISTRY: Readonly<
     indexGitHistory(root, nowIso !== undefined ? { nowIso, skipPRs: true } : { skipPRs: true }),
   "registered-primitives": (root, nowIso) =>
     indexRegisteredPrimitives(root, nowIso !== undefined ? { nowIso } : undefined),
+  "self-instance-edges": (root, nowIso) =>
+    indexSelfInstanceEdges(root, nowIso !== undefined ? { nowIso } : undefined),
 };
 
 /** Internal per-indexer outcome (after timing + error capture). */

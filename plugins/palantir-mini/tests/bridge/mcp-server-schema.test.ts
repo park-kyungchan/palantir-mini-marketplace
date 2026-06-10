@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { handleRequest, TOOLS } from "../../bridge/mcp-server";
 import {
+  ALTITUDE_2_READ_MCP_TOOL_NAMES,
   DEFAULT_MCP_TOOL_SURFACE_PROFILE,
   INTERNAL_TELEMETRY_MCP_TOOL_NAMES,
   MCP_TOOL_SURFACE_PROFILE_ENV,
@@ -524,6 +525,40 @@ describe("mcp-server ToolSpec metadata", () => {
     }
     expect(names.has("pm_plugin_self_check")).toBe(false);
     expect(names.has("commit_edits")).toBe(false);
+  });
+
+  test("altitude-2 profile includes read navigators and studio-core only", async () => {
+    process.env[MCP_TOOL_SURFACE_PROFILE_ENV] = "altitude-2";
+    const response = await handleRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
+    const result = response && "result" in response
+      ? response.result as { profile: string; tools: Array<{ name: string }> }
+      : null;
+    const names = new Set(result!.tools.map((tool) => tool.name));
+
+    expect(result?.profile).toBe("altitude-2");
+    expect(result!.tools.length).toBe(
+      STUDIO_CORE_MCP_TOOL_NAMES.length + ALTITUDE_2_READ_MCP_TOOL_NAMES.length,
+    );
+    expect(result!.tools.length).toBe(11);
+    expect([...names].sort()).toEqual(
+      [...STUDIO_CORE_MCP_TOOL_NAMES, ...ALTITUDE_2_READ_MCP_TOOL_NAMES].sort(),
+    );
+    for (const toolName of STUDIO_CORE_MCP_TOOL_NAMES) {
+      expect(names.has(toolName)).toBe(true);
+    }
+    for (const toolName of ALTITUDE_2_READ_MCP_TOOL_NAMES) {
+      expect(names.has(toolName)).toBe(true);
+    }
+    // No mutation, telemetry, or research-refresh surface leaks into the read profile.
+    expect(names.has("commit_edits")).toBe(false);
+    expect(names.has("apply_edit_function")).toBe(false);
+    expect(names.has("emit_event")).toBe(false);
+    expect(names.has("events_log_rotate")).toBe(false);
+    expect(names.has("research_library_refresh")).toBe(false);
   });
 
   test("pm_plugin_self_check schema exposes mode discriminator", () => {

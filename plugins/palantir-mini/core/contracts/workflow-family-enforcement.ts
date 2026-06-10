@@ -696,8 +696,8 @@ export const WORKFLOW_FAMILY_ENFORCEMENT_CONTRACT_REGISTRY = {
       }),
     ],
     aipSurfaceRefs: [
-      aipRef("instructions-descriptions", ["agents/lead-orchestrator.md"]),
-      aipRef("tools-command", ["skills/pm-delegate-or-direct/SKILL.md"]),
+      aipRef("instructions-descriptions", ["skills/pm-orchestrate/SKILL.md"]),
+      aipRef("tools-command", ["skills/pm-orchestrate/SKILL.md"]),
     ],
     requiredContracts: CONTRACT_REQUIREMENTS.workContract,
     enforcement: enforcement({

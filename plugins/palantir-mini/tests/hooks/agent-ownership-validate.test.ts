@@ -169,9 +169,8 @@ describe("agent-ownership-validate: PR-G inventory coverage", () => {
   isolateRootEnv();
 
   test("ownership table covers all mutation-capable plugin agents", () => {
-    expect(KNOWN_AGENTS.length).toBe(15);
+    expect(KNOWN_AGENTS.length).toBe(6);
     expect(KNOWN_AGENTS).toContain("implementer");
-    expect(KNOWN_AGENTS).toContain("project-implementer");
     expect(KNOWN_AGENTS).toContain("protocol-designer");
   });
 

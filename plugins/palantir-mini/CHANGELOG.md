@@ -7,6 +7,22 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.4.0] - 2026-06-10 — fix: Altitude-2 bindings — self-instance-edge indexer + namespace bridge, Lead→RuntimeAdapter repoint, altitude-2 read-only MCP profile
+
+### Added
+- NEW slot-12 ontology-graph indexer self-instance-edges: projects pm's live wiring (agents, hooks.json, .mcp.json, managed-settings.d, HANDLER_MODULES, rule hookCitations) onto the canonical pm.self.ontology/ namespace — Agent→Skill, Hook→Rule, McpTool→McpHandler, ManagedSettingsFragment→McpTool instance edges + file-hash→canonical ALIAS edges (self-minted anchor nodes so pass-2 never drops them; adversarial verify caught the live-build drop and the dangling-aipRef phantom — both fixed pre-merge).
+- altitude-2 read-only MCP surface profile: studio-core 6 + 5 read navigators (get_ontology, impact_query, pm_substrate_query, pm_plugin_self_check, pm_rule_query) = 11 tools, zero write verbs (parametric test enforces).
+- ontology_schema_get now resolves the ontology/self/ twin tree (runtime-adapter, action-types, agent/skill/mcp-tool/hook objecttypes) without shadowing primitives (regression pin: semantic-intent-contract still resolves to primitives/).
+
+### Changed
+- Lead phantom closed: requiresApprovalFrom edges now target pm.self.ontology/object-type/runtime-adapter/claude (node emitted, seen-set guarded) — "the Lead = the orchestrating runtime adapter"; workflow-family aipRefs repointed to the live skills/pm-orchestrate/SKILL.md.
+- agent-ownership-table: 9 dead names removed (4 harness-* + 5 *-implementer; 15→6) with researcher/verifier read-only exclusion documented; count pins updated.
+- pm_rule_query byId collision: global-scope preferred on collision (byId=1 = ontology-first-core again); handler-only per rule 08.
+- rule-29 overlay body synced to v1.1.0 (file-output contract evolution).
+- DEFERRED by design: typed-graph disk persistence (in-memory build via graph-cache is the live path; deprecated SQLite NOT resurrected), Property primitives (Altitude-1 modeling work), scaffold domainAgents.
+
+Verification: tsc exit 0; targeted 114/114 (incl. hermeticity under a leaked stale env var); full suite 3227 pass / 0 NEW failures (9 = pre-existing main set); 2 adversarial verifiers (graph group's 1 blocker + 2 majors fixed and re-verified).
+
 ## [7.3.0] - 2026-06-10 — chore: PR-G naming/citation hygiene — retired rule-12/16 cites dropped (substance inlined), dead agent/skill refs repointed (prose-only, zero behavior change)
 
 ### Changed

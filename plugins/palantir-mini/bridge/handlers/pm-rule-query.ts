@@ -15,7 +15,7 @@
 //   -> schemas/src/generated/rule-registry.ts (codegen output)
 //   -> this handler
 
-import { RULE_REGISTRY } from "#schemas/src/generated/rule-registry";
+import { RULE_REGISTRY_ENTRIES } from "#schemas/src/generated/rule-registry";
 import { resolveBySlug } from "./pm-rule-query/resolve";
 import { runGet } from "./pm-rule-query/actions/get";
 import { runList } from "./pm-rule-query/actions/list";
@@ -60,11 +60,22 @@ export default async function pmRuleQuery(
   }
 
   // Get mode — byId
+  // G13b: a numeric ruleId can collide across scopes (e.g. id 1 maps to a global
+  // rule plus project:<id> overlays). RULE_REGISTRY (Map keyed by ruleId) silently
+  // last-wins, so resolve over RULE_REGISTRY_ENTRIES instead: honor an explicit
+  // scope override, else prefer scope 'global', else fall back to the last entry.
   if (args.byId !== undefined) {
-    const initial = RULE_REGISTRY.get(args.byId);
-    if (!initial) {
+    const matches = RULE_REGISTRY_ENTRIES.filter((r) => r.ruleId === args.byId);
+    if (matches.length === 0) {
       throw new Error(`pm_rule_query: rule not found (byId=${args.byId})`);
     }
+    const initial =
+      matches.length > 1
+        ? (args.scope !== undefined
+            ? matches.find((r) => r.scope === args.scope)
+            : matches.find((r) => r.scope === "global")) ??
+          matches[matches.length - 1]!
+        : matches[0]!;
     return runGet(initial, args);
   }
 

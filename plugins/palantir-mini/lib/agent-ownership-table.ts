@@ -5,21 +5,14 @@
 // plugin agent so non-owner mutation attempts fail loud instead of being
 // treated as unknown-agent advisory traffic.
 
+// researcher + verifier are read-only agents (disallowedTools forbid Write/Edit);
+// intentionally excluded from this mutation-write-gate table.
 export type AgentName =
   | "docs-researcher"
-  | "harness-analyzer"
-  | "harness-evaluator"
-  | "harness-generator"
-  | "harness-planner"
-  | "home-implementer"
   | "hook-builder"
   | "implementer"
-  | "kosmos-implementer"
-  | "mc-implementer"
   | "ontology-steward"
   | "plugin-maintainer"
-  | "pm-implementer"
-  | "project-implementer"
   | "protocol-designer";
 
 /**
@@ -29,11 +22,6 @@ export type AgentName =
  */
 export const AGENT_OWNERSHIP_TABLE: Record<AgentName, readonly string[]> = {
   "docs-researcher": [],
-  "harness-analyzer": [],
-  "harness-evaluator": [],
-  "harness-generator": [],
-  "harness-planner": [],
-  "home-implementer": [],
   "hook-builder": [
     "hooks/**",
     "scripts/**",
@@ -42,8 +30,6 @@ export const AGENT_OWNERSHIP_TABLE: Record<AgentName, readonly string[]> = {
     "tests/bridge/**",
   ],
   "implementer": [],
-  "kosmos-implementer": [],
-  "mc-implementer": [],
   "ontology-steward": [],
   "plugin-maintainer": [
     ".codex-plugin/plugin.json",
@@ -53,8 +39,6 @@ export const AGENT_OWNERSHIP_TABLE: Record<AgentName, readonly string[]> = {
     "docs/**",
     "managed-settings.d/**",
   ],
-  "pm-implementer": [],
-  "project-implementer": [],
   "protocol-designer": [
     "agents/**",
   ],

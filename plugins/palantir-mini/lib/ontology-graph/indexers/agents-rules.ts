@@ -102,11 +102,26 @@ function edgeRid(s: string): EdgeRid {
 /**
  * Deterministic NodeRid from an absolute file path.
  * sha256(absolutePath) — consistent across runs (same input → same output).
+ *
+ * Exported so the self-instance-edge bridge indexer (S2) can recompute the
+ * file-hash rid this indexer mints for an AgentDefinition node and emit a
+ * `describes` ALIAS edge from it to the canonical pm.self.ontology rid —
+ * replicating the algorithm instead of forking it.
  */
-function ridFromPath(absolutePath: string): NodeRid {
+export function ridFromPath(absolutePath: string): NodeRid {
   const hash = createHash("sha256").update(absolutePath).digest("hex");
   return nodeRid(`agents-rules:${hash}`);
 }
+
+/**
+ * Canonical self-ontology RID for the Lead runtime adapter (Claude).
+ * The "Lead" approval target is the orchestrating runtime adapter itself, not a
+ * phantom `agents/lead-orchestrator.md` file (which does not exist on disk). The
+ * `requiresApprovalFrom` edge therefore points at this folded self-ontology node.
+ */
+const RUNTIME_ADAPTER_CLAUDE_RID = nodeRid(
+  "pm.self.ontology/object-type/runtime-adapter/claude",
+);
 
 /**
  * Deterministic EdgeRid from fromRid + toRid + kind.
@@ -468,6 +483,9 @@ export async function indexAgentsAndRules(
   }
 
   // §4.3 "requiresApprovalFrom" edges: agent .md containing approval phrases
+  // Tracks whether the canonical Lead runtime-adapter node has been emitted yet
+  // (emit once across the loop, not per matching agent file).
+  let leadAdapterNodeEmitted = false;
   for (const [filePath, node] of nodeByPath.entries()) {
     if (node.kind !== "AgentDefinition") continue;
 
@@ -481,17 +499,31 @@ export async function indexAgentsAndRules(
 
     if (!contentHasApprovalPhrase(content)) continue;
 
-    // Target: Lead agent at ~/.claude/plugins/palantir-mini/agents/lead-orchestrator.md
-    // Use a deterministic RID for the lead node (resolved relative to projectRoot)
-    const leadAgentPath = path.join(
-      projectRoot,
-      ".claude",
-      "plugins",
-      "palantir-mini",
-      "agents",
-      "lead-orchestrator.md",
-    );
-    const leadRid = ridFromPath(leadAgentPath);
+    // Target: the orchestrating runtime adapter (Claude) folded self-ontology node.
+    // Previously pointed at a phantom agents/lead-orchestrator.md path; the Lead IS
+    // the runtime adapter, so the approval target is the canonical self-ontology RID.
+    const leadRid = RUNTIME_ADAPTER_CLAUDE_RID;
+
+    // Emit the Lead runtime-adapter node once (seen-set guard).
+    if (!leadAdapterNodeEmitted) {
+      const adapterNode: NodeRecord<{
+        readonly projectRoot: string;
+        readonly lastIndexed: string;
+        readonly runtime: "claude";
+        readonly note: string;
+      }> = {
+        rid: RUNTIME_ADAPTER_CLAUDE_RID,
+        kind: "ObjectType",
+        value: {
+          projectRoot,
+          lastIndexed: nowIso,
+          runtime: "claude",
+          note: "Lead = the orchestrating runtime adapter",
+        },
+      };
+      nodes.push(adapterNode);
+      leadAdapterNodeEmitted = true;
+    }
 
     const payload: AgentRuleEdgePayload = { confidence: 0.7 };
     const edge: EdgeRecord<AgentRuleEdgePayload> = {

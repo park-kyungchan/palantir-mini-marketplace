@@ -133,8 +133,13 @@ function edgeRid(s: string): EdgeRid {
  * sha256(absolutePath + "#" + discriminator) — consistent across runs.
  * discriminator distinguishes RuntimeEntrypoint (plugin.json itself) vs
  * McpHandler (server-key within same plugin.json).
+ *
+ * Exported so the self-instance-edge bridge indexer (S2) can recompute the
+ * file-hash rid this indexer mints for a Hook node and emit a `describes`
+ * ALIAS edge from it to the canonical pm.self.ontology rid — replicating the
+ * algorithm instead of forking it.
  */
-function ridFromPathAndDiscriminator(absolutePath: string, discriminator: string): NodeRid {
+export function ridFromPathAndDiscriminator(absolutePath: string, discriminator: string): NodeRid {
   const hash = createHash("sha256")
     .update(`${absolutePath}#${discriminator}`)
     .digest("hex");

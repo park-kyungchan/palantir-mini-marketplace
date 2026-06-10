@@ -37,6 +37,7 @@ export default async function ontologySchemaGet(rawArgs: unknown): Promise<Ontol
   const schemaRoot = args.schemaRoot ?? (await resolveSchemaPath()).resolvedPath;
   const sharedCoreRoot = resolveSharedCorePath().resolvedPath;
   const primitivesDir = path.join(schemaRoot, "ontology", "primitives");
+  const selfDir = path.join(schemaRoot, "ontology", "self");
 
   // Normalize: e.g. "CapabilityToken" → "capability-token", "capability-token" → "capability-token"
   const normalized = args.primitiveRid
@@ -46,6 +47,9 @@ export default async function ontologySchemaGet(rawArgs: unknown): Promise<Ontol
   const candidates = [
     { filePath: path.join(primitivesDir, `${normalized}.ts`), mustMention: null },
     { filePath: path.join(primitivesDir, `${args.primitiveRid}.ts`), mustMention: null },
+    { filePath: path.join(selfDir, `${normalized}.objecttype.ts`), mustMention: null },
+    { filePath: path.join(selfDir, `${normalized}.ts`), mustMention: null },
+    { filePath: path.join(selfDir, `${normalized}.actiontype.ts`), mustMention: null },
     { filePath: path.join(sharedCoreRoot, `${normalized}.ts`), mustMention: null },
     { filePath: path.join(sharedCoreRoot, "index.ts"), mustMention: normalized },
   ];
