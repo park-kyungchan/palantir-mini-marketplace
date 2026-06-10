@@ -14,6 +14,8 @@ import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
 } from "../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import {
   recordSicApproval,
   invalidateSicApprovalMemoryCache,
@@ -43,6 +45,7 @@ function writeEducationProjectScope(project: string): void {
 
 function semanticContract(overrides: Partial<SemanticIntentContract> = {}): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:approved:prompt-dtc-gate",
     status: "approved",
     rawIntent: "Add prompt-DTC enforcement gates",
@@ -72,6 +75,7 @@ function digitalTwinContract(
   overrides: Partial<DigitalTwinChangeContract> = {},
 ): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "digital-twin-change:approved:prompt-dtc-gate",
     status: "approved",
     semanticIntentContractRef: semanticRef,

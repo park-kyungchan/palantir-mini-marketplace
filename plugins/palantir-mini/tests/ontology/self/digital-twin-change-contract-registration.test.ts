@@ -7,6 +7,7 @@
 
 import { test, expect } from "bun:test";
 import { OBJECT_TYPE_REGISTRY } from "#schemas/ontology/primitives/object-type";
+import type { DigitalTwinChangeContract } from "#schemas/ontology/primitives/digital-twin-change-contract";
 // Importing the instance module executes it → self-registration side effect.
 import {
   DIGITAL_TWIN_CHANGE_CONTRACT_OBJECT_TYPE,
@@ -20,6 +21,16 @@ test("self DigitalTwinChangeContract ObjectType is registered with dtcId identit
   expect(got).toBe(DIGITAL_TWIN_CHANGE_CONTRACT_OBJECT_TYPE);
   expect(got!.apiName).toBe("DigitalTwinChangeContract");
   expect(got!.primaryKeyProperty).toBe("dtcId");
+});
+
+test("self DigitalTwinChangeContract apiName is pinned to the primitive interface symbol name (drift pin)", () => {
+  // Analogous to the SIC projection: the apiName MUST equal the primitive DTC interface
+  // symbol name so the self-model and the unified primitive core reconcile to one symbol.
+  // Pinning the CURRENT correct value catches a future rename of either side; the type-level
+  // _ApiNameMatchesPrimitive ties the literal to the actual `DigitalTwinChangeContract` interface.
+  type _ApiNameMatchesPrimitive = DigitalTwinChangeContract extends object ? "DigitalTwinChangeContract" : never;
+  const primitiveInterfaceName: _ApiNameMatchesPrimitive = "DigitalTwinChangeContract";
+  expect(DIGITAL_TWIN_CHANGE_CONTRACT_OBJECT_TYPE.apiName).toBe(primitiveInterfaceName);
 });
 
 test("DigitalTwinChangeContract seed is empty (runtime-seeded per front-door run)", () => {

@@ -5,6 +5,7 @@ import type {
   SemanticIntentContract,
 } from "../lead-intent/contracts";
 import { semanticIntentContractRefFromApproved } from "../semantic-intent/approved-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 
 export interface OntologyActivation {
   semanticIntentContractRef: string;
@@ -65,6 +66,7 @@ export function draftDigitalTwinFromOntologyActivation(
 ): DigitalTwinChangeContract {
   const activation = deriveOntologyActivation(contract);
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: `dtc:${activation.semanticIntentContractRef}`,
     status: "draft",
     semanticIntentContractRef: activation.semanticIntentContractRef,

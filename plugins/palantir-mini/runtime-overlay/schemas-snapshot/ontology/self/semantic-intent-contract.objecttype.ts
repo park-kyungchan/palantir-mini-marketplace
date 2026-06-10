@@ -21,6 +21,12 @@
  *   (the type) → THIS file (the registered instance) → W3.5 dogfood
  *   (ONTOLOGY_DTC_BUILD_SEQUENCE ready-for-dtc + propagation_audit_forward over self).
  *
+ * PROJECTION (not a peer definition): this ObjectType is a registry-only PROJECTION of
+ * the unified runtime/primitive SIC core defined at `../primitives/semantic-intent-contract.ts`
+ * — the primitive interface is the SSoT; this file only models that core AS a registered
+ * Palantir ObjectType. The `_AxisKeysComplete` compile guard below already pins `AXIS_KEYS`
+ * (and thus this projection) to the primitive's `SicAxisKey`, so the axis set cannot drift.
+ *
  * @owner palantirkc-ontology
  * @purpose First registered self-Ontology instance (M-SELF, harness redesign W3d-2a)
  */

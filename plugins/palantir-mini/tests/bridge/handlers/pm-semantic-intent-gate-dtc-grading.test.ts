@@ -12,6 +12,7 @@ import * as os from "os";
 import * as path from "path";
 import { semanticIntentGate } from "../../../bridge/handlers/pm-semantic-intent-gate";
 import type { DigitalTwinChangeContract } from "../../../lib/lead-intent/contracts";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import { DTC_FILL_SEQUENCE } from "../../../lib/semantic-intent/fill-sequence";
 
 const tmpDirs: string[] = [];
@@ -47,6 +48,7 @@ function readEvents(project: string): Array<Record<string, unknown>> {
 /** Build a minimal DigitalTwinChangeContract suitable for DTC fill tests. */
 function makeDtcContract(overrides: Partial<DigitalTwinChangeContract> = {}): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "dtc-test-contract-001",
     status: "draft",
     semanticIntentContractRef: "sic-test-ref-001",

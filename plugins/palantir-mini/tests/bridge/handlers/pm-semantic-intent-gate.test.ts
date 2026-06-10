@@ -15,6 +15,7 @@ import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
 } from "../../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import {
   EIGHT_TURN_FILL_SEQUENCE,
   advanceFillSequence,
@@ -72,6 +73,7 @@ async function createCapturedPrompt(project: string, rawPrompt: string) {
 
 function approvedSemantic(overrides: Partial<SemanticIntentContract> = {}): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:approved:prompt-front-door",
     status: "approved",
     rawIntent: "Persist prompt-front-door contracts",
@@ -1419,6 +1421,7 @@ describe("pm_semantic_intent_gate — 8-turn fill sequence integration", () => {
   test("T7 sets verdict=filled and emits semantic_intent_contract_finalized event", async () => {
     const project = makeTmpProject2();
     const baseSic: SicWithFillFields = {
+      schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
       contractId: "sic-t7-test",
       status: "draft",
       rawIntent: "Implement fill sequence",
@@ -1474,6 +1477,7 @@ describe("pm_semantic_intent_gate — 8-turn fill sequence integration", () => {
   test("T7 with missing required fields emits sic_fill_incomplete advisory", async () => {
     const project = makeTmpProject2();
     const incompleteSic: SicWithFillFields = {
+      schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
       contractId: "sic-incomplete-test",
       status: "draft",
       rawIntent: "Implement fill sequence",

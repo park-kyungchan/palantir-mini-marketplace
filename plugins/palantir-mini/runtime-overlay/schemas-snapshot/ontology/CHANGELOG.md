@@ -1,5 +1,17 @@
 # Ontology Schema Changelog
 
+## 1.73.0 — SIC/DTC consolidation (canonical clarification additive fields + TurnCardDecisionSpec promotion) — 2026-06-10
+
+Additive MINOR (rule 08 — additive optional fields on an existing primitive + one new primitive; no removals/breaking edits).
+
+### Added
+
+- `primitives/turn-card-decision-spec.ts` — promotes `TurnCardDecisionSpec` + `TurnCardDecisionChoice` from the plugin runtime type `lib/lead-intent/contracts.ts` to schema-level authority, letting the canonical `SemanticClarificationQuestion` reference the runtime-neutral decision contract without an uphill `lib/` import. `lib/lead-intent/contracts.ts` re-exports these shapes from the primitive as of the consolidation. Barrel + package.json subpath export added.
+
+### Changed
+
+- `primitives/semantic-intent-contract.ts` — `SemanticClarificationQuestion` gains two OPTIONAL additive fields: `decisionSpec?: TurnCardDecisionSpec` + `defaultIfUserAcceptsRecommendation?: string`. `prompt` + `recommendedAnswer` stay REQUIRED; pre-consolidation clarification literals remain valid (back-compat).
+
 ## 1.72.0 — PR-C schema structural minimalism (dead-primitive removal + edge-subtype fold + FoundryEquivalence removal) — 2026-06-10
 
 MINOR (rule 08 — removals of 0-consumer primitives + an additive `kind` discriminator on `EdgeBaseDeclaration`; every removed symbol verified to have zero real-logic importers, so no consumer breaks).

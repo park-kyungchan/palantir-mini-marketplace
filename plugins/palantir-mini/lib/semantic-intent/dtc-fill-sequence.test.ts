@@ -16,6 +16,7 @@ import {
 import { advanceDTCFillSequence } from "./dtc-fill-sequence";
 import type { DtcWithFillFields } from "./dtc-fill-sequence";
 import type { DigitalTwinChangeContract } from "../lead-intent/contracts";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 
 // ---------------------------------------------------------------------------
 // Minimal DTC stub for tests
@@ -23,6 +24,7 @@ import type { DigitalTwinChangeContract } from "../lead-intent/contracts";
 
 function makeDtcStub(overrides: Partial<DigitalTwinChangeContract> = {}): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "test-dtc-001",
     status: "draft",
     semanticIntentContractRef: "sic-ref-001",

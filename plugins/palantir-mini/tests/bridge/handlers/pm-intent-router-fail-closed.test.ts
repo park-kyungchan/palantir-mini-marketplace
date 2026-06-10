@@ -19,6 +19,8 @@ import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
 } from "../../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import {
   canonicalTerm,
   registrySnapshot,
@@ -128,6 +130,7 @@ const approvedSemanticConsistencyResult = resolveSemanticConsistency({
 // Canned approved contracts for Prompt A
 function approvedSemanticContract(): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:approved:fc-test",
     status: "approved",
     rawIntent: "Add hook for ontology drift detection",
@@ -153,6 +156,7 @@ function approvedSemanticContract(): SemanticIntentContract {
 
 function approvedDigitalTwinContract(): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "digital-twin-change:approved:fc-test",
     status: "approved",
     semanticIntentContractRef: "semantic-intent:approved:fc-test",

@@ -6,6 +6,7 @@ import type {
   ObjectTypeRef,
 } from "#schemas/ontology/primitives/ontology-engineering-ref";
 import type { SemanticIntentAxes, SicAxis } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import type { FDEOntologyEngineeringSession } from "./types";
 
 export interface FDEOntologyEngineeringSicDraftOptions {
@@ -193,6 +194,7 @@ export function createSemanticIntentContractDraftFromFDEOntologySession(
   const linkTypeRefs = approvedLinkTypeRefs(session);
 
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: options.contractId ?? `semantic-intent:fde-session:${session.sessionId}`,
     status: "draft",
     rawIntent: intent,
@@ -252,6 +254,8 @@ export function createSemanticIntentContractDraftFromFDEOntologySession(
         freeTextAllowed: true,
         stateEffectPreview: "Record a UserDecisionRecord before SIC approval.",
       },
+      prompt: question.plainQuestion,
+      recommendedAnswer: question.recommendedDefault ?? "Keep as an open clarification.",
       whyItMatters: question.whyItMatters,
       plainLanguageExplanation: question.whyItMatters,
       palantirArchitectureMapping: {

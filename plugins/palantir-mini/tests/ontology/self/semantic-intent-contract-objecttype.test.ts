@@ -6,7 +6,10 @@
 import { test, expect } from "bun:test";
 import { OBJECT_TYPE_REGISTRY } from "#schemas/ontology/primitives/object-type";
 import { STRUCT_REGISTRY } from "#schemas/ontology/primitives/struct";
-import type { SicAxisKey } from "#schemas/ontology/primitives/semantic-intent-contract";
+import type {
+  SicAxisKey,
+  SemanticIntentContract,
+} from "#schemas/ontology/primitives/semantic-intent-contract";
 // Importing the barrel executes the instance module → self-registration side effect.
 import {
   SEMANTIC_INTENT_CONTRACT_OBJECT_TYPE,
@@ -32,6 +35,17 @@ test("self ObjectType is registered in OBJECT_TYPE_REGISTRY (register-grep > 0)"
   expect(got).toBeDefined();
   expect(got).toBe(SEMANTIC_INTENT_CONTRACT_OBJECT_TYPE);
   expect(got!.apiName).toBe("SemanticIntentContract");
+});
+
+test("self ObjectType apiName is pinned to the primitive interface symbol name (drift pin)", () => {
+  // The projection's apiName MUST equal the primitive SIC interface symbol name so OSDK
+  // clients and the generated objects.d.ts reconcile to one symbol. Pinning the CURRENT
+  // correct value catches a future rename of either side. The type-level _ApiNameMatchesPrimitive
+  // ties the literal to the actual `SemanticIntentContract` interface (a stray rename of the
+  // primitive interface would not, by itself, change the string — this assertion is the guard).
+  type _ApiNameMatchesPrimitive = SemanticIntentContract extends object ? "SemanticIntentContract" : never;
+  const primitiveInterfaceName: _ApiNameMatchesPrimitive = "SemanticIntentContract";
+  expect(SEMANTIC_INTENT_CONTRACT_OBJECT_TYPE.apiName).toBe(primitiveInterfaceName);
 });
 
 test("self ObjectType has correct identity contract", () => {

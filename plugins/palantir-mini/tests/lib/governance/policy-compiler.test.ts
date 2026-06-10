@@ -9,6 +9,8 @@ import {
 import { extractDtcMutationSurfacePolicy } from "../../../lib/governance/dtc-surface-policy";
 import { createUserApprovalRef } from "../../../lib/prompt-front-door/approval-ref";
 import type { DtcWithFillFields } from "../../../lib/semantic-intent/dtc-fill-sequence";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 
 interface Fixture {
   readonly name: string;
@@ -36,7 +38,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/src/generated/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
     },
     expectedAllowed: false,
     expectedReason: "generated-file-direct-edit-forbidden",
@@ -47,7 +49,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/generated/output.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
     },
     expectedAllowed: false,
     expectedReason: "generated-file-direct-edit-forbidden",
@@ -58,7 +60,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/outside/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/outside/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/outside/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
       projectScope: { writableRoot: "/inside/", forbiddenPatterns: [], domainAgents: [], pathMarkers: [], projectId: "test", sourcePath: "/inside/", projectOntologyAxes: [], surfaceMutationBoundaries: [], seqDataLaneInventory: [], projectOntologyScopeRedesign: { id: "", status: "", purpose: "", validationLadder: [] } },
     },
     expectedAllowed: false,
@@ -70,7 +72,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/secret.key"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
       projectScope: { writableRoot: "/x/", forbiddenPatterns: ["\\.key$"], domainAgents: [], pathMarkers: [], projectId: "test", sourcePath: "/x/", projectOntologyAxes: [], surfaceMutationBoundaries: [], seqDataLaneInventory: [], projectOntologyScopeRedesign: { id: "", status: "", purpose: "", validationLadder: [] } },
     },
     expectedAllowed: false,
@@ -92,7 +94,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/other.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/y/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/y/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
     },
     expectedAllowed: false,
     expectedReason: "outside-dtc-change-boundary",
@@ -103,7 +105,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
       knownIssues: [{ issueId: "issue-1", severity: "blocking", mitigationStatus: "unmitigated", projectId: "test", title: "blocker", source: "test", firstObservedAt: "2026-05-01", lastObservedAt: "2026-05-01", observedCount: 1, triggerPatterns: [], affectedCapabilityRefs: [], affectedSurfaceRefs: [], validationPackRefs: [], status: "open", recommendedAction: "fix it", sourceRefs: [] }],
     },
     expectedAllowed: false,
@@ -115,7 +117,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
       knownIssues: [{ issueId: "issue-2", severity: "blocking", mitigationStatus: "mitigated", projectId: "test", title: "resolved", source: "test", firstObservedAt: "2026-05-01", lastObservedAt: "2026-05-01", observedCount: 1, triggerPatterns: [], affectedCapabilityRefs: [], affectedSurfaceRefs: [], validationPackRefs: [], status: "mitigated", recommendedAction: "none", sourceRefs: [] }],
     },
     expectedAllowed: true,
@@ -127,7 +129,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
       validationPacks: { required: ["pack-a"], recentGreen: [] },
     },
     expectedAllowed: false,
@@ -139,7 +141,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
       validationPacks: { required: ["pack-a"], recentGreen: ["pack-a"] },
     },
     expectedAllowed: true,
@@ -151,7 +153,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
       activeWorkflowTrace: { schemaVersion: "palantir-mini/ontology-workflow-trace/v1", traceId: "t-1", createdAt: "2026-05-13T00:00:00.000Z", mode: "router", refs: { capabilityRefs: [], knownIssueRefs: [], validationPackRefs: [], implementationRefs: [], ratchetRefs: [] } },
     },
     expectedAllowed: false,
@@ -163,7 +165,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
       activeWorkflowTrace: { schemaVersion: "palantir-mini/ontology-workflow-trace/v1", traceId: "t-2", createdAt: "2026-05-13T00:00:00.000Z", mode: "pre-mutation", refs: { capabilityRefs: [], knownIssueRefs: [], validationPackRefs: [], implementationRefs: [], ratchetRefs: [] } },
     },
     expectedAllowed: true,
@@ -175,7 +177,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/x/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
       activeWorkflowTrace: { schemaVersion: "palantir-mini/ontology-workflow-trace/v1", traceId: "t-1", createdAt: "2026-05-13T00:00:00.000Z", mode: "implementation", refs: { capabilityRefs: [], knownIssueRefs: [], validationPackRefs: [], implementationRefs: [], ratchetRefs: [] } },
     },
     expectedAllowed: true,
@@ -199,7 +201,7 @@ const FIXTURES: readonly Fixture[] = [
       toolName: "Edit",
       targetFiles: ["/completely/different/path.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://test", changeBoundary: "Plugin-local PreToolUse prompt-DTC enforcement only.", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://test", changeBoundary: "Plugin-local PreToolUse prompt-DTC enforcement only.", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
     },
     expectedAllowed: true,
     expectedReason: "default-allow",
@@ -220,8 +222,8 @@ describe("compilePreMutationPolicy", () => {
       toolName: "Edit",
       targetFiles: ["/x/y.ts"],
       isProtectedMutation: true,
-      dtc: { contractId: "dtc://abc", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
-      sic: { contractId: "sic://xyz", status: "approved", rawIntent: "test", confirmedIntent: "test", nonGoals: [], approvedNouns: ["X"], approvedVerbs: ["add"], affectedSurfaces: [], permissionsAndProposal: "", acceptedRisks: [], downstreamAllowed: [], downstreamForbidden: [], clarificationQuestions: [] },
+      dtc: { schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION, contractId: "dtc://abc", changeBoundary: "/x/", affectedSurfaces: [], risks: [], status: "approved", semanticIntentContractRef: "sic://test", branchProposalPolicy: "none", permissionBoundary: "none", replayMigrationPlan: "none", observabilityPlan: "none", toolSurfaceReadiness: "none", evaluationPlan: "none" },
+      sic: { schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION, contractId: "sic://xyz", status: "approved", rawIntent: "test", confirmedIntent: "test", nonGoals: [], approvedNouns: ["X"], approvedVerbs: ["add"], affectedSurfaces: [], permissionsAndProposal: "", acceptedRisks: [], downstreamAllowed: [], downstreamForbidden: [], clarificationQuestions: [] },
       activeWorkflowTrace: { schemaVersion: "palantir-mini/ontology-workflow-trace/v1", traceId: "trace-xyz", createdAt: "2026-05-13T00:00:00.000Z", mode: "implementation", refs: { capabilityRefs: [], knownIssueRefs: [], validationPackRefs: [], implementationRefs: [], ratchetRefs: [] } },
     });
     expect(result.refs.digitalTwinChangeContractRef).toBe("dtc://abc");
@@ -250,6 +252,7 @@ describe("compilePreMutationPolicy", () => {
 // ─── Helper: base DTC for new rule tests ─────────────────────────────────────
 
 const BASE_DTC = {
+  schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION as typeof DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
   contractId: "dtc://base",
   changeBoundary: "/x/",
   affectedSurfaces: [],

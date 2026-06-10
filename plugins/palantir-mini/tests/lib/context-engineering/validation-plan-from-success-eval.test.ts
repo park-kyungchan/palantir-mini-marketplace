@@ -5,6 +5,7 @@ import {
 } from "../../../lib/context-engineering/validation-plan-from-success-eval";
 import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
 import type { SemanticIntentAxes, SicAxis } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 
 function axis(summary: string, refs: readonly string[] = []): SicAxis {
   return {
@@ -30,6 +31,7 @@ function axes(successEvalSummary: string): SemanticIntentAxes {
 
 function sic(over: Partial<SemanticIntentContract> = {}): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:validation-plan",
     status: "approved",
     rawIntent: "raw",

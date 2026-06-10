@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { DigitalTwinChangeContract } from "../lead-intent/contracts";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import {
   ONTOLOGY_DTC_BUILD_POLICY,
   ONTOLOGY_DTC_BUILD_SEQUENCE,
@@ -10,6 +11,7 @@ import {
 
 function makeDtc(overrides: Partial<DigitalTwinChangeContract> = {}): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "digital-twin-change:test-ontology-dtc-build",
     status: "draft",
     semanticIntentContractRef: "semantic-intent:test-context-engineering",

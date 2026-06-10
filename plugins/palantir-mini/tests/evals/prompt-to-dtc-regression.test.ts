@@ -13,6 +13,8 @@ import {
   validateDigitalTwinChangeContract,
   validateSemanticIntentContract,
 } from "../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import {
   canonicalTerm,
   registrySnapshot,
@@ -138,6 +140,7 @@ function semanticContract(
   overrides: Partial<SemanticIntentContract> = {},
 ): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:approved:prompt-dtc-eval",
     status: "approved",
     rawIntent: "Validate Prompt-to-DTC governance flow.",
@@ -182,6 +185,7 @@ function digitalTwinContract(
   overrides: Partial<DigitalTwinChangeContract> = {},
 ): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "digital-twin-change:approved:prompt-dtc-eval",
     status: "approved",
     semanticIntentContractRef: semanticRef,

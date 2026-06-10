@@ -9,11 +9,14 @@ import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
 } from "../../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 
 const PALANTIR_MATH_ROOT = "/home/palantirkc/projects/palantir-math";
 
 function semanticContract(overrides: Partial<SemanticIntentContract> = {}): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:typed-ref-test",
     status: "approved",
     rawIntent: "Route approved ontology work from typed refs.",
@@ -36,6 +39,7 @@ function digitalTwinContract(
   overrides: Partial<DigitalTwinChangeContract> = {},
 ): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "digital-twin:typed-ref-test",
     status: "approved",
     semanticIntentContractRef: "semantic-intent:typed-ref-test",

@@ -326,6 +326,12 @@ export * from "./semantic-intent-contract";
 export * from "./digital-twin-change-contract";
 export * from "./prompt-contract-record";
 
+// --- v1.83 TurnCardDecisionSpec promotion (SIC/DTC consolidation) ---
+// Runtime-neutral clarification decision contract, promoted from the plugin
+// runtime type lib/lead-intent/contracts.ts so the canonical
+// SemanticClarificationQuestion can reference it without an uphill lib/ import.
+export * from "./turn-card-decision-spec";
+
 // --- v1.53 cross-project capability index (1) ---
 export * from "./project-ontology-index";
 

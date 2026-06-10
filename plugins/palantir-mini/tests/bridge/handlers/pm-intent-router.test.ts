@@ -23,6 +23,8 @@ import type {
   SemanticIntentContract,
   WorkContract,
 } from "../../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import { resolveSemanticConsistency } from "../../../lib/semantic-consistency/resolver";
 import {
   canonicalTerm,
@@ -162,6 +164,7 @@ const approvedSemanticConsistencyResult = resolveSemanticConsistency(
 
 function approvedSemanticContract(): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "semantic-intent:approved:scene3d",
     status: "approved",
     rawIntent: "Upgrade palantir-math 3D support",
@@ -1111,6 +1114,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
       ],
       complexityHint: "cross-cutting",
       semanticIntentContract: {
+        schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
         contractId: "semantic-intent:draft:test",
         status: "draft",
         rawIntent: "Implement Scene3D",
@@ -1126,6 +1130,7 @@ describe("T6 — Lead Intent -> Digital Twin contract gate", () => {
         clarificationQuestions: [],
       },
       digitalTwinChangeContract: {
+        schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
         contractId: "digital-twin:draft:test",
         status: "draft",
         semanticIntentContractRef: "semantic-intent:draft:test",

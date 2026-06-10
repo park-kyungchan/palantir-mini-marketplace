@@ -8,6 +8,8 @@ import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
 } from "../../lib/lead-intent/contracts";
+import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import {
   validatePrContractBoundary,
   type PrContractBoundaryInput,
@@ -15,6 +17,7 @@ import {
 
 function semanticContract(): SemanticIntentContract {
   return {
+    schemaVersion: SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
     contractId: "sic-wave-9-pr-boundary",
     status: "approved",
     rawIntent: "Bind PR review metadata to Prompt-to-DTC contracts.",
@@ -39,6 +42,7 @@ function semanticContract(): SemanticIntentContract {
 
 function digitalTwinContract(overrides: Partial<DigitalTwinChangeContract> = {}): DigitalTwinChangeContract {
   return {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "dtc-wave-9-pr-boundary",
     status: "approved",
     semanticIntentContractRef: "sic-wave-9-pr-boundary",

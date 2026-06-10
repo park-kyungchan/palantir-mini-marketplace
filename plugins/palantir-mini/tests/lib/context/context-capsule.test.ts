@@ -16,6 +16,7 @@ import {
   persistContextCapsule,
 } from "../../../lib/context/context-capsule";
 import type { DtcFillSequenceSession } from "../../../lib/chatbot-studio/dtc-fill-session";
+import { DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/digital-twin-change-contract";
 import {
   buildLLMControlFacingState,
 } from "../../../lib/chatbot-studio/semantic-conversation-state";
@@ -162,6 +163,7 @@ describe("internal context and readiness records", () => {
 
 describe("attachDtcFillStateToCapsule", () => {
   const baseContract = {
+    schemaVersion: DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION as typeof DIGITAL_TWIN_CHANGE_CONTRACT_SCHEMA_VERSION,
     contractId: "dtc:test-contract",
     status: "draft" as const,
     semanticIntentContractRef: "semantic:test",
