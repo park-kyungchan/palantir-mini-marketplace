@@ -102,7 +102,7 @@ async function seedMinimalFixture(root: string): Promise<void> {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("buildOntologyGraph", () => {
-  test("default run: returns store + stats arrays of length 11", async () => {
+  test("default run: returns store + stats arrays of length 12", async () => {
     const root = mkTempProject("default-run");
     await seedMinimalFixture(root);
 

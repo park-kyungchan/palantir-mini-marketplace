@@ -191,6 +191,16 @@ describe("indexAgentsAndRules", () => {
       expect(gatesEdges.length).toBeGreaterThanOrEqual(1);
       expect(approvalEdges.length).toBeGreaterThanOrEqual(1);
 
+      // Phantom repoint: the Lead approval target is the canonical Claude
+      // runtime-adapter self-ontology node, not a phantom lead-orchestrator.md path.
+      const LEAD_ADAPTER_RID = "pm.self.ontology/object-type/runtime-adapter/claude";
+      for (const e of approvalEdges) {
+        expect(String(e.toRid)).toBe(LEAD_ADAPTER_RID);
+      }
+      // A node carrying that RID must be emitted into the graph fragment.
+      const leadAdapterNode = result.nodes.find((n) => String(n.rid) === LEAD_ADAPTER_RID);
+      expect(leadAdapterNode).toBeDefined();
+
       // Total non-zero
       expect(result.nodes.length + result.edges.length).toBeGreaterThan(0);
     },

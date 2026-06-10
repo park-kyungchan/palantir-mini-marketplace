@@ -31,7 +31,8 @@ export type McpToolSurfaceProfile =
   | "studio-core"
   | "dev-full"
   | "protected-actions"
-  | "internal-telemetry";
+  | "internal-telemetry"
+  | "altitude-2";
 
 export interface McpToolSurfaceMetadata {
   readonly status: McpToolSurfaceStatus;
@@ -121,6 +122,7 @@ export const MCP_TOOL_SURFACE_PROFILES = [
   "dev-full",
   "protected-actions",
   "internal-telemetry",
+  "altitude-2",
 ] as const satisfies readonly McpToolSurfaceProfile[];
 
 export const MCP_TOOL_SURFACE_STATUSES = [
@@ -150,9 +152,22 @@ export const INTERNAL_TELEMETRY_MCP_TOOL_NAMES = [
   "events_log_rotate",
 ] as const;
 
+// Altitude-2 read navigators — the additive read-only surface bound atop the
+// already-built ontology. These tools stay dev-only (no new status string); the
+// altitude-2 profile simply widens their `profiles[]` so studio-core + these 5
+// are the only tools visible.
+export const ALTITUDE_2_READ_MCP_TOOL_NAMES = [
+  "get_ontology",
+  "impact_query",
+  "pm_substrate_query",
+  "pm_plugin_self_check",
+  "pm_rule_query",
+] as const;
+
 const STUDIO_CORE_MCP_TOOL_SET = new Set<string>(STUDIO_CORE_MCP_TOOL_NAMES);
 const PROTECTED_ACTION_MCP_TOOL_SET = new Set<string>(PROTECTED_ACTION_MCP_TOOL_NAMES);
 const INTERNAL_TELEMETRY_MCP_TOOL_SET = new Set<string>(INTERNAL_TELEMETRY_MCP_TOOL_NAMES);
+const ALTITUDE_2_READ_MCP_TOOL_SET = new Set<string>(ALTITUDE_2_READ_MCP_TOOL_NAMES);
 const MCP_TOOL_SURFACE_PROFILE_SET = new Set<string>(MCP_TOOL_SURFACE_PROFILES);
 
 function surfaceMetadataForTool(toolName: string): McpToolSurfaceMetadata {
@@ -172,6 +187,12 @@ function surfaceMetadataForTool(toolName: string): McpToolSurfaceMetadata {
     return {
       status: "internal-telemetry",
       profiles: ["dev-full", "internal-telemetry"],
+    };
+  }
+  if (ALTITUDE_2_READ_MCP_TOOL_SET.has(toolName)) {
+    return {
+      status: "dev-only",
+      profiles: ["dev-full", "altitude-2"],
     };
   }
   return {
@@ -199,7 +220,11 @@ export function resolveMcpToolSurfaceProfile(
 export function includedMcpToolSurfaceProfiles(
   profile: McpToolSurfaceProfile,
 ): readonly McpToolSurfaceProfile[] {
-  if (profile === "protected-actions" || profile === "internal-telemetry") {
+  if (
+    profile === "protected-actions" ||
+    profile === "internal-telemetry" ||
+    profile === "altitude-2"
+  ) {
     return ["studio-core", profile];
   }
   return [profile];
