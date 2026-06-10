@@ -2,7 +2,7 @@
  * GENERATED — do NOT edit by hand. Regenerate via:
  *   bun run .claude/schemas/scripts/gen-rule-registry.ts
  *
- * @generatedAt   2026-06-10T06:00:41.782Z
+ * @generatedAt   2026-06-10T11:00:10.485Z
  * @generatedFrom 53ad10ffb2e1e24401ea5982b2cc8b50958b662a
  * @ontologyHash  21-rule-registry-v1
  * @schemaVersion 1.18.0
@@ -266,13 +266,13 @@ export const RULE_REGISTRY_ENTRIES: ReadonlyArray<RuleDeclaration> = [
     ruleId: 29,
     slug: "fable5-ultracode-workflow-archiving",
     scope: "global",
-    version: "1.0.0",
+    version: "1.1.0",
     invariant: "Every Dynamic Workflow run by a Fable 5 Lead in ultracode mode is archived to ~/harness-upstream/reference/fable5-workflows/ — L0 verbatim artifacts + L1 workflow/campaign card at run end, L2 pattern-catalog delta + FAILURES.md update at campaign close; transcripts and implementation-result JSONs excluded (pointers only); purpose = MetaOptimization.",
     supersededBy: null,
     crossRefs: [2,26],
     hookCitations: [],
     bodyPath: ".claude/rules/29-fable5-ultracode-workflow-archiving.md",
-    lastModified: "2026-06-10T05:24:14.226Z",
+    lastModified: "2026-06-10T08:29:48.630Z",
   },
 ] as const;
 

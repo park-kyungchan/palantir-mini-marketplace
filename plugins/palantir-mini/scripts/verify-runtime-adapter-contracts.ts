@@ -148,7 +148,7 @@ export function verifyRuntimeAdapterContracts(
     }
   }
 
-  for (const absentSurface of [".claude-plugin", ".gemini-extension", "lib/gemini", "hooks/claude-hooks.json"]) {
+  for (const absentSurface of [".gemini-extension", "lib/gemini", "hooks/claude-hooks.json"]) {
     if (existsSync(join(pluginRoot, absentSurface))) {
       errors.push(`${absentSurface}: unsupported runtime package surface must remain absent`);
     }

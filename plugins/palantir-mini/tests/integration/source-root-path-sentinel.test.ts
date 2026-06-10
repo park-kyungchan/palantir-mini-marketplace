@@ -78,8 +78,7 @@ describe("source-root path sentinel", () => {
     }
   });
 
-  test("Claude and Gemini package surfaces are absent from the Codex-only checkout", () => {
-    expect(fs.existsSync(path.join(PLUGIN_ROOT, ".claude-plugin"))).toBe(false);
+  test("Gemini package surfaces and legacy Claude hook registry are absent from the checkout", () => {
     expect(fs.existsSync(path.join(PLUGIN_ROOT, ".gemini-extension"))).toBe(false);
     expect(fs.existsSync(path.join(PLUGIN_ROOT, "lib/gemini"))).toBe(false);
     expect(fs.existsSync(path.join(PLUGIN_ROOT, "hooks/claude-hooks.json"))).toBe(false);
