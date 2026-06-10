@@ -67,16 +67,19 @@ function writeWorkflowState(mutationAuthorized: boolean): void {
 }
 
 describe("ontology-engineering workflow enforcement hook", () => {
-  test("blocks runtime-native question UI tools", () => {
+  test("advises (does not block) runtime-native question UI tools", () => {
     const result = assessOntologyEngineeringWorkflowHook({
       cwd: projectRoot,
       tool_name: legacyToolName(),
       tool_input: { prompt: "Choose a workflow decision." },
     });
 
-    expect(result.decision).toBe("block");
-    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
-    expect(result.reason).toContain("runtime-native question UI");
+    // Advisory (suggest-only): detection still fires but the verdict CONTINUES.
+    expect(result.decision).toBe("continue");
+    expect(result.hookSpecificOutput?.permissionDecision).toBeUndefined();
+    expect(result.message).toContain("ADVISORY");
+    expect(result.additionalContext).toContain("Advisory");
+    expect(result.additionalContext).toContain("turn-card decision queue");
   });
 
   test("allows read-only validation scans that mention forbidden legacy tokens", () => {

@@ -38,11 +38,11 @@
   "testCases": [
     {
       "testCaseId": "testcase:ontology-workflow-no-runtime-question-ui",
-      "title": "Semantic gate and conversation state expose turn-card decisions, not runtime-native question UI",
+      "title": "Semantic gate and conversation state expose turn-card decisions; runtime-native question UI is advisory (suggest-only)",
       "input": {
         "category": "runtime_ui_boundary"
       },
-      "expectedBehavior": "pm_semantic_intent_gate returns TurnCardDecisionSpec and WorkflowContract projections and does not return legacy runtime-native question UI fields.",
+      "expectedBehavior": "pm_semantic_intent_gate returns TurnCardDecisionSpec and WorkflowContract projections and does not return legacy runtime-native question UI fields; the PreToolUse gate ADVISES (continue, suggest-only) rather than denies when runtime-native question UI is detected.",
       "tags": ["ontology-engineering", "runtime-ui", "turn-card", "workflow-contract"]
     },
     {
@@ -74,11 +74,11 @@
     },
     {
       "testCaseId": "testcase:ontology-workflow-pretool-hook-blocks-violations",
-      "title": "PreToolUse hook blocks runtime UI, missing FDE provenance, and unauthorized workflow mutation",
+      "title": "PreToolUse hook advises on runtime UI; blocks missing FDE provenance and unauthorized workflow mutation",
       "input": {
         "category": "hook_enforcement"
       },
-      "expectedBehavior": "ontology-engineering-workflow-enforcement-gate denies runtime-specific question UI tools, denies SIC/DTC routing before FDE workflow provenance, and denies protected workflow-surface edits until mutationAuthorized=true.",
+      "expectedBehavior": "ontology-engineering-workflow-enforcement-gate ADVISES (continue, suggest-only) on runtime-specific question UI tools, denies SIC/DTC routing before FDE workflow provenance, and denies protected workflow-surface edits until mutationAuthorized=true.",
       "tags": ["ontology-engineering", "hooks", "blocking", "rule-28"]
     }
   ]

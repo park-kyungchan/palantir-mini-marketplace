@@ -7,6 +7,15 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.5.0] - 2026-06-10 — chore: OE-gate question-UI deny→advisory + altitude-2 default MCP profile on both runtime registrations
+
+### Changed
+- OE workflow enforcement gate: runtime-native question-UI verdict softened from a hard deny to ADVISORY (suggest-only) — detection (hasLegacyRuntimeUi / toolNameIsLegacyRuntimeUi) is unchanged but the branch now CONTINUES with a message marked ADVISORY whose additionalContext SUGGESTS (does not command) the plugin-owned WorkflowContract turn-card decision queue / UserDecisionRecord path. FDE-provenance deny, protected-surface-mutation deny, and the source-mutation fast-path are untouched. Mirror text updated: hook header item 1, hooks.json statusMessage ("no runtime-native question UI" → "advisory runtime-native question UI"), response-template Question UI boundary line (now "prefer the turn-card path over runtime-native question UI"), and eval-suite testcases 0+4 UI expectations (FDE-provenance + unauthorized-mutation blocking expectations remain).
+- altitude-2 read-only daily-ops MCP profile is now the DEFAULT on both runtime registrations: .claude-plugin/plugin.json env gains PALANTIR_MINI_MCP_PROFILE=altitude-2 (HOST_RUNTIME=claude kept); .mcp.json (Codex-side registration referenced by .codex-plugin/plugin.json) flipped studio-core → altitude-2 (HOST_RUNTIME=codex kept). 7.4.0 already implements the profile (studio-core 6 + 5 read navigators = 11 tools, zero write verbs).
+- Both plugin manifests bumped 7.4.0 → 7.5.0 (package.json 6.128.0 left as known version-lane debt, out of scope).
+
+Verification: tsc exit 0; touched suites (gate + response-template + cross-runtime + prompt-front-door + eval-declaration) green plus mcp-server-schema / agent-ownership-validate / agents-rules / self-instance-edges regression pins.
+
 ## [7.4.0] - 2026-06-10 — fix: Altitude-2 bindings — self-instance-edge indexer + namespace bridge, Lead→RuntimeAdapter repoint, altitude-2 read-only MCP profile
 
 ### Added

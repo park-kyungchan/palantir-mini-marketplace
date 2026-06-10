@@ -9,7 +9,7 @@
       "cwd": ".",
       "env": {
         "PALANTIR_MINI_HOST_RUNTIME": "codex",
-        "PALANTIR_MINI_MCP_PROFILE": "studio-core"
+        "PALANTIR_MINI_MCP_PROFILE": "altitude-2"
       }
     }
   }
