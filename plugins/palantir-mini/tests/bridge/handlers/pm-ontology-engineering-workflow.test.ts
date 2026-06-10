@@ -20,6 +20,11 @@ import { draftSemanticIntentContract } from "../../../lib/lead-intent/contracts"
 import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
 import { advanceNineAxisSicSequence } from "../../../lib/semantic-intent/nine-axis-sic-fill-sequence";
 import { isApprovedSemanticIntentContract } from "../../../lib/semantic-intent/approved-contract";
+import { buildConvexOnlyTechnologyRecommendation } from "../../../lib/context-engineering/context-plan-builder";
+import {
+  isStructuredApprovalRef,
+  validateApprovalRefValue,
+} from "../../../lib/prompt-front-door/approval-ref";
 
 let projectRoot: string;
 
@@ -501,5 +506,94 @@ describe("pm-ontology-engineering-workflow handler", () => {
       sessionId: "fde-session:refuse",
     });
     expect(status.state.semanticIntentContractStatus).not.toBe("approved");
+  });
+
+  test("approve_technology_recommendation approves a caller-threaded rec and flips the TECHNOLOGY decision", async () => {
+    const entryRef = writeEntry();
+    await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:tech",
+    });
+
+    const rec = buildConvexOnlyTechnologyRecommendation("context-plan:tech");
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "approve_technology_recommendation",
+      projectRoot,
+      sessionId: "fde-session:tech",
+      technologyRecommendation: rec,
+      emittedAt: "2026-06-10T00:05:00.000Z",
+    });
+
+    expect(result.technologyApproval?.approved).toBe(true);
+    expect(result.technologyApproval?.message).toContain("approved");
+    expect(result.technologyApproval?.recommendation?.recommendationId).toBe(rec.recommendationId);
+
+    const ref = result.technologyApproval?.recommendation?.approvalRef;
+    expect(isStructuredApprovalRef(ref)).toBe(true);
+    expect(validateApprovalRefValue("approvalRef", ref)).toEqual([]);
+
+    // The single enforcement hook: the TECHNOLOGY decision flips open → approved.
+    const decision = result.technologyApproval?.technologyDecision;
+    expect(decision?.domain).toBe("TECHNOLOGY");
+    expect(decision?.status).toBe("approved");
+    expect(decision?.approvalRef).toBeDefined();
+    // Approving the technology recommendation never authorizes protected-surface mutation.
+    expect(result.state.mutationAuthorized).toBe(false);
+    // Once approved, the pending confirm/correct card is gone (the decision is no longer open).
+    expect(result.technologyApproval?.technologyApprovalCard).toBeUndefined();
+  });
+
+  test("approve_technology_recommendation surfaces the confirm/correct card while the TECHNOLOGY decision is open", async () => {
+    const entryRef = writeEntry();
+    await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:tech-card",
+    });
+
+    // A resolvable proposed rec whose recommendationId is absent stays PENDING (approval
+    // refuses), so the TECHNOLOGY decision remains open — the Q3 user-approval card surfaces.
+    const proposed = { ...buildConvexOnlyTechnologyRecommendation("context-plan:tech-card"), recommendationId: "" };
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "approve_technology_recommendation",
+      projectRoot,
+      sessionId: "fde-session:tech-card",
+      technologyRecommendation: proposed,
+      emittedAt: "2026-06-10T00:07:00.000Z",
+    });
+
+    expect(result.technologyApproval?.approved).toBe(false);
+    const card = result.technologyApproval?.technologyApprovalCard;
+    expect(card).toBeDefined();
+    expect(card?.phase).toBe("TECHNOLOGY");
+    // The card carries the PROPOSED recommendation (its rationale) as the draft the user confirms.
+    expect(card?.recommendedChoiceId).toBe("confirm-draft");
+    expect(card?.choices.map((choice) => choice.choiceId)).toEqual(["confirm-draft", "answer"]);
+    const confirm = card?.choices.find((choice) => choice.choiceId === "confirm-draft");
+    expect(confirm?.consequence).toContain(proposed.policy);
+  });
+
+  test("approve_technology_recommendation refuses when no rec is threaded and none can be rebuilt", async () => {
+    const entryRef = writeEntry();
+    await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:tech-refuse",
+    });
+
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "approve_technology_recommendation",
+      projectRoot,
+      sessionId: "fde-session:tech-refuse",
+      emittedAt: "2026-06-10T00:06:00.000Z",
+    });
+
+    expect(result.technologyApproval?.approved).toBe(false);
+    expect(result.technologyApproval?.message.length).toBeGreaterThan(0);
+    expect(result.technologyApproval?.recommendation).toBeUndefined();
   });
 });

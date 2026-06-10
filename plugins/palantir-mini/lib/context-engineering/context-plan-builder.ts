@@ -8,6 +8,10 @@ import {
   semanticIntentContractRefFromApproved,
   type ApprovedSemanticIntentContract,
 } from "../semantic-intent/approved-contract";
+import {
+  deriveValidationPlan,
+  FALLBACK_VALIDATION_PLAN,
+} from "./validation-plan-from-success-eval";
 
 export const CONTEXT_ENGINEERING_PLAN_SCHEMA_VERSION =
   "palantir-mini/context-engineering-plan/v1" as const;
@@ -85,6 +89,23 @@ export interface ContextEngineeringPlanV3Lane extends ContextPlanSection {
   readonly mutationAuthorizedFromCard: false;
 }
 
+/**
+ * One advisory projection of a non-DATA/LOGIC/ACTION/SECURITY understand-phase axis
+ * (context / successEval / constraintsNonGoals / actors / memoryPrior) onto the plan.
+ * These are ADVISORY background context for review only — never a mutation lane and
+ * never a blocking decision (Q4). The DATA/LOGIC/ACTION/SECURITY axes already drive the
+ * plan's lanes; these 5 carry the rest of the 9-axis heart through for the reviewer.
+ *
+ * 자문용 축 투영: 9축 중 lane이 아닌 5개 축을 검토용 배경 맥락으로 전달한다.
+ */
+export interface ContextEngineeringAxisProjection {
+  readonly axisKey: "context" | "successEval" | "constraintsNonGoals" | "actors" | "memoryPrior";
+  readonly summary: string;
+  readonly refs: readonly string[];
+  readonly status: "open" | "filled" | "not-applicable";
+  readonly advisoryOnly: true;
+}
+
 export interface ContextEngineeringPlan {
   readonly schemaVersion: typeof CONTEXT_ENGINEERING_PLAN_SCHEMA_VERSION;
   readonly planId: string;
@@ -132,6 +153,7 @@ export interface ContextEngineeringPlanV2 {
   }[];
   readonly requiredUserDecisions: readonly ContextEngineeringPlanRequiredUserDecision[];
   readonly reviewCards: readonly DtcContextEngineeringReviewCard[];
+  readonly axisProjections: readonly ContextEngineeringAxisProjection[];
   readonly authorityBoundaries: readonly string[];
   readonly sourceRefs: readonly string[];
 }
@@ -154,6 +176,7 @@ export interface ContextEngineeringPlanV3 {
   readonly validationPlan: ContextEngineeringPlanV2["validationPlan"];
   readonly requiredUserDecisions: readonly ContextEngineeringPlanRequiredUserDecision[];
   readonly reviewCards: readonly DtcContextEngineeringReviewCard[];
+  readonly axisProjections: readonly ContextEngineeringAxisProjection[];
   readonly authorityBoundaries: readonly string[];
   readonly sourceRefs: readonly string[];
 }
@@ -400,6 +423,72 @@ function buildReviewCards(plan: ContextEngineeringPlanV2): readonly DtcContextEn
   ];
 }
 
+const ADVISORY_AXIS_KEYS = [
+  "context",
+  "successEval",
+  "constraintsNonGoals",
+  "actors",
+  "memoryPrior",
+] as const;
+
+const ADVISORY_AXIS_TITLES: Record<ContextEngineeringAxisProjection["axisKey"], string> = {
+  context: "CONTEXT (advisory)",
+  successEval: "SUCCESS-EVAL (advisory)",
+  constraintsNonGoals: "CONSTRAINTS / NON-GOALS (advisory)",
+  actors: "ACTORS (advisory)",
+  memoryPrior: "MEMORY / PRIOR (advisory)",
+};
+
+/**
+ * Project the 5 non-lane understand-phase axes (context / successEval /
+ * constraintsNonGoals / actors / memoryPrior) from the SIC into advisory projections.
+ * Carries the rest of the 9-axis heart through for review WITHOUT making them mutation
+ * lanes or blocking decisions (Q4). Legacy / axes-less SIC → empty array (back-compat).
+ *
+ * lane이 아닌 5개 축을 자문용 투영으로 변환한다. axes가 없으면 빈 배열을 반환한다.
+ */
+function buildAxisProjections(
+  sic: SemanticIntentContract,
+): readonly ContextEngineeringAxisProjection[] {
+  const axes = sic.axes;
+  if (!axes) {
+    return [];
+  }
+  return ADVISORY_AXIS_KEYS.map((axisKey) => {
+    const axis = axes[axisKey];
+    return {
+      axisKey,
+      summary: axis.summary,
+      refs: axis.refs,
+      status: axis.status,
+      advisoryOnly: true as const,
+    };
+  });
+}
+
+/**
+ * One ADVISORY review card per non-empty axis projection. Advisory context only —
+ * recommendedDecision says so, and mutationAuthorizedFromCard stays false (Q4). Empty
+ * (open, no summary) projections are skipped so the reviewer only sees surfaced axes.
+ */
+function buildAdvisoryAxisReviewCards(
+  planId: string,
+  projections: readonly ContextEngineeringAxisProjection[],
+): readonly DtcContextEngineeringReviewCard[] {
+  return projections
+    .filter((projection) => projection.summary.trim().length > 0)
+    .map((projection) => ({
+      cardId: `${planId}:review:axis:${projection.axisKey}`,
+      title: ADVISORY_AXIS_TITLES[projection.axisKey],
+      domain: "GOVERNANCE",
+      plainSummary: projection.summary,
+      sourceRefs: projection.refs,
+      recommendedDecision:
+        "Review only — advisory context, not a mutation lane. / 검토 전용 — 변경 lane이 아닌 자문 맥락입니다.",
+      mutationAuthorizedFromCard: false,
+    }));
+}
+
 function buildSecurityReviewCard(
   plan: Omit<ContextEngineeringPlanV3, "reviewCards">,
 ): DtcContextEngineeringReviewCard {
@@ -473,6 +562,7 @@ export function buildContextEngineeringPlanV2(
 ): ContextEngineeringPlanV2 {
   const legacy = buildContextEngineeringPlan(input);
   const planId = `${legacy.planId}:v2`;
+  const axisProjections = buildAxisProjections(input.semanticIntentContract);
   const v2WithoutCardsAndDecisions: Omit<
     ContextEngineeringPlanV2,
     "requiredUserDecisions" | "reviewCards"
@@ -517,26 +607,8 @@ export function buildContextEngineeringPlanV2(
       rationale:
         "Use the workbench as the review/runtime surface while keeping mutation authorization in approved SIC/DTC and submission criteria.",
     },
-    validationPlan: [
-      {
-        validationId: "fde-readiness-profile",
-        command: "bun test tests/lib/fde-ontology-engineering",
-        required: true,
-        reason: "Readiness profiles and sidecar integrity must remain deterministic.",
-      },
-      {
-        validationId: "context-plan-v2",
-        command: "bun test tests/lib/context-engineering",
-        required: true,
-        reason: "DATA/LOGIC/ACTION and mirror-only recommendations must stay stable.",
-      },
-      {
-        validationId: "workbench-review",
-        command: "bun test tests/lib/chatbot-studio",
-        required: true,
-        reason: "Lead cards and DTC review cards must remain non-authorizing.",
-      },
-    ],
+    validationPlan: deriveValidationPlan(input.semanticIntentContract, FALLBACK_VALIDATION_PLAN),
+    axisProjections,
     authorityBoundaries: legacy.authorityBoundaries,
     sourceRefs: legacy.sourceRefs,
   };
@@ -546,7 +618,10 @@ export function buildContextEngineeringPlanV2(
   };
   return {
     ...v2WithoutCards,
-    reviewCards: buildReviewCards(v2WithoutCards as ContextEngineeringPlanV2),
+    reviewCards: [
+      ...buildReviewCards(v2WithoutCards as ContextEngineeringPlanV2),
+      ...buildAdvisoryAxisReviewCards(v2WithoutCards.planId, axisProjections),
+    ],
   };
 }
 
@@ -643,6 +718,7 @@ export function buildContextEngineeringPlanV3(
         reason: "DATA/LOGIC/ACTION/SECURITY lanes must stay advisory-only and non-authorizing.",
       },
     ],
+    axisProjections: v2.axisProjections,
     requiredUserDecisions: [
       ...v2.requiredUserDecisions,
       requiredDecision(

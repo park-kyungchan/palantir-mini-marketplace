@@ -157,6 +157,7 @@ import { advanceDTCFillSequence, type DtcWithFillFields } from "../../lib/semant
 import {
   ONTOLOGY_DTC_BUILD_SEQUENCE,
   advanceOntologyDTCBuildSequence,
+  type SicTypedRefDefaults,
 } from "../../lib/semantic-intent/ontology-dtc-build-sequence";
 import { readCurrentFDEOntologyEngineeringSession } from "../../lib/fde-ontology-engineering/session-store";
 import { buildContextEngineeringPlanV2 } from "../../lib/context-engineering/context-plan-builder";
@@ -1391,6 +1392,35 @@ function hasPersistableContractId(
   return typeof contract?.contractId === "string" && contract.contractId.trim().length > 0;
 }
 
+/**
+ * Pre-seed the ontology-dtc-build turn-by-turn sequence from an APPROVED SIC's
+ * structured typed refs (G10: close the re-type-CSV gap). Returns undefined unless
+ * the SIC is approved AND carries at least one typed ref — so the per-turn raw-CSV
+ * path stays byte-identical when no approved SIC is in play. The user confirm remains
+ * load-bearing: these are PROPOSED defaults the user confirms (sends nothing) or
+ * corrects (types refs).
+ *
+ * 승인된 SIC의 typed ref를 ontology-dtc-build 턴 기본 제안으로 미리 채운다(미승인/빈 SIC → undefined).
+ */
+function sicTypedRefsFromApprovedSic(
+  sic: SemanticIntentContract | undefined,
+): SicTypedRefDefaults | undefined {
+  if (!sic || !isApprovedSemanticIntentContract(sic)) return undefined;
+  const objectTypeRefs = sic.approvedObjectTypeRefs ?? [];
+  const linkTypeRefs = sic.approvedLinkTypeRefs ?? [];
+  const actionTypeRefs = sic.approvedActionTypeRefs ?? [];
+  const functionRefs = sic.approvedFunctionRefs ?? [];
+  if (
+    objectTypeRefs.length === 0 &&
+    linkTypeRefs.length === 0 &&
+    actionTypeRefs.length === 0 &&
+    functionRefs.length === 0
+  ) {
+    return undefined;
+  }
+  return { objectTypeRefs, linkTypeRefs, actionTypeRefs, functionRefs };
+}
+
 function safeTransitionPromptEnvelope(
   envelope: PromptEnvelope,
   state: Parameters<typeof transitionPromptEnvelope>[1],
@@ -1831,6 +1861,9 @@ export async function semanticIntentGate(
                 input.turn,
                 input.turnUserInput,
                 undefined,
+                sicTypedRefsFromApprovedSic(
+                  input.semanticIntentContract ?? draftContracts?.semanticIntent,
+                ),
               )
             : advanceDTCFillSequence(
                 dtcContract,

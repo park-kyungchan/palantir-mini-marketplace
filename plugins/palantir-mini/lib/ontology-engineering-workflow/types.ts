@@ -15,6 +15,7 @@ export type OntologyEngineeringWorkflowAction =
   | "turn"
   | "draft_sic"
   | "approve_sic"
+  | "approve_technology_recommendation"
   | "ingest"
   | "register"
   | "lint"

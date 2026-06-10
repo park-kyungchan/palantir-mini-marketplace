@@ -39,6 +39,24 @@ export interface OntologyDtcBuildReadinessIssueOptions {
   readonly requirePolicy?: boolean;
 }
 
+/**
+ * Structured typed-ref defaults carried over from an APPROVED SemanticIntentContract,
+ * used to PRE-SEED the turn-by-turn ontology-dtc-build per primitive kind (G10:
+ * close the re-type-CSV gap). The LLM proposes these as the per-turn draft; the user
+ * confirms (sends nothing → the SIC default stands) or corrects/extends (types refs →
+ * user entries take precedence, SIC defaults fill the rest). Purely additive: absent →
+ * existing raw-CSV behavior byte-identical.
+ *
+ * 승인된 SIC의 구조화된 typed ref를 ontology-dtc-build 턴별 기본 제안으로 미리 채운다.
+ * 사용자가 빈 입력으로 확인하면 SIC 기본값이 그대로 제안된다.
+ */
+export interface SicTypedRefDefaults {
+  readonly objectTypeRefs?: readonly OntologyEngineeringRef[];
+  readonly linkTypeRefs?: readonly OntologyEngineeringRef[];
+  readonly actionTypeRefs?: readonly OntologyEngineeringRef[];
+  readonly functionRefs?: readonly OntologyEngineeringRef[];
+}
+
 export type OntologyDtcBuildContract = DigitalTwinChangeContract & DtcWithFillFields & {
   readonly fillPolicy?: typeof ONTOLOGY_DTC_BUILD_POLICY;
   readonly ontologyDtcBuildSequence?: readonly DtcFillStep[];
@@ -130,6 +148,7 @@ export function advanceOntologyDTCBuildSequence(
   turnIndex: number,
   userInput?: string,
   agentAutoFill?: Partial<DigitalTwinChangeContract>,
+  sicTypedRefs?: SicTypedRefDefaults,
 ): DtcAdvanceResult & { readonly dtcDraft: OntologyDtcBuildContract } {
   if (turnIndex < 0 || turnIndex >= ONTOLOGY_DTC_BUILD_SEQUENCE.length) {
     throw new RangeError(
@@ -147,10 +166,10 @@ export function advanceOntologyDTCBuildSequence(
   const autoFillFields: Partial<DigitalTwinChangeContract> =
     agentAutoFill !== undefined && userInput === undefined ? agentAutoFill : {};
 
-  const t0 = turnIndex === 0 ? typedRefTurn("ObjectType", existingRefs, existingReadiness, userInput, "objectTypeRefs") : {};
-  const t1 = turnIndex === 1 ? typedRefTurn("LinkType", existingRefs, existingReadiness, userInput, "linkTypeRefs") : {};
-  const t2 = turnIndex === 2 ? typedRefTurn("ActionType", existingRefs, existingReadiness, userInput, "actionTypeRefs") : {};
-  const t3 = turnIndex === 3 ? typedRefTurn("Function", existingRefs, existingReadiness, userInput, "functionRefs") : {};
+  const t0 = turnIndex === 0 ? typedRefTurn("ObjectType", existingRefs, existingReadiness, userInput, "objectTypeRefs", sicTypedRefs?.objectTypeRefs) : {};
+  const t1 = turnIndex === 1 ? typedRefTurn("LinkType", existingRefs, existingReadiness, userInput, "linkTypeRefs", sicTypedRefs?.linkTypeRefs) : {};
+  const t2 = turnIndex === 2 ? typedRefTurn("ActionType", existingRefs, existingReadiness, userInput, "actionTypeRefs", sicTypedRefs?.actionTypeRefs) : {};
+  const t3 = turnIndex === 3 ? typedRefTurn("Function", existingRefs, existingReadiness, userInput, "functionRefs", sicTypedRefs?.functionRefs) : {};
   const t4 = turnIndex === 4 ? applicationStateTurn(contract, existingReadiness, userInput) : {};
   const t5 = turnIndex === 5 ? evaluationTurn(contract, existingReadiness, existingEvalRefs, userInput, agentAutoFill) : {};
   const semanticTermPatch = semanticConsistencyTurn(existingReadiness, userInput);
@@ -339,8 +358,15 @@ function typedRefTurn(
     OntologyDtcBuildReadiness,
     "objectTypeRefs" | "linkTypeRefs" | "actionTypeRefs" | "functionRefs"
   >,
+  sicDefaultRefs?: readonly OntologyEngineeringRef[],
 ) {
-  const refs = parseRefs(userInput ?? "", kind);
+  // Confirm-or-correct semantics: union the user's typed entries with the approved
+  // SIC default refs. User refs come FIRST so on rid collision the user's correction
+  // wins (dedupeRefs keeps the first occurrence). Empty/absent userInput → parsedRefs
+  // is [] → the proposal IS the SIC default refs (G10 re-type-CSV closed). No SIC
+  // defaults (sicDefaultRefs undefined) → byte-identical to the prior raw-CSV behavior.
+  const parsedRefs = parseRefs(userInput ?? "", kind);
+  const refs = dedupeRefs([...parsedRefs, ...(sicDefaultRefs ?? [])]);
   const existingReadiness = readiness[readinessField] ?? [];
   return {
     touchedOntologyRefs: dedupeRefs([...existingRefs, ...refs]),

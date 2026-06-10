@@ -247,7 +247,7 @@ const TOOLS: ToolSpec[] = [
       type: "object",
       required: ["projectRoot", "action"],
       properties: {
-        action: { type: "string", enum: ["start", "turn", "draft_sic", "approve_sic", "status", "elevate", "approve_source_mutation"] },
+        action: { type: "string", enum: ["start", "turn", "draft_sic", "approve_sic", "approve_technology_recommendation", "status", "elevate", "approve_source_mutation"] },
         project: { type: "string", description: "Legacy alias for projectRoot. Direct/internal callers may pass this field; public MCP callers should use projectRoot." },
         projectRoot: { type: "string", description: "Canonical absolute project root. Required for public MCP calls." },
         universalOntologyEntryRef: { type: "string" },
@@ -258,6 +258,7 @@ const TOOLS: ToolSpec[] = [
         workflowTraceRef: { type: "string" },
         semanticIntentContractRef: { type: "string" },
         semanticIntentContract: { type: "object", description: "The user-confirmed, nine-axis-filled draft SIC to approve (action `approve_sic`); its fillSequence carries the per-axis source the Q2 user-confirmation gate enforces. Absent ⇒ approve_sic reconstructs from the session and is refused by the Q2 gate." },
+        technologyRecommendation: { type: "object", description: "The proposed TechnologyRecommendation to approve (action `approve_technology_recommendation`, Q3). Absent ⇒ the handler rebuilds it from the current ContextEngineeringPlan (full V2 plan when an approved SIC + FDE session are present). On approval the plan's TECHNOLOGY decision flips open→approved with the minted approvalRef." },
         semanticIntentContractStatus: { type: "string", enum: ["draft", "approved", "superseded"] },
         digitalTwinChangeContractRef: { type: "string" },
         digitalTwinChangeContractStatus: { type: "string", enum: ["draft", "approved", "superseded"] },

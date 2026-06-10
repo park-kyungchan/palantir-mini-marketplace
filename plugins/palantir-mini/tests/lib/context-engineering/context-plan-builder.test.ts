@@ -6,6 +6,7 @@ import {
 } from "../../../lib/context-engineering/context-plan-builder";
 import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
 import type { FDEOntologyEngineeringSession } from "../../../lib/fde-ontology-engineering/types";
+import type { SemanticIntentAxes, SicAxis } from "#schemas/ontology/primitives/semantic-intent-contract";
 
 const semantic: SemanticIntentContract = {
   contractId: "semantic-intent:context-plan",
@@ -23,6 +24,24 @@ const semantic: SemanticIntentContract = {
   clarificationQuestions: [],
   approvalRef: "user:approved:context-plan",
 };
+
+function axis(summary: string, refs: readonly string[] = []): SicAxis {
+  return { summary, refs, status: summary.trim().length > 0 ? "filled" : "open" };
+}
+
+const fullAxes: SemanticIntentAxes = {
+  data: axis("Operational objects: Decision"),
+  logic: axis("Decision logic: BuildContextPlan"),
+  action: axis("Write-back actions: ApproveDtc"),
+  governance: axis("Roles: maintainer"),
+  context: axis("Context: refactor the context-engineering builder", ["BROWSE.md"]),
+  successEval: axis("Success signals: plan renders, validation derives, cards stay advisory", ["eval:ref"]),
+  constraintsNonGoals: axis("Confirmed non-goals: do not replace ontology authority"),
+  actors: axis("Actors / roles: maintainer", ["role:ref"]),
+  memoryPrior: axis("Prior-session contract refs: sic:prior", ["sic:prior"]),
+};
+
+const semanticWithAxes: SemanticIntentContract = { ...semantic, axes: fullAxes };
 
 const fdeSession = {
   sessionId: "fde-session-1",
@@ -109,7 +128,59 @@ describe("buildContextEngineeringPlan", () => {
     expect(plan.requiredUserDecisions.every((decision) => decision.status === "open")).toBe(true);
     expect(plan.requiredUserDecisions.every((decision) => decision.evidenceRefs.length > 0)).toBe(true);
     expect(plan.reviewCards.every((card) => card.mutationAuthorizedFromCard === false)).toBe(true);
-    expect(plan.validationPlan.map((item) => item.validationId)).toContain("context-plan-v2");
+    // axes-less SIC → validationPlan is the fallback list (de-hardcoded, but never empty).
+    expect(plan.validationPlan.map((item) => item.validationId)).toEqual([
+      "fde-readiness-profile",
+      "context-plan-v2",
+      "workbench-review",
+    ]);
+    // axes-less SIC → no axis projections, no advisory axis cards.
+    expect(plan.axisProjections).toEqual([]);
+    expect(plan.reviewCards).toHaveLength(5);
+  });
+
+  test("axes-present SIC: 5 axis projections + derived validation plan + advisory cards", () => {
+    const plan = buildContextEngineeringPlanV2({
+      semanticIntentContract: semanticWithAxes,
+      fdeSession,
+      projectIndex: {
+        projectRoot: "/repo",
+        indexRef: "INDEX.md",
+        sourceRefs: ["BROWSE.md"],
+      },
+    });
+
+    // SLICE A — all 5 non-lane axes projected, advisory-only, with summary/refs/status.
+    expect(plan.axisProjections.map((projection) => projection.axisKey)).toEqual([
+      "context",
+      "successEval",
+      "constraintsNonGoals",
+      "actors",
+      "memoryPrior",
+    ]);
+    expect(plan.axisProjections.every((projection) => projection.advisoryOnly === true)).toBe(true);
+    const contextProjection = plan.axisProjections.find((projection) => projection.axisKey === "context");
+    expect(contextProjection?.summary).toBe("Context: refactor the context-engineering builder");
+    expect(contextProjection?.refs).toEqual(["BROWSE.md"]);
+    expect(contextProjection?.status).toBe("filled");
+
+    // SLICE A — one ADVISORY review card per non-empty projection, never authorizing.
+    const advisoryCards = plan.reviewCards.filter((card) => card.cardId.includes(":review:axis:"));
+    expect(advisoryCards).toHaveLength(5);
+    expect(advisoryCards.every((card) => card.mutationAuthorizedFromCard === false)).toBe(true);
+    expect(advisoryCards.every((card) => card.recommendedDecision.includes("advisory"))).toBe(true);
+    // The 5 lane/governance cards remain; advisory cards are appended on top.
+    expect(plan.reviewCards).toHaveLength(10);
+
+    // SLICE C — validationPlan derived from SUCCESS-EVAL signals (verbatim reason, propose: command).
+    expect(plan.validationPlan).toHaveLength(3);
+    expect(plan.validationPlan.map((item) => item.reason)).toEqual([
+      "plan renders",
+      "validation derives",
+      "cards stay advisory",
+    ]);
+    expect(plan.validationPlan.every((item) => item.command.startsWith("propose: "))).toBe(true);
+    expect(plan.validationPlan.every((item) => item.required)).toBe(true);
   });
 
   test("builds additive v3 DATA/LOGIC/ACTION/SECURITY lanes without changing v2 compatibility", () => {
@@ -151,5 +222,33 @@ describe("buildContextEngineeringPlan", () => {
     expect(plan.validationPlan.map((item) => item.validationId)).toContain(
       "context-plan-v3-security-lane",
     );
+    // axes-less SIC → no axis projections inherited.
+    expect(plan.axisProjections).toEqual([]);
+  });
+
+  test("v3 inherits axis projections and derived validation plan from an axes-present SIC", () => {
+    const plan = buildContextEngineeringPlanV3({
+      semanticIntentContract: semanticWithAxes,
+      fdeSession,
+      projectIndex: { projectRoot: "/repo", indexRef: "INDEX.md", sourceRefs: ["BROWSE.md"] },
+    });
+
+    expect(plan.axisProjections.map((projection) => projection.axisKey)).toEqual([
+      "context",
+      "successEval",
+      "constraintsNonGoals",
+      "actors",
+      "memoryPrior",
+    ]);
+    // Derived SUCCESS-EVAL items flow through, plus the V3 security-lane structural entry.
+    expect(plan.validationPlan.map((item) => item.reason)).toEqual([
+      "plan renders",
+      "validation derives",
+      "cards stay advisory",
+      "DATA/LOGIC/ACTION/SECURITY lanes must stay advisory-only and non-authorizing.",
+    ]);
+    // Advisory axis cards carry through to V3, alongside the SECURITY card.
+    expect(plan.reviewCards.filter((card) => card.cardId.includes(":review:axis:"))).toHaveLength(5);
+    expect(plan.reviewCards.every((card) => card.mutationAuthorizedFromCard === false)).toBe(true);
   });
 });
