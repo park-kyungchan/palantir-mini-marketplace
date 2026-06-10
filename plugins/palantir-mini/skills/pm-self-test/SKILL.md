@@ -5,7 +5,7 @@ surfaceStatus: public-core
 description: "End-to-end smoke test of the plugin-only substrate. Runs schema pin check, codegen..."
 allowed-tools: Read Bash mcp__plugin_palantir-mini_palantir-mini__verify_schema_pin mcp__plugin_palantir-mini_palantir-mini__verify_codegen_headers mcp__plugin_palantir-mini_palantir-mini__pm_plugin_self_check mcp__plugin_palantir-mini_palantir-mini__pm_rule_audit mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__pm_preamble
 effort: high
-disable-model-invocation: false
+disable-model-invocation: true
 ---
 
 # /palantir-mini:pm-self-test — Plugin Substrate Smoke Test

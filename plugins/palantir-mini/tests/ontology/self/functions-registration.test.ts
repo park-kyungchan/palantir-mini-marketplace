@@ -2,9 +2,9 @@
 // `Function` ObjectType + 76 seeded Function instances (catalog §4). Proves the type
 // resolves from OBJECT_TYPE_REGISTRY, that the seed holds exactly 76 unique functions with
 // no duplicate names or RIDs, and that every instance's sourcePath resolves to a real file
-// on disk (the "all resolve" guard). The 63 handler-backed functions trace 1:1 to
-// bridge/handlers/*.ts (the SSoT, functional handlers 63 >> exposed tools 29), including
-// the ~34 HIDDEN sub-mode handlers a naive 1-tool-per-type pass drops; the remaining 13
+// on disk (the "all resolve" guard). The 62 handler-backed functions trace 1:1 to
+// bridge/handlers/*.ts (the SSoT, functional handlers 62 >> exposed tools 29), including
+// the ~34 HIDDEN sub-mode handlers a naive 1-tool-per-type pass drops; the remaining 14
 // are lib-subsystem / recap composite LOGIC. Importing the barrel runs the self-registration
 // side effect.
 
@@ -19,7 +19,7 @@ import {
   type FunctionInstance,
 } from "#schemas/ontology/self/functions";
 
-const EXPECTED_FUNCTION_COUNT = 77;
+const EXPECTED_FUNCTION_COUNT = 76;
 // plugins/palantir-mini root: this test lives at tests/ontology/self/, so 3 levels up.
 const PLUGIN_ROOT = path.join(import.meta.dir, "../../..");
 

@@ -6,7 +6,7 @@ description: "Comprehensive codebase audit using LSP-powered TypeScript code ana
 argument-hint: "[--scope home|project|all]"
 context: standard
 effort: high
-disable-model-invocation: false
+disable-model-invocation: true
 ---
 
 # LSP Audit — TypeScript Code Integrity Analysis

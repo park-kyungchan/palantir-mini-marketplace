@@ -92,5 +92,5 @@ Next: rerun /palantir-mini:pm-rule-audit to confirm 0 unused_rule_30d findings.
 - Rule 26 §Substrate routing — `~/.claude/rules/26-valuable-data-standard.md`.
 - W3.A `unused_rule_30d` finding — `bridge/handlers/pm-rule-audit/detect-drift.ts:checkUnusedRules30d`.
 - W3.B `staleMemoryFiles` — `bridge/handlers/pm-memory-layer-audit.ts:collectStaleMemoryFiles`.
-- Sibling skills: `pm-substrate-audit-cron-status`, `pm-rule-audit`, `pm-memory-map`.
+- Sibling skills: `pm-rule-audit`, `pm-memory-map`.
 - CONTEXT.md §6 (rule retirement default path: stub + supersededBy).

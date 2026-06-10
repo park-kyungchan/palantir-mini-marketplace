@@ -377,7 +377,7 @@ export function buildChatbotStudioReviews(input: LevelBuilderInput): readonly FD
         level: "chatbot-studio",
         severity: "medium",
         description: `Chatbot '${name}' has no declared evalSuite. Nondeterministic surfaces require AIP Evals.`,
-        recommendedAction: "Author an eval suite via /palantir-mini:pm-eval-suite-author and cross-ref here.",
+        recommendedAction: "Author an eval suite via /palantir-mini:pm-eval-suite and cross-ref here.",
         nextQuestion: `What test cases verify '${name}' responds correctly to representative user queries?`,
       });
     }

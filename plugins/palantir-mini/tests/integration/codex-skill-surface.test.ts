@@ -21,7 +21,6 @@ const EXPECTED_CODEX_SKILLS = [
 const NON_DEFAULT_CANONICAL_SKILLS = [
   "pm-dirty-classify",
   "pm-dtc-fill",
-  "pm-events-rotate",
   "pm-intent-to-ontology",
   "pm-memory-map",
   "pm-replay",

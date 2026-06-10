@@ -15,7 +15,7 @@ import {
   MCP_HANDLER_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_MCP_HANDLER_COUNT = 64;
+const EXPECTED_MCP_HANDLER_COUNT = 63;
 
 test("self McpHandler ObjectType is registered with handlerName identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(MCP_HANDLER_OBJECT_TYPE_RID);

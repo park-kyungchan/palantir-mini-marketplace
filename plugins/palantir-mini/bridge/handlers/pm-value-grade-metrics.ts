@@ -29,7 +29,7 @@ interface PmValueGradeMetricsArgs {
   /**
    * v4.11.0 sprint-057 W5 — when true, t2PlusRatio denominator = (T0+T1+T2+T3+T4)
    * instead of totalEvents, excluding ungraded historical events. Default false
-   * for back-compat with existing consumers (pm-three-questions skill etc).
+   * for back-compat with existing consumers (pm-value-audit Three-Questions mode etc).
    */
   useGradedDenominator?: boolean;
 }

@@ -148,5 +148,5 @@ Total output MUST be ≤25K. Truncate lineage to last 5 events if needed.
 ## Related skills
 
 - `/palantir-mini:pm-impact-quick` — blast radius for a single RID (impact_query + lineage; quick pre-edit check)
-- `/palantir-mini:pm-decision-replay` — query historical decisions for a RID
+- `/palantir-mini:pm-replay --circuit` — query historical decisions for a RID
 - `/palantir-mini:pm-lineage` — full lineage trace for an event or RID

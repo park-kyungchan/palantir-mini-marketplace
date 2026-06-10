@@ -112,6 +112,6 @@ Running this skill within 5 min of an Edit/Write/MultiEdit satisfies the MCP-fir
 
 ## Related skills
 
-- `/palantir-mini:pm-decision-replay` — query historical decisions for a RID
+- `/palantir-mini:pm-replay --circuit` — query historical decisions for a RID
 - `/palantir-mini:pm-pr-impact` — broader PR-level impact analysis
 - `/palantir-mini:pm-lineage` — full lineage trace for an event or RID

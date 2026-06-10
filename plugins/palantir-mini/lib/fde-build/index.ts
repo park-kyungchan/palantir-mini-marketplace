@@ -57,16 +57,9 @@ export {
 export { renderNamingAuditReportMarkdown } from "./naming-report-renderer";
 export type { RenderOptions as NamingReportRenderOptions } from "./naming-report-renderer";
 
-// Slice 3.B additions — rubric grader + gap report builder + submission criteria readiness
-export {
-  gradeFDEReadiness,
-  type GradeFDEReadinessInput,
-  type GradeFDEReadinessResult,
-} from "./rubric-grader";
-
+// Slice 3.B additions — gap report builder + submission criteria readiness
 export {
   buildFDEGapReportDetailed,
-  renderFDEGapReportMarkdown,
   type BuildFDEGapReportInput,
 } from "./gap-report-builder";
 

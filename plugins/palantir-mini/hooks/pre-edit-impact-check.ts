@@ -108,7 +108,7 @@ export default async function preEditImpactCheck(payload: unknown): Promise<{
   const arrowCount = arrowMatches ? arrowMatches.length : 0;
   if (arrowCount >= 5) {
     await emitSkillSuggestion({
-      suggestedSkillSlug: "pm-decision-replay",
+      suggestedSkillSlug: "pm-replay",
       suggestedByHook:    "pre-edit-impact-check",
       triggerCondition:   `pre-edit blastRadius ≥ 5 (arrow proxy=${arrowCount}, files=${proposedFiles.length})`,
       suggestionContext:  proposedFiles.join(","),

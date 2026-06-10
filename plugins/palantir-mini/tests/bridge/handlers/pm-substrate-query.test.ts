@@ -1,6 +1,6 @@
 // palantir-mini v4.15.0 — pm_substrate_query handler tests (sprint-063 W4.B)
 // Coverage:
-//   T1: each of 6 modes dispatches to correct delegated handler (via result shape)
+//   T1: each mode dispatches to correct delegated handler (via result shape)
 //   T2: invalid mode → throws clear error
 //   T3: filter pass-through for "workflow" mode (projects field)
 //   T4: delegated handler throws → result.ok=false, error captured
@@ -91,6 +91,7 @@ describe("T0: public MCP schema registry", () => {
       "learn",
       "agent-export",
       "post-merge",
+      "session-opener",
     ]);
     expect(properties.newMergeSha?.description).toContain("Handler-required");
     expect(properties.previousMainSha?.description).toContain("newMergeSha^");
@@ -102,7 +103,7 @@ describe("T0: public MCP schema registry", () => {
   });
 });
 
-// ─── T1: each of 7 modes dispatches to the correct delegated handler ──────────
+// ─── T1: each mode dispatches to the correct delegated handler ────────────────
 
 describe("T1: mode dispatch — result shape from delegated handler", () => {
   test("mode=lineage dispatches to replay-lineage (returns events + lineageGraph)", async () => {
@@ -224,6 +225,26 @@ describe("T1: mode dispatch — result shape from delegated handler", () => {
     expect(result.mode).toBe("post-merge");
     expect(result.error).toMatch(/newMergeSha.*required|required.*newMergeSha/i);
   });
+
+  test("mode=session-opener dispatches to pm-lead-brief (returns session brief)", async () => {
+    // Folds former pm_lead_brief — the brief payload is preserved verbatim.
+    const project = makeTmpProject();
+    writeEvents(project, [{ type: "edit_committed", valueGrade: "T3" }]);
+
+    const result = await pmSubstrateQuery({
+      project,
+      mode: "session-opener",
+      intent: "implement a refactor across the harness",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.mode).toBe("session-opener");
+    const data = result.data as Record<string, unknown>;
+    // pm-lead-brief returns session + valueGradeMetrics + dispatchSuggestion (intent provided)
+    expect(data.session).toBeDefined();
+    expect(data.valueGradeMetrics).toBeDefined();
+    expect(data.dispatchSuggestion).toBe("delegate");
+  });
 });
 
 // ─── T2: invalid mode → throws clear error ────────────────────────────────────
@@ -235,14 +256,14 @@ describe("T2: invalid mode rejects", () => {
     ).rejects.toThrow(/unknown mode.*invalid-mode/);
   });
 
-  test("error message lists all 7 valid modes", async () => {
+  test("error message lists all valid modes", async () => {
     let msg = "";
     try {
       await pmSubstrateQuery({ project: "/tmp", mode: "bad" as never });
     } catch (e) {
       msg = (e as Error).message;
     }
-    for (const validMode of ["lineage", "workflow", "by-grade", "retro", "learn", "agent-export", "post-merge"]) {
+    for (const validMode of ["lineage", "workflow", "by-grade", "retro", "learn", "agent-export", "post-merge", "session-opener"]) {
       expect(msg).toContain(validMode);
     }
   });

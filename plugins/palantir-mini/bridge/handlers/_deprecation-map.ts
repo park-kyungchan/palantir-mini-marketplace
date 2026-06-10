@@ -1,5 +1,6 @@
-// palantir-mini v6.0.0 — bridge/handlers/_deprecation-map.ts
-// Canonical removal record for MCP tools removed in v6.0.0 (PR-14a).
+// palantir-mini — bridge/handlers/_deprecation-map.ts
+// Canonical removal record for MCP tools removed across plugin majors
+// (v6.0.0 PR-14a + v7.0.0 PR-E2 surface trim).
 //
 // This file is NOT a public MCP tool — it is consumed by:
 //   - bridge/handlers/pm-handler-usage-audit.ts (pm_health_audit handler-usage mode)
@@ -93,6 +94,46 @@ export const DEPRECATION_MAP: DeprecationEntry[] = [
     removed:          "validate_hook_event_allowlist",
     replacement:      "pm_health_audit mode='handler-usage'",
     removedAtVersion: "6.0.0",
+  },
+  // ── PR-E2 surface trim (7.0.0) — 4 zero-consumer audits removed (S6 + Q7) ────
+  // The surface-contract / source-authority / decision-parity audits and the
+  // managed-settings fragment audit are subsumed by pm_plugin_self_check, which
+  // builds the surface-contract + managed-settings results inline.
+  {
+    removed:          "pm_surface_contract_audit",
+    replacement:      "pm_plugin_self_check",
+    removedAtVersion: "7.0.0",
+  },
+  {
+    removed:          "pm_aip_source_authority_validate",
+    replacement:      "pm_plugin_self_check",
+    removedAtVersion: "7.0.0",
+  },
+  {
+    removed:          "pm_runtime_decision_parity",
+    replacement:      "pm_plugin_self_check",
+    removedAtVersion: "7.0.0",
+  },
+  {
+    removed:          "validate_managed_settings_fragments",
+    replacement:      "pm_plugin_self_check",
+    removedAtVersion: "7.0.0",
+  },
+  // ── PR-E2 surface trim (7.0.0) — 3 tools folded into survivors (S7) ──────────
+  {
+    removed:          "grade_semantic_intent_contract",
+    replacement:      "pm_ontology_engineering_workflow action='approve_sic'",
+    removedAtVersion: "7.0.0",
+  },
+  {
+    removed:          "pm_workflow_response_validate",
+    replacement:      "pm_plugin_self_check",
+    removedAtVersion: "7.0.0",
+  },
+  {
+    removed:          "pm_lead_brief",
+    replacement:      "pm_substrate_query mode='session-opener'",
+    removedAtVersion: "7.0.0",
   },
 ];
 

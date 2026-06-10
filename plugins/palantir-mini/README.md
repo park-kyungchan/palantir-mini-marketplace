@@ -199,18 +199,19 @@ public families are:
 
 - **Ontology + state**: `emit_event`, `get_ontology`, `ontology_schema_get`,
   `impact_query`, `pre_edit_impact`, `ontology_context_query`,
-  `pm_substrate_query`
+  `pm_substrate_query` (its `session-opener` mode replaces the former
+  `pm_lead_brief`)
 - **Edit proposal + commit gate**: `apply_edit_function`,
   `compute_edits_dry_run`, `commit_edits`
-- **Sprint + grading**: `negotiate_sprint_contract`,
-  `grade_semantic_intent_contract`, `grade_outcome_with_rubric`,
-  `pm_grader_dispatch`
+- **Grading**: `grade_outcome_with_rubric`, `pm_grader_dispatch`
+  (deterministic SIC grading folded into `pm_ontology_engineering_workflow`
+  `approve_sic`)
 - **Lead routing + Prompt-to-DTC**: `pm_semantic_intent_gate`,
-  `pm_intent_router`, `pm_lead_brief`
-- **Validation + research routing**: `pm_plugin_self_check`,
-  `pm_health_audit`, `pm_rule_query`, `pm_rule_audit`,
-  `validate_managed_settings_fragments`, `research_context_select`,
-  `research_library_refresh`
+  `pm_intent_router`
+- **Validation + research routing**: `pm_plugin_self_check` (subsumes the former
+  surface-contract / source-authority / decision-parity / managed-settings and
+  workflow-response audits), `pm_health_audit`, `pm_rule_query`, `pm_rule_audit`,
+  `research_context_select`, `research_library_refresh`
 
 ## Current layout
 

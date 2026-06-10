@@ -100,7 +100,7 @@ When you see T2+ events missing layers, the `memory-layer-validator` PostToolUse
 - Handler: `~/.claude/plugins/palantir-mini/bridge/handlers/pm-memory-layer-audit.ts`.
 - Schema: `~/.claude/schemas/ontology/primitives/agentic-memory-layer.ts`.
 - Hook: `memory-layer-validator` PostToolUse on emit_event (advisory + auto-tag suggest).
-- Related: `/palantir-mini:pm-value-audit` (overall substrate health), `/palantir-mini:pm-decision-replay` (T3+ circuit fold).
+- Related: `/palantir-mini:pm-value-audit` (overall substrate health), `/palantir-mini:pm-replay --circuit` (T3+ circuit fold).
 
 ## Memory layer declaration
 

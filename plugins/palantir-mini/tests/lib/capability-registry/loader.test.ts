@@ -26,12 +26,36 @@ import {
   STUDIO_CORE_MCP_TOOL_NAMES,
 } from "../../../lib/capability-registry/mcp-tool-capability";
 
-const REAL_PLUGIN_ROOT =
-  process.env["PALANTIR_MINI_ROOT"] ??
-  process.env["PALANTIR_MINI_PLUGIN_ROOT"] ??
-  process.env["PLUGIN_ROOT"] ??
-  process.env["PALANTIR_MINI_PLUGIN_ROOT"] ??
-  path.resolve(import.meta.dir, "../../..");
+// Resolve the real plugin root from the package-relative source path, NOT from
+// the root env vars. A session-exported value (e.g. a stale plugin cache) takes
+// precedence in resolvePalantirMiniRoot and would make these tests read the
+// stale cache's declared tool counts instead of the live source. isolateRootEnv
+// below clears those env vars so loadCapabilityRegistry resolves the same root.
+const REAL_PLUGIN_ROOT = path.resolve(import.meta.dir, "../../..");
+
+// Root env vars honored by resolvePalantirMiniRoot (lib/config/root.ts).
+const ROOT_ENV_VARS = [
+  "PALANTIR_MINI_ROOT",
+  "PALANTIR_MINI_PLUGIN_ROOT",
+  "PLUGIN_ROOT",
+] as const;
+
+function isolateRootEnv(): void {
+  const savedEnv: Record<string, string | undefined> = {};
+  beforeEach(() => {
+    for (const k of ROOT_ENV_VARS) {
+      savedEnv[k] = process.env[k];
+      delete process.env[k];
+    }
+  });
+  afterEach(() => {
+    for (const k of ROOT_ENV_VARS) {
+      const v = savedEnv[k];
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  });
+}
 
 function requireCapabilitySurface(
   registryCapabilities: readonly (typeof MCP_TOOL_CAPABILITIES)[number][],
@@ -65,6 +89,8 @@ afterEach(() => {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("loadCapabilityRegistry", () => {
+  isolateRootEnv();
+
   test("registry has the 8 expected category keys", () => {
     const { registry } = loadCapabilityRegistry(tmpProjectRoot);
 
