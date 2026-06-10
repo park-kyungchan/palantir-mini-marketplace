@@ -2,11 +2,11 @@
 ruleId: 10
 slug: events-jsonl
 scope: global
-version: 2.2.0
+version: 2.2.1
 invariant: "events.jsonl is append-only; every ontology edit emits a 5-dim event BEFORE writing files; optional 6th field propagationDepth tracks ForwardProp/BackwardProp chain depth with auto-derivation from emitter path. PreCompact gate blocks non-conformant compaction."
 supersededBy: null
 supersedes: [18]
-crossRefs: [08, 12, 16, 22]
+crossRefs: [08]
 hookCitations: [events-5d-gate, session-start, pre-compact-state]
 bodyLocCeiling: 45
 ---

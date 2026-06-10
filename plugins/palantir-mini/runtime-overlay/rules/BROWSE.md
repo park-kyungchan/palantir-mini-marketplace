@@ -1,6 +1,6 @@
-# rules/ — Query Router v5.0.0
+# rules/ — Query Router v6.1.0
 
-Claude-local overlay only. Full context: `~/.claude/rules/CONTEXT.md`. Invariants: `~/.claude/rules/CORE.md`. Per-rule detail: `pm_rule_query({ byId: NN })`.
+Claude-local overlay only. Invariants + north-star: `~/.claude/rules/CORE.md`. Per-rule detail: `pm_rule_query({ byId: NN })` (plugin overlay). CONTEXT.md / AUTHORING.md are now stubs — see archive `~/.claude/rules-archive/2026-06-10/`.
 
 | Question | Open |
 |----------|------|
@@ -12,4 +12,6 @@ Claude-local overlay only. Full context: `~/.claude/rules/CONTEXT.md`. Invariant
 | auto-merge default + working-tree cleanliness + post-merge cleanup | pm_rule_query byId=25 |
 | valuable data standard + T0/T1 grading + agentic memory | pm_rule_query byId=26 |
 | cross-runtime substrate + atomic append | pm_rule_query byId=27 |
-| Authoring + system internals + Brain-of-Swarms | `CONTEXT.md` |
+| Fable5 ultracode workflow archiving (trigger, L0/L1/L2 cadence, MetaOptimization) | stub `29-fable5-ultracode-workflow-archiving.md` + `~/harness-upstream/reference/fable5-workflows/RULE.md` |
+| pm identity / Ontology-First / two-altitude (north-star framing) | `CORE.md` + memory pm-intent-and-architecture |
+| Authoring/amending a rule + system internals (ceilings, frontmatter, enforcement hooks) | pm_rule_query + `~/.claude/rules-archive/2026-06-10/AUTHORING.md` |

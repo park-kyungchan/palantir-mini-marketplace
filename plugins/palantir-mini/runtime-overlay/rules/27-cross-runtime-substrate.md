@@ -6,7 +6,7 @@ version: 1.0.0
 invariant: "events.jsonl is a shared substrate; cross-runtime appends use atomic write+rename; byWhom.identity self-attributes the writing runtime."
 supersededBy: null
 supersedes: []
-crossRefs: [10, 16, 19]
+crossRefs: [10]
 hookCitations: []
 ---
 

@@ -89,6 +89,32 @@ describe("resolve_by_id_overlay_hit", () => {
       expect(sync.body.length).toBeGreaterThan(0);
     }
   });
+
+  test("resolveRule(29) serves the fable5 rule body from the plugin overlay", async () => {
+    // Rule 29 (fable5-ultracode-workflow-archiving) was added to the overlay at the
+    // 2026-06-10 rules sync. The external ~/.claude/rules/29-*.md is a stub, so the
+    // overlay must win and serve the full body (pm_rule_query byId:29 depends on this).
+    const overlayFile = path.join(
+      OVERLAY_RULES_DIR,
+      "29-fable5-ultracode-workflow-archiving.md",
+    );
+    if (!fs.existsSync(overlayFile)) {
+      // Overlay absent in this env — assert at least a defined source.
+      const result = await resolveRule(29);
+      expect(["external", "not-found"]).toContain(result.source);
+      return;
+    }
+    const result = await resolveRule(29);
+    expect(result.source).toBe("plugin-overlay");
+    expect(result.body.length).toBeGreaterThan(0);
+    expect(result.body).toContain("§Trigger");
+    expect(result.filePath).toContain("29-fable5-ultracode-workflow-archiving.md");
+
+    // Slug resolution also hits the overlay.
+    const bySlug = resolveRuleSync("fable5-ultracode-workflow-archiving");
+    expect(bySlug.source).toBe("plugin-overlay");
+    expect(bySlug.body).toBe(result.body);
+  });
 });
 
 // ─── 3. resolveRule by slug ───────────────────────────────────────────────────

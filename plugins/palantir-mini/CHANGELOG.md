@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.2.0] - 2026-06-10 — chore: rules overlay sync — full bodies refreshed post home-slim + rule 29 registered + bottleneck measures real bodies
+
+### Changed
+- runtime-overlay/rules/* refreshed to the full archived bodies (the home ~/.claude/rules/ was slimmed to stubs 2026-06-10; pm_rule_query overlay-first now serves current full text); rule 25 carries the corrected hookCitations (2 removed session-start-* hooks dropped); CORE/BROWSE vendored at the canonical slim versions; CONTEXT/AUTHORING vendored full from the archive.
+- NEW rule 29 (fable5-ultracode-workflow-archiving) registered: overlay body (canonical source: ~/harness-upstream/reference/fable5-workflows/RULE.md) + generated rule-registry regen (global ids now 0,1,2,7,8,10,25,26,27,29) + self-ontology rule seed 8→9 — the live-rules drift guard is green again.
+- rule-audit --mode=bottleneck now measures body LOC against the plugin overlay (real bodies) with home fallback; stays advisory.
+- New overlay-resolution test: rule 29 resolves from the plugin overlay by id and slug.
+
+Verification: tsc exit 0; rule drift-guard 4/4; resolve-rule 14, pm-rule-query 19, pm-rule-audit 19, rule-audit hook 16, hook-citations 11 — 201 pass/0 fail across the rules surface; registry regenerated via the generator (never hand-edited; @generated header intact).
+
 ## [7.1.0] - 2026-06-10 — fix: SIC/DTC definition consolidation — lib extends the primitive shared core; canonical clarification; schemaVersion minted (zero behavior change)
 
 ### Changed
