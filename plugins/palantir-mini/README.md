@@ -58,7 +58,6 @@ When shipping ≥2 dependency-independent PRs concurrently, Lead MUST:
 3. Include CHANGELOG merge protocol in each briefing (keep BOTH entries, newest-on-top).
 
 Full protocol: `docs/PARALLEL_SPAWN_DISPATCH.md`
-Rule: rule 12 v3.19.0 §Parallel-spawn dispatch
 Advisory hook: `hooks/parallel-spawn-version-advisory.ts`
 
 
@@ -163,8 +162,8 @@ and release facts belong in this README, `CHANGELOG.md`, manifests,
 `hooks/hooks.json`, and `managed-settings.d/`.
 
 Before expanding per-turn overlays for palantir-mini drift, use the existing
-control plane first: `pm-rule-audit`, `validate_managed_settings_fragments`,
-`detect_doc_drift`, `validate_hook_event_allowlist`, and `pm_plugin_self_check`.
+control plane first: `pm_rule_audit`, `pm_plugin_self_check`, and
+`pm_health_audit` (doc-drift / handler-usage modes).
 If one of those validators reports false drift because it is legacy, repair the
 validator rather than copying workaround text across every overlay.
 
@@ -229,7 +228,7 @@ palantir-mini/
 │   ├── validation/              # validation pipeline
 │   └── ...                      # shared runtime helpers
 ├── skills/*/SKILL.md            # plugin skill docs; exact inventory is self-check-owned
-├── agents/                      # harness-planner / generator / evaluator
+├── agents/                      # docs-researcher / hook-builder / implementer / ontology-steward / plugin-maintainer / protocol-designer / researcher / verifier
 ├── managed-settings.d/          # RBAC fragment template
 ├── tests/                       # plugin tests
 └── CHANGELOG.md / README.md     # release + operator docs

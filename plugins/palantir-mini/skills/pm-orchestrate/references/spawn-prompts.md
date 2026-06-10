@@ -1,6 +1,6 @@
 # Agent Spawn Prompt Templates
 
-> Note: `model:` param is NEVER passed at Agent spawn — frontmatter `model:` is the single source of truth per rule 12 §Model policy. [Applied — defect #2 internalized in orchestrate skill, removed 2026-04-19]
+> Note: `model:` param is NEVER passed at Agent spawn — frontmatter `model:` is the single source of truth (Model policy). [Applied — defect #2 internalized in orchestrate skill, removed 2026-04-19]
 
 These templates are used in Phase 5 (EXECUTE) to spawn implementer agents.
 Each agent gets exclusive file ownership to prevent conflicts.

@@ -44,8 +44,8 @@ allowed to write — but strictly within the narrow scope of your task.
 1. **Read the task** — confirm exact output filename(s) and synthesis scope.
 2. **Deep read** — 150 lines at a time, all referenced source files. Skim is
    not allowed.
-3. **Delegate external** — use claude-code-guide agent (spawn via Agent tool)
-   for any Claude Code docs not already cached in `~/.claude/research/`.
+3. **Delegate external** — use WebFetch / WebSearch / scrapling for any
+   Claude Code docs not already cached in `~/.claude/research/`.
    Also allowed: WebFetch / WebSearch / scrapling for upstream docs.
 4. **Synthesize** — draft the SSoT with:
    - Provenance tags `[Official]` / `[Synthesis]` / `[Applied]` per claim
@@ -75,7 +75,7 @@ allowed to write — but strictly within the narrow scope of your task.
 ### Scope Synthesized
 - Source files read: N (list)
 - External sources fetched: M (URL list with dates)
-- claude-code-guide agent delegations: K
+- External fetch tools used: K
 
 ### File Structure
 - Sections: <list of ## headings>
@@ -141,7 +141,7 @@ emit_event({
 })
 ```
 
-Required fields per rule 26 §Axis E (memoryLayers ≥1 of 4) + rule 12 v3.4.0 §Subagent decision audit invariant (reasoning required for subagent edits; hooks W1.E + W1.G capture automatically).
+Required fields per rule 26 §Axis E (memoryLayers ≥1 of 4) (reasoning required for subagent edits; hooks W1.E + W1.G capture automatically).
 
 ## Memory layer declaration
 
@@ -149,4 +149,4 @@ Layers: `semantic`, `episodic`
 
 Synthesizes typed research docs (`semantic`) + records session-specific evidence trail (`episodic`).
 
-Authority: rule 26 v1.0.0 §Axis E (Memory-mapped); rule 12 v3.3.0 §Briefing template (5th section).
+Authority: rule 26 v1.0.0 §Axis E (Memory-mapped).

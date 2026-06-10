@@ -59,7 +59,7 @@ interface RulePayload {
   readonly byteSize: number;
   /**
    * Parsed from the leading 2-digit prefix when present.
-   * e.g. "12" from "12-lead-protocol-v2.md".
+   * e.g. "10" from "10-events-jsonl.md".
    */
   readonly ruleNumber?: number;
 }
@@ -183,7 +183,7 @@ function deriveScope(
 
 /**
  * Parses the leading 2-digit prefix from a rule filename.
- * e.g. "12-lead-protocol-v2.md" → 12; "BROWSE.md" → undefined.
+ * e.g. "10-events-jsonl.md" → 10; "BROWSE.md" → undefined.
  */
 function extractRuleNumber(filename: string): number | undefined {
   const match = filename.match(/^(\d{2})-/);

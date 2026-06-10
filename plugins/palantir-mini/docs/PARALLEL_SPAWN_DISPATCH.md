@@ -2,8 +2,6 @@
 
 > **ALWAYS pass `isolation: "worktree"` to Agent calls in this dispatch pattern.**
 > The session that codified this rule (sprint-135 2026-05-13) observed live corruption from shared-worktree races among 4 concurrent subagents: each subagent's `git checkout -b NEW_BRANCH` switches the SHARED working tree, so the second subagent's branch carries the first subagent's uncommitted edits → silently committed to the wrong branch.
->
-> Rule reference: `~/.claude/rules/12-lead-protocol-v2.md §Parallel-spawn dispatch (v3.19.0)`.
 
 ## Overview
 
@@ -15,7 +13,7 @@ Before spawning in parallel, ALL of these must hold:
 
 1. **Disjoint primary writable surfaces** — no file overlap between PRs (excluding CHANGELOG / package.json / manifests, coordinated via slot pre-reservation).
 2. **No ordering dependency** — PR-A's output not consumed by PR-B in the same batch.
-3. **LOW or MEDIUM risk** — HIGH-risk PRs must stay sequential (rule 12 v3.16.0 split-spawn).
+3. **LOW or MEDIUM risk** — HIGH-risk PRs must stay sequential.
 4. **Worktree isolation REQUIRED** — `isolation: "worktree"` must be passable in Agent args.
 
 ## Version-slot pre-reservation
@@ -124,14 +122,14 @@ for batch in topologically-grouped-parallel-batches(planTasks):
 | ≥3 independent PRs + each < 15-min impl | Parallel, pre-reserve slots |
 | 2 independent PRs | Parallel if wall-clock matters; sequential otherwise |
 | 1 PR | Sequential (Lead-direct or single sonnet spawn) |
-| Any HIGH-risk PR | Sequential (rule 12 v3.16.0 split-spawn) |
+| Any HIGH-risk PR | Sequential (split-spawn) |
 | Worktree isolation unavailable | Sequential |
 
 ## Cross-references
 
-- Rule 12 v3.19.0 §Parallel-spawn dispatch (canonical rule)
-- Rule 12 v3.16.0 §Commit-PR delegation default (HIGH-risk single PR split-spawn)
-- Rule 16 v4.1.0 §Roles (worktree isolation for generator-tier agents)
+- This document (canonical) §Parallel-spawn dispatch
+- Commit-PR delegation default: HIGH-risk single PR uses split-spawn
+- Worktree isolation required for parallel-spawn agents
 - Rule 20 §Mode ladder (orchestration mode selection)
 - Rule 24 §Dispatch flowchart (Brain-of-Swarms canonical routing)
 - Rule 25 §Default-On Policy (3-gate auto-merge after parallel-spawn merges)

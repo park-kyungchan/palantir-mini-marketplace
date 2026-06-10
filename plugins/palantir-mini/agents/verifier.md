@@ -185,7 +185,7 @@ emit_event({
 })
 ```
 
-Required fields per rule 26 §Axis E (memoryLayers ≥1 of 4) + rule 12 v3.4.0 §Subagent decision audit invariant (reasoning required for subagent edits; hooks W1.E + W1.G capture automatically).
+Required fields per rule 26 §Axis E (memoryLayers ≥1 of 4) (reasoning required for subagent edits; hooks W1.E + W1.G capture automatically).
 
 ## Memory layer declaration
 
@@ -193,4 +193,4 @@ Layers: `procedural`, `semantic`
 
 Correctness + red-team review checks (`procedural` Fagan reader checklist + adversarial probes) + cites typed contracts, primitives, and ontology (`semantic`).
 
-Authority: rule 26 v1.0.0 §Axis E (Memory-mapped); rule 12 v3.3.0 §Briefing template (5th section).
+Authority: rule 26 v1.0.0 §Axis E (Memory-mapped).

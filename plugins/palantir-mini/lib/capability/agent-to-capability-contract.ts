@@ -1,7 +1,7 @@
 // palantir-mini — lib/capability/agent-to-capability-contract.ts
 // Converts AgentDefinitionDeclaration → CapabilityContract
 // Mirrors skillContractToCapabilityContract + mcpToolSpecToCapabilityContract
-// (rule 12 §Pre-delegation: agents are first-class routable capabilities)
+// agents are first-class routable capabilities
 
 import type { AgentDefinitionDeclaration } from "#schemas/ontology/primitives/agent-definition";
 import {

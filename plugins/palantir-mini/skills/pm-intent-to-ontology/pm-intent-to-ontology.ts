@@ -28,7 +28,7 @@
 // Former steps 1 (identify-intent, Lead-internal) + 3 (impact_query) + 4 (semantic_change_plan)
 // collapsed → new step 2 (impact_query only). Step numbering renumbered 1-6.
 //
-// Authority: sprint-063 W2.C; rule 12 v3.12.0 §Intent-to-Ontology Protocol;
+// Authority: sprint-063 W2.C; Intent-to-Ontology Protocol (owned by this skill);
 //            rule 01 §ForwardProp Audit; rule 26 §Axis E.
 
 import type { AgenticMemoryLayer } from "#schemas/ontology/primitives/agentic-memory-layer";

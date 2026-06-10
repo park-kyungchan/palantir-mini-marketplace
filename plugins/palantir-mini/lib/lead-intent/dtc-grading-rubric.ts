@@ -6,7 +6,6 @@
 //
 // Authority:
 //   ~/.claude/plans/inherited-yawning-popcorn.md §6.1–§6.7
-//   rule 16 v4.0.0 §GradingRubric
 //   rule 26 v1.3.0 §Axis B (Verifiable)
 //   research/palantir-foundry/aip/aip-evals-overview-and-ontology-edits-2026-04-14.md
 //
@@ -68,7 +67,7 @@ const DTC_EVIDENCE_SCHEMA = JSON.stringify({
 
 const DTC_PROVENANCE =
   "sprint-WIP-DTC (2026-05-15); " +
-  "rule 16 v4.0.0 §GradingRubric; rule 26 v1.3.0 §Axis B; " +
+  "rule 26 v1.3.0 §Axis B; " +
   "research/palantir-foundry/aip/aip-evals-overview-and-ontology-edits-2026-04-14.md";
 
 // =============================================================================
@@ -306,7 +305,7 @@ const DTC_CRITERION_10: GradingCriterionDeclaration = {
 
 /**
  * C11: simulator impact-radius — dispatched via gradeWithSimulator.
- * validationExpression is a JSON config blob per rule 16 §GradingRubric simulator domain.
+ * validationExpression is a JSON config blob for the GradingRubric simulator domain.
  * Pass when totalAffected < 5 (LOWER radius = better; aligns with AIP Evals §OntologyEditSimulation).
  */
 const DTC_CRITERION_11: GradingCriterionDeclaration = {

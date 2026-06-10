@@ -15,7 +15,7 @@ disable-model-invocation: false
 - After the approved SIC is tied to an FDEOntologyEngineeringSession and
   ContextEngineeringPlan evidence for DATA/LOGIC/ACTION, technology
   recommendation, and validation plan is available
-- Before any ontology-affecting mutation (per rule 16 §B2 default-on hard gate)
+- Before any ontology-affecting mutation (the default-on pre-mutation DTC hard gate)
 - When the Lead or DTC author wants to confirm change boundary turn-by-turn rather than as bulk JSON
 
 ## How it works

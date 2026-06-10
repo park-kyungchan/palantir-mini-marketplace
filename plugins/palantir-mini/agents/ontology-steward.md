@@ -174,7 +174,7 @@ Layers: `semantic`, `procedural`
 
 Schema + shared-core promotion (`semantic` typed primitives) + version bump scripts (`procedural`).
 
-Authority: rule 26 v1.0.0 §Axis E (Memory-mapped); rule 12 v3.3.0 §Briefing template (5th section).
+Authority: rule 26 v1.0.0 §Axis E (Memory-mapped).
 
 ## Authority chain (runtime, sprint-123+)
 
@@ -185,4 +185,4 @@ Your authority boundary at runtime is the contract refs Lead passes in the brief
 
 When NONE of these are provided in your briefing → operate under the active SprintContract only. PATCH-level docs changes may proceed; MINOR/MAJOR changes require explicit Lead confirmation in the task briefing.
 
-Per canonical plan v2 §4 row 5.12 + rule 16 v3.2.0 §SprintContract bind invariant.
+Per canonical plan v2 §4 row 5.12.

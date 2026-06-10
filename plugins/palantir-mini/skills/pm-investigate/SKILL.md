@@ -76,12 +76,12 @@ After forming your root cause hypothesis, lock edits to the affected module to
 prevent scope creep.
 
 Identify the narrowest directory containing the affected files, then instruct the
-user (or yourself, if the session permits) to run `/palantir-mini:pm-freeze` with
-that directory. The freeze skill will block Edit/Write outside the boundary until
-`/palantir-mini:pm-unfreeze` is called.
+user (or yourself, if the session permits) to run `/palantir-mini:pm-guard` with
+that directory. The guard skill will block Edit/Write outside the boundary until
+the freeze-dir state file is removed.
 
 Tell the user: "Edits are restricted to `<dir>/` for this debug session. This
-prevents changes to unrelated code. Run `/palantir-mini:pm-unfreeze` to remove
+prevents changes to unrelated code. Remove the freeze-dir state file to lift
 the restriction."
 
 If the bug spans the entire repo or the scope is genuinely unclear, skip the lock

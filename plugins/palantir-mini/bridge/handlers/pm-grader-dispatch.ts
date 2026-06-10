@@ -1,8 +1,8 @@
 // palantir-mini — MCP tool handler: pm_grader_dispatch (W3e-1)
 //
 // Thin wrapper over lib/grader/dispatch-adapter.ts. Dispatches ONE model-domain
-// criterion to a FRESH grader subprocess (eliminates self-grading bias, rule 16
-// §Roles). The dispatch CONTRACT is runtime-neutral; the spawn (claude -p /
+// criterion to a FRESH grader subprocess (eliminates self-grading bias).
+// The dispatch CONTRACT is runtime-neutral; the spawn (claude -p /
 // codex exec) is the adapter binding selected via PALANTIR_MINI_HOST_RUNTIME.
 // Never throws on grader failure — degrades to score=0 with a captured reason.
 

@@ -45,8 +45,8 @@
       "input": {
         "category": "adversarial_verifier"
       },
-      "expectedBehavior": "Release mode fails governance, security, and runtime slices without passing verifier-adversarial evidence refs.",
-      "tags": ["release", "verifier-adversarial", "governance", "security", "runtime"]
+      "expectedBehavior": "Release mode fails governance, security, and runtime slices without passing adversarial verifier evidence refs.",
+      "tags": ["release", "verifier", "governance", "security", "runtime"]
     },
     {
       "testCaseId": "testcase:release-outcome-replay-evidence",

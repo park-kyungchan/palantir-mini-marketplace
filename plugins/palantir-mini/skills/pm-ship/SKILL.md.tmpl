@@ -593,13 +593,13 @@ git push -u origin <branch-name>
 
 ## Step 18: Documentation sync (via subagent, before PR creation)
 
-**Dispatch `/palantir-mini:pm-document-release` as a subagent** using the Agent tool with `subagent_type: "general-purpose"`. The subagent gets a fresh context window — zero rot from the preceding 17 steps.
+**Dispatch a documentation-sync subagent** using the Agent tool with `subagent_type: "general-purpose"`. The subagent gets a fresh context window — zero rot from the preceding 17 steps. pm-ship owns the documentation-release workflow inline; describe it fully in the subagent prompt below.
 
 **Sequencing:** This step runs AFTER Step 17 (Push) and BEFORE Step 19 (Create PR). The PR is created once from final HEAD with the `## Documentation` section baked into the initial body. No create-then-re-edit dance.
 
 **Subagent prompt:**
 
-> You are executing the /palantir-mini:pm-document-release workflow after a code push. Read the full skill file `${PALANTIR_MINI_PLUGIN_ROOT}/skills/pm-document-release/SKILL.md` and execute its complete workflow end-to-end, including CHANGELOG clobber protection, doc exclusions, and risky-change gates. Do NOT attempt to edit the PR body — no PR exists yet. Branch: `<branch>`, base: `<base>`.
+> You are syncing release documentation after a code push. Inspect the pushed diff (`git diff <base>..HEAD`) and update any out-of-date documentation it implies — README, CLAUDE.md, CHANGELOG, and other docs that describe changed behavior. Apply CHANGELOG clobber protection (never overwrite an existing entry for this version; append), respect doc exclusions (skip generated files, `runtime-overlay/**`, `src/generated/**`), and gate risky changes behind an explicit note rather than silent edits. Commit and push any doc updates. Do NOT attempt to edit the PR body — no PR exists yet. Branch: `<branch>`, base: `<base>`.
 >
 > After completing the workflow, output a single JSON object on the LAST LINE of your response (no other text after it):
 > `{"files_updated":["README.md","CLAUDE.md",...],"commit_sha":"abc1234","pushed":true,"documentation_section":"<markdown block for PR body's ## Documentation section>"}`

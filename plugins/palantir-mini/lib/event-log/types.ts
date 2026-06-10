@@ -704,9 +704,8 @@ export type ToolInvocationCompletedEnvelope = EventEnvelopeBase & {
 
 // ─── v2.18.0 — W1 Planner Output Meta-Rubric (schemas v1.23 planner_output_graded) ──
 //
-// Emitted by grade_planner_output handler after scoring harness-planner's
-// spec.md against featureCount + designSpecificity + antiPatternCount.
-// Consumed by pm-harness-plan skill — verdict="block" alerts Lead.
+// Emitted after scoring a planner's spec.md against featureCount +
+// designSpecificity + antiPatternCount. A verdict="block" alerts Lead.
 
 export type PlannerOutputGradedEnvelope = EventEnvelopeBase & {
   type: "planner_output_graded";
@@ -771,9 +770,9 @@ export type SprintContractDissentPreservedEnvelope = EventEnvelopeBase & {
 
 // ─── v2.20.0 — W4 Context Reset Optional (schemas v1.25 context_reset_handoff_emitted) ──
 //
-// Declaration-only this release. Will be emitted by pm-harness-sprint when
-// SprintContract.iterationResetPolicy="auto" triggers a fresh Generator
-// spawn at an iteration boundary. Runtime impl deferred pending W5 audit.
+// Declaration-only this release. Emitted when a harness sprint records a
+// context-reset handoff at an iteration boundary (SprintContract.iterationResetPolicy="auto").
+// Runtime impl deferred pending W5 audit.
 
 export type ContextResetHandoffEmittedEnvelope = EventEnvelopeBase & {
   type: "context_reset_handoff_emitted";

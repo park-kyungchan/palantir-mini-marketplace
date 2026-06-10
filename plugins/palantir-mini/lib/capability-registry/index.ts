@@ -13,7 +13,7 @@
 // Cache: getCached/setCached (5-min TTL + directory mtime invalidation) in ./cache.ts.
 //
 // Rule cross-refs:
-//   rule 12 v3.13.0 §Lead routing canonical (registry feeds pm_intent_router)
+//   Lead routing canonical (registry feeds pm_intent_router)
 //   rule 26 §semantic memory layer (CapabilityRegistry = semantic substrate)
 
 import * as crypto from "node:crypto";

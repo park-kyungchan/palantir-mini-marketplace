@@ -89,5 +89,5 @@ A proper dynamic-reload mechanism (without session restart) is the original plan
 ## Authority + cross-refs
 
 - Plugin: `plugins/palantir-mini/bridge/mcp-server.ts` (TOOLS registry + moduleMap). `~/.claude/plugins/palantir-mini` is only the Claude compatibility/install target.
-- Hook v2 conventions: rule 12 §Hook v2 conventions (InstructionsLoaded matchers).
+- Hook v2 conventions: hooks use InstructionsLoaded matchers.
 - Plan §3.W4.B — `~/.claude/plans/mossy-mapping-eich.md` (skill-only deviation; full handler reload deferred).

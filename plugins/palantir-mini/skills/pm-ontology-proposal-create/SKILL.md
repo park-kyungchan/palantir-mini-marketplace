@@ -55,7 +55,7 @@ If `applicationsAffected.length > 0` OR `approvalPolicy` is provided → use `Gl
   affectedResources: [<from sourceBranch.affectedResources>],
   reviewerIds,
   validationSummary: {
-    evalRunIds: [/* from /pm-eval-suite-run if any */],
+    evalRunIds: [/* from /pm-eval-suite if any */],
     testsPassed: undefined,  // populated by review step
     impactRadius: undefined,
     notes: undefined
