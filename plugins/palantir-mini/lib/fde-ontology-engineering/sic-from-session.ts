@@ -271,3 +271,52 @@ export function createSemanticIntentContractDraftFromFDEOntologySession(
     })),
   };
 }
+
+/**
+ * P1 fix (SSoT: intent-to-build-flow.md:53 "Stop if any 9-axis slot is missing
+ * or contradicted"; turn-engine-agent-skills.md:112 Request-clarification=Copy).
+ *
+ * A SemanticIntentContract draft is HOLLOW when it carries no grounded meaning:
+ * every one of the nine axes is unfilled (status !== "filled"), AND the approved
+ * noun/verb candidate arrays are empty, AND confirmedIntent is empty or only the
+ * known mission-absent placeholder (`confirmedIntent()` emits that sentence when
+ * no mission/goal state exists). A hollow draft must NOT read as progress — the
+ * draft_sic tool result reports `clarification-required` and surfaces the blocking
+ * questions, instead of a success-shaped `draft`. The persisted contract object is
+ * unchanged (schema-compatible); only the tool-result framing changes.
+ */
+export const SIC_MISSION_ABSENT_SENTINEL =
+  "FDE ontology engineering session requires more accepted mission state.";
+
+export function isSemanticIntentContractHollow(
+  sic: Pick<
+    SemanticIntentContract,
+    "axes" | "approvedNouns" | "approvedVerbs" | "confirmedIntent"
+  >,
+): boolean {
+  const axes = sic.axes;
+  const everyAxisUnfilled =
+    axes === undefined ||
+    (Object.keys(axes) as (keyof typeof axes)[]).every(
+      (key) => axes[key]?.status !== "filled",
+    );
+  const noNouns = (sic.approvedNouns ?? []).length === 0;
+  const noVerbs = (sic.approvedVerbs ?? []).length === 0;
+  const intent = (sic.confirmedIntent ?? "").trim();
+  const intentHollow =
+    intent.length === 0 || intent === SIC_MISSION_ABSENT_SENTINEL;
+  return everyAxisUnfilled && noNouns && noVerbs && intentHollow;
+}
+
+/**
+ * The blocking clarification questions on a draft SIC, surfaced as the PRIMARY
+ * payload when the draft is hollow (P1). Returns `materiality:"blocking"` /
+ * `requiresUserApproval` questions only.
+ */
+export function blockingClarificationQuestions(
+  sic: Pick<SemanticIntentContract, "clarificationQuestions">,
+): readonly NonNullable<SemanticIntentContract["clarificationQuestions"]>[number][] {
+  return (sic.clarificationQuestions ?? []).filter(
+    (q) => q.materiality === "blocking" || q.requiresUserApproval === true,
+  );
+}
