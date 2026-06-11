@@ -555,16 +555,6 @@ export type SprintContractBoundEnvelope = EventEnvelopeBase & {
 
 /**
  * Emitted when a FeedbackLoop is opened.
- *
- * DEPRECATED FIELDS (v1.15, removal in v1.16):
- *   - `transition` — use event type (feedback_loop_opened vs feedback_loop_closed).
- *   - `verdict` — on close only; moved to FeedbackLoopClosedEnvelope.
- *   - `terminationCondition` — on close only; moved to FeedbackLoopClosedEnvelope.
- *   - `iterationCount` — on close only; moved to FeedbackLoopClosedEnvelope.
- *
- * Fields are retained for one MINOR cycle so consumers that still read the
- * v1.14 close-overload pattern keep compiling. Emitters should stop writing
- * them as of v1.15 (close handler now emits feedback_loop_closed).
  */
 export type FeedbackLoopOpenedEnvelope = EventEnvelopeBase & {
   type: "feedback_loop_opened";
@@ -577,22 +567,6 @@ export type FeedbackLoopOpenedEnvelope = EventEnvelopeBase & {
     orchestratorAgentRid?: string;
     sprintNumber?:         number;
     initialState?:         "negotiating" | "generating";
-    // v3.2.0 N1 retention: still consumed by bridge/handlers/pm-harness-outcome-replay.ts
-    // for legacy event reads. v1.16 removal blocked on consumer refactor.
-    /** @deprecated v1.15 — use event type feedback_loop_closed for close transitions. Removal blocked on pm-harness-outcome-replay refactor. */
-    transition?:           "open" | "close";
-    /** @deprecated v1.15 — moved to FeedbackLoopClosedEnvelope.payload.verdict. Removal blocked on pm-harness-outcome-replay refactor. */
-    verdict?:              "passed" | "failed" | "aborted";
-    /** @deprecated v1.15 — moved to FeedbackLoopClosedEnvelope.payload.terminationCondition. Removal blocked on pm-harness-outcome-replay refactor. */
-    terminationCondition?: {
-      type:                "threshold_met" | "iteration_exhausted" | "timeout" | "abort" | "error";
-      rationale:           string;
-      terminatedAt:        string;
-      finalScore?:         number;
-      failedCriterionRid?: string;
-    };
-    /** @deprecated v1.15 — moved to FeedbackLoopClosedEnvelope.payload.iterationCount. Removal blocked on pm-harness-outcome-replay refactor. */
-    iterationCount?:       number;
   };
 };
 
