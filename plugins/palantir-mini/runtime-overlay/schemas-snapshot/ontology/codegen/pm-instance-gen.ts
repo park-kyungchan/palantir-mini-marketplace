@@ -8,7 +8,6 @@
  */
 
 import { generatedFileHeader } from "./manifest";
-import type { GeneratorId } from "./manifest";
 import type { OntologyData, ObjectType, OntologyLogic, LinkType } from "../types";
 
 // =========================================================================
@@ -197,9 +196,7 @@ export function generatePmInstanceWrappers(
   } = args;
 
   const header = generatedFileHeader({
-    // Cast needed: "pm-instance-wrapper" is not yet registered in CODEGEN_MANIFEST.
-    // TODO(manifest-registration): add this generator to manifest.ts (task #3).
-    generatorId: "pm-instance-wrapper" as unknown as GeneratorId,
+    generatorId: "pm-instance-wrapper",
     generatorVersion,
     schemaVersion,
     ontologyHash,

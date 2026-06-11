@@ -11,10 +11,10 @@
  * 76 bound-logic Function instances (catalog §4 + O-1 structuredOutput) modeled at IDENTITY
  * level: functionName + group + sourcePath (+ kind/commits/deterministic descriptors). The 62
  * handler-backed functions trace 1:1 to `bridge/handlers/*.ts` (the SSoT the catalog commands
- * us to drive from — functional handlers 63 >> exposed tools 29); the remaining 14 are
+ * us to drive from — functional handlers 63 >> exposed tools 23); the remaining 14 are
  * lib-subsystem / recap composite LOGIC bound to `lib/**` (incl. structuredOutputFillOrFallback). CRITICAL (the under-modeling trap): the ~34
  * HIDDEN sub-mode handlers under `pm_health_audit` / `pm_substrate_query` / `pm_plugin_self_check`
- * are each their OWN Function instance — a naive 1-ObjectType-per-tool pass captures 29 and
+ * are each their OWN Function instance — a naive 1-ObjectType-per-tool pass captures 23 and
  * silently drops ~34 real Function primitives. They are all seeded below.
  *
  * Bound logic stays as a Function over object sets (never inlined into the ActionType verb
