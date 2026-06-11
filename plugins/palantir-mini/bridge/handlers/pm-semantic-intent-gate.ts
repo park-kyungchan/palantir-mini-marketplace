@@ -160,6 +160,20 @@ import {
   type SicTypedRefDefaults,
 } from "../../lib/semantic-intent/ontology-dtc-build-sequence";
 import { readCurrentFDEOntologyEngineeringSession } from "../../lib/fde-ontology-engineering/session-store";
+// P4 (Slice B) — consuming-layer mutation lane. The single global `mutationAuthorized`
+// boolean answers ONLY the 9-axis promotion question; the SSoT defines seven named modes
+// (read-only … armed-side-effect). `deriveMutationAuthorizationByMode` fans that single
+// gate into the per-mode predicate so a declared `consumer-data-write`/`proposal-only`
+// effort is not forced through the promotion gate. Surfacing the per-mode verdict is
+// PURELY ADDITIVE: the legacy `mutationAuthorized` boolean stays bound to the promotion
+// lane and is never widened (see DEFAULT_MUTATION_MODE = "builder-structure-write").
+import {
+  DEFAULT_MUTATION_MODE,
+  deriveMutationAuthorizationByMode,
+  type MutationMode,
+  type MutationAuthorization,
+  type MutationModeState,
+} from "../../lib/ontology-engineering-workflow";
 import { buildContextEngineeringPlanV2 } from "../../lib/context-engineering/context-plan-builder";
 import { draftDtcFromContextPlanV2 } from "../../lib/context-engineering/dtc-from-context-plan";
 import {
@@ -243,6 +257,24 @@ export interface SemanticIntentGateInput {
    * turn (source = "user"); it never auto-fills the axis.
    */
   readonly proposedAxisDraft?: NineAxisProposedDraft;
+}
+
+/**
+ * P4 (Slice B) — INTERNAL mutation-mode declaration read off the gate input WITHOUT
+ * widening the public `SemanticIntentGateInput` surface (the MCP `additionalProperties:
+ * false` schema + its parity test own that surface; this slice is the single writer of THIS
+ * file only). The handler already accepts `rawArgs` untyped, so when a caller passes these
+ * keys they survive at runtime; `buildWorkflowContractProjection` recovers them through a
+ * localized cast to this interface. Absence ⇒ `builder-structure-write` (default), under
+ * which the projection stays byte-identical to pre-change.
+ */
+interface SemanticIntentGateMutationModeInput {
+  /** Declared SSoT mutation mode; absent ⇒ DEFAULT_MUTATION_MODE (builder-structure-write). */
+  readonly mutationMode?: MutationMode;
+  /** consumer-data-write proof: approved action type (write-set + lineage). */
+  readonly consumerActionTypeRef?: string;
+  /** consumer-data-write proof: validation verdict for the emitted consumer write. */
+  readonly consumerWriteValidated?: boolean;
 }
 
 export interface SemanticIntentFillResult {
@@ -394,6 +426,21 @@ export interface SemanticIntentWorkflowContractProjection {
   allowedNextActions: string[];
   mutationAuthorized: boolean;
   blockingReason?: string;
+  /**
+   * P4 (Slice B) — the SSoT mutation mode this projection was evaluated under.
+   * `builder-structure-write` (the default) reproduces the legacy promotion gate; any
+   * other value selected the lighter lane. ADDITIVE: present only as context; the legacy
+   * `mutationAuthorized` boolean above is unchanged and remains the promotion verdict.
+   */
+  mutationMode?: MutationMode;
+  /**
+   * P4 (Slice B) — the per-mode authorization verdict from
+   * `deriveMutationAuthorizationByMode` (mode / authorized / requires / rationale).
+   * ADDITIVE and NEVER widens `mutationAuthorized`: for `builder-structure-write` its
+   * `authorized` reflects the promotion gate; for the lighter lanes it answers the lane's
+   * OWN predicate so a consuming-layer write is not over-gated.
+   */
+  mutationAuthorization?: MutationAuthorization;
   ontologyDtcBuildReadiness?: {
     status: OntologyDtcBuildReadinessGate["status"];
     readyForRouter: boolean;
@@ -506,6 +553,66 @@ function buildWorkflowContractProjection(
     gate.digitalTwin.valid &&
     (ontologyDtcBuildReadinessGate?.readyForRouter ?? true) &&
     openDecisionIds.length === 0;
+  // P4 (Slice B) — fan the SECOND `mutationAuthorized` producer out across the seven SSoT
+  // modes. The legacy boolean above is UNTOUCHED and stays the promotion verdict; the
+  // per-mode verdict below is PURELY ADDITIVE. When no mode is declared the effective mode
+  // is `builder-structure-write`, under which `deriveMutationAuthorizationByMode` delegates
+  // to the promotion gate — so `mutationMode === DEFAULT_MUTATION_MODE` and the
+  // `allowedNextActions`/`currentPhase`/`blockingReason` below stay byte-identical. The
+  // proof bag uses only refs/inputs already in scope; missing lane proofs ⇒ that lane is
+  // conservatively gated false with its `requires` naming what is missing (no invention).
+  const modeInput = input as unknown as SemanticIntentGateMutationModeInput;
+  const effectiveMutationMode: MutationMode = modeInput.mutationMode ?? DEFAULT_MUTATION_MODE;
+  const mutationModeState: MutationModeState = {
+    ...(contractRefs?.semanticIntentContractRef
+      ? { semanticIntentContractRef: contractRefs.semanticIntentContractRef }
+      : {}),
+    ...(contractRefs?.digitalTwinChangeContractRef
+      ? { digitalTwinChangeContractRef: contractRefs.digitalTwinChangeContractRef }
+      : {}),
+    ...(modeInput.consumerActionTypeRef
+      ? { consumerActionTypeRef: modeInput.consumerActionTypeRef }
+      : {}),
+    ...(modeInput.consumerWriteValidated !== undefined
+      ? { consumerWriteValidated: modeInput.consumerWriteValidated }
+      : {}),
+  };
+  const mutationAuthorization: MutationAuthorization = deriveMutationAuthorizationByMode(
+    effectiveMutationMode,
+    mutationModeState,
+  );
+  // Lighter-lane next-action: ONLY when a NON-default mode's own predicate is satisfied
+  // while the promotion gate is not — so a `consumer-data-write`/`proposal-only` effort is
+  // not forced through the promotion gate. For the default mode this is always false ⇒ the
+  // array below is byte-identical to pre-change.
+  const lighterLaneAuthorized =
+    effectiveMutationMode !== DEFAULT_MUTATION_MODE &&
+    mutationAuthorization.authorized &&
+    !mutationAuthorized;
+  // P6 (Slice B) — when this projection is built over a gate that bounced for missing
+  // FDE-provenance, name the EXACT next call (`pm_ontology_engineering_workflow start`) so
+  // the front door is one self-describing hop instead of a second, unpersisted error. The
+  // predicate reuses the same two pure functions that drive `applyFDEProvenanceFailure`, so
+  // it fires on exactly that bounce and nowhere else; the prepend is ADDITIVE.
+  const fdeProvenanceBounce =
+    gate.status === "contract_required" &&
+    !gate.allowsRouting &&
+    requiresFDEWorkflowProvenance(input) &&
+    !hasFDEWorkflowProvenance(input);
+  const baseNextActions = mutationAuthorized
+    ? ["route-with-approved-contracts"]
+    : lighterLaneAuthorized
+      ? [`route-with-mutation-mode:${effectiveMutationMode}`, "do-not-route-via-promotion-gate"]
+      : ontologyDtcBuildReadinessGate && !ontologyDtcBuildReadinessGate.readyForRouter
+      ? [
+          "render-readiness-diagnostics",
+          "attach-work-contract-and-router-binding",
+          "do-not-route",
+        ]
+      : ["render-turn-card-as-text", "record-user-decision", "do-not-route"];
+  const allowedNextActions = fdeProvenanceBounce
+    ? ["pm_ontology_engineering_workflow start", ...baseNextActions]
+    : baseNextActions;
   const currentPhase =
     mutationAuthorized
       ? "ready-to-route"
@@ -523,16 +630,10 @@ function buildWorkflowContractProjection(
     turnCards,
     openDecisionIds,
     closedDecisionIds: [],
-    allowedNextActions: mutationAuthorized
-      ? ["route-with-approved-contracts"]
-      : ontologyDtcBuildReadinessGate && !ontologyDtcBuildReadinessGate.readyForRouter
-        ? [
-            "render-readiness-diagnostics",
-            "attach-work-contract-and-router-binding",
-            "do-not-route",
-          ]
-        : ["render-turn-card-as-text", "record-user-decision", "do-not-route"],
+    allowedNextActions,
     mutationAuthorized,
+    mutationMode: effectiveMutationMode,
+    mutationAuthorization,
     ...(!mutationAuthorized
       ? {
           blockingReason:
@@ -1663,6 +1764,59 @@ export async function semanticIntentGate(
       ? applyPromptContinuityFailure(gate, continuity)
       : gate;
   const effectiveGate = applyFDEProvenanceFailure(continuityGate, input);
+  // P6 (Slice B) — persist the FDE-provenance bounce as its OWN 5-dim event. Previously
+  // this prerequisite surfaced only as an in-transcript error and was never written to
+  // events.jsonl (diagnosis P6 part B), so the ordering decision was unauditable. The
+  // predicate mirrors the internal condition of applyFDEProvenanceFailure (the gate WAS
+  // routing, the intent needs FDE provenance, and no session exists) so the event fires on
+  // exactly that bounce. A DISTINCT errorClass ("fde_provenance_required") keeps it from
+  // colliding with the generic contract_required completion event emitted below. Best-effort.
+  const fdeProvenanceBounced =
+    continuityGate.allowsRouting &&
+    !effectiveGate.allowsRouting &&
+    effectiveGate.status === "contract_required" &&
+    requiresFDEWorkflowProvenance(input) &&
+    !hasFDEWorkflowProvenance(input);
+  if (fdeProvenanceBounced) {
+    try {
+      await emit({
+        type: "validation_phase_completed",
+        payload: {
+          phase: "design",
+          passed: false,
+          errorClass: "fde_provenance_required",
+          status: effectiveGate.status,
+          contractPolicy: effectiveGate.contractPolicy,
+          requiredContracts: effectiveGate.requiredContracts,
+          recommendedContracts: effectiveGate.recommendedContracts,
+          reason: effectiveGate.reason,
+          requiredNextAction: "pm_ontology_engineering_workflow start",
+          fdeOntologyEngineeringSessionRef: input.fdeOntologyEngineeringSessionRef ?? null,
+          projectRoot: input.project,
+          runtime: input.runtime ?? "unknown",
+        } as Record<string, unknown>,
+        toolName: "pm_semantic_intent_gate",
+        cwd: input.project,
+        reasoning:
+          `pm_semantic_intent_gate: FDE-provenance bounce — status=${effectiveGate.status} ` +
+          `requiredNextAction=pm_ontology_engineering_workflow start intent="${input.rawIntent.slice(0, 80)}"`,
+        hypothesis:
+          "Naming the exact next call (pm_ontology_engineering_workflow start) and persisting " +
+          "the provenance bounce as a 5-dim event makes the front-door ordering one self-describing, " +
+          "auditable hop instead of a second unpersisted error.",
+        memoryLayers: ["semantic", "procedural"],
+        refinementTarget: {
+          kind: "rule-conformance-policy",
+          filePathOrRid: "bridge/handlers/pm-semantic-intent-gate.ts",
+          description:
+            "Ontology Engineering intent reached the semantic gate without FDEOntologyEngineeringSession provenance; the front door requires pm_ontology_engineering_workflow start first.",
+          confidenceLevel: "high",
+        },
+      });
+    } catch {
+      // Non-fatal — the gate result is returned regardless of emit failure.
+    }
+  }
   const ontologyDtcBuildReadinessGate = assessSemanticGateOntologyDtcBuildReadiness({
     gateInput: input,
     gate: effectiveGate,
