@@ -7,4 +7,5 @@
 
 # local-only marketplace docs (user 2026-06-09)
 /AGENTS.md
-/_workspace/
+/_workspace/*
+!/_workspace/pm-pending-ledger.md
