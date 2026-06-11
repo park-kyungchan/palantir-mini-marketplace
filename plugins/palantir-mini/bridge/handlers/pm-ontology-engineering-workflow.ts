@@ -56,6 +56,7 @@ import {
   type OntologyEngineeringLintResult,
   type TurnCardDecisionSpec,
   type UserDecisionRecord,
+  type UserDecisionKind,
   type MutationMode,
 } from "../../lib/ontology-engineering-workflow";
 import { registerAcceptedCandidates } from "../../lib/ontology-engineering-workflow/register-accepted";
@@ -241,6 +242,35 @@ export interface OntologyEngineeringWorkflowHandlerResult {
     readonly mode: MutationMode;
     readonly authorization: NonNullable<OntologyEngineeringWorkflowState["mutationAuthorization"]>;
     readonly selectableModes: readonly MutationMode[];
+    readonly note: string;
+  };
+  /**
+   * P3 — make the `turnDecisionSpecs` → `choiceApplications` round-trip discoverable
+   * from the tool surface. When the turn minted decision specs that no
+   * `userDecisionRecord` has answered yet, ECHO the still-open `choiceId`s and NAME
+   * the input field (`choiceApplications`) that records them, so the operator can act
+   * on the `decision-ledger.forward-only-existing-gap` warning without
+   * reverse-engineering the input schema. Surfaced on `turn`; absent when every spec
+   * already round-tripped (no open decisions).
+   */
+  readonly decisionAdvisory?: {
+    readonly openChoiceIds: readonly string[];
+    readonly openChoices: readonly { readonly choiceId: string; readonly kind: UserDecisionKind; readonly label: string }[];
+    readonly recordInputField: "choiceApplications";
+    readonly note: string;
+  };
+  /**
+   * P5b — make the session self-locating. Echo the CURRENT derived `phase` plus the
+   * canonical NEXT action (the head of the state's already-derived
+   * `allowedNextActions`, with the full set alongside), so a tool response states
+   * where the session is and what to call next. Pure response-augmentation: reads
+   * `state.phase` / `state.allowedNextActions` (no state-write change). Surfaced on
+   * `turn`.
+   */
+  readonly phaseAdvisory?: {
+    readonly phase: OntologyEngineeringWorkflowState["phase"];
+    readonly canonicalNextAction: OntologyEngineeringWorkflowAction;
+    readonly allowedNextActions: readonly OntologyEngineeringWorkflowAction[];
     readonly note: string;
   };
 }
@@ -494,6 +524,61 @@ function mutationLaneForState(
     selectableModes: MUTATION_MODES,
     note:
       "Declare `mutationMode` to select a lane. `builder-structure-write` (default) keeps the full 9-axis SIC + DTC promotion gate; `consumer-data-write` / `proposal-only` are the lighter consuming-layer lanes — `state.mutationAuthorized` (the promotion boolean) is unchanged.",
+  };
+}
+
+/**
+ * P3 — surface the `turnDecisionSpecs` → `choiceApplications` round-trip on the tool
+ * response. Diffs the minted decision specs against the records just written to
+ * state: a spec is OPEN when no `userDecisionRecord` carries its `choiceId`. When any
+ * remain open, echo their `choiceId`s (with `kind` + `label` for actionability) and
+ * NAME the input field — `choiceApplications` — that records them. Returns undefined
+ * when every spec already round-tripped (nothing to act on), mirroring
+ * {@link readinessAdvisoryForSession}/{@link mutationLaneForState} (pure
+ * response-augmentation; no state-write change).
+ */
+function decisionAdvisoryForState(
+  state: OntologyEngineeringWorkflowState,
+): OntologyEngineeringWorkflowHandlerResult["decisionAdvisory"] {
+  const specs = state.turnDecisionSpecs;
+  if (specs.length === 0) return undefined;
+  const answered = new Set(state.userDecisionRecords.map((record) => record.choiceId));
+  const open = specs.filter((spec) => !answered.has(spec.choiceId));
+  if (open.length === 0) return undefined;
+  return {
+    openChoiceIds: open.map((spec) => spec.choiceId),
+    openChoices: open.map((spec) => ({
+      choiceId: spec.choiceId,
+      kind: spec.kind,
+      label: spec.label,
+    })),
+    recordInputField: "choiceApplications",
+    note:
+      "Open turn-card decisions have no matching UserDecisionRecord. Record them by passing `choiceApplications` (an array of `{ choiceId, kind }`) on the next call — each submitted `choiceId` mints a UserDecisionRecord and clears the `decision-ledger.forward-only-existing-gap` warning.",
+  };
+}
+
+/**
+ * P5b — make the session self-locating. Echo the CURRENT derived `phase` plus the
+ * canonical NEXT action. Both are already computed on the derived state
+ * (`deriveAllowedNextActions` orders the list most-advanced-first via `unshift`, so
+ * the head is canonical); this is a pure echo of `state.phase` /
+ * `state.allowedNextActions`, not a re-derivation. Returns undefined only if the
+ * state somehow carries no allowed action (defensive — `deriveAllowedNextActions`
+ * always returns at least `["status"]`).
+ */
+function phaseAdvisoryForState(
+  state: OntologyEngineeringWorkflowState,
+): OntologyEngineeringWorkflowHandlerResult["phaseAdvisory"] {
+  const allowedNextActions = state.allowedNextActions;
+  const canonicalNextAction = allowedNextActions[0];
+  if (canonicalNextAction === undefined) return undefined;
+  return {
+    phase: state.phase,
+    canonicalNextAction,
+    allowedNextActions,
+    note:
+      `Session phase is \`${state.phase}\`. The canonical next action is \`${canonicalNextAction}\` (the head of \`state.allowedNextActions\`); the full allowed set is [${allowedNextActions.join(", ")}].`,
   };
 }
 
@@ -1332,14 +1417,21 @@ export async function handleOntologyEngineeringWorkflow(
       });
       // P2 — name the typed input field that advances each still-unsatisfied readiness
       // requirement (prose alone seeds only a latent hypothesis). P4 — surface the
-      // declared mutation lane + its per-mode authorization.
+      // declared mutation lane + its per-mode authorization. P3 — echo open
+      // turnDecisionSpecs + name `choiceApplications` (the field that records them).
+      // P5b — echo the current phase + canonical next action. All four are pure
+      // response-augmentation off the freshly-written state; none change the write.
       const readinessAdvisory = readinessAdvisoryForSession(turn.session);
       const mutationLane = mutationLaneForState(result.state);
+      const decisionAdvisory = decisionAdvisoryForState(result.state);
+      const phaseAdvisory = phaseAdvisoryForState(result.state);
       return {
         ...result,
         turn,
         ...(readinessAdvisory ? { readinessAdvisory } : {}),
         ...(mutationLane ? { mutationLane } : {}),
+        ...(decisionAdvisory ? { decisionAdvisory } : {}),
+        ...(phaseAdvisory ? { phaseAdvisory } : {}),
       };
     }
     case "draft_sic": {
