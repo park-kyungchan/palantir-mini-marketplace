@@ -39,7 +39,38 @@
 | G-B10-8-DELETE | ~13 removed-tool MCP handler `.ts` files + their `self/functions.ts` `FUNCTION_INSTANCES` seed rows + tests (set **B** in b10-8 proposal) | **DELETION_READINESS** — the whole plugin tree is a pm PROTECTED_SURFACE; the gate refuses all physical deletion while Codex runtime evidence is source-only | a **live-runtime** Codex reinstall/reload/restart smoke ref (non `tests/`) is recorded | b10-8 proposal SURFACE 1 / set B |
 | G-A5 | `sqlite-cache.deprecated` → convex swap | **BLOCKED** — `convex-client` is stub-only (returns empty) | re-scope: **(a)** keep SQLite + rename off `.deprecated`, OR **(b)** un-stub convex then make registry-loader async + migrate 3 callers | tracking-dedup-plan / W1 SQLite lane |
 | G-A6 | 11 orphan removed-tool handler `.ts` | **DELETION_READINESS** (same gate as G-B10-8-DELETE) | same as G-B10-8-DELETE (live-runtime Codex smoke ref) | b10-8 proposal SURFACE 1 |
-| G-B10-9 | accumulated-data **CLEANUP** (quarantine 49k purge / outcome-pairs dedup / snapshot trim) | analysis is being **run now (read-only)**; substrate is actively written by other sessions | actual pruning deferred to a **confirmed pass** after analysis | tracking-dedup-plan / data-cleanup lane |
+| G-B10-9 | accumulated-data **CLEANUP** (snapshot trim / quarantine dedup / outcome-pairs filter) | **analysis DONE 2026-06-12** (read-only); substrate is live (written by other sessions) — re-pin before any prune | a **confirmed prune pass** is run under explicit go (see B10-9 block below for the GATED disk targets + BackwardProp candidates) | tracking-dedup-plan / data-cleanup lane; report at artifacts/b10-9-bottleneck-report.md |
+
+---
+
+## B10-9 — accumulated-data analysis (2026-06-12)
+
+Read-only substrate analysis (pm-off lane) is **DONE**. Headline correction: the "49,239
+quarantine rejects" was mostly a **re-scan illusion** — 6 distinct poison lines re-scanned
+~3,753× each. Real defects = **3 classes only**. Full analysis (pinned):
+**harness-upstream/_workspace/2026-06-12-pm-cleanup-campaign/artifacts/b10-9-bottleneck-report.md**
+(pin: home events.jsonl **12,181 lines @ seq 181206**, 2026-06-11T15:59:08Z).
+
+### OPEN — BackwardProp fix CANDIDATES (actionable pm-source, pm-off lane; *candidate — verify before fixing*)
+
+| id | candidate fix | why (evidence) |
+|----|---------------|----------------|
+| D1 | quarantine-and-skip — stop re-scanning the 6 poison lines | re-scan loop re-detects/re-appends same 6 lines ~3,753× each → inflates the 49k count; record once (sourceFile+line+hash) |
+| D2 | protect events.jsonl from git + enforce atomic append (rule 27) | git conflict markers found INSIDE events.jsonl (3 lines) + two events glued on one line (non-atomic append) |
+| D3 | route codex_lock_probe out of the 5-dim valueGrade gate | infra heartbeats (2 lines) wrongly routed through strict gate; gate fires correctly, routing is wrong |
+| D4 | apply rule-05 write-to-file contract to pm_ontology_engineering_workflow | 11/14 overflow dumps from this tool = the rule-05 StructuredOutput-loop signature |
+| D5 | gate outcome-pair emission on a real delta | ~99% of 22,709 outcome-pairs are empty zero-delta self-pairs (baseline==refined && score==-1) |
+| D6 | fix validation_phase_completed over-emission + wire-or-retire propagationDepth | 74.4% of live log is vpc monitor noise; propagationDepth unused (0/12,181 events) |
+
+### GATED — deferred disk cleanup (substrate is LIVE; re-pin before any prune pass)
+
+| target | reclaim | note |
+|--------|---------|------|
+| snapshot rotation | ~149M | palantir-math 89M + smartall 60M, no rotation = #1 byte cost |
+| quarantine row dedup | ~14M | 22,518 rows collapse to 6 poison lines |
+| outcome-pairs value-filter | ~22.5k files | drop empty self-pairs (file-count cost, modest bytes) |
+| overflow dumps | ~1.3M | age-out mcp-response-overflow/ dumps |
+| T0 emit-gate leaks | — (quality) | hyperframes 11, palantir-math 2 — fix upstream emitter, not a disk item |
 
 ---
 
