@@ -55,22 +55,6 @@ bun test tests/golden/ontology-context-query
 
 There is currently no `bun run gen:golden` automation — expected.json files are authored by hand to declare shape invariants, not to capture volatile runtime output. If the output schema changes (new field added, discriminant renamed), update the affected expected.json files manually and update this README.
 
-## Claude vs Codex Parity Policy
-
-### Claude in-process MCP
+## Claude in-process MCP
 
 **Covered by these tests.** The golden.test.ts runs `ontology_context_query` directly via the TypeScript import, which is identical to how the Claude in-process MCP handler executes it.
-
-### Codex runtime parity
-
-**NOT YET COVERED — CODEX-PARITY-GAP.**
-
-The `ontology_context_query` handler is exposed over the same `bridge/mcp-server.ts` MCP surface consumed by both Claude and Codex runtimes. Codex reaches it via `config.toml` → MCP bridge (rule 27 §Codex append discoverability). The handler logic is identical, but the IPC path (JSON-RPC over stdio vs in-process module call) differs.
-
-Parity proof requires:
-1. Codex runtime available with `~/.claude/plugins/palantir-mini/bridge/mcp-server.ts` registered in `config.toml`.
-2. A `bun run test:codex-parity` script that calls the tool over the Codex MCP bridge and compares structural shape against the same expected.json files.
-
-**Reason deferred**: Codex MCP wiring configuration is not available in the current session. The golden.test.ts includes one `it.skip` placeholder per fixture marked `CODEX-PARITY-GAP` so the gap is visible in test output.
-
-**Future PR**: Add `tests/golden/ontology-context-query/codex-parity.test.ts` + `bun run test:codex-parity` npm script once Codex MCP is confirmed wired and reachable.

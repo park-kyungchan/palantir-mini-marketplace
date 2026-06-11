@@ -60,7 +60,6 @@
   "smokeEvidenceRefs": [
     "tests/runtime-boundary/codex-plugin-hooks.test.ts",
     "tests/integration/codex-skill-surface.test.ts",
-    "tests/integration/codex-prompt-to-dtc-e2e.test.ts",
     "tests/lib/codex/palantir-mini-activation-policy.test.ts"
   ],
   "reloadEvidenceRefs": [

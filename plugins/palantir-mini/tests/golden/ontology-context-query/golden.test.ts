@@ -4,13 +4,9 @@
 // Reads each *.input.json + *.expected.json pair, runs ontology_context_query
 // in-process, and asserts structural-shape equality (volatile fields placeholdered).
 //
-// CODEX-PARITY-GAP: Codex runtime parity NOT yet covered. One it.skip per
-// fixture is included so the gap is visible in test output. See README.md for
-// gap rationale + future PR plan.
-//
 // @since palantir-mini v6.20.0 (sprint-099 PR 3.7)
 
-import { describe, expect, test, it } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -219,21 +215,6 @@ describe("ontology_context_query — golden fixtures (sprint-099 PR 3.7)", () =>
         }
       }
     });
-
-    // CODEX-PARITY-GAP: Codex runtime smoke test deferred to a future PR.
-    // See README.md §"Codex runtime parity" for rationale.
-    it.skip(
-      `[CODEX-PARITY-GAP] ${name} — Codex MCP bridge parity not yet smoke-tested`,
-      () => {
-        // Future implementation:
-        // 1. Resolve Codex MCP server socket/stdio.
-        // 2. Send JSON-RPC call: { method: "tools/call", params: { name: "ontology_context_query", arguments: input } }
-        // 3. Parse response and run assertShape(response.content[0].text, expected, "$").
-        //
-        // Reason for skip: Codex config.toml MCP wiring not confirmed available
-        // in this session. Parity deferred per canonical plan v2 §4 row 3.7 + proposal §6.
-      },
-    );
   }
 
   // ─── Key invariant assertions beyond shape ────────────────────────────────
