@@ -7,6 +7,18 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.8.0] - 2026-06-11 — fix: pm OE-workflow SSoT-conformance — P4 consuming-layer mutation-mode lane + P2 readiness structured-input advisory + P1 draft_sic stop-not-hollow
+
+### Added
+- P4 consuming-layer mutation-mode lane: the SEVEN SSoT mutation modes (`read-only`, `proposal-only`, `dry-run/sandbox`, `consumer-data-write`, `builder-structure-write`, `approved-commit`, `armed-side-effect`) are now first-class. `deriveMutationAuthorizationByMode(mode, state)` fans the single legacy `mutationAuthorized` boolean out into a per-mode `{mode, authorized, requires, rationale}` predicate grounded in the proof table (approval-and-lineage.md:90-98): `read-only`/`proposal-only`/`dry-run/sandbox` authorized unconditionally; `consumer-data-write` authorized iff an approved action type + write-validation verdict are present (the lighter lane — NOT the 9-axis SIC promotion); `builder-structure-write` === the existing promotion gate (`deriveMutationAuthorized`, default mode, behavior byte-identical); `approved-commit` requires promotion gate AND an approval/commit ref; `armed-side-effect` authorized only when explicitly armed. The handler accepts `mutationMode` (+ proof inputs `consumerActionTypeRef`/`consumerWriteValidated`/`approvedCommitRef`/`sideEffectArmed`) via a narrowing accessor, threads them through the single `deriveOntologyEngineeringWorkflowState` call, and surfaces `{mode, authorization, selectableModes}` on `start`/`turn` responses. The legacy `state.mutationAuthorized` promotion boolean is unchanged.
+
+### Changed
+- Persisted-state schema version `palantir-mini/ontology-engineering-workflow/v1` → `…/v2` for the P4 fields. The new `mutationMode` / `mutationAuthorization` state fields are additive + backward-compatible (optional), so persisted v1/v2 sessions both deserialize (store.ts does a bare `JSON.parse … as State`, no version gate).
+- P2 readiness structured-input advisory: a `turn` that leaves required readiness requirements unsatisfied now surfaces a `readinessAdvisory` naming the EXACT typed signal field that advances each one (`signal.objectNames`, `signal.linkNames`, `confirmedNonGoals`, … per implicit-intent.ts:14-24) — prose in `sanitizedTurnSummary` seeds only a latent hypothesis and the grader credits only the typed fields.
+- P1 draft_sic stop-not-hollow: a `draft_sic` that produces a HOLLOW SIC (all axes open, no noun/verb candidates, placeholder intent) is now reported as `sicDraftStatus:"clarification-required"` with the blocking clarification questions as the PRIMARY payload (`clarificationRequired:{reason, blockingQuestions}`), rather than a success-shaped draft (intent-to-build-flow.md:53 — "Stop if any 9-axis slot is missing"). The persisted contract still carries `status:"draft"` (schema-compatible).
+
+Verification: `bun run typecheck` exit 0; full suite 0 fail (3254 pass / 16 skip) — adds 14 paired behavioral tests (P1 hollow stop, P2 advisory field-naming, P4 all-seven per-mode predicate + default-mode no-regression + consumer-lane-without-promotion); the atomic v1→v2 const+assertion bump and three-manifest version-lane bump (package.json + .claude-plugin + .codex-plugin) stay green.
+
 ## [7.7.0] - 2026-06-10 — chore: Wave-2/3/4 backlog — Korean imperative+negation approval coverage (W8/F7) + project-implementer agent defined (W3) + impact_query canonical typed-graph lane (W1) + W5 coalesce NO-OP decision record
 
 ### Added

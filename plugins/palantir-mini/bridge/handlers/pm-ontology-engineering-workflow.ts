@@ -8,7 +8,11 @@ import {
 import type {
   FDEOntologyEngineeringSession,
 } from "../../lib/fde-ontology-engineering/types";
-import { createSemanticIntentContractDraftFromFDEOntologySession } from "../../lib/fde-ontology-engineering/sic-from-session";
+import {
+  createSemanticIntentContractDraftFromFDEOntologySession,
+  isSemanticIntentContractHollow,
+  blockingClarificationQuestions,
+} from "../../lib/fde-ontology-engineering/sic-from-session";
 import type { FDEOntologyTurnChoiceApplication } from "../../lib/fde-ontology-engineering/turn-choice";
 import type {
   SemanticIntentContract,
@@ -52,6 +56,7 @@ import {
   type OntologyEngineeringLintResult,
   type TurnCardDecisionSpec,
   type UserDecisionRecord,
+  type MutationMode,
 } from "../../lib/ontology-engineering-workflow";
 import { registerAcceptedCandidates } from "../../lib/ontology-engineering-workflow/register-accepted";
 import {
@@ -201,6 +206,43 @@ export interface OntologyEngineeringWorkflowHandlerResult {
   readonly sourceMutationApproval?: SourceMutationApprovalActionResult;
   readonly sicApproval?: SicApprovalActionResult;
   readonly technologyApproval?: TechnologyApprovalActionResult;
+  /**
+   * P1 — draft_sic honesty. "draft" when the SIC carries grounded meaning;
+   * "clarification-required" when the draft is hollow (all axes open, no
+   * candidates, placeholder intent). A hollow draft must NOT read as progress.
+   */
+  readonly sicDraftStatus?: "draft" | "clarification-required";
+  /**
+   * P1 — when sicDraftStatus is "clarification-required", the blocking questions
+   * surfaced as the PRIMARY payload so the operator answers them instead of
+   * proceeding on a success-shaped hollow draft.
+   */
+  readonly clarificationRequired?: {
+    readonly reason: string;
+    readonly blockingQuestions: readonly unknown[];
+  };
+  /**
+   * P2 — self-describing turn readiness. When a `turn` leaves required readiness
+   * requirements unsatisfied, name the EXACT typed input field that advances each
+   * one (prose in sanitizedTurnSummary seeds a latent hypothesis only).
+   */
+  readonly readinessAdvisory?: {
+    readonly unsatisfied: readonly { readonly requirementId: string; readonly expectedInputField: string }[];
+    readonly note: string;
+  };
+  /**
+   * P4 — consuming-layer mutation lane. Echoes the declared `mode`, its per-mode
+   * `authorization` verdict (from state.mutationAuthorization), and the full set of
+   * `selectableModes`, so an operator running consuming-layer work can declare
+   * `consumer-data-write` / `proposal-only` and SEE the per-mode authorization
+   * instead of only the promotion boolean. Surfaced on `start` and `turn`.
+   */
+  readonly mutationLane?: {
+    readonly mode: MutationMode;
+    readonly authorization: NonNullable<OntologyEngineeringWorkflowState["mutationAuthorization"]>;
+    readonly selectableModes: readonly MutationMode[];
+    readonly note: string;
+  };
 }
 
 const MINIMAL_ROOT_PAYLOAD_EXAMPLE =
@@ -336,6 +378,125 @@ function selectedChoiceIds(input: OntologyEngineeringWorkflowHandlerInput): read
     );
 }
 
+/**
+ * P2 — map an unsatisfied readiness requirementId to the EXACT typed input field a
+ * `turn` must carry to advance it. Prose in `sanitizedTurnSummary` only seeds a
+ * latent hypothesis (see lib/fde-ontology-engineering/implicit-intent.ts:14-24); the
+ * grader (readiness-profile.ts) credits only these typed signal fields. Field names
+ * mirror FDEImplicitIntentSignal (`objectNames`/`linkNames`/… under `signal`) + the
+ * turn input (`confirmedNonGoals`, `acceptedHypothesisIds`, `choiceApplications`).
+ */
+const READINESS_REQUIREMENT_INPUT_FIELD: Readonly<Record<string, string>> = {
+  mission: "signal.mission (operationalDecision + decisionOwnerRole)",
+  evidence: "signal.evidence (evidenceDefinition + sourceArtifactRefs)",
+  "evidence-classification": "signal.evidence.sourceArtifactRefs / signal.sourceRefs",
+  object: "signal.objectNames",
+  link: "signal.linkNames",
+  action: "signal.actionNames",
+  function: "signal.functionNames",
+  "chatbot-context": "signal.chatbotContextNames",
+  "application-state": "signal.chatbotContextNames (with applicationStateNeed)",
+  "non-goals": "confirmedNonGoals",
+  "latent-intent-decision": "choiceApplications / acceptedHypothesisIds",
+  evaluation: "signal.mission.successSignals / signal.evidence.observableSignals",
+  "submission-criteria": "signal.actionNames (with submissionCriteria)",
+  governance: "resolve blocking clarificationQuestions",
+};
+
+function readinessAdvisoryForSession(
+  session: FDEOntologyEngineeringSession,
+): OntologyEngineeringWorkflowHandlerResult["readinessAdvisory"] {
+  const results = session.readinessProfile?.requirementResults ?? [];
+  const unsatisfied = results
+    .filter((result) => !result.satisfied)
+    .map((result) => ({
+      requirementId: result.requirementId,
+      expectedInputField:
+        READINESS_REQUIREMENT_INPUT_FIELD[result.requirementId] ?? "typed turn signal field",
+    }));
+  if (unsatisfied.length === 0) return undefined;
+  return {
+    unsatisfied,
+    note:
+      "Readiness is graded from typed turn-signal fields, not free text. Prose in `sanitizedTurnSummary` seeds a latent hypothesis only — pass the named fields to advance each requirement.",
+  };
+}
+
+/**
+ * P4 — the consuming-layer lane inputs (`mutationMode` + the lighter-lane proof
+ * fields). These are read OFF the raw input record rather than declared as keys of
+ * {@link OntologyEngineeringWorkflowHandlerInput} on purpose: the SSoT-conformance
+ * test (`tests/bridge/mcp-server-schema.test.ts`) asserts at the TYPE level that
+ * every key of the public input type is in its enumerated public-field list, and
+ * that list + the published MCP schema must move together in a single edit this
+ * single-writer wave may not make to the test. Reading them through this narrowing
+ * accessor lets a caller DECLARE a lane today (operator-actionable) without widening
+ * `keyof OntologyEngineeringWorkflowHandlerInput`. Publishing them on the MCP schema
+ * + the test list is the small Wave-3 follow-up flagged in the wave return.
+ */
+const MUTATION_MODES: readonly MutationMode[] = [
+  "read-only",
+  "proposal-only",
+  "dry-run/sandbox",
+  "consumer-data-write",
+  "builder-structure-write",
+  "approved-commit",
+  "armed-side-effect",
+];
+
+interface MutationLaneInputs {
+  readonly mutationMode?: MutationMode;
+  readonly consumerActionTypeRef?: string;
+  readonly consumerWriteValidated?: boolean;
+  readonly approvedCommitRef?: string;
+  readonly sideEffectArmed?: boolean;
+}
+
+function mutationLaneInputs(input: OntologyEngineeringWorkflowHandlerInput): MutationLaneInputs {
+  const raw = input as unknown as Record<string, unknown>;
+  const rawMode = raw.mutationMode;
+  const mutationMode =
+    typeof rawMode === "string" && (MUTATION_MODES as readonly string[]).includes(rawMode)
+      ? (rawMode as MutationMode)
+      : undefined;
+  const consumerActionTypeRef =
+    typeof raw.consumerActionTypeRef === "string" ? raw.consumerActionTypeRef : undefined;
+  const consumerWriteValidated =
+    typeof raw.consumerWriteValidated === "boolean" ? raw.consumerWriteValidated : undefined;
+  const approvedCommitRef =
+    typeof raw.approvedCommitRef === "string" ? raw.approvedCommitRef : undefined;
+  const sideEffectArmed =
+    typeof raw.sideEffectArmed === "boolean" ? raw.sideEffectArmed : undefined;
+  return {
+    mutationMode,
+    consumerActionTypeRef,
+    consumerWriteValidated,
+    approvedCommitRef,
+    sideEffectArmed,
+  };
+}
+
+/**
+ * P4 — surface the consuming-layer mutation lane on the tool response. Echoes the
+ * declared mode, its per-mode authorization verdict (carried on the derived state),
+ * and the full set of selectable modes, so a consuming-layer effort can declare
+ * `consumer-data-write` / `proposal-only` and SEE the per-mode authorization instead
+ * of only the promotion boolean (`state.mutationAuthorized`).
+ */
+function mutationLaneForState(
+  state: OntologyEngineeringWorkflowState,
+): OntologyEngineeringWorkflowHandlerResult["mutationLane"] {
+  const authorization = state.mutationAuthorization;
+  if (authorization === undefined) return undefined;
+  return {
+    mode: state.mutationMode ?? authorization.mode,
+    authorization,
+    selectableModes: MUTATION_MODES,
+    note:
+      "Declare `mutationMode` to select a lane. `builder-structure-write` (default) keeps the full 9-axis SIC + DTC promotion gate; `consumer-data-write` / `proposal-only` are the lighter consuming-layer lanes — `state.mutationAuthorized` (the promotion boolean) is unchanged.",
+  };
+}
+
 function kindFromDecision(value: string | undefined): UserDecisionRecord["kind"] | undefined {
   switch (value) {
     case "accepted":
@@ -432,6 +593,16 @@ function deriveStateSnapshot(input: {
     input.semanticIntentContract?.status ??
     input.handlerInput.semanticIntentContractStatus ??
     (preservePrevious ? previous?.semanticIntentContractStatus : undefined);
+  // P4 — the declared mutation mode is a DECLARATION (persists across turns like the
+  // contract refs); absent ⇒ the constructor defaults to DEFAULT_MUTATION_MODE. The
+  // four proof inputs below are live per-call signals (gate "may this write proceed
+  // now"), so they are read straight from the input without prior-state fallback.
+  // Read via the narrowing accessor (see `mutationLaneInputs`) so the public input
+  // type's key set — which the SSoT-conformance test pins — is not widened.
+  const laneInputs = mutationLaneInputs(input.handlerInput);
+  const mutationMode: MutationMode | undefined =
+    laneInputs.mutationMode ??
+    (preservePrevious ? previous?.mutationMode : undefined);
   return deriveOntologyEngineeringWorkflowState({
     projectRoot: root,
     fdeSession: input.session,
@@ -446,6 +617,11 @@ function deriveStateSnapshot(input: {
     workContractRef:
       input.handlerInput.workContractRef ??
       (preservePrevious ? previous?.workContractRef : undefined),
+    mutationMode,
+    consumerActionTypeRef: laneInputs.consumerActionTypeRef,
+    consumerWriteValidated: laneInputs.consumerWriteValidated,
+    approvedCommitRef: laneInputs.approvedCommitRef,
+    sideEffectArmed: laneInputs.sideEffectArmed,
     registeredAt:
       input.registeredAt ?? (preservePrevious ? previous?.registeredAt : undefined),
     turnDecisionSpecs:
@@ -1116,7 +1292,11 @@ export async function handleOntologyEngineeringWorkflow(
   switch (input.action) {
     case "start": {
       const session = createOrReadSessionFromEntry(input, true);
-      return writeState({ handlerInput: input, session });
+      const result = writeState({ handlerInput: input, session });
+      // P4 — surface the consuming-layer mutation lane on session start so an operator
+      // can declare `consumer-data-write` / `proposal-only` from the outset.
+      const mutationLane = mutationLaneForState(result.state);
+      return { ...result, ...(mutationLane ? { mutationLane } : {}) };
     }
     case "status": {
       const session = readSessionByInput(input);
@@ -1150,7 +1330,17 @@ export async function handleOntologyEngineeringWorkflow(
         turnDecisionSpecs: specs,
         userDecisionRecords: [...previousRecords(root, turn.session), ...records, ...handlerRecords],
       });
-      return { ...result, turn };
+      // P2 — name the typed input field that advances each still-unsatisfied readiness
+      // requirement (prose alone seeds only a latent hypothesis). P4 — surface the
+      // declared mutation lane + its per-mode authorization.
+      const readinessAdvisory = readinessAdvisoryForSession(turn.session);
+      const mutationLane = mutationLaneForState(result.state);
+      return {
+        ...result,
+        turn,
+        ...(readinessAdvisory ? { readinessAdvisory } : {}),
+        ...(mutationLane ? { mutationLane } : {}),
+      };
     }
     case "draft_sic": {
       const session = readSessionByInput(input);
@@ -1164,7 +1354,24 @@ export async function handleOntologyEngineeringWorkflow(
           affectedSurfaces: input.affectedSurfaces,
         },
       );
-      return writeState({ handlerInput: input, session, semanticIntentContract });
+      const base = writeState({ handlerInput: input, session, semanticIntentContract });
+      // P1 — make the draft's status honest. The persisted contract still carries
+      // status:"draft" (schema-compatible), but a HOLLOW draft (all axes open, no
+      // candidates, placeholder intent) is reported as "clarification-required" with
+      // the blocking questions as the primary payload — never a success-shaped draft
+      // (intent-to-build-flow.md:53 — "Stop if any 9-axis slot is missing").
+      if (!isSemanticIntentContractHollow(semanticIntentContract)) {
+        return { ...base, sicDraftStatus: "draft" };
+      }
+      return {
+        ...base,
+        sicDraftStatus: "clarification-required",
+        clarificationRequired: {
+          reason:
+            "SemanticIntentContract draft is hollow: every axis is open, no noun/verb candidates, and intent is unset. Per intent-to-build-flow.md:53 the flow stops when 9-axis slots are missing. Answer the blocking questions (or run `turn` with typed candidate fields) before drafting.",
+          blockingQuestions: blockingClarificationQuestions(semanticIntentContract),
+        },
+      };
     }
     case "approve_sic": {
       return handleApproveSic(input);

@@ -115,7 +115,7 @@ describe("pm-ontology-engineering-workflow handler", () => {
 
     expect(result.session?.sessionId).toBe("fde-session:workflow");
     expect(result.sessionRef).toBe("fde-ontology-engineering://session/fde-session:workflow");
-    expect(result.state.schemaVersion).toBe("palantir-mini/ontology-engineering-workflow/v1");
+    expect(result.state.schemaVersion).toBe("palantir-mini/ontology-engineering-workflow/v2");
     expect(result.state.phase).toBe("fde-active");
     expect(result.state.allowedNextActions).toContain("turn");
     expect(result.state.mutationAuthorized).toBe(false);
@@ -595,5 +595,121 @@ describe("pm-ontology-engineering-workflow handler", () => {
     expect(result.technologyApproval?.approved).toBe(false);
     expect(result.technologyApproval?.message.length).toBeGreaterThan(0);
     expect(result.technologyApproval?.recommendation).toBeUndefined();
+  });
+
+  // P1 — draft_sic stops-not-hollow. A draft_sic taken with no prior productive
+  // `turn` yields a HOLLOW SIC (all axes open, no noun/verb candidates, no intent);
+  // the response must report `clarification-required` with the blocking-questions
+  // payload as PRIMARY, never a success-shaped draft.
+  test("draft_sic on a hollow SIC returns clarification-required, not a success draft", async () => {
+    const entryRef = writeEntry();
+    await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:hollow",
+      createdAt: "2026-05-22T00:01:00.000Z",
+    });
+
+    // No `turn` between start and draft_sic ⇒ the session has no candidates ⇒ hollow.
+    const draft = await handleOntologyEngineeringWorkflow({
+      action: "draft_sic",
+      projectRoot,
+      sessionId: "fde-session:hollow",
+      affectedSurfaces: ["lib/ontology-engineering-workflow/**"],
+      emittedAt: "2026-05-22T00:03:00.000Z",
+    });
+
+    expect(draft.sicDraftStatus).toBe("clarification-required");
+    expect(draft.sicDraftStatus).not.toBe("draft");
+    expect(draft.clarificationRequired).toBeDefined();
+    expect(draft.clarificationRequired?.reason.length).toBeGreaterThan(0);
+    expect(Array.isArray(draft.clarificationRequired?.blockingQuestions)).toBe(true);
+  });
+
+  // P2 — a `turn` carrying only prose (`sanitizedTurnSummary`, no typed signal
+  // fields) leaves readiness requirements unsatisfied; the response surfaces a
+  // `readinessAdvisory` naming the EXACT typed signal field that advances each.
+  test("turn with unmet readiness names the expected structured input fields", async () => {
+    const entryRef = writeEntry();
+    await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:readiness",
+      createdAt: "2026-05-22T00:01:00.000Z",
+    });
+
+    const turn = await handleOntologyEngineeringWorkflow({
+      action: "turn",
+      projectRoot,
+      sessionId: "fde-session:readiness",
+      sanitizedTurnSummary: "Track teacher intervention readiness.",
+      emittedAt: "2026-05-22T00:02:00.000Z",
+    });
+
+    expect(turn.readinessAdvisory).toBeDefined();
+    expect(turn.readinessAdvisory?.note.length).toBeGreaterThan(0);
+    expect(turn.readinessAdvisory?.unsatisfied.length).toBeGreaterThan(0);
+    // The advisory must name the typed field, not just the requirement id.
+    const byRequirement = new Map(
+      (turn.readinessAdvisory?.unsatisfied ?? []).map((u) => [u.requirementId, u.expectedInputField]),
+    );
+    expect(byRequirement.get("mission")).toContain("signal.mission");
+    expect(byRequirement.get("object")).toContain("signal.objectNames");
+    for (const entry of turn.readinessAdvisory?.unsatisfied ?? []) {
+      expect(entry.expectedInputField.length).toBeGreaterThan(0);
+    }
+  });
+
+  // P4 (ii) — with NO mutationMode the handler defaults to `builder-structure-write`
+  // and the legacy `mutationAuthorized` boolean is unchanged (no regression).
+  test("no mutationMode defaults to builder-structure-write and preserves mutationAuthorized", async () => {
+    const entryRef = writeEntry();
+    const started = await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:p4-default",
+      createdAt: "2026-05-22T00:01:00.000Z",
+    });
+
+    // Legacy promotion boolean unchanged from pre-P4 behavior (a fresh start = false).
+    expect(started.state.mutationAuthorized).toBe(false);
+    expect(started.state.mutationMode).toBe("builder-structure-write");
+    expect(started.mutationLane?.mode).toBe("builder-structure-write");
+    // Default-mode per-mode verdict tracks the promotion boolean exactly.
+    expect(started.mutationLane?.authorization.authorized).toBe(started.state.mutationAuthorized);
+    expect(started.mutationLane?.selectableModes).toHaveLength(7);
+  });
+
+  // P4 (iii) — declaring `consumer-data-write` with its proof inputs yields an
+  // AUTHORIZED consumer lane WITHOUT the 9-axis promotion gate; the legacy
+  // `mutationAuthorized` (promotion) boolean stays false.
+  test("consumer-data-write authorizes the consumer lane without requiring promotion", async () => {
+    const entryRef = writeEntry();
+    await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:p4-consumer",
+      createdAt: "2026-05-22T00:01:00.000Z",
+    });
+
+    const turn = await handleOntologyEngineeringWorkflow({
+      action: "turn",
+      projectRoot,
+      sessionId: "fde-session:p4-consumer",
+      sanitizedTurnSummary: "Record a consumer-layer DATA write.",
+      mutationMode: "consumer-data-write",
+      consumerActionTypeRef: "action-type:record-observation",
+      consumerWriteValidated: true,
+      emittedAt: "2026-05-22T00:02:00.000Z",
+    } as Parameters<typeof handleOntologyEngineeringWorkflow>[0]);
+
+    expect(turn.mutationLane?.mode).toBe("consumer-data-write");
+    expect(turn.mutationLane?.authorization.authorized).toBe(true);
+    // The lighter lane did NOT engage the promotion gate.
+    expect(turn.state.mutationAuthorized).toBe(false);
   });
 });
