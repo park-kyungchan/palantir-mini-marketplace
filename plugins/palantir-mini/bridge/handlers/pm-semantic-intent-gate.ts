@@ -136,7 +136,6 @@ import {
 } from "../../lib/semantic-intent/fill-sequence";
 import { isApprovedSemanticIntentContract } from "../../lib/semantic-intent/approved-contract";
 import type { FillPolicy } from "../../lib/semantic-intent/fill-policy";
-import { selectFillSequence } from "../../lib/semantic-intent/fill-policy";
 import { FDE_FILL_SEQUENCE, advanceFDEFillSequence } from "../../lib/semantic-intent/fde-fill-sequence";
 import {
   NINE_AXIS_SIC_SEQUENCE,
