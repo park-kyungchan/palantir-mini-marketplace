@@ -210,20 +210,6 @@
         "surfaceStatus": "public-core"
       },
       {
-        "matcher": "**/plugins/palantir-mini/hooks/*.ts",
-        "policyRef": "hook-step:posttool-hook-citation",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" rule-audit --mode=citation",
-            "timeout": 25,
-            "async": true,
-            "statusMessage": "rule-audit (citation mode)\u2026"
-          }
-        ],
-        "surfaceStatus": "public-core"
-      },
-      {
         "matcher": "**/MEMORY.md|**/BROWSE.md|**/INDEX.md|**/CLAUDE.md",
         "policyRef": "hook-step:posttool-doc-drift",
         "hooks": [

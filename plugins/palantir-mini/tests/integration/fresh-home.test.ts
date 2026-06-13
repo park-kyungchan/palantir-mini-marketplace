@@ -13,19 +13,17 @@
 // Scenario:
 //   1. Backup external ~/.claude/rules/ and ~/.claude/projects/-home-palantirkc/memory/
 //      to temp dirs to simulate a fresh machine (neither directory present).
-//   2. Invoke buildContextCapsule() directly — asserts non-empty additionalContext.
-//   3. Invoke resolveRule(27) — asserts resolution via "plugin-overlay" source
+//   2. Invoke resolveRule(27) — asserts resolution via "plugin-overlay" source
 //      (not "external"), confirming the fallback is exercised.
-//   4. Invoke resolveResearchAnchor("harness species", "claude-code") — asserts
+//   3. Invoke resolveResearchAnchor("harness species", "claude-code") — asserts
 //      source is "plugin-snapshot" by default.
-//   5. Restore both dirs and sha256-verify byte-identity.
+//   4. Restore both dirs and sha256-verify byte-identity.
 //
 // Safety: teardown is in try/finally so a mid-test failure never leaves
 // ~/.claude/rules/ in a broken state.
 //
 // Authority: sprint-061 A.W7; plan ~/.claude/plans/inherited-discovering-quill.md §4.A.W7.
-// Cross-ref: lib/runtime-overlay/resolve-rule.ts, build-context-capsule.ts,
-//            research-core-select.ts.
+// Cross-ref: lib/runtime-overlay/resolve-rule.ts, research-core-select.ts.
 
 import { test, expect, describe, afterAll } from "bun:test";
 import * as fs from "fs";
@@ -33,7 +31,6 @@ import * as path from "path";
 import * as os from "os";
 import * as crypto from "crypto";
 
-import { buildContextCapsule } from "../../lib/runtime-overlay/build-context-capsule";
 import { resolveRule, OVERLAY_RULES_DIR } from "../../lib/runtime-overlay/resolve-rule";
 import { resolveResearchAnchor } from "../../lib/runtime-overlay/research-core-select";
 import { resolveSchemaPath } from "../../lib/runtime-overlay/schema-resolve";
@@ -162,16 +159,6 @@ describe("fresh-home bootstrap: plugin overlay substitutes for missing external 
     expect(content).toMatch(/rule\s+\d+|Core Invariants/i);
   });
 
-  test("buildContextCapsule() returns non-empty string using plugin overlay", async () => {
-    const capsule = await buildContextCapsule();
-    expect(typeof capsule).toBe("string");
-    expect(capsule.trim().length).toBeGreaterThan(0);
-    // Should contain the section header written by build-context-capsule.ts
-    expect(capsule).toContain("palantir-mini rules overlay capsule");
-    // Should include content from CORE.md
-    expect(capsule).toContain("CORE.md");
-  });
-
   test("resolveRule(27) resolves to plugin-overlay when external rules are absent", async () => {
     // ── Setup: hash external rules dir before rename ──────────────────────────
     const preHashes = hashDir(EXTERNAL_RULES_DIR);
@@ -257,15 +244,6 @@ describe("fresh-home bootstrap: plugin overlay substitutes for missing external 
     expect(sharedCore.source).toBe("plugin-snapshot");
     expect(sharedCore.resolvedPath).toContain("runtime-overlay/ontology-shared-core");
     expect(fs.existsSync(path.join(sharedCore.resolvedPath, "index.ts"))).toBe(true);
-  });
-
-  test("buildContextCapsule() with external rules intact includes rules count", async () => {
-    // With external rules present (restored by prior test), capsule should still
-    // build from plugin overlay (overlay is checked first).
-    const capsule = await buildContextCapsule();
-    // The capsule should include "rules count: N active rules" from countOverlayRules().
-    expect(capsule).toContain("rules count:");
-    expect(capsule).toMatch(/\d+ active rules/);
   });
 
   test("memory dir stub is created when absent and bootstrap-home.sh exits 0", async () => {

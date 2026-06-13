@@ -15,6 +15,6 @@ version: 5.0.0
 - **25 auto-merge-cleanup-default** (v1.1.0): Allowlisted PR auto-merges by default with branch/worktree cleanup + working-tree cleanliness check + Wave-split discipline; opt-out via --no-merge or PALANTIR_MINI_AUTOMERGE_BYPASS=1 (audited).
 - **26 valuable-data-standard** (v2.0.0): Valuable data = an event that expresses a decision, pairs with an outcome, maps to >=1 agentic memory layer, and is provider-neutral; T0 (5-dim incomplete) rejected at emit; T1+ retained.
 - **27 cross-runtime-substrate** (v1.0.0): events.jsonl is a shared substrate; cross-runtime appends use atomic write+rename; byWhom.identity self-attributes the writing runtime.
-- **29 fable5-ultracode-workflow-archiving** (v1.0.0): Fable 5 + ultracode Dynamic Workflow runs are archived to harness-upstream reference/fable5-workflows/ (L0 verbatim + L1 card at run end; L2 pattern delta + FAILURES at campaign close); transcripts excluded; purpose = MetaOptimization. Full text: the tree's RULE.md (pm overlay sync pending).
+- **29 fable5-ultracode-workflow-archiving** (v1.1.0): Fable 5 + ultracode Dynamic Workflow runs are archived to harness-upstream reference/fable5-workflows/ (L0 verbatim + L1 card at run end; L2 pattern delta + FAILURES at campaign close); transcripts excluded; purpose = MetaOptimization. Full text: reference/fable5-workflows/RULE.md.
 
 Full rule text: pm_rule_query({ byId: NN }) (plugin overlay). Archived originals: ~/.claude/rules-archive/2026-06-10/. Authoring procedure: pm_rule_query or the archive AUTHORING.md.
