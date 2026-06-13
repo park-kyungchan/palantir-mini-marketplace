@@ -4,7 +4,10 @@ import type {
   DigitalTwinRequiredUserDecision,
   SemanticIntentContract,
 } from "../lead-intent/contracts";
-import type { SicAxisStatus } from "#schemas/ontology/primitives/semantic-intent-contract";
+import type {
+  SicAccessBoundary,
+  SicAxisStatus,
+} from "#schemas/ontology/primitives/semantic-intent-contract";
 import {
   semanticIntentContractRefFromApproved,
   type ApprovedSemanticIntentContract,
@@ -522,9 +525,30 @@ function requiredDecision(
   };
 }
 
+/**
+ * DP-4 (govern-fold): the SIC's GOVERNANCE `access-boundary` facet, when present —
+ * the typed access-security boundary that folds INTO the live V2 GOVERNANCE
+ * required-decision (Security is the GOVERNANCE access-control facet, NOT a 10th
+ * axis or a `DigitalTwinDecisionDomain` member). Returns `undefined` when the SIC
+ * carries no GOVERNANCE access-boundary facet.
+ */
+function governanceAccessBoundary(
+  semanticIntentContract: SemanticIntentContract,
+): SicAccessBoundary | undefined {
+  const facet = semanticIntentContract.axes?.governance.facet;
+  return facet?.kind === "access-boundary" ? facet.accessBoundary : undefined;
+}
+
 function buildRequiredUserDecisions(
   plan: Omit<ContextEngineeringPlanV2, "requiredUserDecisions" | "reviewCards">,
+  accessBoundary: SicAccessBoundary | undefined,
 ): readonly ContextEngineeringPlanRequiredUserDecision[] {
+  const governanceDecision = requiredDecision(
+    plan.planId,
+    "GOVERNANCE",
+    "Approve GOVERNANCE and validation boundary",
+    plan.sourceRefs,
+  );
   return [
     requiredDecision(
       plan.planId,
@@ -550,12 +574,12 @@ function buildRequiredUserDecisions(
       "Approve TECHNOLOGY mirror-only boundary",
       plan.sourceRefs,
     ),
-    requiredDecision(
-      plan.planId,
-      "GOVERNANCE",
-      "Approve GOVERNANCE and validation boundary",
-      plan.sourceRefs,
-    ),
+    // DP-4 govern-fold: the GOVERNANCE decision gains the typed access-boundary
+    // facet (fail-closed; see canApproveRequiredUserDecision). No SECURITY domain
+    // member — Security is folded into GOVERNANCE, not split into its own lane.
+    accessBoundary !== undefined
+      ? { ...governanceDecision, accessBoundary }
+      : governanceDecision,
   ];
 }
 
@@ -616,7 +640,10 @@ export function buildContextEngineeringPlanV2(
   };
   const v2WithoutCards: Omit<ContextEngineeringPlanV2, "reviewCards"> = {
     ...v2WithoutCardsAndDecisions,
-    requiredUserDecisions: buildRequiredUserDecisions(v2WithoutCardsAndDecisions),
+    requiredUserDecisions: buildRequiredUserDecisions(
+      v2WithoutCardsAndDecisions,
+      governanceAccessBoundary(input.semanticIntentContract),
+    ),
   };
   return {
     ...v2WithoutCards,

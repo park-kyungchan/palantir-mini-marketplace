@@ -435,3 +435,157 @@ describe("DP-3 — ACTION axis 'action-writeback' facet + SUCCESS-EVAL proposal 
     expect((sic as { requiredEvaluationRefs?: unknown }).requiredEvaluationRefs).toBeUndefined();
   });
 });
+
+describe("DP-2 — LOGIC axis 'logic-block' facet + invoking-actor scope binding", () => {
+  // A function that routes through an Apply-action AND a role to resolve its
+  // invoking-actor scope against ⇒ a RESOLVED tool scope on GOVERNANCE.
+  const RESOLVED_SESSION: FDEOntologyEngineeringSession = {
+    ...BASE_SESSION,
+    functionCandidates: [
+      {
+        candidateId: "fn:criteria",
+        plainName: "submissionCriteriaCheck",
+        logicIntent: "All rubric items graded + teacher approval.",
+        evaluatorKind: "routes-through-apply-action",
+        invokingActorScopeRef: "role:teacher",
+        evidenceRefs: ["evidence://criteria"],
+      },
+    ],
+    roleCandidates: [
+      {
+        candidateId: "role:teacher",
+        plainName: "Teacher",
+        principalKind: "agent",
+        permissions: ["finalize-score"],
+        evidenceRefs: ["evidence://teacher-role"],
+      },
+    ],
+  };
+
+  test("logic-block facet: evaluatorKind + resolved invokingActorScope", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(RESOLVED_SESSION);
+    const facet = sic.axes?.logic.facet;
+    if (!facet || facet.kind !== "logic-block") throw new Error("expected a logic-block facet");
+    expect(facet.functions).toHaveLength(1);
+    expect(facet.functions[0]).toEqual({
+      name: "submissionCriteriaCheck",
+      evaluatorKind: "routes-through-apply-action",
+      invokingActorScope: "Teacher",
+      refs: ["evidence://criteria"],
+    });
+    // Prose summary + status path stays byte-identical to the un-enriched axis.
+    expect(sic.axes?.logic.status).toBe("draft");
+    expect(sic.axes?.logic.summary).toBe("Decision logic / functions: submissionCriteriaCheck");
+  });
+
+  test("a RESOLVED routes-through-apply-action function ⇒ GOVERNANCE toolScope resolved:true", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(RESOLVED_SESSION);
+    const governance = sic.axes?.governance.facet;
+    if (!governance || governance.kind !== "access-boundary") {
+      throw new Error("expected an access-boundary facet");
+    }
+    expect(governance.accessBoundary.toolScopes).toEqual([
+      { toolName: "submissionCriteriaCheck", actorScope: "Teacher", resolved: true },
+    ]);
+  });
+
+  test("FAIL-CLOSED (paired): an UNRESOLVED invokingActorScopeRef ⇒ toolScope resolved:false, NO default grant", () => {
+    const unresolvedSession: FDEOntologyEngineeringSession = {
+      ...RESOLVED_SESSION,
+      // The ref points at a role that does not exist in this session.
+      functionCandidates: [
+        {
+          ...RESOLVED_SESSION.functionCandidates[0]!,
+          invokingActorScopeRef: "role:does-not-exist",
+        },
+      ],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(unresolvedSession);
+    const logic = sic.axes?.logic.facet;
+    if (!logic || logic.kind !== "logic-block") throw new Error("expected a logic-block facet");
+    // The unresolved scope is ABSENT on the function (never widened/defaulted).
+    expect(logic.functions[0]!.invokingActorScope).toBeUndefined();
+
+    const governance = sic.axes?.governance.facet;
+    if (!governance || governance.kind !== "access-boundary") {
+      throw new Error("expected an access-boundary facet");
+    }
+    const scope = governance.accessBoundary.toolScopes[0]!;
+    expect(scope.resolved).toBe(false);
+    // The model/agent cannot mint a resolved scope by default: NONE is resolved:true.
+    expect(governance.accessBoundary.toolScopes.some((s) => s.resolved === true)).toBe(false);
+  });
+
+  test("a pure-evaluator function ⇒ NO GOVERNANCE toolScope entry (it persists nothing to govern)", () => {
+    const pureSession: FDEOntologyEngineeringSession = {
+      ...RESOLVED_SESSION,
+      functionCandidates: [
+        {
+          ...RESOLVED_SESSION.functionCandidates[0]!,
+          evaluatorKind: "pure-evaluator",
+        },
+      ],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(pureSession);
+    const governance = sic.axes?.governance.facet;
+    if (!governance || governance.kind !== "access-boundary") {
+      throw new Error("expected an access-boundary facet");
+    }
+    expect(governance.accessBoundary.toolScopes).toEqual([]);
+  });
+
+  test("a function with no declared evaluatorKind ⇒ facet 'unspecified', no toolScope", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(BASE_SESSION);
+    const logic = sic.axes?.logic.facet;
+    if (!logic || logic.kind !== "logic-block") throw new Error("expected a logic-block facet");
+    expect(logic.functions[0]!.evaluatorKind).toBe("unspecified");
+    const governance = sic.axes?.governance.facet;
+    if (governance && governance.kind === "access-boundary") {
+      expect(governance.accessBoundary.toolScopes).toEqual([]);
+    }
+  });
+
+  test("empty session ⇒ no LOGIC facet and LOGIC status 'open'", () => {
+    const emptySession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      functionCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(emptySession);
+    expect(sic.axes?.logic.facet).toBeUndefined();
+    expect(sic.axes?.logic.status).toBe("open");
+  });
+});
+
+describe("DP-4 — GOVERNANCE axis 'access-boundary' facet (govern-fold, fail-closed default-deny)", () => {
+  test("access-boundary facet: failClosed===true + DEFAULT-DENY accessibleSurfaces (a surface with no signal is ABSENT)", () => {
+    // BASE_SESSION carries object + function + action signal, but NO function
+    // routes through an Apply-action ⇒ no toolScope ⇒ no "tools" surface.
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(BASE_SESSION);
+    const facet = sic.axes?.governance.facet;
+    if (!facet || facet.kind !== "access-boundary") throw new Error("expected an access-boundary facet");
+    expect(facet.accessBoundary.failClosed).toBe(true);
+    // default-deny: only surfaces with session signal appear; "tools" is ABSENT.
+    expect(facet.accessBoundary.accessibleSurfaces).toEqual(["data", "logic", "action"]);
+    expect(facet.accessBoundary.accessibleSurfaces).not.toContain("tools");
+    expect(facet.accessBoundary.accessibleSurfaces).not.toContain("memory");
+  });
+
+  test("policyMarkings fold role permissions + governance summary", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(BASE_SESSION);
+    const facet = sic.axes?.governance.facet;
+    if (!facet || facet.kind !== "access-boundary") throw new Error("expected an access-boundary facet");
+    // BASE_SESSION's Teacher role carries the "record-intervention" permission.
+    expect(facet.accessBoundary.policyMarkings).toContain("record-intervention");
+  });
+
+  test("a session with NO governance signal ⇒ no GOVERNANCE access-boundary facet", () => {
+    const noGovSession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      stableSummary: undefined,
+      roleCandidates: [],
+      functionCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(noGovSession);
+    expect(sic.axes?.governance.facet).toBeUndefined();
+  });
+});

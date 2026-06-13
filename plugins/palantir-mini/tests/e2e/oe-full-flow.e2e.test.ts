@@ -50,7 +50,11 @@ import {
   NINE_AXIS_SIC_SEQUENCE,
   isNineAxisSicComplete,
 } from "../../lib/semantic-intent/nine-axis-sic-fill-sequence";
-import { draftSemanticIntentContract } from "../../lib/lead-intent/contracts";
+import {
+  canApproveRequiredUserDecision,
+  draftSemanticIntentContract,
+} from "../../lib/lead-intent/contracts";
+import { buildContextEngineeringPlanV2 } from "../../lib/context-engineering/context-plan-builder";
 import type { SemanticIntentContract } from "../../lib/lead-intent/contracts";
 import type { SicWithFillFields } from "../../lib/semantic-intent/sic-fill-types";
 import {
@@ -835,13 +839,16 @@ describe("E2E DP-deepening — typed-facet substrate (staged; flip per DP step)"
 
     // The `facet` field is additive-optional: the guard ignores axis internals, so
     // a SIC conforms whether or not an axis carries one. DP-1 (Step 2) lands the
-    // DATA `data-graph` facet and DP-3 (Step 3) lands the ACTION `action-writeback`
-    // facet; the remaining axes stay facet-free until DP-2/DP-4 fill them at later
-    // steps. (At Step 1 NO axis carried a facet; that invariant is intentionally
-    // retired for DATA + ACTION as their DP steps land.)
-    const { data, action, ...otherAxes } = draft.axes ?? ({} as NonNullable<typeof draft.axes>);
+    // DATA `data-graph` facet, DP-3 (Step 3) the ACTION `action-writeback` facet,
+    // and DP-2 (Step 4) the LOGIC `logic-block` facet; the remaining axes stay
+    // facet-free until they carry signal. (At Step 1 NO axis carried a facet; that
+    // invariant is intentionally retired for DATA + ACTION + LOGIC as their DP steps
+    // land.) GOVERNANCE stays facet-free here because the base scenario session
+    // carries NO governance signal (default-deny: no signal ⇒ no access-boundary).
+    const { data, action, logic, ...otherAxes } = draft.axes ?? ({} as NonNullable<typeof draft.axes>);
     expect(data.facet).toBeDefined();
     expect(action.facet).toBeDefined();
+    expect(logic.facet).toBeDefined();
     for (const axis of Object.values(otherAxes)) {
       expect(axis.facet).toBeUndefined();
     }
@@ -875,10 +882,47 @@ describe("E2E DP-deepening — typed-facet substrate (staged; flip per DP step)"
     expect(link.targetObject).toBe("Rubric");
     expect(link.endpointsResolved).toBe(true);
   });
-  test.todo(
-    "DP-2 (flips at Step 4): the LOGIC axis carries a 'logic-block' facet — evaluatorKind + invokingActorScopeRef threaded into the GOVERNANCE accessBoundary toolScopes",
-    () => {},
-  );
+  test("DP-2 (flips at Step 4): the LOGIC axis carries a 'logic-block' facet — evaluatorKind + invokingActorScopeRef threaded into the GOVERNANCE accessBoundary toolScopes", () => {
+    // Enrich the scenario's criteria function: it ROUTES THROUGH the finalizeScore
+    // Apply-action under the Teacher's invoking-actor scope (the SSoT's "tool calls
+    // run under the invoking user's permissions" rule). The base scenario fixture
+    // carries no evaluatorKind/role, so the resolved binding is exercised here.
+    const session: FDEOntologyEngineeringSession = {
+      ...SCENARIO_SIGNAL_SESSION,
+      functionCandidates: [
+        {
+          ...SCENARIO_SIGNAL_SESSION.functionCandidates[0]!,
+          evaluatorKind: "routes-through-apply-action",
+          invokingActorScopeRef: "role:teacher",
+        },
+      ],
+      roleCandidates: [
+        {
+          candidateId: "role:teacher",
+          plainName: "Teacher",
+          principalKind: "agent",
+          permissions: ["finalize-score"],
+          evidenceRefs: ["evidence://teacher-role"],
+        },
+      ],
+    };
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(session);
+
+    const logic = draft.axes?.logic.facet;
+    if (!logic || logic.kind !== "logic-block") throw new Error("expected a logic-block facet");
+    expect(logic.functions).toHaveLength(1);
+    expect(logic.functions[0]!.evaluatorKind).toBe("routes-through-apply-action");
+    expect(logic.functions[0]!.invokingActorScope).toBe("Teacher");
+
+    // The resolved invoking-actor scope threads into the GOVERNANCE accessBoundary.
+    const governance = draft.axes?.governance.facet;
+    if (!governance || governance.kind !== "access-boundary") {
+      throw new Error("expected an access-boundary facet");
+    }
+    expect(governance.accessBoundary.toolScopes).toEqual([
+      { toolName: "제출 기준 판정", actorScope: "Teacher", resolved: true },
+    ]);
+  });
   test("DP-3 (flips at Step 3): the ACTION axis carries an 'action-writeback' facet — writebackRisk + submissionCriteria; SUCCESS-EVAL refs gain typed submission-criteria:// proposal refs (elicitation-side only; requiredEvaluationRefs/synthesizeOntologyDtcBuildFields UNTOUCHED)", () => {
     const draft = createSemanticIntentContractDraftFromFDEOntologySession(SCENARIO_SIGNAL_SESSION);
 
@@ -909,10 +953,97 @@ describe("E2E DP-deepening — typed-facet substrate (staged; flip per DP step)"
     // (the e2e C3 below stays test.todo until then).
     expect((draft as { requiredEvaluationRefs?: unknown }).requiredEvaluationRefs).toBeUndefined();
   });
-  test.todo(
-    "DP-4 (flips at Step 4): the GOVERNANCE axis carries an 'access-boundary' facet — failClosed===true, default-deny accessibleSurfaces (a surface with no session signal is ABSENT); an unresolved toolScope blocks V2 approval (fail-closed teeth, never a default grant); DigitalTwinDecisionDomain stays EXACTLY 5 members (no SECURITY)",
-    () => {},
-  );
+  test("DP-4 (flips at Step 4): the GOVERNANCE axis carries an 'access-boundary' facet — failClosed===true, default-deny accessibleSurfaces (a surface with no session signal is ABSENT); an unresolved toolScope blocks V2 approval (fail-closed teeth, never a default grant); DigitalTwinDecisionDomain stays EXACTLY 5 members (no SECURITY)", () => {
+    // A session with a Teacher role (governance signal) + object/function/action
+    // signal but NO function routing through an Apply-action ⇒ no toolScope ⇒ the
+    // "tools" surface is ABSENT (default-deny). failClosed is the literal `true` the
+    // type itself carries — an access boundary is never constructed default-open.
+    const governanceSignalSession: FDEOntologyEngineeringSession = {
+      ...SCENARIO_SIGNAL_SESSION,
+      roleCandidates: [
+        {
+          candidateId: "role:teacher",
+          plainName: "Teacher",
+          principalKind: "agent",
+          permissions: ["finalize-score"],
+          evidenceRefs: ["evidence://teacher-role"],
+        },
+      ],
+    };
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(governanceSignalSession);
+    const facet = draft.axes?.governance.facet;
+    if (!facet || facet.kind !== "access-boundary") throw new Error("expected an access-boundary facet");
+    expect(facet.accessBoundary.failClosed).toBe(true);
+    expect(facet.accessBoundary.accessibleSurfaces).toEqual(["data", "logic", "action"]);
+    expect(facet.accessBoundary.accessibleSurfaces).not.toContain("tools");
+
+    // FAIL-CLOSED V2 gate (the load-bearing teeth): a function that routes through
+    // an Apply-action with an UNRESOLVED invoking-actor scope ⇒ resolved:false ⇒ the
+    // GOVERNANCE required-decision CANNOT be approved on an ontology-affecting plan.
+    const unresolvedSession: FDEOntologyEngineeringSession = {
+      ...SCENARIO_SIGNAL_SESSION,
+      functionCandidates: [
+        {
+          ...SCENARIO_SIGNAL_SESSION.functionCandidates[0]!,
+          evaluatorKind: "routes-through-apply-action",
+          invokingActorScopeRef: "role:absent", // resolves to no role ⇒ fail-closed
+        },
+      ],
+      roleCandidates: [],
+    };
+    const unresolvedDraft = createSemanticIntentContractDraftFromFDEOntologySession(unresolvedSession);
+    const unresolvedFacet = unresolvedDraft.axes?.governance.facet;
+    if (!unresolvedFacet || unresolvedFacet.kind !== "access-boundary") {
+      throw new Error("expected an access-boundary facet");
+    }
+    expect(unresolvedFacet.accessBoundary.toolScopes.some((s) => s.resolved === false)).toBe(true);
+    // NEVER a default grant: no toolScope is minted resolved:true for the unresolved ref.
+    expect(unresolvedFacet.accessBoundary.toolScopes.some((s) => s.resolved === true)).toBe(false);
+
+    const unresolvedPlan = buildContextEngineeringPlanV2({
+      semanticIntentContract: { ...unresolvedDraft, status: "approved", approvalRef: "user:approved:grading-flow" },
+      fdeSession: unresolvedSession,
+      projectIndex: { projectRoot: unresolvedSession.projectRoot, indexRef: "INDEX.md", sourceRefs: ["evidence://session-source"] },
+    });
+    const unresolvedGov = unresolvedPlan.requiredUserDecisions.find((d) => d.domain === "GOVERNANCE")!;
+    expect(canApproveRequiredUserDecision(unresolvedGov, { ontologyAffecting: true })).toBe(false);
+
+    // Resolving the scope (a user GOVERNANCE turn) lets it approve — both directions.
+    const resolvedSession: FDEOntologyEngineeringSession = {
+      ...unresolvedSession,
+      functionCandidates: [
+        { ...unresolvedSession.functionCandidates[0]!, invokingActorScopeRef: "role:teacher" },
+      ],
+      roleCandidates: [
+        {
+          candidateId: "role:teacher",
+          plainName: "Teacher",
+          principalKind: "agent",
+          permissions: ["finalize-score"],
+          evidenceRefs: ["evidence://teacher-role"],
+        },
+      ],
+    };
+    const resolvedDraft = createSemanticIntentContractDraftFromFDEOntologySession(resolvedSession);
+    const resolvedPlan = buildContextEngineeringPlanV2({
+      semanticIntentContract: { ...resolvedDraft, status: "approved", approvalRef: "user:approved:grading-flow" },
+      fdeSession: resolvedSession,
+      projectIndex: { projectRoot: resolvedSession.projectRoot, indexRef: "INDEX.md", sourceRefs: ["evidence://session-source"] },
+    });
+    const resolvedGov = resolvedPlan.requiredUserDecisions.find((d) => d.domain === "GOVERNANCE")!;
+    expect(canApproveRequiredUserDecision(resolvedGov, { ontologyAffecting: true })).toBe(true);
+
+    // GOVERN-FOLD structural: the live V2 plan has EXACTLY the 5 decision domains —
+    // Security folded onto the GOVERNANCE decision's accessBoundary, NO SECURITY member.
+    const domains = resolvedPlan.requiredUserDecisions.map((d) => d.domain);
+    expect(domains).toEqual(["DATA", "LOGIC", "ACTION", "TECHNOLOGY", "GOVERNANCE"]);
+    expect(domains).not.toContain("SECURITY");
+    expect(
+      resolvedPlan.requiredUserDecisions
+        .filter((d) => d.accessBoundary !== undefined)
+        .map((d) => d.domain),
+    ).toEqual(["GOVERNANCE"]);
+  });
   test.todo(
     "DP-5 (flips at Step 5): every 'draft'-status axis emits a typed LatentIntentHypothesis confirmation-debt (facet-bound riskIfWrong + readinessRequirementIds); an 'open' axis emits NO debt; the debt self-clears when the turn engine confirms the axis (status → filled)",
     () => {},

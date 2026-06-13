@@ -4,9 +4,14 @@ import {
   buildContextEngineeringPlanV2,
   buildContextEngineeringPlanV3,
 } from "../../../lib/context-engineering/context-plan-builder";
+import { canApproveRequiredUserDecision } from "../../../lib/lead-intent/contracts";
 import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
 import type { FDEOntologyEngineeringSession } from "../../../lib/fde-ontology-engineering/types";
-import type { SemanticIntentAxes, SicAxis } from "#schemas/ontology/primitives/semantic-intent-contract";
+import type {
+  SemanticIntentAxes,
+  SicAccessBoundary,
+  SicAxis,
+} from "#schemas/ontology/primitives/semantic-intent-contract";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 
 const semantic: SemanticIntentContract = {
@@ -252,5 +257,110 @@ describe("buildContextEngineeringPlan", () => {
     // Advisory axis cards carry through to V3, alongside the SECURITY card.
     expect(plan.reviewCards.filter((card) => card.cardId.includes(":review:axis:"))).toHaveLength(5);
     expect(plan.reviewCards.every((card) => card.mutationAuthorizedFromCard === false)).toBe(true);
+  });
+});
+
+// ===========================================================================
+// DP-4 (govern-fold): the SIC's GOVERNANCE access-boundary facet folds INTO the
+// live V2 GOVERNANCE required-decision with a FAIL-CLOSED approval gate. Security
+// is the GOVERNANCE access-control facet — NO 10th axis, NO SECURITY domain member.
+// ===========================================================================
+
+function accessBoundary(
+  overrides: Partial<SicAccessBoundary> = {},
+): SicAccessBoundary {
+  return {
+    policyMarkings: ["teacher-only"],
+    accessibleSurfaces: ["data", "action"],
+    toolScopes: [{ toolName: "finalizeScore", actorScope: "Teacher", resolved: true }],
+    failClosed: true,
+    ...overrides,
+  };
+}
+
+function semanticWithGovernanceFacet(boundary: SicAccessBoundary): SemanticIntentContract {
+  return {
+    ...semantic,
+    axes: {
+      ...fullAxes,
+      governance: {
+        summary: "Roles: Teacher; score readable only by owning student + assigned teacher.",
+        refs: ["evidence://teacher-role"],
+        status: "filled",
+        facet: { kind: "access-boundary", accessBoundary: boundary },
+      },
+    },
+  };
+}
+
+describe("DP-4 govern-fold — GOVERNANCE access-boundary folded into the live V2 decision (fail-closed)", () => {
+  test("the SIC GOVERNANCE access-boundary facet folds into the V2 GOVERNANCE required-decision", () => {
+    const plan = buildContextEngineeringPlanV2({
+      semanticIntentContract: semanticWithGovernanceFacet(accessBoundary()),
+      fdeSession,
+      projectIndex: { projectRoot: "/repo", indexRef: "INDEX.md", sourceRefs: ["BROWSE.md"] },
+    });
+    const governance = plan.requiredUserDecisions.find((d) => d.domain === "GOVERNANCE");
+    if (!governance) throw new Error("GOVERNANCE required-decision missing");
+    expect(governance.accessBoundary).toBeDefined();
+    expect(governance.accessBoundary!.failClosed).toBe(true);
+    // Non-GOVERNANCE decisions carry NO accessBoundary (Security is folded, not split).
+    expect(
+      plan.requiredUserDecisions
+        .filter((d) => d.domain !== "GOVERNANCE")
+        .every((d) => d.accessBoundary === undefined),
+    ).toBe(true);
+  });
+
+  test("FAIL-CLOSED gate (BOTH directions): an unresolved toolScope CANNOT approve; resolving it CAN", () => {
+    const ctx = { ontologyAffecting: true };
+
+    // Direction 1 — UNRESOLVED scope ⇒ refuse (fail-closed, never a default grant).
+    const unresolvedPlan = buildContextEngineeringPlanV2({
+      semanticIntentContract: semanticWithGovernanceFacet(
+        accessBoundary({
+          toolScopes: [{ toolName: "finalizeScore", actorScope: "", resolved: false }],
+        }),
+      ),
+      fdeSession,
+      projectIndex: { projectRoot: "/repo", indexRef: "INDEX.md", sourceRefs: ["BROWSE.md"] },
+    });
+    const unresolvedGov = unresolvedPlan.requiredUserDecisions.find((d) => d.domain === "GOVERNANCE")!;
+    expect(canApproveRequiredUserDecision(unresolvedGov, ctx)).toBe(false);
+
+    // Direction 2 — RESOLVED scope ⇒ may approve (the user's GOVERNANCE turn confirmed it).
+    const resolvedPlan = buildContextEngineeringPlanV2({
+      semanticIntentContract: semanticWithGovernanceFacet(accessBoundary()),
+      fdeSession,
+      projectIndex: { projectRoot: "/repo", indexRef: "INDEX.md", sourceRefs: ["BROWSE.md"] },
+    });
+    const resolvedGov = resolvedPlan.requiredUserDecisions.find((d) => d.domain === "GOVERNANCE")!;
+    expect(canApproveRequiredUserDecision(resolvedGov, ctx)).toBe(true);
+  });
+
+  test("FAIL-CLOSED gate: empty accessibleSurfaces CANNOT approve an ontology-affecting plan", () => {
+    const boundary = accessBoundary({ accessibleSurfaces: [], toolScopes: [] });
+    expect(canApproveRequiredUserDecision({ accessBoundary: boundary }, { ontologyAffecting: true })).toBe(false);
+    // …but a non-ontology-affecting plan is not gated on the empty-surface condition.
+    expect(canApproveRequiredUserDecision({ accessBoundary: boundary }, { ontologyAffecting: false })).toBe(true);
+  });
+
+  test("a decision with NO accessBoundary is unaffected by the fail-closed gate", () => {
+    expect(canApproveRequiredUserDecision({ accessBoundary: undefined }, { ontologyAffecting: true })).toBe(true);
+  });
+
+  test("GOVERN-FOLD structural: the V2 plan has EXACTLY the 5 decision domains — Security folded onto GOVERNANCE, never a SECURITY domain member", () => {
+    const plan = buildContextEngineeringPlanV2({
+      semanticIntentContract: semanticWithGovernanceFacet(accessBoundary()),
+      fdeSession,
+      projectIndex: { projectRoot: "/repo", indexRef: "INDEX.md", sourceRefs: ["BROWSE.md"] },
+    });
+    const domains = plan.requiredUserDecisions.map((d) => d.domain);
+    expect(domains).toEqual(["DATA", "LOGIC", "ACTION", "TECHNOLOGY", "GOVERNANCE"]);
+    expect(domains).not.toContain("SECURITY");
+    // The access-security boundary lives on the GOVERNANCE decision's facet, not a
+    // separate domain — proving Security is FOLDED into GOVERNANCE, not split out.
+    const securityDecisions = plan.requiredUserDecisions.filter((d) => d.accessBoundary !== undefined);
+    expect(securityDecisions.map((d) => d.domain)).toEqual(["GOVERNANCE"]);
   });
 });

@@ -7,10 +7,12 @@ import type {
 } from "#schemas/ontology/primitives/ontology-engineering-ref";
 import type {
   SemanticIntentAxes,
+  SicAccessBoundary,
   SicAxis,
   SicAxisFacet,
   SicDataLink,
   SicDataObject,
+  SicLogicFunction,
   SicWritebackAction,
 } from "#schemas/ontology/primitives/semantic-intent-contract";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
@@ -148,6 +150,115 @@ function actionSubmissionCriteriaRefs(
 }
 
 /**
+ * DP-2: resolve a function candidate's `invokingActorScopeRef` (a RoleCandidate
+ * candidateId) to that role's plainName — the actor whose GOVERNANCE scope the
+ * function's tool calls inherit. Returns `undefined` when the ref is absent OR
+ * matches no role (an UNRESOLVED scope is confirmation debt, never an auto-grant;
+ * the GOVERNANCE access-boundary turns it into a `resolved:false` toolScope).
+ */
+function resolveInvokingActorScope(
+  session: FDEOntologyEngineeringSession,
+  invokingActorScopeRef: string | undefined,
+): string | undefined {
+  if (!invokingActorScopeRef) return undefined;
+  const role = (session.roleCandidates ?? []).find(
+    (candidate) => candidate.candidateId === invokingActorScopeRef,
+  );
+  return role?.plainName;
+}
+
+/**
+ * DP-2: project the session's LOGIC signal into a typed AIP-Logic block facet.
+ * Each `functionCandidate` becomes a `SicLogicFunction` carrying its
+ * `evaluatorKind` (default `"unspecified"` when the session declared none) and
+ * the resolved `invokingActorScope` (the actor whose permissions its tool calls
+ * inherit; absent when the ref is unresolved — fail-closed, never widened).
+ * Returns `undefined` when the session carries no LOGIC signal.
+ */
+function buildLogicBlockFacet(session: FDEOntologyEngineeringSession): SicAxisFacet | undefined {
+  if (session.functionCandidates.length === 0) return undefined;
+
+  const functions: SicLogicFunction[] = session.functionCandidates.map((candidate) => {
+    const invokingActorScope = resolveInvokingActorScope(session, candidate.invokingActorScopeRef);
+    return {
+      name: candidate.plainName,
+      evaluatorKind: candidate.evaluatorKind ?? "unspecified",
+      ...(invokingActorScope !== undefined ? { invokingActorScope } : {}),
+      refs: unique(candidate.evidenceRefs),
+    };
+  });
+
+  return { kind: "logic-block", functions };
+}
+
+/**
+ * DP-2/DP-4 (the cross-axis fail-closed binding): derive the GOVERNANCE
+ * `toolScopes` from the LOGIC functions that route through an Apply-action (a
+ * `pure-evaluator` persists nothing, so it contributes no scope to govern). Each
+ * such function contributes ONE toolScope; an unresolved invoking-actor scope
+ * yields `resolved:false` (confirmation debt the GOVERNANCE turn must confirm),
+ * NEVER a `resolved:true` default grant — the model/agent cannot widen scope.
+ */
+function buildToolScopes(
+  session: FDEOntologyEngineeringSession,
+): SicAccessBoundary["toolScopes"] {
+  return session.functionCandidates.flatMap((candidate) => {
+    if (candidate.evaluatorKind !== "routes-through-apply-action") return [];
+    const actorScope = resolveInvokingActorScope(session, candidate.invokingActorScopeRef);
+    return [
+      {
+        toolName: candidate.plainName,
+        actorScope: actorScope ?? "",
+        resolved: actorScope !== undefined,
+      },
+    ];
+  });
+}
+
+/**
+ * DP-4 (govern-fold): project the session's GOVERNANCE signal into a typed
+ * access-boundary facet — Security as the GOVERNANCE access-control facet, NOT a
+ * 10th axis or a `DigitalTwinDecisionDomain` member. `policyMarkings` come from
+ * the governance summary + role permissions; `accessibleSurfaces` are DEFAULT-DENY
+ * (a surface appears ONLY when the session carries confirmed signal for it);
+ * `toolScopes` come from DP-2's LOGIC binding; `failClosed` is the literal `true`
+ * the type itself carries (an access boundary can never be constructed
+ * default-open). Returns `undefined` when the session carries no GOVERNANCE signal.
+ */
+function buildAccessBoundaryFacet(
+  session: FDEOntologyEngineeringSession,
+  governanceSummary: string,
+  toolScopes: SicAccessBoundary["toolScopes"],
+): SicAxisFacet | undefined {
+  const roleCandidates = session.roleCandidates ?? [];
+  const hasGovernanceSignal =
+    governanceSummary.trim().length > 0 || roleCandidates.length > 0 || toolScopes.length > 0;
+  if (!hasGovernanceSignal) return undefined;
+
+  const policyMarkings = unique([
+    ...(session.stableSummary?.governanceSummary ? [session.stableSummary.governanceSummary] : []),
+    ...roleCandidates.flatMap((candidate) => candidate.permissions ?? []),
+  ]);
+
+  // DEFAULT-DENY: a surface is accessible ONLY when the session carries confirmed
+  // signal for it; a surface with no signal is ABSENT (denied), never granted.
+  const accessibleSurfaces: SicAccessBoundary["accessibleSurfaces"] = [
+    ...(session.objectCandidates.length > 0 ? (["data"] as const) : []),
+    ...(session.functionCandidates.length > 0 ? (["logic"] as const) : []),
+    ...(session.actionCandidates.length > 0 ? (["action"] as const) : []),
+    ...(toolScopes.length > 0 ? (["tools"] as const) : []),
+  ];
+
+  const accessBoundary: SicAccessBoundary = {
+    policyMarkings,
+    accessibleSurfaces,
+    toolScopes,
+    failClosed: true,
+  };
+  return { kind: "access-boundary", accessBoundary };
+}
+
+/**
  * Read a candidate's declared RID. The typed-ref `declaredRid` field has landed on
  * the candidate types (E-PRF), so this reads it directly; candidates without a rid
  * are skipped. A non-empty declared rid flows into the typed-ref arrays.
@@ -196,6 +307,12 @@ function buildAxes(session: FDEOntologyEngineeringSession): SemanticIntentAxes {
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     .join("\n");
 
+  // DP-2/DP-4: the LOGIC→GOVERNANCE actor-scope binding. Derive the toolScopes
+  // once (from LOGIC functions routing through Apply-action) and thread them into
+  // the GOVERNANCE access-boundary facet. An unresolved scope is `resolved:false`
+  // (fail-closed confirmation debt), never a default grant.
+  const toolScopes = buildToolScopes(session);
+
   const successSignals = session.missionModel?.successSignals ?? [];
   // DP-3: thread each action's submission criteria into SUCCESS-EVAL as a typed
   // proposal (elicitation-side only; requiredEvaluationRefs / the synthesis gate
@@ -222,18 +339,20 @@ function buildAxes(session: FDEOntologyEngineeringSession): SemanticIntentAxes {
       ),
       dataNames.length > 0 ? buildDataGraphFacet(session) : undefined,
     ),
-    logic: buildAxis(
+    logic: buildAxisWithFacet(
       logicNames.length > 0 ? `Decision logic / functions: ${logicNames.join(", ")}` : "",
       session.functionCandidates.flatMap((candidate) => candidate.evidenceRefs),
+      logicNames.length > 0 ? buildLogicBlockFacet(session) : undefined,
     ),
     action: buildAxisWithFacet(
       actionNames.length > 0 ? `Write-back actions: ${actionNames.join(", ")}` : "",
       session.actionCandidates.flatMap((candidate) => candidate.evidenceRefs),
       actionNames.length > 0 ? buildActionWritebackFacet(session) : undefined,
     ),
-    governance: buildAxis(
+    governance: buildAxisWithFacet(
       governanceSummary,
       roleCandidates.flatMap((candidate) => candidate.evidenceRefs ?? []),
+      buildAccessBoundaryFacet(session, governanceSummary, toolScopes),
     ),
     context: buildAxis(
       session.evidenceModel?.evidenceDefinition ?? "",
