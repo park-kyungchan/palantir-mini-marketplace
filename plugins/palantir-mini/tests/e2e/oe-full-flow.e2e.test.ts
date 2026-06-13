@@ -209,6 +209,8 @@ const SCENARIO_SIGNAL_SESSION: FDEOntologyEngineeringSession = {
       plainName: "finalizeScore",
       operationalIntent: "Write the finalized score back to the student record.",
       writebackRisk: "high",
+      // The scenario's per-action submission criteria ("루브릭의 모든 항목이 채점됨 + 교사 승인").
+      submissionCriteria: ["all rubric items graded", "teacher approval"],
       evidenceRefs: ["evidence://finalize"],
     },
   ],
@@ -833,11 +835,13 @@ describe("E2E DP-deepening — typed-facet substrate (staged; flip per DP step)"
 
     // The `facet` field is additive-optional: the guard ignores axis internals, so
     // a SIC conforms whether or not an axis carries one. DP-1 (Step 2) lands the
-    // DATA `data-graph` facet; the OTHER axes stay facet-free until DP-2..DP-4 fill
-    // them at later steps. (At Step 1 NO axis carried a facet; that invariant is
-    // intentionally retired for DATA here.)
-    const { data, ...otherAxes } = draft.axes ?? ({} as NonNullable<typeof draft.axes>);
+    // DATA `data-graph` facet and DP-3 (Step 3) lands the ACTION `action-writeback`
+    // facet; the remaining axes stay facet-free until DP-2/DP-4 fill them at later
+    // steps. (At Step 1 NO axis carried a facet; that invariant is intentionally
+    // retired for DATA + ACTION as their DP steps land.)
+    const { data, action, ...otherAxes } = draft.axes ?? ({} as NonNullable<typeof draft.axes>);
     expect(data.facet).toBeDefined();
+    expect(action.facet).toBeDefined();
     for (const axis of Object.values(otherAxes)) {
       expect(axis.facet).toBeUndefined();
     }
@@ -875,10 +879,36 @@ describe("E2E DP-deepening — typed-facet substrate (staged; flip per DP step)"
     "DP-2 (flips at Step 4): the LOGIC axis carries a 'logic-block' facet — evaluatorKind + invokingActorScopeRef threaded into the GOVERNANCE accessBoundary toolScopes",
     () => {},
   );
-  test.todo(
-    "DP-3 (flips at Step 3): the ACTION axis carries an 'action-writeback' facet — writebackRisk + submissionCriteria; SUCCESS-EVAL refs gain typed submission-criteria:// proposal refs (elicitation-side only; requiredEvaluationRefs/synthesizeOntologyDtcBuildFields UNTOUCHED)",
-    () => {},
-  );
+  test("DP-3 (flips at Step 3): the ACTION axis carries an 'action-writeback' facet — writebackRisk + submissionCriteria; SUCCESS-EVAL refs gain typed submission-criteria:// proposal refs (elicitation-side only; requiredEvaluationRefs/synthesizeOntologyDtcBuildFields UNTOUCHED)", () => {
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(SCENARIO_SIGNAL_SESSION);
+
+    // ACTION axis: writebackRisk + per-action submissionCriteria projected onto the facet.
+    const actionAxis = draft.axes?.action;
+    if (!actionAxis) throw new Error("ACTION axis missing");
+    const facet = actionAxis.facet;
+    if (!facet || facet.kind !== "action-writeback") throw new Error("expected an action-writeback facet");
+    expect(facet.actions.map((a) => a.name)).toEqual(["finalizeScore"]);
+    const finalize = facet.actions[0]!;
+    expect(finalize.writebackRisk).toBe("high");
+    expect(finalize.submissionCriteria).toEqual(["all rubric items graded", "teacher approval"]);
+
+    // SUCCESS-EVAL axis: each submission criterion threads in as a typed proposal ref
+    // (the cross-axis ACTION→SUCCESS-EVAL elicitation binding) + a summary mention.
+    const successEval = draft.axes?.successEval;
+    if (!successEval) throw new Error("SUCCESS-EVAL axis missing");
+    expect(successEval.refs).toEqual([
+      "submission-criteria://finalizeScore/0",
+      "submission-criteria://finalizeScore/1",
+    ]);
+    expect(successEval.summary).toContain("Per-action submission criteria:");
+    expect(successEval.summary).toContain("submission-criteria://finalizeScore/0");
+
+    // BOUNDARY GUARD (front-half scope): the elicitation binding is a PROPOSAL only —
+    // it never reaches into the back-half enforcement (requiredEvaluationRefs / the
+    // DTC synthesis gate synthesizeOntologyDtcBuildFields). That line is OE-8 / Step 8
+    // (the e2e C3 below stays test.todo until then).
+    expect((draft as { requiredEvaluationRefs?: unknown }).requiredEvaluationRefs).toBeUndefined();
+  });
   test.todo(
     "DP-4 (flips at Step 4): the GOVERNANCE axis carries an 'access-boundary' facet — failClosed===true, default-deny accessibleSurfaces (a surface with no session signal is ABSENT); an unresolved toolScope blocks V2 approval (fail-closed teeth, never a default grant); DigitalTwinDecisionDomain stays EXACTLY 5 members (no SECURITY)",
     () => {},

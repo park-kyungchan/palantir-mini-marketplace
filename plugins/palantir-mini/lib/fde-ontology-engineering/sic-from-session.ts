@@ -11,6 +11,7 @@ import type {
   SicAxisFacet,
   SicDataLink,
   SicDataObject,
+  SicWritebackAction,
 } from "#schemas/ontology/primitives/semantic-intent-contract";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import type { FDEOntologyEngineeringSession } from "./types";
@@ -105,6 +106,48 @@ function buildDataGraphFacet(session: FDEOntologyEngineeringSession): SicAxisFac
 }
 
 /**
+ * DP-3: project the session's ACTION signal into a typed write-back facet. Each
+ * `actionCandidate` becomes a `SicWritebackAction` carrying its `writebackRisk` and
+ * its per-action `submissionCriteria` (the "done/correct" gate for THIS action;
+ * default `[]` when the session declared none — an action with no submission
+ * criteria is confirmation debt, never silently waved through). Returns `undefined`
+ * when the session carries no ACTION signal, so an empty ACTION axis stays facet-free.
+ */
+function buildActionWritebackFacet(
+  session: FDEOntologyEngineeringSession,
+): SicAxisFacet | undefined {
+  if (session.actionCandidates.length === 0) return undefined;
+
+  const actions: SicWritebackAction[] = session.actionCandidates.map((candidate) => ({
+    name: candidate.plainName,
+    writebackRisk: candidate.writebackRisk,
+    submissionCriteria: [...(candidate.submissionCriteria ?? [])],
+    refs: unique(candidate.evidenceRefs),
+  }));
+
+  return { kind: "action-writeback", actions };
+}
+
+/**
+ * DP-3: the ACTION→SUCCESS-EVAL *proposal* binding (elicitation-side only). Collect
+ * every action's `submissionCriteria` into typed `submission-criteria://<action>/<idx>`
+ * refs so the SUCCESS-EVAL turn confirms BOTH the user's success signals AND the
+ * per-action submission criteria as one proposal. SCOPE GUARD: this is the
+ * understand-layer proposal binding ONLY — it threads refs into the SUCCESS-EVAL
+ * axis and never touches `requiredEvaluationRefs` or the DTC synthesis gate
+ * (`synthesizeOntologyDtcBuildFields`), which is the back-half / OE-8 line.
+ */
+function actionSubmissionCriteriaRefs(
+  session: FDEOntologyEngineeringSession,
+): string[] {
+  return session.actionCandidates.flatMap((candidate) =>
+    (candidate.submissionCriteria ?? []).map(
+      (_criterion, index) => `submission-criteria://${candidate.plainName}/${index}`,
+    ),
+  );
+}
+
+/**
  * Read a candidate's declared RID. The typed-ref `declaredRid` field has landed on
  * the candidate types (E-PRF), so this reads it directly; candidates without a rid
  * are skipped. A non-empty declared rid flows into the typed-ref arrays.
@@ -154,6 +197,16 @@ function buildAxes(session: FDEOntologyEngineeringSession): SemanticIntentAxes {
     .join("\n");
 
   const successSignals = session.missionModel?.successSignals ?? [];
+  // DP-3: thread each action's submission criteria into SUCCESS-EVAL as a typed
+  // proposal (elicitation-side only; requiredEvaluationRefs / the synthesis gate
+  // stay untouched — that is the OE-8 back-half line).
+  const submissionCriteriaRefs = actionSubmissionCriteriaRefs(session);
+  const successEvalSummaryParts = [
+    successSignals.length > 0 ? `Success signals: ${successSignals.join(", ")}` : undefined,
+    submissionCriteriaRefs.length > 0
+      ? `Per-action submission criteria: ${submissionCriteriaRefs.join(", ")}`
+      : undefined,
+  ].filter((part): part is string => part !== undefined);
 
   const memoryPriorRefs = unique([
     ...(session.semanticIntentContextRef ? [session.semanticIntentContextRef] : []),
@@ -173,9 +226,10 @@ function buildAxes(session: FDEOntologyEngineeringSession): SemanticIntentAxes {
       logicNames.length > 0 ? `Decision logic / functions: ${logicNames.join(", ")}` : "",
       session.functionCandidates.flatMap((candidate) => candidate.evidenceRefs),
     ),
-    action: buildAxis(
+    action: buildAxisWithFacet(
       actionNames.length > 0 ? `Write-back actions: ${actionNames.join(", ")}` : "",
       session.actionCandidates.flatMap((candidate) => candidate.evidenceRefs),
+      actionNames.length > 0 ? buildActionWritebackFacet(session) : undefined,
     ),
     governance: buildAxis(
       governanceSummary,
@@ -189,8 +243,8 @@ function buildAxes(session: FDEOntologyEngineeringSession): SemanticIntentAxes {
       ],
     ),
     successEval: buildAxis(
-      successSignals.length > 0 ? `Success signals: ${successSignals.join(", ")}` : "",
-      [],
+      successEvalSummaryParts.join("; "),
+      submissionCriteriaRefs,
     ),
     constraintsNonGoals: buildAxis(
       session.confirmedNonGoals.length > 0

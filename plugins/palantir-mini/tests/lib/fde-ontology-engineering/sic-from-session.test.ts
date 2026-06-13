@@ -346,3 +346,92 @@ describe("DP-1 — DATA axis 'data-graph' facet (typed Palantir noun-graph)", ()
     expect(sic.axes?.data.status).toBe("open");
   });
 });
+
+describe("DP-3 — ACTION axis 'action-writeback' facet + SUCCESS-EVAL proposal binding", () => {
+  const ACTION_SESSION: FDEOntologyEngineeringSession = {
+    ...BASE_SESSION,
+    actionCandidates: [
+      {
+        candidateId: "act:finalize-score",
+        plainName: "finalizeScore",
+        operationalIntent: "Write the finalized score back to the student record.",
+        writebackRisk: "high",
+        submissionCriteria: ["all rubric items graded", "teacher approval"],
+        evidenceRefs: ["evidence://finalize"],
+      },
+    ],
+  };
+
+  test("writebackRisk + submissionCriteria projected onto the action-writeback facet", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(ACTION_SESSION);
+    const facet = sic.axes?.action.facet;
+    if (!facet || facet.kind !== "action-writeback") throw new Error("expected an action-writeback facet");
+
+    expect(facet.actions).toHaveLength(1);
+    expect(facet.actions[0]).toEqual({
+      name: "finalizeScore",
+      writebackRisk: "high",
+      submissionCriteria: ["all rubric items graded", "teacher approval"],
+      refs: ["evidence://finalize"],
+    });
+    // The prose summary + status path is byte-identical to the un-enriched axis.
+    expect(sic.axes?.action.status).toBe("draft");
+    expect(sic.axes?.action.summary).toBe("Write-back actions: finalizeScore");
+  });
+
+  test("each submission criterion threads into the SUCCESS-EVAL axis as a typed proposal ref + summary mention", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(ACTION_SESSION);
+    const successEval = sic.axes?.successEval;
+    if (!successEval) throw new Error("successEval axis missing");
+
+    // One submission-criteria:// ref per (action, criterion-index).
+    expect(successEval.refs).toEqual([
+      "submission-criteria://finalizeScore/0",
+      "submission-criteria://finalizeScore/1",
+    ]);
+    // The success signals AND the per-action criteria are surfaced as one proposal.
+    expect(successEval.summary).toContain("teacher can act within one lesson");
+    expect(successEval.summary).toContain("Per-action submission criteria:");
+    expect(successEval.summary).toContain("submission-criteria://finalizeScore/0");
+  });
+
+  test("an action with NO submission criteria ⇒ facet action with submissionCriteria [] and NO success-eval criteria refs", () => {
+    const noCriteriaSession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      actionCandidates: [
+        {
+          candidateId: "act:finalize-score",
+          plainName: "finalizeScore",
+          operationalIntent: "Write the finalized score back to the student record.",
+          writebackRisk: "high",
+          evidenceRefs: ["evidence://finalize"],
+        },
+      ],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(noCriteriaSession);
+    const facet = sic.axes?.action.facet;
+    if (!facet || facet.kind !== "action-writeback") throw new Error("expected an action-writeback facet");
+    expect(facet.actions[0]!.submissionCriteria).toEqual([]);
+    // No criteria ⇒ SUCCESS-EVAL carries no submission-criteria:// refs (only signals).
+    expect(sic.axes?.successEval.refs).toEqual([]);
+    expect(sic.axes?.successEval.summary).not.toContain("Per-action submission criteria:");
+  });
+
+  test("empty session ⇒ no ACTION facet and ACTION status 'open'", () => {
+    const emptySession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      actionCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(emptySession);
+    expect(sic.axes?.action.facet).toBeUndefined();
+    expect(sic.axes?.action.status).toBe("open");
+  });
+
+  test("BOUNDARY GUARD (front-half scope): the elicitation binding never sets requiredEvaluationRefs (back-half / OE-8 stays UNTOUCHED)", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(ACTION_SESSION);
+    // DP-3 binds submission criteria as a SUCCESS-EVAL *proposal* only; the
+    // enforcement-side requiredEvaluationRefs (the DTC synthesis gate, OE-8) is
+    // NOT populated here. The draft must carry no requiredEvaluationRefs.
+    expect((sic as { requiredEvaluationRefs?: unknown }).requiredEvaluationRefs).toBeUndefined();
+  });
+});
