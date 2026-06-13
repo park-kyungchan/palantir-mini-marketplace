@@ -26,13 +26,14 @@ import type { SicAxis, SicAxisStatus } from "../primitives/semantic-intent-contr
 export const SIC_AXIS_STRUCT_RID = structRid("pm.self.ontology/struct/sic-axis");
 
 /**
- * Compile-time fidelity guard: SicAxisStatus must remain exactly these 3 members.
+ * Compile-time fidelity guard: SicAxisStatus must remain exactly these 4 members.
  * If the primitive's status union changes, this stops compiling — keeping the
  * Struct's `status` field literal in lockstep with the type it models.
+ * (v1.84.0: added `draft` — session-derived, proposed-but-unconfirmed.)
  */
-const SIC_AXIS_STATUS_TS_LITERAL = '"open" | "filled" | "not-applicable"';
-type _StatusInSync = [SicAxisStatus] extends ["open" | "filled" | "not-applicable"]
-  ? (["open" | "filled" | "not-applicable"] extends [SicAxisStatus] ? true : never)
+const SIC_AXIS_STATUS_TS_LITERAL = '"open" | "draft" | "filled" | "not-applicable"';
+type _StatusInSync = [SicAxisStatus] extends ["open" | "draft" | "filled" | "not-applicable"]
+  ? (["open" | "draft" | "filled" | "not-applicable"] extends [SicAxisStatus] ? true : never)
   : never;
 const _statusInSync: _StatusInSync = true;
 void _statusInSync;
@@ -42,7 +43,7 @@ export const SIC_AXIS_STRUCT: StructDeclaration = {
   name: "SicAxis",
   description:
     "One surfaced axis of user intent: a plain-language summary, the typed refs/" +
-    "evidence captured for it, and its fill status (open/filled/not-applicable).",
+    "evidence captured for it, and its fill status (open/draft/filled/not-applicable).",
   fields: [
     // Field names + TS type literals mirror the primitive SicAxis interface 1:1.
     { name: "summary", type: "string" } satisfies { name: keyof SicAxis; type: string },

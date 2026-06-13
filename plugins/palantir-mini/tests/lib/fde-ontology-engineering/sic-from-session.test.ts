@@ -100,7 +100,8 @@ describe("createSemanticIntentContractDraftFromFDEOntologySession — nine-axis 
     if (!axes) throw new Error("axes missing");
 
     // DATA ← objectCandidates + chatbotContextCandidates
-    expect(axes.data.status).toBe("filled");
+    // Session-derived axes are 'draft' (proposed, NOT user-confirmed), never 'filled'.
+    expect(axes.data.status).toBe("draft");
     expect(axes.data.summary).toContain("Student");
     expect(axes.data.summary).toContain("Teacher assistant state");
     expect(axes.data.refs).toEqual(
@@ -108,32 +109,32 @@ describe("createSemanticIntentContractDraftFromFDEOntologySession — nine-axis 
     );
 
     // LOGIC ← functionCandidates
-    expect(axes.logic.status).toBe("filled");
+    expect(axes.logic.status).toBe("draft");
     expect(axes.logic.summary).toContain("Score answer");
 
     // ACTION ← actionCandidates
-    expect(axes.action.status).toBe("filled");
+    expect(axes.action.status).toBe("draft");
     expect(axes.action.summary).toContain("Record intervention");
 
     // GOVERNANCE / ACTORS ← role state
-    expect(axes.governance.status).toBe("filled");
+    expect(axes.governance.status).toBe("draft");
     expect(axes.governance.summary).toContain("Teacher");
-    expect(axes.actors.status).toBe("filled");
+    expect(axes.actors.status).toBe("draft");
     expect(axes.actors.summary).toContain("Teacher");
 
     // CONTEXT ← evidenceModel / sourceRefs
-    expect(axes.context.status).toBe("filled");
+    expect(axes.context.status).toBe("draft");
     expect(axes.context.summary).toContain("Student answer evidence");
     expect(axes.context.refs).toEqual(
       expect.arrayContaining(["evidence://answer-pattern", "evidence://session-source"]),
     );
 
     // SUCCESS-EVAL ← missionModel.successSignals
-    expect(axes.successEval.status).toBe("filled");
+    expect(axes.successEval.status).toBe("draft");
     expect(axes.successEval.summary).toContain("teacher can act within one lesson");
 
     // CONSTRAINTS-NONGOALS ← confirmedNonGoals
-    expect(axes.constraintsNonGoals.status).toBe("filled");
+    expect(axes.constraintsNonGoals.status).toBe("draft");
     expect(axes.constraintsNonGoals.summary).toContain("Do not notify parents automatically.");
   });
 
@@ -184,7 +185,7 @@ describe("createSemanticIntentContractDraftFromFDEOntologySession — nine-axis 
     const sic = createSemanticIntentContractDraftFromFDEOntologySession(sessionWithPriors);
     const axes = sic.axes;
     if (!axes) throw new Error("axes missing");
-    expect(axes.memoryPrior.status).toBe("filled");
+    expect(axes.memoryPrior.status).toBe("draft");
     expect(axes.memoryPrior.refs).toEqual(
       expect.arrayContaining(["semantic-intent:prior", "dtc:prior"]),
     );

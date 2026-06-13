@@ -1,5 +1,13 @@
 # Ontology Schema Changelog
 
+## 1.74.0 — additive SicAxisStatus member `draft` (session-derived, unconfirmed) — 2026-06-14
+
+Additive MINOR (rule 08 — one additive enum member on an existing primitive; no removals, no field edits, no breaking change).
+
+### Changed
+
+- `primitives/semantic-intent-contract.ts` — `SicAxisStatus` gains a third non-`open`/non-`not-applicable` member: `"draft"` (`"open" | "draft" | "filled" | "not-applicable"`). Rationale (OE-5 / D1-2): the session-derivation path (`createSemanticIntentContractDraftFromFDEOntologySession`) must NOT claim `filled` for an axis that only accumulated session signal — `filled` is reserved for a per-axis USER-turn confirmation minted by the 9-axis turn engine (`advanceNineAxisSicSequence`). `draft` names the proposed-but-unconfirmed state. Zero behavior change for existing producers: no current producer emits `draft`, and `isSemanticIntentContract` does not validate axis status. The type doc now spells out the full open → draft → filled (+ user `not-applicable`) confirmation ladder.
+
 ## 1.73.0 — SIC/DTC consolidation (canonical clarification additive fields + TurnCardDecisionSpec promotion) — 2026-06-10
 
 Additive MINOR (rule 08 — additive optional fields on an existing primitive + one new primitive; no removals/breaking edits).

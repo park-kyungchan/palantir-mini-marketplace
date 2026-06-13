@@ -508,6 +508,50 @@ describe("pm-ontology-engineering-workflow handler", () => {
     expect(status.state.semanticIntentContractStatus).not.toBe("approved");
   });
 
+  test("approve_sic refuses a session-derived draft (no semanticIntentContract threaded, no turn-engine run) — Q2 (b1) empty-fillSequence floor", async () => {
+    // D1-3 closure through the bridge: a productive `turn` builds candidate signal,
+    // so the session-derived draft has `draft` axes — but NO 9-axis turn-engine run
+    // means an EMPTY fillSequence. approve_sic reconstructs the draft from the
+    // session (no caller-threaded semanticIntentContract) and Q2 (b1) refuses it.
+    const entryRef = writeEntry();
+    await handleOntologyEngineeringWorkflow({
+      action: "start",
+      projectRoot,
+      universalOntologyEntryRef: entryRef,
+      sessionId: "fde-session:session-refuse",
+    });
+    await handleOntologyEngineeringWorkflow({
+      action: "turn",
+      projectRoot,
+      sessionId: "fde-session:session-refuse",
+      sanitizedTurnSummary: "Track teacher intervention readiness.",
+      signal: {
+        mission: {
+          operationalDecision: "Decide teacher intervention readiness.",
+          decisionOwnerRole: "teacher",
+          successSignals: ["teacher can choose next intervention"],
+        },
+        objectNames: ["Student"],
+        actionNames: ["Record intervention"],
+        functionNames: ["Score explanation"],
+        sourceRefs: ["evidence://student-answer"],
+      },
+      emittedAt: "2026-05-22T00:05:30.000Z",
+    });
+
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "approve_sic",
+      projectRoot,
+      sessionId: "fde-session:session-refuse",
+      // NOTE: no semanticIntentContract threaded → reconstructed from the session.
+      emittedAt: "2026-05-22T00:06:30.000Z",
+    });
+
+    expect(result.sicApproval?.approved).toBe(false);
+    expect(result.sicApproval?.issues?.some((issue) => issue.field === "fillSequence")).toBe(true);
+    expect(result.state.semanticIntentContractStatus).not.toBe("approved");
+  });
+
   test("approve_technology_recommendation approves a caller-threaded rec and flips the TECHNOLOGY decision", async () => {
     const entryRef = writeEntry();
     await handleOntologyEngineeringWorkflow({

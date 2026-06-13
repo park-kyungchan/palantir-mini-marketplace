@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.84.0 — 2026-06-14 (additive SicAxisStatus member `draft` — session-derived, unconfirmed)
+
+Additive MINOR (rule 08 — one additive enum member on an existing ontology primitive; no removals, no field edits). See `ontology/CHANGELOG.md` v1.74.0 for the canonical ontology-axis entry.
+
+### Changed — SicAxisStatus (`ontology/primitives/semantic-intent-contract.ts`)
+
+- `SicAxisStatus` gains `"draft"` (`"open" | "draft" | "filled" | "not-applicable"`). Rationale (OE-5 / D1-2): session-derived axes must not claim `filled` — `filled` is reserved for a per-axis USER-turn confirmation. `draft` names the proposed-but-unconfirmed state. Zero behavior change for existing producers (no current producer emits `draft`; `isSemanticIntentContract` does not validate axis status).
+
 ## v1.83.1 — 2026-06-10 (rule-registry regen: rule 29 fable5-ultracode-workflow-archiving 1.0.0→1.1.0 + authoring-mirror resync)
 
 PATCH (rule 08 — generated-content regen only; no primitive type added/removed, no field edits).

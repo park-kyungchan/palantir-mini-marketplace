@@ -13,6 +13,70 @@ import {
 } from "../../../lib/semantic-intent/nine-axis-sic-fill-sequence";
 import type { SicWithFillFields } from "../../../lib/semantic-intent/sic-fill-types";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import { createSemanticIntentContractDraftFromFDEOntologySession } from "../../../lib/fde-ontology-engineering/sic-from-session";
+import { FDE_ONTOLOGY_ENGINEERING_SESSION_SCHEMA_VERSION } from "../../../lib/fde-ontology-engineering/types";
+import type { FDEOntologyEngineeringSession } from "../../../lib/fde-ontology-engineering/types";
+
+/** A session carrying candidate signal — its derived SIC has `draft` axes + an empty fillSequence. */
+const SIGNAL_SESSION: FDEOntologyEngineeringSession = {
+  schemaVersion: FDE_ONTOLOGY_ENGINEERING_SESSION_SCHEMA_VERSION,
+  sessionId: "fde-session:q2-floor",
+  projectRoot: "/tmp/pm-q2-floor",
+  universalOntologyEntryRef: "universal-ontology-entry:q2-floor",
+  phase: "semantic-contract-ready",
+  turnCount: 3,
+  userFacingSummary: "Track student misconception intervention.",
+  confirmedUserGoal: "Decide the next teacher intervention.",
+  confirmedNonGoals: ["Do not notify parents automatically."],
+  latentHypotheses: [],
+  acceptedHypothesisIds: [],
+  rejectedHypothesisIds: [],
+  missionModel: {
+    operationalDecision: "Decide next teacher intervention.",
+    decisionOwnerRole: "teacher",
+    successSignals: ["teacher can act within one lesson"],
+  },
+  evidenceModel: {
+    evidenceDefinition: "Student answer evidence drives the decision.",
+    observableSignals: ["answer pattern"],
+    sourceArtifactRefs: ["evidence://answer-pattern"],
+    missingEvidenceQuestions: [],
+  },
+  objectCandidates: [
+    {
+      candidateId: "obj:student",
+      plainName: "Student",
+      whyItMayMatter: "Subject of the intervention decision.",
+      evidenceRefs: ["evidence://student"],
+    },
+  ],
+  linkCandidates: [],
+  actionCandidates: [
+    {
+      candidateId: "act:record-intervention",
+      plainName: "Record intervention",
+      operationalIntent: "Persist the chosen intervention.",
+      writebackRisk: "medium",
+      evidenceRefs: ["evidence://record"],
+    },
+  ],
+  functionCandidates: [
+    {
+      candidateId: "fn:score-answer",
+      plainName: "Score answer",
+      logicIntent: "Compute a correctness score for an answer.",
+      evidenceRefs: ["evidence://score"],
+    },
+  ],
+  roleCandidates: [],
+  chatbotContextCandidates: [],
+  unresolvedQuestions: [],
+  sourceRefs: ["evidence://session-source"],
+  recentTurnSummaries: [],
+  turnRecordIds: [],
+  createdAt: "2026-06-14T00:00:00.000Z",
+  updatedAt: "2026-06-14T00:00:00.000Z",
+};
 
 function semantic(overrides: Partial<SemanticIntentContract> = {}): SemanticIntentContract {
   return {
@@ -83,6 +147,28 @@ describe("approveSemanticIntentContract — Q2 user-confirmation write-path", ()
     const draft = completeUserConfirmedSic();
     expect(draft.status).toBe("draft");
     expect(isNineAxisSicComplete(draft)).toBe(true);
+
+    // 9-axis INTACT (enrichment, not reduction): after 10 user turns every axis is
+    // user-confirmed ('filled' or user 'not-applicable') — NEVER 'draft'/'open' —
+    // and the fillSequence carries all 10 turns (T0 intent + 9 axes).
+    const filled = draft as SicWithFillFields;
+    expect((filled.fillSequence ?? []).length).toBe(10);
+    const axes = draft.axes;
+    if (!axes) throw new Error("axes missing");
+    for (const key of [
+      "data",
+      "logic",
+      "action",
+      "governance",
+      "context",
+      "successEval",
+      "constraintsNonGoals",
+      "actors",
+      "memoryPrior",
+    ] as const) {
+      expect(["filled", "not-applicable"]).toContain(axes[key].status);
+      expect(axes[key].status).not.toBe("draft");
+    }
 
     const result = approveSemanticIntentContract(draft, { approverIdentity: "claude-code" });
 
@@ -161,5 +247,44 @@ describe("approveSemanticIntentContract — Q2 user-confirmation write-path", ()
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("expected refusal");
     expect(result.issues.some((issue) => issue.field === "contractId")).toBe(true);
+  });
+});
+
+describe("approveSemanticIntentContract — Q2 (b1) empty-fillSequence floor (D1-3 closure)", () => {
+  test("a session draft (draft axes, NO user fillSequence) is refused with field 'fillSequence'", () => {
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(SIGNAL_SESSION);
+    // Pre-condition: the derived axes are 'draft' (proposed-unconfirmed), and there
+    // is no fillSequence — exactly the state the turn engine has NOT confirmed.
+    expect(draft.axes?.data.status).toBe("draft");
+    expect((draft as SicWithFillFields).fillSequence ?? []).toHaveLength(0);
+
+    const result = approveSemanticIntentContract(draft, { approverIdentity: "claude-code" });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected Q2 (b1) refusal");
+    expect(result.issues.some((issue) => issue.field === "fillSequence")).toBe(true);
+    // The unconfirmed axes payload lists the draft/open axes.
+    expect(result.unconfirmedAxes).toContain("data");
+  });
+
+  test("refusal does NOT depend on gate (a): a force-stamped status:'approved' session draft is STILL refused", () => {
+    // D1-3: even if a future path pre-stamped the session draft status:'approved'
+    // with an approvalRef (bypassing the legacy validator in gate (a)), the empty
+    // fillSequence makes Q2 (b1) refuse it directly — the turn engine remains the
+    // SOLE path to a confirmable axis.
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(SIGNAL_SESSION);
+    const forceApproved: SemanticIntentContract = {
+      ...draft,
+      status: "approved",
+      approvalRef: "user:approved:forced-bypass",
+    } as SemanticIntentContract;
+
+    const result = approveSemanticIntentContract(forceApproved, { approverIdentity: "claude-code" });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected Q2 (b1) refusal despite status:'approved'");
+    expect(result.issues.some((issue) => issue.field === "fillSequence")).toBe(true);
+    expect(result.reason).toMatch(/fillSequence/i);
+    expect(result.reason).toMatch(/9축/);
   });
 });

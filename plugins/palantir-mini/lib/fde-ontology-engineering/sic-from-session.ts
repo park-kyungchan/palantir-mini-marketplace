@@ -19,17 +19,20 @@ function unique(values: readonly string[]): string[] {
 }
 
 /**
- * Build one of the nine SemanticIntentAxes from session signal. An axis with no
- * plain-language summary is left `open` — never `not-applicable`. Auto-marking an
- * axis not-applicable would reduce the nine-axis heart; `open` lets readiness flag
- * it for the turn-by-turn fill where the user confirms (or explicitly waives) it.
+ * Build one of the nine SemanticIntentAxes from session signal. A session-derived
+ * axis with signal is `draft` — a PROPOSAL awaiting per-axis user confirmation,
+ * NEVER `filled`; `filled` / user-`not-applicable` are minted ONLY by the 9-axis
+ * turn engine (advanceNineAxisSicSequence). An axis with no plain-language summary
+ * is left `open` — never `not-applicable`. Auto-marking an axis not-applicable
+ * would reduce the nine-axis heart; `open`/`draft` let readiness flag it for the
+ * turn-by-turn fill where the user confirms (or explicitly waives) it.
  */
 function buildAxis(summary: string, refs: readonly string[]): SicAxis {
   const trimmedSummary = summary.trim();
   return {
     summary: trimmedSummary,
     refs: unique(refs),
-    status: trimmedSummary.length > 0 ? "filled" : "open",
+    status: trimmedSummary.length > 0 ? "draft" : "open",
   };
 }
 
@@ -277,7 +280,8 @@ export function createSemanticIntentContractDraftFromFDEOntologySession(
  * or contradicted"; turn-engine-agent-skills.md:112 Request-clarification=Copy).
  *
  * A SemanticIntentContract draft is HOLLOW when it carries no grounded meaning:
- * every one of the nine axes is unfilled (status !== "filled"), AND the approved
+ * every one of the nine axes carries no signal (an axis carries signal when its
+ * status is `filled` OR `draft` AND its summary is non-empty), AND the approved
  * noun/verb candidate arrays are empty, AND confirmedIntent is empty or only the
  * known mission-absent placeholder (`confirmedIntent()` emits that sentence when
  * no mission/goal state exists). A hollow draft must NOT read as progress — the
@@ -297,9 +301,14 @@ export function isSemanticIntentContractHollow(
   const axes = sic.axes;
   const everyAxisUnfilled =
     axes === undefined ||
-    (Object.keys(axes) as (keyof typeof axes)[]).every(
-      (key) => axes[key]?.status !== "filled",
-    );
+    (Object.keys(axes) as (keyof typeof axes)[]).every((key) => {
+      const a = axes[key];
+      return (
+        a === undefined ||
+        (a.status !== "filled" && a.status !== "draft") ||
+        a.summary.trim().length === 0
+      );
+    });
   const noNouns = (sic.approvedNouns ?? []).length === 0;
   const noVerbs = (sic.approvedVerbs ?? []).length === 0;
   const intent = (sic.confirmedIntent ?? "").trim();

@@ -9,6 +9,11 @@
  * canonical rubric). Enables PR 5.10 (8-turn fill) + PR 5.13 (SIC grader).
  * Per canonical plan v2 §4 row 5.9.
  *
+ * v1.84.0 — additive SicAxisStatus member `draft` (session-derived, NOT user-
+ * confirmed). Lets the session-derivation path name a proposed-but-unconfirmed
+ * axis without overstating confirmation as `filled` (OE-5 / D1-2). Additive +
+ * backward-compatible: no existing producer emits `draft`.
+ *
  * @owner palantirkc-ontology
  * @purpose User-approved semantic routing boundary for ontology-affecting work
  */
@@ -143,7 +148,20 @@ export type SicAxisKey =
   | "actors"
   | "memoryPrior";
 
-export type SicAxisStatus = "open" | "filled" | "not-applicable";
+/**
+ * The confirmation ladder for one of the nine semantic-intent axes:
+ *   "open"            — no signal at all; nothing proposed.
+ *   "draft"           — a session-derived PROPOSAL exists (summary + refs
+ *                       populated) but is NOT user-confirmed. Carries signal for
+ *                       review; does NOT count toward readiness; does NOT count
+ *                       as confirmation. Minted only by the session-derivation
+ *                       path (createSemanticIntentContractDraftFromFDEOntologySession).
+ *   "filled"          — a per-axis USER turn confirmed it. Minted ONLY by the
+ *                       9-axis turn engine (advanceNineAxisSicSequence).
+ *   "not-applicable"  — the USER explicitly waived it via a turn. Minted ONLY by
+ *                       the turn engine / runner.
+ */
+export type SicAxisStatus = "open" | "draft" | "filled" | "not-applicable";
 
 /** One surfaced axis of user intent. */
 export interface SicAxis {

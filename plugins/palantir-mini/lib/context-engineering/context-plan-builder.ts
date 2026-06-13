@@ -4,6 +4,7 @@ import type {
   DigitalTwinRequiredUserDecision,
   SemanticIntentContract,
 } from "../lead-intent/contracts";
+import type { SicAxisStatus } from "#schemas/ontology/primitives/semantic-intent-contract";
 import {
   semanticIntentContractRefFromApproved,
   type ApprovedSemanticIntentContract,
@@ -102,7 +103,8 @@ export interface ContextEngineeringAxisProjection {
   readonly axisKey: "context" | "successEval" | "constraintsNonGoals" | "actors" | "memoryPrior";
   readonly summary: string;
   readonly refs: readonly string[];
-  readonly status: "open" | "filled" | "not-applicable";
+  // Pass-through of the source axis status (incl. session-derived `draft`).
+  readonly status: SicAxisStatus;
   readonly advisoryOnly: true;
 }
 
