@@ -244,3 +244,105 @@ describe("createSemanticIntentContractDraftFromFDEOntologySession — nine-axis 
     expect(sic.approvedLinkTypeRefs).toBeUndefined();
   });
 });
+
+describe("DP-1 — DATA axis 'data-graph' facet (typed Palantir noun-graph)", () => {
+  test("objects + folded properties + links with resolved endpoints", () => {
+    const session: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      objectCandidates: [
+        {
+          candidateId: "obj:submission",
+          plainName: "Submission",
+          whyItMayMatter: "A student's submission.",
+          evidenceRefs: ["evidence://submission"],
+        },
+        {
+          candidateId: "obj:rubric",
+          plainName: "Rubric",
+          whyItMayMatter: "The grading rubric.",
+          evidenceRefs: ["evidence://rubric"],
+        },
+      ],
+      propertyCandidates: [
+        {
+          candidateId: "prop:score",
+          plainName: "score",
+          ownerObjectName: "Submission",
+          dataType: "number",
+          evidenceRefs: ["evidence://score"],
+        },
+      ],
+      linkCandidates: [
+        {
+          candidateId: "edge:belongs",
+          plainName: "belongsToRubric",
+          sourceObject: "Submission",
+          targetObject: "Rubric",
+          businessMeaning: "Each submission binds to exactly one rubric.",
+          evidenceRefs: ["evidence://belongs"],
+        },
+      ],
+      chatbotContextCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(session);
+    const facet = sic.axes?.data.facet;
+    if (!facet || facet.kind !== "data-graph") throw new Error("expected a data-graph facet");
+
+    expect(facet.objects.map((o) => o.name)).toEqual(["Submission", "Rubric"]);
+    const submission = facet.objects.find((o) => o.name === "Submission")!;
+    expect(submission.properties).toEqual([{ name: "score", dataType: "number" }]);
+    expect(submission.refs).toEqual(["evidence://submission"]);
+    expect(facet.objects.find((o) => o.name === "Rubric")!.properties).toEqual([]);
+
+    expect(facet.links).toHaveLength(1);
+    expect(facet.links[0]).toMatchObject({
+      name: "belongsToRubric",
+      sourceObject: "Submission",
+      targetObject: "Rubric",
+      endpointsResolved: true,
+    });
+  });
+
+  test("a link whose endpoints are NOT both objects ⇒ endpointsResolved false", () => {
+    const session: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      objectCandidates: [
+        {
+          candidateId: "obj:submission",
+          plainName: "Submission",
+          whyItMayMatter: "A student's submission.",
+          evidenceRefs: ["evidence://submission"],
+        },
+      ],
+      propertyCandidates: [],
+      linkCandidates: [
+        {
+          candidateId: "edge:dangling",
+          plainName: "belongsToRubric",
+          sourceObject: "Submission",
+          targetObject: "Rubric", // Rubric is NOT an object in this session
+          businessMeaning: "Dangling endpoint — confirmation debt, not a silent link.",
+          evidenceRefs: ["evidence://belongs"],
+        },
+      ],
+      chatbotContextCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(session);
+    const facet = sic.axes?.data.facet;
+    if (!facet || facet.kind !== "data-graph") throw new Error("expected a data-graph facet");
+    expect(facet.links[0]!.endpointsResolved).toBe(false);
+  });
+
+  test("empty session ⇒ no DATA facet and DATA status 'open'", () => {
+    const emptySession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      objectCandidates: [],
+      linkCandidates: [],
+      propertyCandidates: [],
+      chatbotContextCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(emptySession);
+    expect(sic.axes?.data.facet).toBeUndefined();
+    expect(sic.axes?.data.status).toBe("open");
+  });
+});

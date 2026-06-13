@@ -183,7 +183,26 @@ const SCENARIO_SIGNAL_SESSION: FDEOntologyEngineeringSession = {
       evidenceRefs: ["evidence://rubric"],
     },
   ],
-  linkCandidates: [],
+  propertyCandidates: [
+    {
+      candidateId: "prop:score",
+      plainName: "score",
+      ownerObjectName: "Submission",
+      dataType: "number",
+      whyItMayMatter: "The finalized score written back to the student record.",
+      evidenceRefs: ["evidence://score"],
+    },
+  ],
+  linkCandidates: [
+    {
+      candidateId: "edge:submission-rubric",
+      plainName: "belongsToRubric",
+      sourceObject: "Submission",
+      targetObject: "Rubric",
+      businessMeaning: "Each submission binds to exactly one rubric (many submissions → one Rubric).",
+      evidenceRefs: ["evidence://belongs-to-rubric"],
+    },
+  ],
   actionCandidates: [
     {
       candidateId: "act:finalize-score",
@@ -812,17 +831,46 @@ describe("E2E DP-deepening — typed-facet substrate (staged; flip per DP step)"
     expect(draft.schemaVersion).toBe(SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION);
     expect(draft.schemaVersion).toBe("prompt-dtc/semantic-intent-contract/v2");
 
-    // No DP-0 producer emits `facet` yet — it is the substrate DP-1..DP-4 fill.
-    // The field is present-and-optional; absent on every axis at Step 1.
-    for (const axis of Object.values(draft.axes ?? {})) {
+    // The `facet` field is additive-optional: the guard ignores axis internals, so
+    // a SIC conforms whether or not an axis carries one. DP-1 (Step 2) lands the
+    // DATA `data-graph` facet; the OTHER axes stay facet-free until DP-2..DP-4 fill
+    // them at later steps. (At Step 1 NO axis carried a facet; that invariant is
+    // intentionally retired for DATA here.)
+    const { data, ...otherAxes } = draft.axes ?? ({} as NonNullable<typeof draft.axes>);
+    expect(data.facet).toBeDefined();
+    for (const axis of Object.values(otherAxes)) {
       expect(axis.facet).toBeUndefined();
     }
   });
 
-  test.todo(
-    "DP-1 (flips at Step 2): the DATA axis carries a 'data-graph' facet — Submission+Rubric objects + folded score property + belongsToRubric link with endpointsResolved",
-    () => {},
-  );
+  test("DP-1 (flips at Step 2): the DATA axis carries a 'data-graph' facet — Submission+Rubric objects + folded score property + belongsToRubric link with endpointsResolved", () => {
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(SCENARIO_SIGNAL_SESSION);
+    const dataAxis = draft.axes?.data;
+    if (!dataAxis) throw new Error("DATA axis missing");
+
+    // Prose summary + status stay byte-identical to the un-enriched axis (the
+    // facet is the additive machine projection, not a prose change).
+    expect(dataAxis.status).toBe("draft");
+    expect(dataAxis.summary).toBe("Operational objects and application state: Submission, Rubric");
+
+    const facet = dataAxis.facet;
+    if (!facet || facet.kind !== "data-graph") throw new Error("expected a data-graph facet");
+
+    // Submission + Rubric become typed noun-graph objects; score folds onto its owner.
+    expect(facet.objects.map((o) => o.name)).toEqual(["Submission", "Rubric"]);
+    const submission = facet.objects.find((o) => o.name === "Submission")!;
+    expect(submission.properties).toEqual([{ name: "score", dataType: "number" }]);
+    const rubric = facet.objects.find((o) => o.name === "Rubric")!;
+    expect(rubric.properties).toEqual([]);
+
+    // belongsToRubric (Submission→Rubric): both endpoints present ⇒ endpointsResolved.
+    expect(facet.links).toHaveLength(1);
+    const link = facet.links[0]!;
+    expect(link.name).toBe("belongsToRubric");
+    expect(link.sourceObject).toBe("Submission");
+    expect(link.targetObject).toBe("Rubric");
+    expect(link.endpointsResolved).toBe(true);
+  });
   test.todo(
     "DP-2 (flips at Step 4): the LOGIC axis carries a 'logic-block' facet — evaluatorKind + invokingActorScopeRef threaded into the GOVERNANCE accessBoundary toolScopes",
     () => {},

@@ -5,7 +5,13 @@ import type {
   LinkTypeRef,
   ObjectTypeRef,
 } from "#schemas/ontology/primitives/ontology-engineering-ref";
-import type { SemanticIntentAxes, SicAxis } from "#schemas/ontology/primitives/semantic-intent-contract";
+import type {
+  SemanticIntentAxes,
+  SicAxis,
+  SicAxisFacet,
+  SicDataLink,
+  SicDataObject,
+} from "#schemas/ontology/primitives/semantic-intent-contract";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import type { FDEOntologyEngineeringSession } from "./types";
 
@@ -34,6 +40,68 @@ function buildAxis(summary: string, refs: readonly string[]): SicAxis {
     refs: unique(refs),
     status: trimmedSummary.length > 0 ? "draft" : "open",
   };
+}
+
+/**
+ * Like {@link buildAxis}, but additionally attaches an optional typed `facet`
+ * (the machine-typed projection of the same proposal the prose `summary` answers,
+ * DP-0..DP-4). `summary` + `status` are computed identically to `buildAxis`, so an
+ * enriched axis stays byte-identical in its prose/status; only `facet` is added,
+ * and ONLY when present (an absent facet ⇒ a record byte-identical to `buildAxis`).
+ */
+function buildAxisWithFacet(
+  summary: string,
+  refs: readonly string[],
+  facet: SicAxisFacet | undefined,
+): SicAxis {
+  const axis = buildAxis(summary, refs);
+  return facet === undefined ? axis : { ...axis, facet };
+}
+
+/**
+ * DP-1: project the session's DATA signal into a typed Palantir noun-graph facet.
+ * `objectCandidates` become `SicDataObject`s with `propertyCandidates` folded in by
+ * `ownerObjectName`; `linkCandidates` become `SicDataLink`s, each carrying
+ * `endpointsResolved` = both endpoints appear as object names (an unresolved
+ * endpoint is confirmation debt, never a silent link). Returns `undefined` when the
+ * session carries no DATA-object signal, so an empty DATA axis stays facet-free.
+ */
+function buildDataGraphFacet(session: FDEOntologyEngineeringSession): SicAxisFacet | undefined {
+  if (session.objectCandidates.length === 0) return undefined;
+
+  const propertiesByOwner = new Map<string, { readonly name: string; readonly dataType?: string }[]>();
+  for (const property of session.propertyCandidates ?? []) {
+    const owner = property.ownerObjectName?.trim();
+    if (!owner) continue;
+    const folded = propertiesByOwner.get(owner) ?? [];
+    folded.push(
+      property.dataType !== undefined
+        ? { name: property.plainName, dataType: property.dataType }
+        : { name: property.plainName },
+    );
+    propertiesByOwner.set(owner, folded);
+  }
+
+  const objects: SicDataObject[] = session.objectCandidates.map((candidate) => ({
+    name: candidate.plainName,
+    properties: propertiesByOwner.get(candidate.plainName) ?? [],
+    refs: unique(candidate.evidenceRefs),
+  }));
+
+  const objectNames = new Set(objects.map((object) => object.name));
+  const links: SicDataLink[] = session.linkCandidates.map((candidate) => {
+    const sourceObject = candidate.sourceObject ?? "";
+    const targetObject = candidate.targetObject ?? "";
+    return {
+      name: candidate.plainName,
+      sourceObject,
+      targetObject,
+      businessMeaning: candidate.businessMeaning,
+      endpointsResolved: objectNames.has(sourceObject) && objectNames.has(targetObject),
+    };
+  });
+
+  return { kind: "data-graph", objects, links };
 }
 
 /**
@@ -94,11 +162,12 @@ function buildAxes(session: FDEOntologyEngineeringSession): SemanticIntentAxes {
   ]);
 
   return {
-    data: buildAxis(
+    data: buildAxisWithFacet(
       dataNames.length > 0 ? `Operational objects and application state: ${dataNames.join(", ")}` : "",
       [...session.objectCandidates, ...session.chatbotContextCandidates].flatMap(
         (candidate) => candidate.evidenceRefs,
       ),
+      dataNames.length > 0 ? buildDataGraphFacet(session) : undefined,
     ),
     logic: buildAxis(
       logicNames.length > 0 ? `Decision logic / functions: ${logicNames.join(", ")}` : "",
