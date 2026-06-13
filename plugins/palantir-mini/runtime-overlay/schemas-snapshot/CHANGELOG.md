@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.85.0 — 2026-06-14 (additive SicAxis.facet typed-facet substrate — DP-deepening DP-0)
+
+Additive MINOR (rule 08 — one additive optional field + one additive union type + five additive sub-interfaces on an existing ontology primitive; no removals, no field edits). See `ontology/CHANGELOG.md` v1.75.0 for the canonical ontology-axis entry.
+
+### Added — SicAxis.facet + SicAxisFacet union (`ontology/primitives/semantic-intent-contract.ts`)
+
+- `SicAxis` gains an optional `facet?: SicAxisFacet` (after `status`) + the `SicAxisFacet` discriminated union (`data-graph` / `logic-block` / `action-writeback` / `access-boundary`) and its five sub-interfaces (`SicDataObject`, `SicDataLink`, `SicLogicFunction`, `SicWritebackAction`, `SicAccessBoundary`). This is the DP-deepening DP-0 substrate: each enriched axis gets a typed home for the structured proposal behind the prose `summary`, so the DTC synthesis can bind to structure instead of re-parsing the string. Additive; no existing producer emits `facet`; `isSemanticIntentContract` does not validate axis internals — zero behavior change. DP-1..DP-4 fill / extend their own variant interiors under their own CHANGELOG notes. The `SicAccessBoundary` literal `failClosed: true` is the govern-fold fail-closed contract carried in the type (Security folds INTO GOVERNANCE — no 10th axis, no SECURITY decision-domain member).
+
 ## v1.84.0 — 2026-06-14 (additive SicAxisStatus member `draft` — session-derived, unconfirmed)
 
 Additive MINOR (rule 08 — one additive enum member on an existing ontology primitive; no removals, no field edits). See `ontology/CHANGELOG.md` v1.74.0 for the canonical ontology-axis entry.

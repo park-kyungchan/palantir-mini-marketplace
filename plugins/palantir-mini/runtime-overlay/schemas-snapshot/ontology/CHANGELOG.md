@@ -1,5 +1,13 @@
 # Ontology Schema Changelog
 
+## 1.75.0 — additive SicAxis.facet typed-facet substrate (DP-deepening DP-0) — 2026-06-14
+
+Additive MINOR (rule 08 — one additive optional field + one additive discriminated union + five additive sub-interfaces on an existing primitive; no removals, no field edits, no breaking change).
+
+### Added
+
+- `primitives/semantic-intent-contract.ts` — `SicAxis` gains an optional `facet?: SicAxisFacet` field (after `status`) plus the `SicAxisFacet` discriminated union and its five sub-interfaces. The union variants: `{ kind: "data-graph"; objects: SicDataObject[]; links: SicDataLink[] }` (DP-1 DATA noun-graph), `{ kind: "logic-block"; functions: SicLogicFunction[] }` (DP-2 AIP-Logic block + invoking-actor scope), `{ kind: "action-writeback"; actions: SicWritebackAction[] }` (DP-3 write-back + submission criteria), `{ kind: "access-boundary"; accessBoundary: SicAccessBoundary }` (DP-4 govern-fold access-security). This is the DP-deepening DP-0 substrate: each enriched axis gets a typed home for the structured proposal behind the prose `summary`, so downstream synthesis binds to structure instead of re-parsing the string. The `SicAccessBoundary` carries the literal `failClosed: true` — the govern-fold fail-closed contract is in the type itself (Security folds INTO GOVERNANCE as a facet; no 10th axis, no `SECURITY` `DigitalTwinDecisionDomain` member). Additive + backward-compatible: no existing producer emits `facet`, and `isSemanticIntentContract` does not validate axis internals, so guard-conformance stays green. DP-1..DP-4 may extend a variant's interior fields under their own CHANGELOG notes; the field, the four variant tags, and the five interface declarations land here.
+
 ## 1.74.0 — additive SicAxisStatus member `draft` (session-derived, unconfirmed) — 2026-06-14
 
 Additive MINOR (rule 08 — one additive enum member on an existing primitive; no removals, no field edits, no breaking change).

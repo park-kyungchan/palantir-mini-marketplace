@@ -53,7 +53,10 @@ import {
 import { draftSemanticIntentContract } from "../../lib/lead-intent/contracts";
 import type { SemanticIntentContract } from "../../lib/lead-intent/contracts";
 import type { SicWithFillFields } from "../../lib/semantic-intent/sic-fill-types";
-import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
+import {
+  SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION,
+  isSemanticIntentContract,
+} from "#schemas/ontology/primitives/semantic-intent-contract";
 
 // --- Stage B: SIC approval through Q2 --------------------------------------
 import {
@@ -800,6 +803,22 @@ describe("E2E Stage E — intentional escape-hatch (OP-2) + silent-edit caught",
 // ===========================================================================
 
 describe("E2E DP-deepening — typed-facet substrate (staged; flip per DP step)", () => {
+  test("DP-0 (LIVE at Step 1): the additive SicAxis.facet substrate breaks no guard — a session-derived SIC still satisfies isSemanticIntentContract; schemaVersion is still v2", () => {
+    // DP-0 lands `SicAxis.facet?` + the `SicAxisFacet` union additively. The
+    // guard does not validate axis internals, so a session-derived SIC (whose
+    // axes may later carry `facet`) still conforms and stays on the live v2.
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(SCENARIO_SIGNAL_SESSION);
+    expect(isSemanticIntentContract(draft)).toBe(true);
+    expect(draft.schemaVersion).toBe(SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION);
+    expect(draft.schemaVersion).toBe("prompt-dtc/semantic-intent-contract/v2");
+
+    // No DP-0 producer emits `facet` yet — it is the substrate DP-1..DP-4 fill.
+    // The field is present-and-optional; absent on every axis at Step 1.
+    for (const axis of Object.values(draft.axes ?? {})) {
+      expect(axis.facet).toBeUndefined();
+    }
+  });
+
   test.todo(
     "DP-1 (flips at Step 2): the DATA axis carries a 'data-graph' facet — Submission+Rubric objects + folded score property + belongsToRubric link with endpointsResolved",
     () => {},
