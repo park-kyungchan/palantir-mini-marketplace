@@ -48,6 +48,7 @@ import {
 } from "../../lib/semantic-intent/nine-axis-understand-session";
 import {
   NINE_AXIS_SIC_SEQUENCE,
+  advanceNineAxisSicSequence,
   isNineAxisSicComplete,
 } from "../../lib/semantic-intent/nine-axis-sic-fill-sequence";
 import {
@@ -67,7 +68,10 @@ import {
   approveSemanticIntentContract,
   isApprovedSemanticIntentContract,
 } from "../../lib/semantic-intent/approved-contract";
-import { createSemanticIntentContractDraftFromFDEOntologySession } from "../../lib/fde-ontology-engineering/sic-from-session";
+import {
+  createSemanticIntentContractDraftFromFDEOntologySession,
+  deriveDraftAxisConfirmationDebt,
+} from "../../lib/fde-ontology-engineering/sic-from-session";
 import { FDE_ONTOLOGY_ENGINEERING_SESSION_SCHEMA_VERSION } from "../../lib/fde-ontology-engineering/types";
 import type { FDEOntologyEngineeringSession } from "../../lib/fde-ontology-engineering/types";
 
@@ -1044,8 +1048,95 @@ describe("E2E DP-deepening — typed-facet substrate (staged; flip per DP step)"
         .map((d) => d.domain),
     ).toEqual(["GOVERNANCE"]);
   });
-  test.todo(
-    "DP-5 (flips at Step 5): every 'draft'-status axis emits a typed LatentIntentHypothesis confirmation-debt (facet-bound riskIfWrong + readinessRequirementIds); an 'open' axis emits NO debt; the debt self-clears when the turn engine confirms the axis (status → filled)",
-    () => {},
-  );
+  test("DP-5 (LIVE at Step 5): every 'draft'-status axis emits a typed LatentIntentHypothesis confirmation-debt (facet-bound riskIfWrong + readinessRequirementIds); an 'open' axis emits NO debt; the debt self-clears when the turn engine confirms the axis (status → filled)", () => {
+    // The base scenario session carries DATA + ACTION (+ LOGIC) signal but NO
+    // GOVERNANCE signal (no roleCandidates, no Apply-action routing) ⇒ the
+    // GOVERNANCE axis is "open" (nothing proposed), while DATA/ACTION are "draft"
+    // proposals the turn engine has not yet confirmed = standing confirmation debt.
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(SCENARIO_SIGNAL_SESSION);
+    const axes = draft.axes;
+    if (!axes) throw new Error("axes missing");
+
+    // GOVERNANCE has no session signal ⇒ "open" ⇒ NO debt for it.
+    expect(axes.governance.status).toBe("open");
+
+    const debt = deriveDraftAxisConfirmationDebt(draft);
+    const debtAxes = new Set(debt.map((h) => h.decisionAxis));
+
+    // Every "draft" axis self-declares debt; the "open" GOVERNANCE axis does NOT.
+    const draftAxisKeys = (Object.keys(axes) as (keyof typeof axes)[]).filter(
+      (k) => axes[k].status === "draft",
+    );
+    expect(debt).toHaveLength(draftAxisKeys.length);
+    expect(debt.every((h) => h.status === "inferred")).toBe(true);
+    // GOVERNANCE is "open" ⇒ no debt hypothesis carries its decisionAxis.
+    expect(debtAxes.has("governance")).toBe(false);
+
+    // DATA debt: correct decisionAxis + facet-bound riskIfWrong (the data-graph
+    // facet's belongsToRubric endpoints are BOTH resolved here, so the risk is the
+    // generic DATA-proposal risk, not the dangling-endpoint one) + readinessRequirementIds.
+    const dataDebt = debt.find((h) => h.decisionAxis === "data")!;
+    expect(dataDebt.decisionAxis).toBe("data");
+    expect(dataDebt.readinessRequirementIds).toEqual(["axes.data"]);
+    expect(dataDebt.riskIfWrong.length).toBeGreaterThan(0);
+    expect(dataDebt.whyLeadInferredThis).toContain("Submission");
+
+    // ACTION debt: the finalizeScore facet HAS submission criteria, so the
+    // facet-bound risk does not trigger; the generic ACTION risk applies. The
+    // decisionAxis + the axis turn id are the load-bearing assertions.
+    const actionDebt = debt.find((h) => h.decisionAxis === "action")!;
+    expect(actionDebt.decisionAxis).toBe("action");
+    expect(actionDebt.readinessRequirementIds).toEqual(["axes.action"]);
+    expect(actionDebt.riskIfWrong.length).toBeGreaterThan(0);
+
+    // FACET-BOUND risk (the DP-1/DP-3 binding): an UNRESOLVED DATA endpoint surfaces
+    // the dangling-relationship risk; a write-back action with NO submission criteria
+    // surfaces the unchecked-mutation risk — each in its own axis's debt.
+    const danglingSession: FDEOntologyEngineeringSession = {
+      ...SCENARIO_SIGNAL_SESSION,
+      linkCandidates: [
+        {
+          candidateId: "edge:dangling",
+          plainName: "belongsToGhost",
+          sourceObject: "Submission",
+          targetObject: "Ghost", // not an object ⇒ endpointsResolved:false
+          businessMeaning: "Dangling endpoint — confirmation debt, not a silent link.",
+          evidenceRefs: ["evidence://dangling"],
+        },
+      ],
+      actionCandidates: [
+        {
+          candidateId: "act:no-criteria",
+          plainName: "commitRaw",
+          operationalIntent: "Write back with no submission gate.",
+          writebackRisk: "high",
+          submissionCriteria: [],
+          evidenceRefs: ["evidence://no-criteria"],
+        },
+      ],
+    };
+    const danglingDraft = createSemanticIntentContractDraftFromFDEOntologySession(danglingSession);
+    const danglingDebt = deriveDraftAxisConfirmationDebt(danglingDraft);
+    expect(danglingDebt.find((h) => h.decisionAxis === "data")!.riskIfWrong).toContain(
+      "unresolved endpoint",
+    );
+    expect(danglingDebt.find((h) => h.decisionAxis === "action")!.riskIfWrong).toContain(
+      "no submission criteria",
+    );
+
+    // SELF-CLEAR (paired): drive the 9-axis turn engine to CONFIRM the DATA axis
+    // (turn index 1) — it mints status:"filled". Re-deriving yields NO DATA debt.
+    const dataTurnIndex = NINE_AXIS_SIC_SEQUENCE.findIndex((d) => d.targetAxis === "data");
+    const afterDataConfirm = advanceNineAxisSicSequence(
+      draft as SemanticIntentContract,
+      dataTurnIndex,
+      "Submission (새 객체), Rubric (기존), score 속성",
+    );
+    expect(afterDataConfirm.axes?.data.status).toBe("filled");
+    const debtAfterConfirm = deriveDraftAxisConfirmationDebt(afterDataConfirm);
+    expect(debtAfterConfirm.some((h) => h.decisionAxis === "data")).toBe(false);
+    // ACTION is still "draft" (unconfirmed) ⇒ its debt persists — the debt tracks
+    // LIVE draft status and self-clears ONLY for the confirmed axis.
+    expect(debtAfterConfirm.some((h) => h.decisionAxis === "action")).toBe(true);
+  });
 });

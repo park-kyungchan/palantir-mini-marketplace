@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
   createSemanticIntentContractDraftFromFDEOntologySession,
+  deriveDraftAxisConfirmationDebt,
 } from "../../../lib/fde-ontology-engineering/sic-from-session";
+import {
+  advanceNineAxisSicSequence,
+  NINE_AXIS_SIC_SEQUENCE,
+} from "../../../lib/semantic-intent/nine-axis-sic-fill-sequence";
+import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
 import {
   FDE_ONTOLOGY_ENGINEERING_SESSION_SCHEMA_VERSION,
 } from "../../../lib/fde-ontology-engineering/types";
@@ -587,5 +593,109 @@ describe("DP-4 — GOVERNANCE axis 'access-boundary' facet (govern-fold, fail-cl
     };
     const sic = createSemanticIntentContractDraftFromFDEOntologySession(noGovSession);
     expect(sic.axes?.governance.facet).toBeUndefined();
+  });
+});
+
+describe("DP-5 — per-'draft'-axis confirmation-debt LatentIntentHypothesis", () => {
+  test("emits one typed debt hypothesis per 'draft' axis; an 'open' axis emits NO debt", () => {
+    // A session with DATA + ACTION signal but NO GOVERNANCE/ACTORS signal ⇒ those
+    // axes are "open" (nothing proposed) and emit no debt.
+    const session: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      stableSummary: undefined,
+      roleCandidates: [],
+    };
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(session);
+    const axes = draft.axes;
+    if (!axes) throw new Error("axes missing");
+    expect(axes.governance.status).toBe("open");
+    expect(axes.actors.status).toBe("open");
+
+    const debt = deriveDraftAxisConfirmationDebt(draft);
+    const draftKeys = (Object.keys(axes) as (keyof typeof axes)[]).filter(
+      (k) => axes[k].status === "draft",
+    );
+    // exactly one debt hypothesis per "draft" axis; none for "open" axes.
+    expect(debt).toHaveLength(draftKeys.length);
+    expect(debt.every((h) => h.status === "inferred")).toBe(true);
+    expect(debt.map((h) => h.decisionAxis)).not.toContain("governance");
+
+    // each debt names the axis turn + carries a non-empty riskIfWrong.
+    const dataDebt = debt.find((h) => h.decisionAxis === "data")!;
+    expect(dataDebt.readinessRequirementIds).toEqual(["axes.data"]);
+    expect(dataDebt.riskIfWrong.length).toBeGreaterThan(0);
+    expect(dataDebt.family).toBe("data-authority");
+    const actionDebt = debt.find((h) => h.decisionAxis === "action")!;
+    expect(actionDebt.readinessRequirementIds).toEqual(["axes.action"]);
+    expect(actionDebt.family).toBe("action-writeback-risk");
+  });
+
+  test("reuses existing LatentIntentFamily / decisionAxis members (adds none) and the draft-axis-confirmation-debt template", () => {
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(BASE_SESSION);
+    const debt = deriveDraftAxisConfirmationDebt(draft);
+    const allowedFamilies = new Set([
+      "data-authority",
+      "logic-authority",
+      "action-writeback-risk",
+      "governance-boundary",
+      "framework-discovery",
+    ]);
+    const allowedAxes = new Set([undefined, "data", "logic", "action", "governance"]);
+    for (const h of debt) {
+      expect(allowedFamilies.has(h.family as string)).toBe(true);
+      expect(allowedAxes.has(h.decisionAxis)).toBe(true);
+      expect(h.templateId).toBe("latent-template:draft-axis-confirmation-debt");
+    }
+    // axes OUTSIDE the latent decisionAxis union (context/successEval/...) carry NO decisionAxis.
+    const contextDebt = debt.find((h) => h.readinessRequirementIds?.[0] === "axes.context");
+    if (contextDebt) expect(contextDebt.decisionAxis).toBeUndefined();
+  });
+
+  test("facet-bound riskIfWrong: an unresolved DATA endpoint + a no-criteria write-back surface their specific risks", () => {
+    const session: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      linkCandidates: [
+        {
+          candidateId: "link:dangling",
+          plainName: "Student has ghost",
+          sourceObject: "Student",
+          targetObject: "Ghost", // not an object ⇒ endpointsResolved:false
+          businessMeaning: "Dangling endpoint.",
+          evidenceRefs: ["evidence://dangling"],
+        },
+      ],
+      actionCandidates: [
+        {
+          candidateId: "act:no-criteria",
+          plainName: "commitRaw",
+          operationalIntent: "Write back with no submission gate.",
+          writebackRisk: "high",
+          submissionCriteria: [],
+          evidenceRefs: ["evidence://no-criteria"],
+        },
+      ],
+    };
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(session);
+    const debt = deriveDraftAxisConfirmationDebt(draft);
+    expect(debt.find((h) => h.decisionAxis === "data")!.riskIfWrong).toContain("unresolved endpoint");
+    expect(debt.find((h) => h.decisionAxis === "action")!.riskIfWrong).toContain("no submission criteria");
+  });
+
+  test("SELF-CLEAR: after the turn engine confirms an axis (status→filled), re-deriving yields NO debt for it", () => {
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(BASE_SESSION);
+    expect(draft.axes?.data.status).toBe("draft");
+    expect(deriveDraftAxisConfirmationDebt(draft).some((h) => h.decisionAxis === "data")).toBe(true);
+
+    const dataTurnIndex = NINE_AXIS_SIC_SEQUENCE.findIndex((d) => d.targetAxis === "data");
+    const confirmed = advanceNineAxisSicSequence(
+      draft as SemanticIntentContract,
+      dataTurnIndex,
+      "Student, answer",
+    );
+    expect(confirmed.axes?.data.status).toBe("filled");
+    // The confirmed axis no longer matches the "draft" predicate ⇒ no debt for it.
+    expect(deriveDraftAxisConfirmationDebt(confirmed).some((h) => h.decisionAxis === "data")).toBe(false);
+    // LOGIC is still draft ⇒ its debt persists (debt tracks LIVE draft status).
+    expect(deriveDraftAxisConfirmationDebt(confirmed).some((h) => h.decisionAxis === "logic")).toBe(true);
   });
 });

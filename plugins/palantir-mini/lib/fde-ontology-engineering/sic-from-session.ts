@@ -16,7 +16,12 @@ import type {
   SicWritebackAction,
 } from "#schemas/ontology/primitives/semantic-intent-contract";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
-import type { FDEOntologyEngineeringSession } from "./types";
+import type {
+  FDEOntologyEngineeringSession,
+  LatentIntentFamily,
+  LatentIntentHypothesis,
+} from "./types";
+import { LATENT_HYPOTHESIS_TEMPLATES } from "./latent-hypothesis-templates";
 
 export interface FDEOntologyEngineeringSicDraftOptions {
   readonly contractId?: string;
@@ -515,6 +520,129 @@ export function createSemanticIntentContractDraftFromFDEOntologySession(
       status: "open",
     })),
   };
+}
+
+/**
+ * DP-5: per-axis confirmation-debt metadata. Each enriched-or-plain `"draft"` axis
+ * maps to a stable `LatentIntentFamily` + (where the axis is in the latent
+ * `decisionAxis` union) a `decisionAxis`. ALL members reused — no new
+ * `LatentIntentFamily` / `decisionAxis` member is added. Axes outside the latent
+ * `decisionAxis` union (context / successEval / constraintsNonGoals / actors /
+ * memoryPrior) carry NO `decisionAxis` (the field is optional).
+ */
+const DRAFT_AXIS_DEBT_META: Record<
+  keyof SemanticIntentAxes,
+  {
+    readonly label: string;
+    readonly family: LatentIntentFamily;
+    readonly decisionAxis?: NonNullable<LatentIntentHypothesis["decisionAxis"]>;
+  }
+> = {
+  data: { label: "DATA", family: "data-authority", decisionAxis: "data" },
+  logic: { label: "LOGIC", family: "logic-authority", decisionAxis: "logic" },
+  action: { label: "ACTION", family: "action-writeback-risk", decisionAxis: "action" },
+  governance: { label: "GOVERNANCE", family: "governance-boundary", decisionAxis: "governance" },
+  context: { label: "CONTEXT", family: "framework-discovery" },
+  successEval: { label: "SUCCESS-EVAL", family: "framework-discovery" },
+  constraintsNonGoals: { label: "CONSTRAINTS-NONGOALS", family: "framework-discovery" },
+  actors: { label: "ACTORS", family: "framework-discovery" },
+  memoryPrior: { label: "MEMORY-PRIOR", family: "framework-discovery" },
+};
+
+/**
+ * DP-5: the mutation an UNCONFIRMED draft axis would wrongly authorize — bound to
+ * the DP-1 / DP-3 / DP-4 facet risks when the axis carries a typed facet, else a
+ * generic per-axis default. An unresolved DATA endpoint, a write-back action with
+ * no submission criteria, and an unresolved GOVERNANCE tool-scope each surface
+ * their specific risk in the corresponding axis's debt (DP-5 binds the structural
+ * risks DP-1/3/4 expose).
+ */
+function draftAxisRiskIfWrong(axisKey: keyof SemanticIntentAxes, axis: SicAxis): string {
+  const facet = axis.facet;
+  if (facet?.kind === "data-graph" && facet.links.some((link) => !link.endpointsResolved)) {
+    return "A DATA link with an unresolved endpoint could create a dangling relationship the user never confirmed.";
+  }
+  if (
+    facet?.kind === "action-writeback"
+    && facet.actions.some((action) => action.submissionCriteria.length === 0)
+  ) {
+    return "A write-back action with no submission criteria could commit an unchecked mutation.";
+  }
+  if (
+    facet?.kind === "access-boundary"
+    && facet.accessBoundary.toolScopes.some((scope) => !scope.resolved)
+  ) {
+    return "An unresolved tool scope could grant access the user never approved.";
+  }
+  switch (axisKey) {
+    case "data":
+      return "An unconfirmed DATA proposal could register objects, properties, or links the user never confirmed.";
+    case "logic":
+      return "An unconfirmed LOGIC proposal could encode a decision rule or function the user never confirmed.";
+    case "action":
+      return "An unconfirmed ACTION proposal could authorize a write-back the user never confirmed.";
+    case "governance":
+      return "An unconfirmed GOVERNANCE proposal could grant access or authority the user never approved.";
+    default:
+      return "An unconfirmed axis proposal could authorize a decision the user never confirmed.";
+  }
+}
+
+/**
+ * DP-5: derive a typed confirmation-debt `LatentIntentHypothesis` for every
+ * `"draft"`-status axis of a session-derived SIC. A `"draft"` axis is a PROPOSAL
+ * the 9-axis turn engine has not yet confirmed — standing confirmation debt that
+ * should be EXPLICIT + typed + reviewable (turn-engine-agent-skills §4
+ * Request-clarification = first-class stop-and-ask), not silent.
+ *
+ * SELF-CLEARING by construction: the debt is computed from the axis's CURRENT
+ * status, so once the turn engine mints `"filled"` / `"not-applicable"`, that axis
+ * no longer matches the `"draft"` predicate and re-deriving emits no debt for it.
+ * An `"open"` axis (no signal, nothing proposed) emits NO debt. Reuses the
+ * `draftAxisConfirmationDebt` template + existing `LatentIntentFamily` /
+ * `decisionAxis` members — no new sink, no new machinery.
+ */
+export function deriveDraftAxisConfirmationDebt(
+  contract: Pick<SemanticIntentContract, "axes">,
+): LatentIntentHypothesis[] {
+  const axes = contract.axes;
+  if (axes === undefined) return [];
+  const template = LATENT_HYPOTHESIS_TEMPLATES.draftAxisConfirmationDebt;
+
+  return (Object.keys(DRAFT_AXIS_DEBT_META) as (keyof SemanticIntentAxes)[]).flatMap((axisKey) => {
+    const axis = axes[axisKey];
+    if (axis === undefined || axis.status !== "draft") return [];
+
+    const meta = DRAFT_AXIS_DEBT_META[axisKey];
+    const summary = axis.summary.trim();
+    return [
+      {
+        hypothesisId: `latent:confirmation-debt:${axisKey}`,
+        status: "inferred",
+        templateId: template.templateId,
+        family: meta.family,
+        ...(meta.decisionAxis !== undefined ? { decisionAxis: meta.decisionAxis } : {}),
+        readinessRequirementIds: [`axes.${axisKey}`],
+        plainLanguage: `Proposed for the ${meta.label} axis but not yet user-confirmed: ${summary}`,
+        whyLeadInferredThis:
+          summary.length > 0
+            ? `The session produced a draft ${meta.label} proposal from accepted signal (${summary}), but the ${meta.label} axis turn has not confirmed it.`
+            : template.whyLeadInferredThis,
+        whatUserMayNotHaveNoticed: template.whatUserMayNotHaveNoticed,
+        recommendedDefault: template.recommendedDefault,
+        riskIfWrong: draftAxisRiskIfWrong(axisKey, axis),
+        whatWillNotHappenIfAccepted: template.whatWillNotHappenIfAccepted,
+        ontologyImplication: {
+          possibleObjects: [...template.possibleObjects],
+          possibleLinks: [...template.possibleLinks],
+          possibleActions: [...template.possibleActions],
+          possibleFunctions: [...template.possibleFunctions],
+        },
+        evidenceNeeded: [...template.evidenceNeeded],
+        sourceRefs: unique([...axis.refs]),
+      },
+    ];
+  });
 }
 
 /**
