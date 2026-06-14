@@ -135,3 +135,11 @@ The verifier emits JSON with `valid`, `issues`, `contractPath`, `schemaPath`, an
 `checkedRoles`. Blocking reason codes are stable `LAYER_BOUNDARY_*` values and
 deny protected mutation when contract, schema, provider, runtime cache, advisory
 input, or deterministic evidence checks fail.
+
+## Consumer-project Ontology vs pm runtime (separation)
+
+pm is a RUNTIME layer, **perfectly separated** from each consumer project's Ontology. A consumer project (e.g. harness-upstream) builds and owns its OWN Ontology — its domain ObjectTypes, LOGIC Functions, ActionTypes, etc. pm **executes** that Ontology and is the **channel** through which the project operates Ontology-First, but pm's own machinery — the SIC/DTC contract engine, the BackwardProp replay engine, the ontology-construction-lint engine, the OE workflow — is **NOT part of any consumer project's Ontology**. Consumer Ontologies model their domain and **bind to pm as an external runtime**; they never absorb pm's internal primitives. (Mirror of harness-upstream ssot/ontology-first-program.md, section "Separation".)
+
+## Continuous meta-level BackwardProp (memory fold — project declares, pm executes)
+
+A consumer project's Ontology may declare a continuous, always-on BackwardProp loop that folds its multi-source memory substrate (the pm session lanes — events.jsonl, outcome-pairs, context-capsules, ontology-entry, prompt-front-door — plus the project's own typed memory files and retros) into its next-turn prior, its own self-MetaOptimization, and its next OntologyEngineering session. Per the separation boundary, the project **declares** this fold as its own LOGIC (for example a foldLineage Function and a MEMORY-PRIOR axis); pm is the **external runtime that executes** it — the replay engine, retro, and memory-map are pm machinery and are NOT part of the consumer Ontology. The project owns the meaning of the fold; pm owns the execution. (Mirror of harness-upstream ssot/ontology-first-program.md — section: Continuous meta-level BackwardProp.)
