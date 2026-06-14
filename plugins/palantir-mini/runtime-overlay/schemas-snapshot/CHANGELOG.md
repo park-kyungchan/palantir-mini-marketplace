@@ -8,6 +8,18 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.86.0 — 2026-06-14 (executable Action model bound to the descriptive SSoT — OE-6)
+
+Additive MINOR (rule 08 — additive executable-projection exports on `ontology/action/schema.ts` + additive members/exports on the `ontology/primitives/action-type.ts` `Operation` union and rule-family set; no removals, no breaking field edits). See `ontology/CHANGELOG.md` v1.76.0 for the canonical ontology-axis entry.
+
+### Added — executable projection crosswalk (`ontology/action/schema.ts`)
+
+- New Section 9 "Executable Projection (OE-6)": `EXECUTABLE_CONSTRAINT_PROJECTION` (maps each of the 9 executable leaf classes — `Range` … `Unevaluable` — to its canonical descriptive `SubmissionConstraintType`), `EXECUTABLE_CONDITION_CLASSES` (projects the `currentUser`/`parameter` `SubmissionConditionType` set), and `EXECUTABLE_RULE_FAMILIES` (projects the 8 `ActionRuleType` Foundry rule families). This closes the D6-8 root split: `ontology/action/schema.ts` was imported by ZERO runtime files; the executable evaluator `lib/actions/submission-criteria.ts` now imports this crosswalk so its union is a PROJECTION of the SSoT instead of a parallel re-derivation. Additive — no existing export changed.
+
+### Changed — Operation union + rule families (`ontology/primitives/action-type.ts`)
+
+- `Operation` widened from `"create" | "update" | "delete"` to add `"createOrModify" | "createLink" | "deleteLink" | "interfaceRule"` (the link/upsert/interface verbs from the descriptive 8 `ActionRuleType` families). The three original object-CRUD verbs are unchanged (back-compatible). New `ActionRuleFamily` union + `ACTION_RULE_FAMILIES` constant (the 8 Foundry rule families) added so the primitive widens off the canonical set. Additive; no consumer of the prior 3-member `Operation` breaks.
+
 ## v1.85.0 — 2026-06-14 (additive SicAxis.facet typed-facet substrate — DP-deepening DP-0)
 
 Additive MINOR (rule 08 — one additive optional field + one additive union type + five additive sub-interfaces on an existing ontology primitive; no removals, no field edits). See `ontology/CHANGELOG.md` v1.75.0 for the canonical ontology-axis entry.

@@ -1720,3 +1720,59 @@ export const LEARN_REFINEMENT_LINKAGE: readonly LearnRefinementLink[] = [
     feedbackSignal: "LGC-01..04 criteria satisfied → PA level promoted. Accuracy degraded → PA level demoted. Bidirectional.",
   },
 ] as const;
+
+// =========================================================================
+// Section 9: Executable Projection (OE-6 — descriptive SSoT → executable bind)
+// =========================================================================
+//
+// Until OE-6 this descriptive schema was imported by ZERO runtime files (root
+// D6-8 split): the executable submission-criteria evaluator in
+// `lib/actions/submission-criteria.ts` re-declared its own constraint-class set
+// with no link back to the canonical `SubmissionConstraintType` /
+// `SubmissionConditionType` declared above. This section is the SINGLE crosswalk
+// that binds the executable evaluator's PascalCase leaf names to the descriptive
+// snake/camel constraint vocabulary, so the executable Action model is a
+// PROJECTION of this SSoT rather than a parallel re-derivation. The evaluator
+// imports `EXECUTABLE_CONSTRAINT_PROJECTION` and the rule-family constants below.
+
+/**
+ * Crosswalk from the executable evaluator's leaf criterion names (the PascalCase
+ * `SubmissionCriterion.type` discriminants in `lib/actions/submission-criteria.ts`)
+ * to the canonical descriptive `SubmissionConstraintType` declared in this file.
+ * One entry per leaf class; this is the authority the executable union projects
+ * from (a leaf added/removed on either side fails the drift guard loud).
+ */
+export const EXECUTABLE_CONSTRAINT_PROJECTION: Readonly<
+  Record<
+    "Range" | "ArraySize" | "StringLength" | "StringRegexMatch" | "OneOf"
+      | "ObjectQueryResult" | "ObjectPropertyValue" | "GroupMember" | "Unevaluable",
+    SubmissionConstraintType
+  >
+> = {
+  Range:              "range",
+  ArraySize:          "arraySize",
+  StringLength:       "stringLength",
+  StringRegexMatch:   "stringRegexMatch",
+  OneOf:              "oneOf",
+  ObjectQueryResult:  "objectQueryResult",
+  ObjectPropertyValue:"objectPropertyValue",
+  GroupMember:        "groupMember",
+  Unevaluable:        "unevaluable",
+};
+
+/**
+ * The condition class an executable criterion node carries (mutations.md §8):
+ * `currentUser` (the invoking-actor / Current-User condition class — gates on the
+ * acting identity, evaluated fail-closed when no identity system is wired) or
+ * `parameter` (the value-supplied-at-submission condition, the default for the 9
+ * constraint classes). Projected from the descriptive `SubmissionConditionType`.
+ */
+export const EXECUTABLE_CONDITION_CLASSES: readonly SubmissionConditionType[] =
+  SUBMISSION_CONDITION_TYPES;
+
+/**
+ * The 8 Foundry rule families an executable Action's edit set is built from
+ * (mutations.md §2 — the `ActionRuleType` set). Projected here so the executable
+ * Action model widens off the SSoT rather than re-listing the families inline.
+ */
+export const EXECUTABLE_RULE_FAMILIES: readonly ActionRuleType[] = ACTION_RULE_TYPES;

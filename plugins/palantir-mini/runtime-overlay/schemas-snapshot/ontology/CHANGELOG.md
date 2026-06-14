@@ -1,5 +1,17 @@
 # Ontology Schema Changelog
 
+## 1.76.0 — executable Action model bound to the descriptive SSoT (OE-6) — 2026-06-14
+
+Additive MINOR (rule 08 — additive executable-projection exports + additive `Operation` union members and rule-family exports on existing primitives; no removals, no breaking field edits).
+
+### Added
+
+- `action/schema.ts` — new Section 9 "Executable Projection (OE-6)" exporting `EXECUTABLE_CONSTRAINT_PROJECTION`, `EXECUTABLE_CONDITION_CLASSES`, and `EXECUTABLE_RULE_FAMILIES`. These bind the executable submission-criteria evaluator (`lib/actions/submission-criteria.ts`) to this descriptive Action SSoT, closing the D6-8 root split (the file was previously imported by zero runtime files). `EXECUTABLE_CONSTRAINT_PROJECTION` maps the 9 executable leaf classes to the canonical `SubmissionConstraintType`; `EXECUTABLE_CONDITION_CLASSES` projects the `SubmissionConditionType` (`currentUser`/`parameter`) set the new Current-User condition class binds to; `EXECUTABLE_RULE_FAMILIES` projects the 8 `ActionRuleType` Foundry rule families. Additive only.
+
+### Changed
+
+- `primitives/action-type.ts` — `Operation` widened from the 3 object-CRUD verbs to add `"createOrModify" | "createLink" | "deleteLink" | "interfaceRule"`, matching the descriptive SSoT's 8 `ActionRuleType` rule families (mutations.md §2). The original `"create" | "update" | "delete"` members are unchanged (back-compatible). Added `ActionRuleFamily` union + `ACTION_RULE_FAMILIES` constant (the 8 families) so the executable Action primitive widens off the canonical set rather than re-deriving it. Additive; no existing consumer breaks.
+
 ## 1.75.0 — additive SicAxis.facet typed-facet substrate (DP-deepening DP-0) — 2026-06-14
 
 Additive MINOR (rule 08 — one additive optional field + one additive discriminated union + five additive sub-interfaces on an existing primitive; no removals, no field edits, no breaking change).

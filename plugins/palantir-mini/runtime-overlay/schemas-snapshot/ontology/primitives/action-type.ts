@@ -21,7 +21,53 @@ export type ActionTypeRid = string & { readonly __brand: "ActionTypeRid" };
 
 export const actionTypeRid = (s: string): ActionTypeRid => s as ActionTypeRid;
 
-export type Operation = "create" | "update" | "delete";
+/**
+ * The mutation operation a declarative (Tier-1) action performs on its target.
+ * Widened (OE-6) from the 3 CRUD verbs to the full Foundry operation set so the
+ * executable Action model matches the descriptive SSoT's 8 `ActionRuleType` rule
+ * families (mutations.md §2): object create/modify/upsert/delete plus M:N link
+ * create/delete plus interface-level rules. `create`/`update`/`delete` are kept as
+ * the canonical object-CRUD names (back-compatible); the link/upsert/interface
+ * verbs are additive.
+ */
+export type Operation =
+  | "create"
+  | "update"
+  | "createOrModify"
+  | "delete"
+  | "createLink"
+  | "deleteLink"
+  | "interfaceRule";
+
+/**
+ * The 8 Foundry rule families a declarative action's edit set is built from
+ * (mutations.md §2). One family per simple/function rule type the executable
+ * Action model can carry; the executable `Operation` union projects the object/
+ * link/interface subset of these. Mirrors `ActionRuleType` in
+ * `ontology/action/schema.ts` (the descriptive SSoT) so the primitive widens off
+ * the canonical set rather than re-deriving it.
+ */
+export type ActionRuleFamily =
+  | "createObject"
+  | "modifyObject"
+  | "createOrModify"
+  | "deleteObject"
+  | "createLink"
+  | "deleteLink"
+  | "functionRule"
+  | "interfaceRule";
+
+/** All 8 Foundry rule families (mutations.md §2). */
+export const ACTION_RULE_FAMILIES: readonly ActionRuleFamily[] = [
+  "createObject",
+  "modifyObject",
+  "createOrModify",
+  "deleteObject",
+  "createLink",
+  "deleteLink",
+  "functionRule",
+  "interfaceRule",
+] as const;
 
 export type ActionApprovalPolicy = "none" | "user-confirmation" | "policy-approval";
 
