@@ -201,6 +201,11 @@ export async function registerAcceptedCandidates(
           ownerObjectName: candidate.ownerObjectName,
           ownerRid,
           dataType: candidate.dataType,
+          // ingest-widening: thread column-level access-security (readableBy) into
+          // the Property declaration so it SURVIVES into the FOLD-1 declaration the
+          // same way the ActionType's submissionCriteria does. Present-only so
+          // legacy folds (no access-security) stay byte-identical.
+          ...(candidate.readableBy !== undefined ? { readableBy: candidate.readableBy } : {}),
           candidateId: candidate.candidateId,
           evidenceRefs: candidate.evidenceRefs,
         },

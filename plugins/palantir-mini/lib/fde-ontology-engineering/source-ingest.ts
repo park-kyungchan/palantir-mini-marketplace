@@ -168,6 +168,56 @@ function asCardinality(value: unknown): Cardinality | undefined {
 }
 
 /**
+ * Normalize an authored writeback-risk scalar (ingest-widening). Accepts the four
+ * `ActionTypeCandidate.writebackRisk` literals; returns undefined for anything else
+ * so the caller falls back to the canonical default `"none"`.
+ */
+function asWritebackRisk(
+  value: unknown,
+): ActionTypeCandidate["writebackRisk"] | undefined {
+  const s = asString(value)?.toLowerCase();
+  if (s === "none" || s === "low" || s === "medium" || s === "high") return s;
+  return undefined;
+}
+
+/**
+ * Resolve an ACTION record's submission criteria (ingest-widening). Accepts a
+ * top-level `submission_criteria` string[] (the SOURCE shape) OR a single
+ * `submission_criteria` string. Empty/whitespace entries are dropped. Returns
+ * undefined when no recognizable criteria are present — so the candidate omits the
+ * field and the registered declaration stays criteria-free (back-compatible).
+ */
+function asSubmissionCriteria(value: unknown): readonly string[] | undefined {
+  if (Array.isArray(value)) {
+    const cleaned = nonEmpty(value.map((v) => (typeof v === "string" ? v : "")));
+    return cleaned.length > 0 ? cleaned : undefined;
+  }
+  const single = asString(value);
+  return single !== undefined ? [single] : undefined;
+}
+
+/**
+ * Resolve a Property record's column-level access-security principals
+ * (ingest-widening). The SOURCE may carry them as `access_security.readable_by`
+ * (the nested shape) OR a top-level `readable_by` string[]. Mirrors the C2
+ * govern-fold `propertyAccessBoundaries[].readableBy` vocabulary so the
+ * elicitation-side and the ingest-side name the SAME access-security meaning.
+ * Returns undefined when absent — the registered declaration then stays
+ * access-security-free (back-compatible).
+ */
+function asReadableBy(record: Record<string, unknown>): readonly string[] | undefined {
+  const accessSecurity = record.access_security;
+  const nested =
+    typeof accessSecurity === "object" && accessSecurity !== null && !Array.isArray(accessSecurity)
+      ? (accessSecurity as Record<string, unknown>).readable_by
+      : undefined;
+  const raw = nested ?? record.readable_by;
+  if (!Array.isArray(raw)) return undefined;
+  const cleaned = nonEmpty(raw.map((v) => (typeof v === "string" ? v : "")));
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
+/**
  * Resolve an EDGE record's endpoint cardinalities (OE-11). Honors explicit
  * `src_cardinality`/`dst_cardinality` SOURCE fields when present; otherwise a
  * relationship edge defaults to the canonical Foundry many-to-one (FK-on-the-
@@ -267,11 +317,18 @@ export function parseJsonlSourceToCandidateArrays(
         // DATA-axis split: atom_kind "property" → a Property (an ObjectType's
         // stored field); every other DATA atom (entity, …) → an ObjectType.
         if (asString(record.atom_kind) === "property") {
+          // ingest-widening: a SOURCE property row may carry column-level
+          // access-security (`access_security.readable_by` / `readable_by`). It
+          // SURVIVES into the registered Property declaration (threaded through
+          // register-accepted), so property-level access-security flows THROUGH the
+          // SOURCE jsonl, not only a hand-seeded session. Omitted when absent.
+          const readableBy = asReadableBy(record);
           propertyCandidates.push({
             candidateId: `property:${slug(plainName)}`,
             plainName,
             dataType: asString(record.value_type),
             whyItMayMatter: description,
+            ...(readableBy !== undefined ? { readableBy } : {}),
             evidenceRefs,
             declaredRid,
           });
@@ -295,16 +352,24 @@ export function parseJsonlSourceToCandidateArrays(
           declaredRid,
         });
         break;
-      case "action":
+      case "action": {
+        // ingest-widening: a frozen SOURCE ACTION row may carry the action's
+        // submission criteria + writeback risk. They SURVIVE into the registered
+        // ActionType declaration (register-accepted maps `submissionCriteria`
+        // through), the same way OE-11 cardinality survives. Default writebackRisk
+        // stays "none"; submissionCriteria is omitted when absent (back-compatible).
+        const submissionCriteria = asSubmissionCriteria(record.submission_criteria);
         actionCandidates.push({
           candidateId: `action:${slug(plainName)}`,
           plainName,
           operationalIntent: description ?? asString(record.action_kind) ?? "(SOURCE)",
-          writebackRisk: "none",
+          writebackRisk: asWritebackRisk(record.writeback_risk) ?? "none",
+          ...(submissionCriteria !== undefined ? { submissionCriteria } : {}),
           evidenceRefs,
           declaredRid,
         });
         break;
+      }
       case "governance": {
         const policy = record.governed_action_policy;
         roleCandidates.push({

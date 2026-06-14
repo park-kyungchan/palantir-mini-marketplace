@@ -286,6 +286,11 @@ const SOURCE_RECORDS: ReadonlyArray<Record<string, unknown>> = [
     description_ko: "확정 점수 (속성)",
     atom_kind: "property",
     value_type: "number",
+    // ingest-widening: column-level access-security carried IN the SOURCE jsonl —
+    // `score` readable only by the owning student + assigned teacher
+    // (the scenario's "본인 학생과 담당 교사만 읽기"). Survives into the
+    // registered Property declaration via register-accepted.
+    access_security: { readable_by: ["owning-student", "assigned-teacher"] },
     source_basis_refs: ["ref:score"],
   },
   {
@@ -304,6 +309,12 @@ const SOURCE_RECORDS: ReadonlyArray<Record<string, unknown>> = [
     label_ko: "finalizeScore",
     description_ko: "최종 점수를 학생 기록에 되써넣는다",
     action_kind: "writeback",
+    // ingest-widening: submission criteria carried IN the SOURCE jsonl —
+    // "모든 루브릭 항목이 채점됨 + 교사 승인" — survives into the registered
+    // ActionType declaration via register-accepted (the same survival OE-11
+    // cardinality already has). writeback_risk also flows through.
+    writeback_risk: "high",
+    submission_criteria: ["all rubric items graded", "teacher approval"],
     source_basis_refs: ["ref:finalize"],
   },
   {
@@ -985,12 +996,52 @@ describe("E2E Stage D — governed write-path (elevate + gate)", () => {
     expect(decl?.dstCardinality).toBe("one");
   });
 
-  // ---- LATER TRANCHE (ingest-widening; the remaining D-ingest sub-parts) ----
+  // ---- ingest-widening: the remaining D-ingest sub-parts go LIVE ----
 
-  test.todo(
-    "D-ingest (LATER — ingest-widening tranche): submissionCriteria + property access-security survive the SOURCE jsonl ingest into the registered declarations (the cardinality sub-part flipped LIVE at OE-11 / Step 13 above; these two await source-ingest widening per E2E-DESIGN §4)",
-    () => {},
-  );
+  test("D-ingest (ingest-widening tranche): the ActionType submissionCriteria + the Property column-level access-security carried IN the SOURCE jsonl SURVIVE ingest into the registered ActionType/Property declarations (read back via getOntology), the same way OE-11 cardinality already survives", async () => {
+    const P = setupProjectRoot("d-ingest-widen");
+    const fixture = writeSourceFixture();
+    // AUTHORIZED elevate (same governed path as D1a / D-ingest-cardinality):
+    // SOURCE jsonl → ingest → register, with a genuinely-graded session so the
+    // gate authorizes. No hand-seeded candidate facets — the criteria and the
+    // property access-security must flow THROUGH the SOURCE jsonl alone.
+    seedGradedCurrentSession(P);
+
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "elevate",
+      project: P,
+      sourceJsonlPath: fixture,
+      semanticIntentContractStatus: "approved",
+      digitalTwinChangeContractStatus: "approved",
+      readyForDigitalTwin: true,
+    });
+    expect(result.elevate?.phase).toBe("elevated");
+    expect(result.elevate?.register?.committed).toBe(true);
+
+    const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
+
+    // (1) ActionType submissionCriteria survived ingest into the finalizeScore
+    //     declaration — the SOURCE's "all rubric items graded" + "teacher approval"
+    //     (the scenario's "모든 루브릭 항목 채점됨 + 교사 승인" submission criteria).
+    const actionRid = projectPrimitiveRid(P, "action-type", "finalizeScore");
+    const action = reg.actionTypes.find((e) => e.rid === actionRid);
+    expect(action).toBeDefined();
+    const actionDecl = action!.declaration as
+      | { submissionCriteria?: unknown; writebackRisk?: unknown }
+      | undefined;
+    expect(actionDecl?.submissionCriteria).toEqual(["all rubric items graded", "teacher approval"]);
+    // writeback risk also flowed through the SOURCE (no longer hardcoded "none").
+    expect(actionDecl?.writebackRisk).toBe("high");
+
+    // (2) Property column-level access-security survived ingest into the score
+    //     declaration — readable only by the owning student + assigned teacher
+    //     (the scenario's property-unit access boundary "본인 학생과 담당 교사만 읽기").
+    const propertyRid = projectPrimitiveRid(P, "property", "score");
+    const property = reg.properties.find((e) => e.rid === propertyRid);
+    expect(property).toBeDefined();
+    const propertyDecl = property!.declaration as { readableBy?: unknown } | undefined;
+    expect(propertyDecl?.readableBy).toEqual(["owning-student", "assigned-teacher"]);
+  });
 });
 
 /** Write an OE workflow state (mutationAuthorized true/false) for the gate's D2m teeth. */

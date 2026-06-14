@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.11.0] - 2026-06-14 — feat: OE follow-ups — OE-9 typed-graph PRIMARY for A2 forwardProp/backwardProp + composeSchemaPrimitives from registeredPrimitives + per-rid drift/propagation audits (legacy SQLite kept as fallback; G-A5 not tripped); e2e ingest-widening (ActionType submissionCriteria + property access-security survive SOURCE-jsonl ingest) -> e2e oe-full-flow now 0 test.todo. DEFERRED: deprecated flat-string retirement (SIC contract-shape break; belongs to the OE-6/OE-10 bind-reconciliation lane).
+
+### Added
+- OE-9: the typed ontology graph is now PRIMARY for A2 `forwardProp`/`backwardProp` — `bridge/handlers/impact-query.ts` `probeTypedGraph` is THE propagation source, with the legacy SQLite `IMPACT_EDGE_REGISTRY` demoted to the coverage/fallback signal (layering inverted; `graphConfidence` plumbed). `lib/ontology-context/retrieval-context.ts` `composeSchemaPrimitives` is projected from `snapshot.registeredPrimitives` (not the `fs.readdirSync` scan). Per-rid typed-graph checks now drive the drift/propagation audits.
+- e2e ingest-widening: ActionType `submissionCriteria` and property-level access-security now survive SOURCE-jsonl ingest into the registered primitive declarations (`lib/fde-ontology-engineering/source-ingest.ts` + `types.ts`), so the `tests/e2e/oe-full-flow.e2e.test.ts` D-ingest assertions run live — the e2e now carries ZERO `test.todo()`.
+
+### Changed
+- The legacy SQLite forwardProp/backwardProp lane (`lib/impact-graph/sqlite-cache.deprecated.ts`) is KEPT as the fallback/coverage signal — G-A5 is NOT tripped, `convex-client` is stub-only, and `check-deletion-readiness` stays green (nothing deleted/swapped).
+- DEFERRED: retirement of the deprecated flat-string DTC boundaries is a SIC contract-shape break and belongs to the OE-6/OE-10 bind-reconciliation lane, not this follow-up.
+
+Invariant: the SACRED 9-axis (`lib/semantic-intent/nine-axis-sic-fill-sequence.ts`) is byte-untouched; `DigitalTwinDecisionDomain` stays at 5 (no 10th axis); the OP-2 envelope-bound express-lane (e2e E1) stays green; the SQLite lane is preserved (G-A5 not tripped; `check-deletion-readiness` green).
+
+Verification: `bunx tsc --noEmit` exit 0; full `bun test` green (3327 pass / 7 skip / 0 fail / 21318 expect() across 3334 tests / 378 files — the 7 skips are pre-existing, none in the e2e); e2e `tests/e2e/oe-full-flow.e2e.test.ts` 28 pass / 0 fail / 185 expect() with ZERO `test.todo()`/`test.skip()` remaining. Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.10.0 → 7.11.0 stays green (three-file equality smoke).
+
 ## [7.10.0] - 2026-06-14 — fix: OE + Ontology-First audit remediation — SOLE-path-to-confirmed front half, DP-deepening typed axis facets, fail-closed OE criteria, GOVERN-FOLD V3 SECURITY into live accessBoundary, structural primitives + rules-lightening
 
 ### Added

@@ -28,6 +28,8 @@ import pmValueGradeMetrics from "../../bridge/handlers/pm-value-grade-metrics";
 import pmWorkflowLineageQuery from "../../bridge/handlers/pm-workflow-lineage-query";
 import { resolvePalantirMiniRoot } from "../config/root";
 import { resolveExternalRoots } from "../runtime/external-roots";
+import { readEvents } from "../event-log/read";
+import { foldToSnapshot } from "../event-log/read/fold-snapshot";
 import {
   composeCodexMountedHookEvents,
   composeCompatibilityHookEventsAlias,
@@ -58,6 +60,13 @@ export interface SchemaPrimitivesSubField {
   readonly count?: number;
   readonly axisFilteredCount?: number;
   readonly names?: ReadonlyArray<string>;
+  /**
+   * OE-9: which lane produced `names`. `"registered-graph"` = projected from the
+   * project's folded `snapshot.registeredPrimitives` (the governed SSoT — PRIMARY);
+   * `"fs-scan"` = fallback `fs.readdirSync` over the schema primitive source files
+   * (used only when no primitives are registered for the project yet).
+   */
+  readonly source?: "registered-graph" | "fs-scan";
   readonly error?: string;
 }
 
@@ -276,12 +285,79 @@ function composeProjectDocs(project: string): ProjectDocsSubField {
   }
 }
 
+/**
+ * OE-9: derive a human-readable primitive name from a registered-primitive rid.
+ * Prefers a `name`/`linkName` in the committed declaration; else the rid's
+ * trailing path segment.
+ */
+function registeredPrimitiveName(entry: {
+  rid: string;
+  declaration?: Record<string, unknown>;
+}): string {
+  const decl = entry.declaration;
+  if (decl !== undefined) {
+    const n = decl.name ?? decl.linkName ?? decl.objectName;
+    if (typeof n === "string" && n.length > 0) return n;
+  }
+  const segs = entry.rid.split(/[/:]/).filter((s) => s.length > 0);
+  const last = segs[segs.length - 1];
+  return last !== undefined ? last : entry.rid;
+}
+
+/**
+ * OE-9: project the project's REGISTERED ontology primitives (folded from its
+ * events.jsonl into `snapshot.registeredPrimitives`) as the PRIMARY name list,
+ * binding to the governed graph rather than re-deriving from a filesystem scan.
+ * Returns `undefined` when nothing is registered yet, so the caller falls back
+ * to the fs scan (consumer behavior is byte-stable for unregistered projects).
+ */
+function registeredPrimitiveNamesFor(project: string): ReadonlyArray<string> | undefined {
+  try {
+    const eventsPath = path.join(project, ".palantir-mini", "session", "events.jsonl");
+    const snapshot = foldToSnapshot(readEvents(eventsPath));
+    const reg = snapshot.registeredPrimitives;
+    if (reg === undefined) return undefined;
+    const buckets = [
+      reg.objectTypes,
+      reg.linkTypes,
+      reg.actionTypes,
+      reg.functions,
+      reg.roles,
+      reg.properties,
+    ];
+    const seen = new Set<string>();
+    const names: string[] = [];
+    for (const bucket of buckets) {
+      for (const entry of bucket) {
+        const name = registeredPrimitiveName(entry);
+        if (seen.has(name)) continue;
+        seen.add(name);
+        names.push(name);
+        if (names.length >= PRIMITIVE_NAME_CAP) return names;
+      }
+    }
+    return names.length > 0 ? names : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function composeSchemaPrimitives(
   requestedAxes: ReadonlyArray<string> | undefined,
+  project: string,
 ): SchemaPrimitivesSubField {
   try {
-    const all = listTsRecursive(SCHEMAS_PRIMITIVES_DIR, PRIMITIVE_NAME_CAP);
-    const names = all.map((p) => path.basename(p, ".ts"));
+    // OE-9: registered governed graph is the PRIMARY source. Fall back to the
+    // fs scan only when no primitives are registered for the project yet.
+    const registered = registeredPrimitiveNamesFor(project);
+    const source: "registered-graph" | "fs-scan" =
+      registered !== undefined ? "registered-graph" : "fs-scan";
+    const names: ReadonlyArray<string> =
+      registered !== undefined
+        ? registered
+        : listTsRecursive(SCHEMAS_PRIMITIVES_DIR, PRIMITIVE_NAME_CAP).map((p) =>
+            path.basename(p, ".ts"),
+          );
     let axisFilteredCount = names.length;
     let filteredNames: ReadonlyArray<string> = names;
     if (requestedAxes && requestedAxes.length > 0) {
@@ -298,6 +374,7 @@ function composeSchemaPrimitives(
       count: names.length,
       axisFilteredCount,
       names: filteredNames,
+      source,
     };
   } catch (err) {
     return { available: false, error: String(err) };
@@ -442,7 +519,7 @@ export async function composeRetrievalContext(
 ): Promise<RetrievalContextProjection> {
   const officialResearchDocs = composeOfficialResearchDocs(opts.scopePaths);
   const projectDocs = composeProjectDocs(project);
-  const schemaPrimitives = composeSchemaPrimitives(opts.requestedAxes);
+  const schemaPrimitives = composeSchemaPrimitives(opts.requestedAxes, project);
   const pluginSourceFiles = composePluginSourceFiles(opts.scopePaths);
   const rules = composeRules();
   const sharedHookIntentEvents = composeSharedHookIntentEvents();
