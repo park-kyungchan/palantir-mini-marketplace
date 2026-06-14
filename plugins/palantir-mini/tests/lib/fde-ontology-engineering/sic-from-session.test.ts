@@ -100,7 +100,8 @@ describe("createSemanticIntentContractDraftFromFDEOntologySession — nine-axis 
     if (!axes) throw new Error("axes missing");
 
     // DATA ← objectCandidates + chatbotContextCandidates
-    expect(axes.data.status).toBe("filled");
+    // Session-derived axes are 'draft' (proposed, NOT user-confirmed), never 'filled'.
+    expect(axes.data.status).toBe("draft");
     expect(axes.data.summary).toContain("Student");
     expect(axes.data.summary).toContain("Teacher assistant state");
     expect(axes.data.refs).toEqual(
@@ -108,32 +109,32 @@ describe("createSemanticIntentContractDraftFromFDEOntologySession — nine-axis 
     );
 
     // LOGIC ← functionCandidates
-    expect(axes.logic.status).toBe("filled");
+    expect(axes.logic.status).toBe("draft");
     expect(axes.logic.summary).toContain("Score answer");
 
     // ACTION ← actionCandidates
-    expect(axes.action.status).toBe("filled");
+    expect(axes.action.status).toBe("draft");
     expect(axes.action.summary).toContain("Record intervention");
 
     // GOVERNANCE / ACTORS ← role state
-    expect(axes.governance.status).toBe("filled");
+    expect(axes.governance.status).toBe("draft");
     expect(axes.governance.summary).toContain("Teacher");
-    expect(axes.actors.status).toBe("filled");
+    expect(axes.actors.status).toBe("draft");
     expect(axes.actors.summary).toContain("Teacher");
 
     // CONTEXT ← evidenceModel / sourceRefs
-    expect(axes.context.status).toBe("filled");
+    expect(axes.context.status).toBe("draft");
     expect(axes.context.summary).toContain("Student answer evidence");
     expect(axes.context.refs).toEqual(
       expect.arrayContaining(["evidence://answer-pattern", "evidence://session-source"]),
     );
 
     // SUCCESS-EVAL ← missionModel.successSignals
-    expect(axes.successEval.status).toBe("filled");
+    expect(axes.successEval.status).toBe("draft");
     expect(axes.successEval.summary).toContain("teacher can act within one lesson");
 
     // CONSTRAINTS-NONGOALS ← confirmedNonGoals
-    expect(axes.constraintsNonGoals.status).toBe("filled");
+    expect(axes.constraintsNonGoals.status).toBe("draft");
     expect(axes.constraintsNonGoals.summary).toContain("Do not notify parents automatically.");
   });
 
@@ -184,7 +185,7 @@ describe("createSemanticIntentContractDraftFromFDEOntologySession — nine-axis 
     const sic = createSemanticIntentContractDraftFromFDEOntologySession(sessionWithPriors);
     const axes = sic.axes;
     if (!axes) throw new Error("axes missing");
-    expect(axes.memoryPrior.status).toBe("filled");
+    expect(axes.memoryPrior.status).toBe("draft");
     expect(axes.memoryPrior.refs).toEqual(
       expect.arrayContaining(["semantic-intent:prior", "dtc:prior"]),
     );
@@ -241,5 +242,350 @@ describe("createSemanticIntentContractDraftFromFDEOntologySession — nine-axis 
     expect(sic.approvedActionTypeRefs).toBeUndefined();
     expect(sic.approvedFunctionRefs).toBeUndefined();
     expect(sic.approvedLinkTypeRefs).toBeUndefined();
+  });
+});
+
+describe("DP-1 — DATA axis 'data-graph' facet (typed Palantir noun-graph)", () => {
+  test("objects + folded properties + links with resolved endpoints", () => {
+    const session: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      objectCandidates: [
+        {
+          candidateId: "obj:submission",
+          plainName: "Submission",
+          whyItMayMatter: "A student's submission.",
+          evidenceRefs: ["evidence://submission"],
+        },
+        {
+          candidateId: "obj:rubric",
+          plainName: "Rubric",
+          whyItMayMatter: "The grading rubric.",
+          evidenceRefs: ["evidence://rubric"],
+        },
+      ],
+      propertyCandidates: [
+        {
+          candidateId: "prop:score",
+          plainName: "score",
+          ownerObjectName: "Submission",
+          dataType: "number",
+          evidenceRefs: ["evidence://score"],
+        },
+      ],
+      linkCandidates: [
+        {
+          candidateId: "edge:belongs",
+          plainName: "belongsToRubric",
+          sourceObject: "Submission",
+          targetObject: "Rubric",
+          businessMeaning: "Each submission binds to exactly one rubric.",
+          evidenceRefs: ["evidence://belongs"],
+        },
+      ],
+      chatbotContextCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(session);
+    const facet = sic.axes?.data.facet;
+    if (!facet || facet.kind !== "data-graph") throw new Error("expected a data-graph facet");
+
+    expect(facet.objects.map((o) => o.name)).toEqual(["Submission", "Rubric"]);
+    const submission = facet.objects.find((o) => o.name === "Submission")!;
+    expect(submission.properties).toEqual([{ name: "score", dataType: "number" }]);
+    expect(submission.refs).toEqual(["evidence://submission"]);
+    expect(facet.objects.find((o) => o.name === "Rubric")!.properties).toEqual([]);
+
+    expect(facet.links).toHaveLength(1);
+    expect(facet.links[0]).toMatchObject({
+      name: "belongsToRubric",
+      sourceObject: "Submission",
+      targetObject: "Rubric",
+      endpointsResolved: true,
+    });
+  });
+
+  test("a link whose endpoints are NOT both objects ⇒ endpointsResolved false", () => {
+    const session: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      objectCandidates: [
+        {
+          candidateId: "obj:submission",
+          plainName: "Submission",
+          whyItMayMatter: "A student's submission.",
+          evidenceRefs: ["evidence://submission"],
+        },
+      ],
+      propertyCandidates: [],
+      linkCandidates: [
+        {
+          candidateId: "edge:dangling",
+          plainName: "belongsToRubric",
+          sourceObject: "Submission",
+          targetObject: "Rubric", // Rubric is NOT an object in this session
+          businessMeaning: "Dangling endpoint — confirmation debt, not a silent link.",
+          evidenceRefs: ["evidence://belongs"],
+        },
+      ],
+      chatbotContextCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(session);
+    const facet = sic.axes?.data.facet;
+    if (!facet || facet.kind !== "data-graph") throw new Error("expected a data-graph facet");
+    expect(facet.links[0]!.endpointsResolved).toBe(false);
+  });
+
+  test("empty session ⇒ no DATA facet and DATA status 'open'", () => {
+    const emptySession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      objectCandidates: [],
+      linkCandidates: [],
+      propertyCandidates: [],
+      chatbotContextCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(emptySession);
+    expect(sic.axes?.data.facet).toBeUndefined();
+    expect(sic.axes?.data.status).toBe("open");
+  });
+});
+
+describe("DP-3 — ACTION axis 'action-writeback' facet + SUCCESS-EVAL proposal binding", () => {
+  const ACTION_SESSION: FDEOntologyEngineeringSession = {
+    ...BASE_SESSION,
+    actionCandidates: [
+      {
+        candidateId: "act:finalize-score",
+        plainName: "finalizeScore",
+        operationalIntent: "Write the finalized score back to the student record.",
+        writebackRisk: "high",
+        submissionCriteria: ["all rubric items graded", "teacher approval"],
+        evidenceRefs: ["evidence://finalize"],
+      },
+    ],
+  };
+
+  test("writebackRisk + submissionCriteria projected onto the action-writeback facet", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(ACTION_SESSION);
+    const facet = sic.axes?.action.facet;
+    if (!facet || facet.kind !== "action-writeback") throw new Error("expected an action-writeback facet");
+
+    expect(facet.actions).toHaveLength(1);
+    expect(facet.actions[0]).toEqual({
+      name: "finalizeScore",
+      writebackRisk: "high",
+      submissionCriteria: ["all rubric items graded", "teacher approval"],
+      refs: ["evidence://finalize"],
+    });
+    // The prose summary + status path is byte-identical to the un-enriched axis.
+    expect(sic.axes?.action.status).toBe("draft");
+    expect(sic.axes?.action.summary).toBe("Write-back actions: finalizeScore");
+  });
+
+  test("each submission criterion threads into the SUCCESS-EVAL axis as a typed proposal ref + summary mention", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(ACTION_SESSION);
+    const successEval = sic.axes?.successEval;
+    if (!successEval) throw new Error("successEval axis missing");
+
+    // One submission-criteria:// ref per (action, criterion-index).
+    expect(successEval.refs).toEqual([
+      "submission-criteria://finalizeScore/0",
+      "submission-criteria://finalizeScore/1",
+    ]);
+    // The success signals AND the per-action criteria are surfaced as one proposal.
+    expect(successEval.summary).toContain("teacher can act within one lesson");
+    expect(successEval.summary).toContain("Per-action submission criteria:");
+    expect(successEval.summary).toContain("submission-criteria://finalizeScore/0");
+  });
+
+  test("an action with NO submission criteria ⇒ facet action with submissionCriteria [] and NO success-eval criteria refs", () => {
+    const noCriteriaSession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      actionCandidates: [
+        {
+          candidateId: "act:finalize-score",
+          plainName: "finalizeScore",
+          operationalIntent: "Write the finalized score back to the student record.",
+          writebackRisk: "high",
+          evidenceRefs: ["evidence://finalize"],
+        },
+      ],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(noCriteriaSession);
+    const facet = sic.axes?.action.facet;
+    if (!facet || facet.kind !== "action-writeback") throw new Error("expected an action-writeback facet");
+    expect(facet.actions[0]!.submissionCriteria).toEqual([]);
+    // No criteria ⇒ SUCCESS-EVAL carries no submission-criteria:// refs (only signals).
+    expect(sic.axes?.successEval.refs).toEqual([]);
+    expect(sic.axes?.successEval.summary).not.toContain("Per-action submission criteria:");
+  });
+
+  test("empty session ⇒ no ACTION facet and ACTION status 'open'", () => {
+    const emptySession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      actionCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(emptySession);
+    expect(sic.axes?.action.facet).toBeUndefined();
+    expect(sic.axes?.action.status).toBe("open");
+  });
+
+  test("BOUNDARY GUARD (front-half scope): the elicitation binding never sets requiredEvaluationRefs (back-half / OE-8 stays UNTOUCHED)", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(ACTION_SESSION);
+    // DP-3 binds submission criteria as a SUCCESS-EVAL *proposal* only; the
+    // enforcement-side requiredEvaluationRefs (the DTC synthesis gate, OE-8) is
+    // NOT populated here. The draft must carry no requiredEvaluationRefs.
+    expect((sic as { requiredEvaluationRefs?: unknown }).requiredEvaluationRefs).toBeUndefined();
+  });
+});
+
+describe("DP-2 — LOGIC axis 'logic-block' facet + invoking-actor scope binding", () => {
+  // A function that routes through an Apply-action AND a role to resolve its
+  // invoking-actor scope against ⇒ a RESOLVED tool scope on GOVERNANCE.
+  const RESOLVED_SESSION: FDEOntologyEngineeringSession = {
+    ...BASE_SESSION,
+    functionCandidates: [
+      {
+        candidateId: "fn:criteria",
+        plainName: "submissionCriteriaCheck",
+        logicIntent: "All rubric items graded + teacher approval.",
+        evaluatorKind: "routes-through-apply-action",
+        invokingActorScopeRef: "role:teacher",
+        evidenceRefs: ["evidence://criteria"],
+      },
+    ],
+    roleCandidates: [
+      {
+        candidateId: "role:teacher",
+        plainName: "Teacher",
+        principalKind: "agent",
+        permissions: ["finalize-score"],
+        evidenceRefs: ["evidence://teacher-role"],
+      },
+    ],
+  };
+
+  test("logic-block facet: evaluatorKind + resolved invokingActorScope", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(RESOLVED_SESSION);
+    const facet = sic.axes?.logic.facet;
+    if (!facet || facet.kind !== "logic-block") throw new Error("expected a logic-block facet");
+    expect(facet.functions).toHaveLength(1);
+    expect(facet.functions[0]).toEqual({
+      name: "submissionCriteriaCheck",
+      evaluatorKind: "routes-through-apply-action",
+      invokingActorScope: "Teacher",
+      refs: ["evidence://criteria"],
+    });
+    // Prose summary + status path stays byte-identical to the un-enriched axis.
+    expect(sic.axes?.logic.status).toBe("draft");
+    expect(sic.axes?.logic.summary).toBe("Decision logic / functions: submissionCriteriaCheck");
+  });
+
+  test("a RESOLVED routes-through-apply-action function ⇒ GOVERNANCE toolScope resolved:true", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(RESOLVED_SESSION);
+    const governance = sic.axes?.governance.facet;
+    if (!governance || governance.kind !== "access-boundary") {
+      throw new Error("expected an access-boundary facet");
+    }
+    expect(governance.accessBoundary.toolScopes).toEqual([
+      { toolName: "submissionCriteriaCheck", actorScope: "Teacher", resolved: true },
+    ]);
+  });
+
+  test("FAIL-CLOSED (paired): an UNRESOLVED invokingActorScopeRef ⇒ toolScope resolved:false, NO default grant", () => {
+    const unresolvedSession: FDEOntologyEngineeringSession = {
+      ...RESOLVED_SESSION,
+      // The ref points at a role that does not exist in this session.
+      functionCandidates: [
+        {
+          ...RESOLVED_SESSION.functionCandidates[0]!,
+          invokingActorScopeRef: "role:does-not-exist",
+        },
+      ],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(unresolvedSession);
+    const logic = sic.axes?.logic.facet;
+    if (!logic || logic.kind !== "logic-block") throw new Error("expected a logic-block facet");
+    // The unresolved scope is ABSENT on the function (never widened/defaulted).
+    expect(logic.functions[0]!.invokingActorScope).toBeUndefined();
+
+    const governance = sic.axes?.governance.facet;
+    if (!governance || governance.kind !== "access-boundary") {
+      throw new Error("expected an access-boundary facet");
+    }
+    const scope = governance.accessBoundary.toolScopes[0]!;
+    expect(scope.resolved).toBe(false);
+    // The model/agent cannot mint a resolved scope by default: NONE is resolved:true.
+    expect(governance.accessBoundary.toolScopes.some((s) => s.resolved === true)).toBe(false);
+  });
+
+  test("a pure-evaluator function ⇒ NO GOVERNANCE toolScope entry (it persists nothing to govern)", () => {
+    const pureSession: FDEOntologyEngineeringSession = {
+      ...RESOLVED_SESSION,
+      functionCandidates: [
+        {
+          ...RESOLVED_SESSION.functionCandidates[0]!,
+          evaluatorKind: "pure-evaluator",
+        },
+      ],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(pureSession);
+    const governance = sic.axes?.governance.facet;
+    if (!governance || governance.kind !== "access-boundary") {
+      throw new Error("expected an access-boundary facet");
+    }
+    expect(governance.accessBoundary.toolScopes).toEqual([]);
+  });
+
+  test("a function with no declared evaluatorKind ⇒ facet 'unspecified', no toolScope", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(BASE_SESSION);
+    const logic = sic.axes?.logic.facet;
+    if (!logic || logic.kind !== "logic-block") throw new Error("expected a logic-block facet");
+    expect(logic.functions[0]!.evaluatorKind).toBe("unspecified");
+    const governance = sic.axes?.governance.facet;
+    if (governance && governance.kind === "access-boundary") {
+      expect(governance.accessBoundary.toolScopes).toEqual([]);
+    }
+  });
+
+  test("empty session ⇒ no LOGIC facet and LOGIC status 'open'", () => {
+    const emptySession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      functionCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(emptySession);
+    expect(sic.axes?.logic.facet).toBeUndefined();
+    expect(sic.axes?.logic.status).toBe("open");
+  });
+});
+
+describe("DP-4 — GOVERNANCE axis 'access-boundary' facet (govern-fold, fail-closed default-deny)", () => {
+  test("access-boundary facet: failClosed===true + DEFAULT-DENY accessibleSurfaces (a surface with no signal is ABSENT)", () => {
+    // BASE_SESSION carries object + function + action signal, but NO function
+    // routes through an Apply-action ⇒ no toolScope ⇒ no "tools" surface.
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(BASE_SESSION);
+    const facet = sic.axes?.governance.facet;
+    if (!facet || facet.kind !== "access-boundary") throw new Error("expected an access-boundary facet");
+    expect(facet.accessBoundary.failClosed).toBe(true);
+    // default-deny: only surfaces with session signal appear; "tools" is ABSENT.
+    expect(facet.accessBoundary.accessibleSurfaces).toEqual(["data", "logic", "action"]);
+    expect(facet.accessBoundary.accessibleSurfaces).not.toContain("tools");
+    expect(facet.accessBoundary.accessibleSurfaces).not.toContain("memory");
+  });
+
+  test("policyMarkings fold role permissions + governance summary", () => {
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(BASE_SESSION);
+    const facet = sic.axes?.governance.facet;
+    if (!facet || facet.kind !== "access-boundary") throw new Error("expected an access-boundary facet");
+    // BASE_SESSION's Teacher role carries the "record-intervention" permission.
+    expect(facet.accessBoundary.policyMarkings).toContain("record-intervention");
+  });
+
+  test("a session with NO governance signal ⇒ no GOVERNANCE access-boundary facet", () => {
+    const noGovSession: FDEOntologyEngineeringSession = {
+      ...BASE_SESSION,
+      stableSummary: undefined,
+      roleCandidates: [],
+      functionCandidates: [],
+    };
+    const sic = createSemanticIntentContractDraftFromFDEOntologySession(noGovSession);
+    expect(sic.axes?.governance.facet).toBeUndefined();
   });
 });

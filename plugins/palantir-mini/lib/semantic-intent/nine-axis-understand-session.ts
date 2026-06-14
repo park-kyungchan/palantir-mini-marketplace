@@ -18,6 +18,7 @@ import type {
   SicAxisKey,
   SemanticIntentAxes,
   SicAxis,
+  SicAxisFacet,
 } from "#schemas/ontology/primitives/semantic-intent-contract";
 
 /** Per-axis non-developer rationale (KO / EN) shown on the elicitation card. */
@@ -48,6 +49,15 @@ export interface NineAxisProposedDraft {
   readonly rationaleKo?: string;
   /** English mirror of the rationale. */
   readonly rationaleEn?: string;
+  /**
+   * DP-1: an optional one-line rendering of the proposal's typed graph (e.g.
+   * `"3 objects, 2 links; 1 link with an unresolved endpoint"`) so the user
+   * confirms the *graph*, not just the sentence. Prose-only on the card — the
+   * typed `SicAxisFacet` is what downstream binds to. Use {@link renderDataGraphLine}
+   * to derive it from a `data-graph` facet. Absent ⇒ the confirm-draft consequence
+   * stays byte-identical to the no-facet card.
+   */
+  readonly graphLine?: string;
 }
 
 /** Options for {@link nineAxisTurnCard}. Absent options => today's two-choice card (back-compat). */
@@ -84,6 +94,36 @@ function draftRationale(draft: NineAxisProposedDraft): string {
   const en = draft.rationaleEn ?? "";
   if (!ko && !en) return "";
   return ` (제안 이유 / Why proposed: ${ko}${ko && en ? " / " : ""}${en})`;
+}
+
+/**
+ * DP-1: render a `data-graph` facet as a one-line graph summary for the DATA
+ * confirm-draft card (e.g. `"2 objects, 1 link; 1 link with an unresolved endpoint"`).
+ * Returns `undefined` for a non-`data-graph` facet (or `undefined` facet) so the
+ * caller leaves `graphLine` unset and the card stays byte-identical. Prose-only —
+ * the typed facet, not this string, is what downstream binds to.
+ */
+export function renderDataGraphLine(facet: SicAxisFacet | undefined): string | undefined {
+  if (facet === undefined || facet.kind !== "data-graph") return undefined;
+  const objectCount = facet.objects.length;
+  const linkCount = facet.links.length;
+  const unresolvedCount = facet.links.filter((link) => !link.endpointsResolved).length;
+  const objectWord = objectCount === 1 ? "object" : "objects";
+  const linkWord = linkCount === 1 ? "link" : "links";
+  const base = `${objectCount} ${objectWord}, ${linkCount} ${linkWord}`;
+  if (unresolvedCount === 0) return base;
+  const unresolvedWord = unresolvedCount === 1 ? "link" : "links";
+  return `${base}; ${unresolvedCount} ${unresolvedWord} with an unresolved endpoint`;
+}
+
+/**
+ * Render the proposed-draft graph line (DP-1) as a bilingual-neutral trailing
+ * fragment for the confirm-draft consequence. "" when absent ⇒ byte-identical to
+ * the no-facet card.
+ */
+function draftGraphLine(draft: NineAxisProposedDraft): string {
+  const line = draft.graphLine ?? "";
+  return line.length > 0 ? ` (그래프 / graph: ${line})` : "";
 }
 
 /**
@@ -136,7 +176,8 @@ export function nineAxisTurnCard(
         label: "제안 확정 / Confirm proposal",
         consequence:
           `이 제안을 당신의 답으로 기록: "${draftText(draft!)}" / records this proposal as YOUR answer` +
-          draftRationale(draft!),
+          draftRationale(draft!) +
+          draftGraphLine(draft!),
         recommended: true,
       }
     : null;

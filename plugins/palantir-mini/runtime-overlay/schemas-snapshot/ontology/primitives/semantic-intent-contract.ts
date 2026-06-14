@@ -9,6 +9,19 @@
  * canonical rubric). Enables PR 5.10 (8-turn fill) + PR 5.13 (SIC grader).
  * Per canonical plan v2 §4 row 5.9.
  *
+ * v1.84.0 — additive SicAxisStatus member `draft` (session-derived, NOT user-
+ * confirmed). Lets the session-derivation path name a proposed-but-unconfirmed
+ * axis without overstating confirmation as `filled` (OE-5 / D1-2). Additive +
+ * backward-compatible: no existing producer emits `draft`.
+ *
+ * v1.85.0 — additive optional `SicAxis.facet` (+ the `SicAxisFacet` discriminated
+ * union and its five sub-interfaces). The DP-deepening substrate (DP-0): gives an
+ * enriched axis a typed home for the structured proposal behind the prose
+ * `summary` (data-graph / logic-block / action-writeback / access-boundary), one
+ * variant per axis DP enriches. Additive + backward-compatible: no existing
+ * producer emits `facet`, `isSemanticIntentContract` does not validate axis
+ * internals — zero behavior change. DP-1..DP-4 fill their own variant interiors.
+ *
  * @owner palantirkc-ontology
  * @purpose User-approved semantic routing boundary for ontology-affecting work
  */
@@ -143,7 +156,110 @@ export type SicAxisKey =
   | "actors"
   | "memoryPrior";
 
-export type SicAxisStatus = "open" | "filled" | "not-applicable";
+/**
+ * The confirmation ladder for one of the nine semantic-intent axes:
+ *   "open"            — no signal at all; nothing proposed.
+ *   "draft"           — a session-derived PROPOSAL exists (summary + refs
+ *                       populated) but is NOT user-confirmed. Carries signal for
+ *                       review; does NOT count toward readiness; does NOT count
+ *                       as confirmation. Minted only by the session-derivation
+ *                       path (createSemanticIntentContractDraftFromFDEOntologySession).
+ *   "filled"          — a per-axis USER turn confirmed it. Minted ONLY by the
+ *                       9-axis turn engine (advanceNineAxisSicSequence).
+ *   "not-applicable"  — the USER explicitly waived it via a turn. Minted ONLY by
+ *                       the turn engine / runner.
+ */
+export type SicAxisStatus = "open" | "draft" | "filled" | "not-applicable";
+
+// --- v1.85.0 (DP-0) typed-facet substrate -----------------------------------
+// One typed facet shape per axis the DP-deepening increment enriches. Each is
+// the machine-typed projection of the same proposal the prose `summary` answers,
+// so the DTC synthesis can bind to structure instead of re-parsing `summary`.
+// DP-0 lands the union skeleton (the `SicAxis.facet` field + the four variant
+// tags + these five interface declarations); DP-1..DP-4 fill / extend their own
+// variant interiors. Additive; absent on every legacy producer and fixture.
+
+/**
+ * DATA axis (DP-1): one Palantir noun-graph object — a semantic ObjectType with
+ * its folded properties and the evidence refs that proposed it.
+ */
+export interface SicDataObject {
+  readonly name: string;
+  readonly properties: readonly { readonly name: string; readonly dataType?: string }[];
+  readonly refs: readonly string[];
+}
+
+/**
+ * DATA axis (DP-1): one Palantir noun-graph link between two `SicDataObject`s.
+ * `endpointsResolved` is true only when BOTH endpoints appear in the facet's
+ * `objects` (an unresolved endpoint is confirmation debt, not a silent link).
+ */
+export interface SicDataLink {
+  readonly name: string;
+  /** plainName of an SicDataObject. */
+  readonly sourceObject: string;
+  /** plainName of an SicDataObject. */
+  readonly targetObject: string;
+  readonly businessMeaning: string;
+  /** Both endpoints present in `objects`. */
+  readonly endpointsResolved: boolean;
+}
+
+/**
+ * LOGIC axis (DP-2): one AIP-Logic function. `evaluatorKind` distinguishes a
+ * pure evaluator (persists nothing) from one that writes back ONLY through an
+ * ActionType. `invokingActorScope` records whose GOVERNANCE scope the function's
+ * tool calls inherit — the model cannot widen it.
+ */
+export interface SicLogicFunction {
+  readonly name: string;
+  readonly evaluatorKind: "pure-evaluator" | "routes-through-apply-action" | "unspecified";
+  /** plainName of the actor/role whose permissions the tool calls inherit. */
+  readonly invokingActorScope?: string;
+  readonly refs: readonly string[];
+}
+
+/**
+ * ACTION axis (DP-3): one write-back ActionType, carrying its writeback risk and
+ * the per-action submission criteria (the "done/correct" gate for THIS action).
+ */
+export interface SicWritebackAction {
+  readonly name: string;
+  readonly writebackRisk: "none" | "low" | "medium" | "high";
+  /** The "done/correct" gate for THIS action. */
+  readonly submissionCriteria: readonly string[];
+  readonly refs: readonly string[];
+}
+
+/**
+ * GOVERNANCE axis (DP-4, govern-fold): the access-security boundary folded INTO
+ * GOVERNANCE (Security is the GOVERNANCE access-control facet, NOT a 10th axis
+ * and NOT a `DigitalTwinDecisionDomain` member). The literal `failClosed: true`
+ * makes the type itself carry the fail-closed contract — an access boundary can
+ * never be constructed default-open; a surface not in `accessibleSurfaces` is
+ * denied, and an unresolved `toolScope` is confirmation debt, never a grant.
+ */
+export interface SicAccessBoundary {
+  /** Marking-/purpose-/role policy summary the GOVERNANCE turn confirms. */
+  readonly policyMarkings: readonly string[];
+  /** Which surfaces the actor may touch — data/logic/action/tools/memory/logs. */
+  readonly accessibleSurfaces: readonly ("data" | "logic" | "action" | "tools" | "memory" | "logs")[];
+  /** Per-tool invoking-actor scope inherited from LOGIC (DP-2); resolved=false ⇒ confirmation debt, never a grant. */
+  readonly toolScopes: readonly { readonly toolName: string; readonly actorScope: string; readonly resolved: boolean }[];
+  /** Default-deny: surfaces NOT in accessibleSurfaces are denied. */
+  readonly failClosed: true;
+}
+
+/**
+ * The typed projection of an enriched axis proposal — one variant per axis the
+ * DP-deepening increment enriches (DATA / LOGIC / ACTION / GOVERNANCE). Other
+ * axes carry no `facet`.
+ */
+export type SicAxisFacet =
+  | { readonly kind: "data-graph"; readonly objects: readonly SicDataObject[]; readonly links: readonly SicDataLink[] }
+  | { readonly kind: "logic-block"; readonly functions: readonly SicLogicFunction[] }
+  | { readonly kind: "action-writeback"; readonly actions: readonly SicWritebackAction[] }
+  | { readonly kind: "access-boundary"; readonly accessBoundary: SicAccessBoundary };
 
 /** One surfaced axis of user intent. */
 export interface SicAxis {
@@ -152,6 +268,14 @@ export interface SicAxis {
   /** Evidence / typed refs captured for this axis. */
   readonly refs: readonly string[];
   readonly status: SicAxisStatus;
+  /**
+   * Optional typed facet carrying the structured proposal behind `summary`
+   * (additive; absent on every legacy producer and fixture). `summary` stays the
+   * user-facing prose answer; `facet` is the optional machine-typed projection of
+   * the same proposal (one variant per enriched axis), which the DTC synthesis
+   * can bind to instead of re-parsing `summary`. See `SicAxisFacet`.
+   */
+  readonly facet?: SicAxisFacet;
 }
 
 /** The full 9-axis SemanticIntentContract surface (understand-phase output). */

@@ -53,13 +53,26 @@ export function semanticIntentContractRefFromApproved(
 //       is complete (isNineAxisSicComplete) OR the legacy validator passes
 //       (validateSemanticIntentContract). A nine-axis SIC and a legacy SIC are
 //       graded by their own regime; requiring only one keeps both paths minting.
-//   (b) Q2 user-confirmation HARD GATE — every nine-axis fill step that filled or
-//       waived an axis must have source==='user'. An axis filled by the AI alone
-//       (source 'agent'/'system') is UNCONFIRMED and blocks approval; a
-//       'not-applicable' axis counts as confirmed ONLY when its step is user-sourced.
+//   (b) Q2 user-confirmation HARD GATE — TWO sub-gates:
+//       (b1) no empty-fillSequence pass — a nine-axis SIC (one carrying `axes`)
+//            with an EMPTY/absent fillSequence is refused OUTRIGHT, independent of
+//            gate (a). The 9-axis turn engine is the only producer of a non-empty
+//            fillSequence, so this makes the turn engine the SOLE path to a
+//            confirmable axis. (Closes D1-3: safety no longer rides on gate (a)'s
+//            legacy status check — even a session draft pre-stamped status:'approved'
+//            is refused here because its fillSequence is empty.)
+//       (b2) per-step source check — every nine-axis fill step that filled or
+//            waived an axis must have source==='user'. An axis filled by the AI
+//            alone (source 'agent'/'system') is UNCONFIRMED and blocks approval; a
+//            'not-applicable' axis counts as confirmed ONLY when its step is
+//            user-sourced. (Defense in depth: catches partial agent-fills.)
 //
 // Refusal returns a typed result (never throws) in the lib's {field,message}
 // issue shape, plus the unconfirmed axis labels for a plain-language KO/EN message.
+//
+// Scope guard: (b1) keys on `axes`-present + empty-fillSequence. A LEGACY SIC
+// (no `axes`, approved via the legacy validator regime) has no `axes`, so it is
+// unaffected and stays graded by gate (a) + (b2).
 
 export interface ApproveSemanticIntentContractInput {
   /** Runtime identity recording the approval (resolveHostRuntimeIdentity); never a literal name. */
@@ -104,6 +117,20 @@ function fillStepTargetKey(step: SicFillStep): string | undefined {
   const descriptor = NINE_AXIS_SIC_SEQUENCE.find((turn) => turn.step === step.step);
   if (descriptor === undefined) return undefined;
   return descriptor.targetAxis ?? (descriptor.turnIndex === 0 ? "rawIntent" : undefined);
+}
+
+/**
+ * Q2 sub-gate (b1) helper: the axis keys that carry an unconfirmed proposal
+ * (status 'draft') or remain 'open' on a nine-axis SIC. Surfaced as the
+ * `unconfirmedAxes` payload when a nine-axis SIC has NO user-confirmed fill steps.
+ */
+function draftOrOpenAxisKeys(contract: SemanticIntentContract): string[] {
+  const axes = (contract as { readonly axes?: Record<string, { readonly status?: string }> }).axes;
+  if (axes === undefined) return [];
+  return Object.keys(axes).filter((key) => {
+    const status = axes[key]?.status;
+    return status === "draft" || status === "open";
+  });
 }
 
 /**
@@ -156,6 +183,35 @@ export function approveSemanticIntentContract(
     };
   }
 
+  // (b1) Q2 HARD GATE — no empty-fillSequence pass on a nine-axis SIC.
+  // Runs BEFORE gate (a) and INDEPENDENT of it: a contract carrying `axes` (the
+  // nine-axis shape) MUST also carry user fill steps; an empty/absent fillSequence
+  // means NO per-axis user confirmation happened. Refused outright with the precise
+  // `fillSequence` reason — so safety no longer rides on gate (a)'s legacy status
+  // check. Even a session draft force-stamped status:'approved' (which WOULD pass
+  // the legacy validator in gate (a)) is refused here (D1-3 closure). Legacy
+  // (no-`axes`) SICs have no `axes`, so this gate is skipped for them.
+  const hasAxes =
+    (contract as { readonly axes?: unknown }).axes !== undefined;
+  const fillSequence = (contract as SicWithFillFields).fillSequence ?? [];
+  if (hasAxes && fillSequence.length === 0) {
+    const draftOrOpen = draftOrOpenAxisKeys(contract);
+    return {
+      ok: false,
+      reason:
+        "9축 SIC는 사용자 확인(턴별 fillSequence)이 없으면 승인할 수 없습니다. " +
+        "A nine-axis SIC cannot be approved without per-axis user confirmation (an empty fillSequence). " +
+        "9축 턴 엔진을 실행해 각 축을 확인하세요 / Run the 9-axis turn engine to confirm each axis.",
+      issues: [
+        {
+          field: "fillSequence",
+          message: "nine-axis SIC has no user-confirmed fill steps (empty fillSequence)",
+        },
+      ],
+      unconfirmedAxes: draftOrOpen,
+    };
+  }
+
   // (a) completeness — at least one of the two regimes must pass.
   const nineAxisComplete = isNineAxisSicComplete(contract);
   const legacyResult = validateSemanticIntentContract(contract);
@@ -174,7 +230,7 @@ export function approveSemanticIntentContract(
     };
   }
 
-  // (b) Q2 HARD GATE — every recorded axis answer must be user-confirmed.
+  // (b2) Q2 HARD GATE — every recorded axis answer must be user-confirmed.
   const unconfirmedAxes = unconfirmedAxisKeys(contract);
   if (unconfirmedAxes.length > 0) {
     const labels = unconfirmedAxes

@@ -32,6 +32,7 @@ import type {
   SemanticClarificationQuestion as PrimitiveSemanticClarificationQuestion,
   SemanticIntentAxes,
   SemanticIntentContract as PrimitiveSemanticIntentContract,
+  SicAccessBoundary,
 } from "#schemas/ontology/primitives/semantic-intent-contract";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import type {
@@ -253,6 +254,35 @@ export interface DigitalTwinRequiredUserDecision {
   evidenceRefs: string[];
   approvalRef?: ApprovalRef;
   acceptedRiskRef?: ApprovalRef;
+  /**
+   * DP-4 (govern-fold): the typed access-security boundary folded INTO the
+   * GOVERNANCE required-decision (Security is the GOVERNANCE access-control facet,
+   * NOT a 10th axis and NOT a `DigitalTwinDecisionDomain` member). Present only on
+   * the GOVERNANCE decision; sourced from the SIC's GOVERNANCE `access-boundary`
+   * facet. Its approval is fail-closed — see {@link canApproveRequiredUserDecision}.
+   */
+  accessBoundary?: SicAccessBoundary;
+}
+
+/**
+ * DP-4 (govern-fold) FAIL-CLOSED gate: a GOVERNANCE required-decision carrying an
+ * `accessBoundary` CANNOT be approved while any `toolScope.resolved === false`, or
+ * while `accessibleSurfaces` is empty on an ontology-affecting plan. An unresolved
+ * tool scope is confirmation debt the user's GOVERNANCE turn must resolve, NEVER a
+ * default grant — the model/agent cannot widen scope. Decisions without an
+ * `accessBoundary` (or non-ontology-affecting plans) are unaffected by this gate.
+ *
+ * @returns `true` when the decision MAY be approved, `false` when fail-closed.
+ */
+export function canApproveRequiredUserDecision(
+  decision: Pick<DigitalTwinRequiredUserDecision, "accessBoundary">,
+  context: { readonly ontologyAffecting: boolean },
+): boolean {
+  const boundary = decision.accessBoundary;
+  if (boundary === undefined) return true;
+  if (boundary.toolScopes.some((scope) => scope.resolved === false)) return false;
+  if (context.ontologyAffecting && boundary.accessibleSurfaces.length === 0) return false;
+  return true;
 }
 
 // DTC mirror = primitive base (contractId / status / semanticIntentContractRef

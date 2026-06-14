@@ -153,6 +153,21 @@ export interface FunctionCandidate {
   readonly plainName: string;
   readonly logicIntent: string;
   readonly deterministic?: boolean;
+  /**
+   * AIP-Logic block model (DP-2). `pure-evaluator` persists nothing;
+   * `routes-through-apply-action` writes back ONLY via an ActionType (never a
+   * side door). Additive + optional (post-dates existing fixtures); read as
+   * `candidate.evaluatorKind` with an `"unspecified"` default in the facet.
+   */
+  readonly evaluatorKind?: "pure-evaluator" | "routes-through-apply-action";
+  /**
+   * A {@link RoleCandidate.candidateId} whose GOVERNANCE scope this function's
+   * tool calls inherit (DP-2): tool calls run under the INVOKING ACTOR's
+   * permissions, not the model's — the model cannot widen the scope. Additive +
+   * optional. An unresolved ref (no matching role) is confirmation debt, NEVER a
+   * default grant (fail-closed; see the GOVERNANCE access-boundary facet).
+   */
+  readonly invokingActorScopeRef?: string;
   readonly evidenceRefs: readonly string[];
   readonly declaredRid?: string;
 }
