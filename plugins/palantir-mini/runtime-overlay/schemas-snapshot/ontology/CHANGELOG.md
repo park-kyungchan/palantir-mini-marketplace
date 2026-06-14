@@ -1,5 +1,13 @@
 # Ontology Schema Changelog
 
+## 1.78.0 — self-Ontology Hook wiring fact: prompt-dtc-enforcement-gate wired LIVE (OE-1 / T3) — 2026-06-14
+
+Additive MINOR (rule 08 — instance-data fact change on the self-Ontology `Hook` ObjectType seed; no field/type/export/guard added, removed, or edited; no consumer breaks).
+
+### Changed
+
+- `self/hook.objecttype.ts` — the `HOOK_INSTANCES` seed entry `prompt-dtc-enforcement-gate` flips `orphanInRegistry: true` → `false`. OE-1 (T3) registers the complete SIC/DTC write gate `hooks/prompt-dtc-enforcement-gate.ts` (`assessPromptDtc`) — previously cited by ZERO `hooks.json` entries (the dead gate, OP-3) — as a LIVE PreToolUse command on the mutation tool set, gated by `resolveEffectiveGateMode` (floors the `ontology-write` class to `blocking`). The hooks/ wired/orphan split moves 45/2 → 46/1; `prompt-fde-readiness-advisory` is now the sole present-but-unwired hook. The drift-guard (`hook-registration.test.ts`) and the rule citation audit (`detect-stale-crossrefs` / `check-hook-citations-unwired.test.ts`) now assert this hook is REGISTERED. `Hook` ObjectType shape, RID, properties, and all other instances are byte-identical; only the one wiring boolean and the seed header doc count change.
+
 ## 1.77.0 — retire DTC boundary-field deprecation annotations (grader bound to canonical predicate, OE-10) — 2026-06-14
 
 Additive MINOR (rule 08 — annotation-only change on an existing primitive; no field/type/export/guard added, removed, or edited; no consumer breaks).

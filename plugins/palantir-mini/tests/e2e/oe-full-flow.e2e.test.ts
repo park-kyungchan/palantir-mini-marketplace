@@ -666,6 +666,26 @@ describe("E2E Stage D — governed write-path (elevate + gate)", () => {
     expect(allowed.decision).toBe("continue");
   });
 
+  test("D2-gate-live (OE-1 / Step 10): the complete SIC/DTC write gate (prompt-dtc-enforcement-gate) is WIRED LIVE as a PreToolUse command — no longer the dead gate", () => {
+    // OE-1 re-assertion: D2p/D2m prove the gate LOGIC blocks/allows; this proves the
+    // now-LIVE WIRING — prompt-dtc-enforcement-gate.ts is registered as a PreToolUse hook
+    // command in the real hooks/hooks.json (was referenced by ZERO entries before OE-1).
+    const hooksJsonPath = path.join(import.meta.dir, "../../hooks/hooks.json");
+    const parsed = JSON.parse(fs.readFileSync(hooksJsonPath, "utf8")) as {
+      hooks?: { PreToolUse?: Array<{ hooks?: Array<{ command?: string; timeout?: number }> }> };
+    };
+    const preToolUse = parsed.hooks?.PreToolUse ?? [];
+    const promptDtcEntries = preToolUse
+      .flatMap((entry) => entry.hooks ?? [])
+      .filter((h) => typeof h.command === "string" && h.command.includes("prompt-dtc-enforcement-gate.ts"));
+    // wired (≥1 live PreToolUse command)…
+    expect(promptDtcEntries.length).toBeGreaterThan(0);
+    // …and honoring the governance timeout floor (≥20s) so the self-check passes.
+    for (const h of promptDtcEntries) {
+      expect((h.timeout ?? 0)).toBeGreaterThanOrEqual(20);
+    }
+  });
+
   // ---- LATER TRANCHE (flip to live at the named step) ----
 
   test.todo(

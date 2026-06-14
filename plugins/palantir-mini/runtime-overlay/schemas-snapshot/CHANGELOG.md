@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.88.0 — 2026-06-14 (self-Ontology Hook wiring fact: prompt-dtc-enforcement-gate wired LIVE — OE-1 / T3)
+
+Additive MINOR (rule 08 — instance-data fact change on the self-Ontology `Hook` ObjectType seed: ONE `HOOK_INSTANCES` entry flips `orphanInRegistry` `true`→`false`; no ObjectType/property/field/export/guard is added, removed, or edited, so no consumer breaks). See `ontology/CHANGELOG.md` v1.78.0 for the canonical ontology-axis entry.
+
+### Changed — self-Ontology Hook wiring axis (`ontology/self/hook.objecttype.ts`)
+
+- `HOOK_INSTANCES` entry `prompt-dtc-enforcement-gate` flips `orphanInRegistry: true` → `false`. OE-1 (T3) wires the complete, Foundry-grade SIC/DTC write gate `hooks/prompt-dtc-enforcement-gate.ts` (`assessPromptDtc`) — previously referenced by ZERO `hooks.json` entries (present-but-dead) — as a LIVE PreToolUse command on the mutation tool set, gated by `resolveEffectiveGateMode` (which floors the `ontology-write` mutation class to `blocking`). The hooks/ surface wired/orphan split moves 45/2 → 46/1 (`prompt-fde-readiness-advisory` is now the sole orphan). The seed's drift-guard (`tests/ontology/self/hook-registration.test.ts`) and the citation audit (`check-hook-citations-unwired.test.ts`) now both assert this hook is REGISTERED, not orphan. The `Hook` ObjectType shape, properties, RID, and all other instances are byte-identical; only this one wiring boolean + the header doc count change.
+
 ## v1.87.0 — 2026-06-14 (retire DTC boundary-field deprecation annotations — grader bound to canonical predicate — OE-10)
 
 Additive MINOR (rule 08 — annotation-only change on an existing ontology primitive: the 8 `@deprecated "migration pending"` JSDoc tags on the `DigitalTwinChangeContract` boundary fields are removed; NO field, type, export, or guard is added/removed/edited, so no consumer breaks). See `ontology/CHANGELOG.md` v1.77.0 for the canonical ontology-axis entry.

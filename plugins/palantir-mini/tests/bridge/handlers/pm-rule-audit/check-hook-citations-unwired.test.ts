@@ -43,9 +43,9 @@ describe("classifyHookCitation — wiring-aware citation audit", () => {
 });
 
 describe("checkHookCitations — live registry is GREEN after PR-D removals", () => {
-  it("real self-Ontology has exactly 2 orphan hooks (deferred OE-ceremony pair)", () => {
+  it("real self-Ontology has exactly 1 orphan hook (prompt-dtc-enforcement-gate wired LIVE by OE-1)", () => {
     const orphans = HOOK_INSTANCES.filter((h) => h.orphanInRegistry).map((h) => h.hookId).sort();
-    expect(orphans).toEqual(["prompt-dtc-enforcement-gate", "prompt-fde-readiness-advisory"]);
+    expect(orphans).toEqual(["prompt-fde-readiness-advisory"]);
   });
 
   it("no rule cites an unwired or missing hook (citation audit green)", () => {

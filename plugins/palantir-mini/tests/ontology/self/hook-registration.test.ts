@@ -16,8 +16,8 @@ import {
 } from "#schemas/ontology/self";
 
 const EXPECTED_HOOK_COUNT = 47;
-const EXPECTED_WIRED_COUNT = 45;
-const EXPECTED_ORPHAN_COUNT = 2;
+const EXPECTED_WIRED_COUNT = 46;
+const EXPECTED_ORPHAN_COUNT = 1;
 
 // HOOK-3 coalesce: the four emit_event PostToolUse consumers are no longer listed
 // individually in hooks.json — they fire as in-process members of the

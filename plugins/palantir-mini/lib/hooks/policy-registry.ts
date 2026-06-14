@@ -34,6 +34,7 @@ export interface HookPolicy {
 
 export type WorkflowStepPolicyId =
   | "hook-step:pretool-ontology-engineering-workflow"
+  | "hook-step:pretool-prompt-dtc-write-gate"
   | "hook-step:pretool-plugin-ownership"
   | "hook-step:pretool-edit-governance"
   | "hook-step:pretool-schema-frontmatter"
@@ -200,6 +201,13 @@ export const WORKFLOW_STEP_POLICY_REGISTRY: readonly WorkflowStepPolicy[] = [
     event: "PreToolUse",
     matcher: "*",
     purpose: "Require FDE ontology-engineering workflow provenance before workflow-control-plane mutation proceeds.",
+  },
+  {
+    policyId: "hook-step:pretool-prompt-dtc-write-gate",
+    hookPolicyId: "hook-policy:mutation-governance",
+    event: "PreToolUse",
+    matcher: "*",
+    purpose: "Re-validate SIC+DTC on the mutation tool set (OE-1); resolveEffectiveGateMode floors the ontology-write class to blocking.",
   },
   {
     policyId: "hook-step:pretool-plugin-ownership",

@@ -10,9 +10,9 @@
  * the self-model fails loud if pm's hook surface drifts (a hook added/removed, or the
  * wired/orphan split changes, without updating this seed).
  *
- * Wired vs orphan (LIVE-verified): the hooks/ dir holds EXACTLY 47 hook files; 45 are
- * wired into a lifecycle event in `hooks/hooks.json` (`orphanInRegistry: false`) and 2
- * are present-but-unwired (`orphanInRegistry: true`). Wired hooks fire via either a
+ * Wired vs orphan (LIVE-verified): the hooks/ dir holds EXACTLY 47 hook files; 46 are
+ * wired into a lifecycle event in `hooks/hooks.json` (`orphanInRegistry: false`) and 1
+ * is present-but-unwired (`orphanInRegistry: true`). Wired hooks fire via either a
  * direct `hooks/<id>.ts` command, the `scripts/run.ts <id>` dispatcher, or membership in
  * an in-process aggregator (the four emit_event consumers — outcome-pair-tracker,
  * memory-layer-validator, t3-circuit-feeder, t4-canonical-emit-watch — fire via the
@@ -71,7 +71,7 @@ export interface HookInstance {
 }
 
 /**
- * The 47 Hook instances — pm's LIVE hooks/ surface (45 wired + 2 orphan), sorted by
+ * The 47 Hook instances — pm's LIVE hooks/ surface (46 wired + 1 orphan), sorted by
  * hookId. Snapshot-owned seed (no hooks-layer import); the registration test cross-checks
  * this set against the live `hooks/*.ts` files AND the wired set in `hooks/hooks.json`,
  * failing loud on any drift in the hook surface or the wired/orphan split.
@@ -106,7 +106,7 @@ export const HOOK_INSTANCES: readonly HookInstance[] = [
   { hookId: "pre-edit-impact-mcp-first", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "pre-edit-ontology", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "pre-pr-dirty-gate", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
-  { hookId: "prompt-dtc-enforcement-gate", lifecycleEvent: "PreToolUse", orphanInRegistry: true },
+  { hookId: "prompt-dtc-enforcement-gate", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "prompt-fde-readiness-advisory", lifecycleEvent: "UserPromptSubmit", orphanInRegistry: true },
   { hookId: "prompt-front-door-capture", lifecycleEvent: "UserPromptSubmit", orphanInRegistry: false },
   { hookId: "researcher-citation-precision", lifecycleEvent: "PreToolUse", orphanInRegistry: false },

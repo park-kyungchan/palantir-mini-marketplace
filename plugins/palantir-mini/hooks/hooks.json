@@ -54,6 +54,23 @@
         "surfaceStatus": "public-core"
       },
       {
+        "matcher": "*",
+        "policyRef": "hook-step:pretool-prompt-dtc-write-gate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/prompt-dtc-enforcement-gate.ts\"",
+            "timeout": 40,
+            "permissionDecision": "defer",
+            "failureMode": "fail-closed",
+            "inputSchemaRef": "schemas/hooks/pretooluse.input.schema.json",
+            "outputSchemaRef": "schemas/hooks/governance-hook.output.schema.json",
+            "statusMessage": "Prompt-to-DTC write gate (OE-1): re-validates SIC+DTC on the mutation tool set; ontology-write floored to blocking via resolveEffectiveGateMode\u2026"
+          }
+        ],
+        "surfaceStatus": "public-core"
+      },
+      {
         "matcher": "Edit|Write|MultiEdit",
         "policyRef": "hook-step:pretool-plugin-ownership",
         "hooks": [
