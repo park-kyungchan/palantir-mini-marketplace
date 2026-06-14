@@ -101,12 +101,12 @@ export function evaluateCriterion(
         return { name: criterion.name, type: criterion.type, passed: true };
       }
       case "ObjectQueryResult": {
-        // v0: query runner not yet wired — emit Unevaluable-style pass with note
-        return { name: criterion.name, type: criterion.type, passed: true, reason: "ObjectQueryResult evaluator deferred to v1 (no query runner in v0)" };
+        // v0: query runner not yet wired — fail CLOSED (cannot evaluate ⇒ clarification-required, never a silent pass)
+        return { name: criterion.name, type: criterion.type, passed: false, reason: "clarification-required: ObjectQueryResult cannot be evaluated (no query runner in v0)" };
       }
       case "GroupMember": {
-        // v0: no identity/group system — always pass with note
-        return { name: criterion.name, type: criterion.type, passed: true, reason: "GroupMember evaluator deferred to v1 (no identity system in v0)" };
+        // v0: no identity/group system — fail CLOSED (cannot evaluate ⇒ clarification-required, never a silent pass)
+        return { name: criterion.name, type: criterion.type, passed: false, reason: "clarification-required: GroupMember cannot be evaluated (no identity system in v0)" };
       }
       case "Unevaluable": {
         return { name: criterion.name, type: criterion.type, passed: false, reason: `Unevaluable: ${criterion.reason}` };
