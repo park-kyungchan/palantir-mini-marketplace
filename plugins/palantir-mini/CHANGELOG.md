@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.12.0] - 2026-06-15 — feat: Improvement #3 — additive, fail-closed acceptance of a verifiable user-approval envelope at the OntologyDtcBuildReadinessGate
+
+### Added
+- Improvement #3 — additive, fail-closed acceptance of a verifiable user-approval envelope at the `OntologyDtcBuildReadinessGate`. A verified envelope (re-loaded from the hook-captured `PromptEnvelope`, fail-closed: promptHash equality + userQuote substring of the verbatim excerpt + approval-verb/DTC-build-surface co-occurrence with negation guard + current/just-prior pointer + TTL) substitutes ONLY for the four WorkContract/RouterBinding-derived readiness checks (and only when those bodies are absent). DTC validity, eval/branch/permission governance evidence, approval-ref presence, and prompt continuity stay mandatory. New module `lib/lead-intent/dtc-build-approval.ts` mirrors `source-mutation-approval` (Improvement #2). Additive: absence of the envelope => byte-identical. Adds optional gate inputs `userApprovalPromptId`/`Hash`/`Quote` + 5-dim grant/deny audit; the PreToolUse enforcement gate moves in lockstep.
+
+Verification: `bunx tsc --noEmit` exit 0; 92+ tests green incl. regression. Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.11.0 → 7.12.0.
+
 ## [7.11.0] - 2026-06-14 — feat: OE follow-ups — OE-9 typed-graph PRIMARY for A2 forwardProp/backwardProp + composeSchemaPrimitives from registeredPrimitives + per-rid drift/propagation audits (legacy SQLite kept as fallback; G-A5 not tripped); e2e ingest-widening (ActionType submissionCriteria + property access-security survive SOURCE-jsonl ingest) -> e2e oe-full-flow now 0 test.todo. DEFERRED: deprecated flat-string retirement (SIC contract-shape break; belongs to the OE-6/OE-10 bind-reconciliation lane).
 
 ### Added

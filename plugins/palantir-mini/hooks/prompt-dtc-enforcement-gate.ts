@@ -29,6 +29,10 @@ import {
   validateDigitalTwinChangeContract,
   validateSemanticIntentContract,
 } from "../lib/lead-intent/contracts";
+import {
+  verifyDtcBuildApprovalAgainstEnvelope,
+  type VerifyDtcBuildApprovalResult,
+} from "../lib/lead-intent/dtc-build-approval";
 import { evaluateProjectScopeConformance } from "../lib/lead-intent/project-scope-policy";
 import type {
   DigitalTwinChangeContract,
@@ -76,6 +80,12 @@ interface HookPayload {
     readonly promptHash?: string;
     readonly sessionId?: string;
     readonly runtime?: string;
+    // Improvement #3 (ADDITIVE) — pointer to a verifiable user-approval envelope.
+    // Re-verified fail-closed against the hook-captured PromptEnvelope; NEVER trusted
+    // as a model-supplied blob. Absence ⇒ byte-identical legacy gate behavior.
+    readonly userApprovalPromptId?: string;
+    readonly userApprovalPromptHash?: string;
+    readonly userApprovalQuote?: string;
   } & Record<string, unknown>;
 }
 
@@ -101,6 +111,10 @@ interface GateAssessment {
   readonly governanceDecision?: PreMutationGovernanceDecision;
   readonly policyResult?: FDEGovernancePolicyResult;
   readonly impactGateResult?: PreMutationImpactGateResult;
+  // Improvement #3 (ADDITIVE) — true iff a fail-closed re-verified user-approval
+  // envelope authorized the DTC-build dispatch in lieu of the digital_twin_approved
+  // envelope state / approved-contract-record requirement. Audit-only.
+  readonly userApprovalAuthorized?: boolean;
 }
 
 interface ScopedBlockingAssessment {
@@ -461,6 +475,45 @@ function contractContinuityMatches(
   return contract.promptId === envelope.promptId && contract.promptHash === envelope.promptHash;
 }
 
+/**
+ * Improvement #3 (ADDITIVE) — the PreToolUse mirror of the front-door gate's
+ * `assessDtcBuildApprovalForGate`. Re-verifies a caller-supplied user-approval
+ * envelope pointer against the hook-captured PromptEnvelope, FAIL-CLOSED, via the
+ * SAME read-time verifier the readiness gate uses
+ * ({@link verifyDtcBuildApprovalAgainstEnvelope}). Returns `undefined` when the
+ * caller supplied NO approval inputs — so the gate behaves byte-identically to
+ * legacy (no acceptance branch taken). Returns `{ authorized: false }` on any
+ * verification failure (default not-authorized).
+ *
+ * The model can never write a PromptEnvelope (the UserPromptSubmit capture hook is
+ * the sole writer), so the verdict is unforgeable. promptId/promptHash fall back to
+ * the live continuity token (`tool_input.promptId`/`promptHash`); sessionId/runtime
+ * reuse the gate's resolution.
+ */
+async function assessDtcBuildApprovalForGate(
+  projectRoot: string,
+  payload: HookPayload,
+): Promise<VerifyDtcBuildApprovalResult | undefined> {
+  const input = payload.tool_input ?? {};
+  const suppliedQuote = input.userApprovalQuote?.trim();
+  const suppliedPromptId = input.userApprovalPromptId?.trim();
+  const suppliedPromptHash = input.userApprovalPromptHash?.trim();
+  if (!suppliedQuote && !suppliedPromptId && !suppliedPromptHash) {
+    return undefined;
+  }
+  const sessionId = input.sessionId ?? payload.session_id;
+  const promptId = suppliedPromptId ?? input.promptId?.trim() ?? "";
+  const promptHash = suppliedPromptHash ?? input.promptHash?.trim() ?? "";
+  return verifyDtcBuildApprovalAgainstEnvelope({
+    projectRoot,
+    promptId,
+    promptHash,
+    userQuote: suppliedQuote ?? "",
+    sessionId,
+    runtime: detectRuntime(payload),
+  });
+}
+
 async function assessPromptDtc(
   projectRoot: string,
   payload: HookPayload,
@@ -503,6 +556,18 @@ async function assessPromptDtc(
     };
   }
 
+  // Improvement #3 (ADDITIVE) — re-verify a caller-supplied user-approval envelope
+  // against the hook-captured PromptEnvelope, FAIL-CLOSED. Computed AFTER continuity
+  // so the same promptId/promptHash anchor governs both. `undefined` ⇒ no approval
+  // inputs ⇒ the legacy gate runs byte-identically. A verified envelope acts as an
+  // ALTERNATIVE satisfier for ONLY the digital_twin_approved envelope-state and the
+  // approved-contract-record requirements — it NEVER relaxes SIC presence, record
+  // resolution, record continuity, or any downstream governance gate (project-scope,
+  // FDE policy, impact). The user who genuinely approved the DTC build IS the binding
+  // the digital_twin_approved advance otherwise records.
+  const dtcBuildApproval = await assessDtcBuildApprovalForGate(projectRoot, payload);
+  const userApprovalAuthorized = dtcBuildApproval?.authorized === true;
+
   const semanticRef = envelope.contractRefs.semanticIntentContractRef;
   const digitalTwinRef = envelope.contractRefs.digitalTwinChangeContractRef;
   if (!semanticRef) {
@@ -514,11 +579,15 @@ async function assessPromptDtc(
         "Current prompt has no SemanticIntentContract ref. Call pm_semantic_intent_gate before mutating tools.",
     };
   }
-  if (!digitalTwinRef || envelope.state !== "digital_twin_approved") {
+  // The DTC ref must always resolve (the downstream governance gates consume the DTC
+  // body); a verified user-approval envelope substitutes ONLY for the
+  // `digital_twin_approved` envelope-state requirement, never for the DTC ref itself.
+  if (!digitalTwinRef || (envelope.state !== "digital_twin_approved" && !userApprovalAuthorized)) {
     return {
       ok: false,
       errorClass: "digital_twin_contract_required",
       envelope,
+      userApprovalAuthorized,
       reason:
         "Current prompt is not digital_twin_approved. Complete DigitalTwinChangeContract approval before mutating tools.",
     };
@@ -548,13 +617,20 @@ async function assessPromptDtc(
     };
   }
 
+  // The records must resolve (above) and match continuity (above) regardless — those
+  // anchors are NEVER relaxed because the downstream governance gates consume the
+  // contract bodies. Improvement #3 (ADDITIVE): a verified user-approval envelope
+  // substitutes ONLY for the records' `status: "approved"` + approvalRef requirement
+  // (the human IS that approval). It does NOT relax any other contract-validity issue
+  // beyond that approval gate, and absence of the envelope ⇒ legacy behavior.
   const semanticValidation = validateSemanticIntentContract(semanticRecord.contract);
   const digitalTwinValidation = validateDigitalTwinChangeContract(digitalTwinRecord.contract);
-  if (!semanticValidation.valid || !digitalTwinValidation.valid) {
+  if ((!semanticValidation.valid || !digitalTwinValidation.valid) && !userApprovalAuthorized) {
     return {
       ok: false,
       errorClass: "contract_approval_required",
       envelope,
+      userApprovalAuthorized,
       reason:
         "Prompt contract records are not approved with approvalRef: " +
         [...semanticValidation.issues, ...digitalTwinValidation.issues]
@@ -625,8 +701,11 @@ async function assessPromptDtc(
     governanceDecision: decision,
     policyResult,
     impactGateResult,
+    userApprovalAuthorized,
     reason: policyResult.allowed && !impactDenied
-      ? "Current prompt envelope is digital_twin_approved with approved contract refs and promptHash continuity."
+      ? (userApprovalAuthorized
+          ? "Current prompt is authorized by a re-verified user-approval envelope (digital-twin-change) with resolved, continuity-matched contract refs and promptHash continuity."
+          : "Current prompt envelope is digital_twin_approved with approved contract refs and promptHash continuity.")
       : (impactDenied ? impactGateResult.reason : policyResult.humanReason),
   };
 }
@@ -666,6 +745,7 @@ async function emitGateAssessment(
         preMutationGovernance: assessment.governanceDecision,
         preMutationImpactGate: assessment.impactGateResult,
         scopedBlocking,
+        userApprovalAuthorized: assessment.userApprovalAuthorized === true,
         contractRefs: {
           semanticIntentContractRef,
           digitalTwinChangeContractRef,

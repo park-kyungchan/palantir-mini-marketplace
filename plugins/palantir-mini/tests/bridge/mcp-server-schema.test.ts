@@ -37,6 +37,10 @@ const SEMANTIC_INTENT_GATE_PUBLIC_FIELDS = [
   "sessionId",
   "runtime",
   "fdeOntologyEngineeringSessionRef",
+  // Improvement #3 — DTC-build user-approval envelope inputs (additive)
+  "userApprovalPromptId",
+  "userApprovalPromptHash",
+  "userApprovalQuote",
   "includeDrafts",
   "draftMode",
   "interactionMode",

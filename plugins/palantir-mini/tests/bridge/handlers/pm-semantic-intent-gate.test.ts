@@ -1095,6 +1095,303 @@ describe("pm_semantic_intent_gate", () => {
     expect(approvedEvent?.payload?.digitalTwinApprovalRef).toEqual(digitalTwinApprovalRef);
   });
 
+  test("verifiable user-approval envelope authorizes DTC-build dispatch (Improvement #3)", async () => {
+    const project = makeTmpProject();
+    // The captured prompt excerpt must itself express the approval (verb +
+    // DTC-build surface marker, no negation) — the verifier re-checks the
+    // hook-captured excerpt, never a model-supplied blob.
+    const rawIntent =
+      "Please approve the DTC build for the prompt-front-door ontology digital twin.";
+    const scopePaths = [
+      "bridge/handlers/pm-semantic-intent-gate.ts",
+      "bridge/handlers/pm-intent-router.ts",
+    ];
+    const { envelope } = await createCapturedPrompt(project, rawIntent);
+    // A structured approval ref bound to the REAL captured promptId+promptHash,
+    // approvalSurface "digital-twin-change".
+    const dtcBuildApprovalRef = createUserApprovalRef({
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      userVisibleSummary: "Approve the DTC build dispatch.",
+      userAnswer: "approve the DTC build",
+      approvalSurface: "digital-twin-change",
+      approvedAt: "2026-05-10T04:01:00.000Z",
+    });
+
+    const result = await semanticIntentGate({
+      project,
+      rawIntent,
+      scopePaths,
+      complexityHint: "multi-file",
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      semanticIntentContract: approvedSemantic({ approvalRef: dtcBuildApprovalRef }),
+      digitalTwinChangeContract: approvedDigitalTwin(undefined, {
+        approvalRef: dtcBuildApprovalRef,
+      }),
+      semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+      // The new fields carrying the envelope pointer (verified, never trusted).
+      userApprovalPromptId: envelope.promptId,
+      userApprovalPromptHash: envelope.promptHash,
+      userApprovalQuote: "approve the DTC build",
+    });
+
+    expect(result.status).toBe("pass");
+    expect(result.allowsRouting).toBe(true);
+    expect(result.promptEnvelope?.state).toBe("digital_twin_approved");
+    // The verified envelope stands in for the absent WorkContract + RouterBinding:
+    // the OntologyDtcBuildReadinessGate flips to ready-for-router (inverse of the
+    // ":766" case where the same SIC+DTC without the envelope stays blocked).
+    expect(result.ontologyDtcBuildReadinessGate?.status).toBe("ready-for-router");
+    expect(result.ontologyDtcBuildReadinessGate?.readyForRouter).toBe(true);
+    expect(result.ontologyDtcBuildReadinessGate?.userApprovalAuthorized).toBe(true);
+    expect(result.ontologyDtcBuildReadinessGate?.checks["body-dereferenced"].valid).toBe(true);
+    expect(result.ontologyDtcBuildReadinessGate?.checks["work-contract-valid"].valid).toBe(true);
+    expect(result.ontologyDtcBuildReadinessGate?.checks["router-binding-valid"].valid).toBe(true);
+
+    // The grant emits a 5-dim audit event attributed to the user.
+    const grantEvent = readEvents(project).find(
+      (entry) =>
+        entry.type === "validation_phase_completed" &&
+        entry.payload?.errorClass === "dtc_build_approval_granted",
+    );
+    expect(grantEvent).toBeDefined();
+    expect(grantEvent?.payload?.passed).toBe(true);
+    expect(grantEvent?.payload?.approvalSurface).toBe("digital-twin-change");
+    expect(grantEvent?.payload?.projectRoot).toBe(project);
+    expect((grantEvent as { byWhom?: { identity?: string } } | undefined)?.byWhom?.identity).toBe(
+      "user",
+    );
+  });
+
+  test("DTC-build approval envelope stays fail-closed: missing / spoofed / governance-incomplete (Improvement #3)", async () => {
+    const rawIntent =
+      "Please approve the DTC build for the prompt-front-door ontology digital twin.";
+    const scopePaths = [
+      "bridge/handlers/pm-semantic-intent-gate.ts",
+      "bridge/handlers/pm-intent-router.ts",
+    ];
+
+    // (a) MISSING — no envelope inputs supplied: byte-identical legacy behavior,
+    //     readiness gate stays blocked, NO approval audit event is emitted.
+    {
+      const project = makeTmpProject();
+      const { envelope } = await createCapturedPrompt(project, rawIntent);
+      const result = await semanticIntentGate({
+        project,
+        rawIntent,
+        scopePaths,
+        complexityHint: "multi-file",
+        promptId: envelope.promptId,
+        promptHash: envelope.promptHash,
+        sessionId: envelope.sessionId,
+        runtime: envelope.runtime,
+        semanticIntentContract: approvedSemantic(),
+        digitalTwinChangeContract: approvedDigitalTwin(),
+        semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+      });
+
+      expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
+      expect(result.ontologyDtcBuildReadinessGate?.readyForRouter).toBe(false);
+      expect(result.ontologyDtcBuildReadinessGate?.userApprovalAuthorized).toBe(false);
+      const approvalEvent = readEvents(project).find(
+        (entry) =>
+          entry.type === "validation_phase_completed" &&
+          (entry.payload?.errorClass === "dtc_build_approval_granted" ||
+            entry.payload?.errorClass === "dtc_build_approval_denied"),
+      );
+      expect(approvalEvent).toBeUndefined();
+    }
+
+    // (b) SPOOFED / HASH-MISMATCH — the supplied approval promptHash does not match
+    //     the captured envelope: the verifier denies, the readiness gate stays
+    //     blocked, and a denied audit event is recorded with the mismatch reason.
+    {
+      const project = makeTmpProject();
+      const { envelope } = await createCapturedPrompt(project, rawIntent);
+      const dtcBuildApprovalRef = createUserApprovalRef({
+        promptId: envelope.promptId,
+        promptHash: envelope.promptHash,
+        sessionId: envelope.sessionId,
+        runtime: envelope.runtime,
+        userVisibleSummary: "Approve the DTC build dispatch.",
+        userAnswer: "approve the DTC build",
+        approvalSurface: "digital-twin-change",
+        approvedAt: "2026-05-10T04:01:00.000Z",
+      });
+      const result = await semanticIntentGate({
+        project,
+        rawIntent,
+        scopePaths,
+        complexityHint: "multi-file",
+        promptId: envelope.promptId,
+        promptHash: envelope.promptHash,
+        sessionId: envelope.sessionId,
+        runtime: envelope.runtime,
+        semanticIntentContract: approvedSemantic({ approvalRef: dtcBuildApprovalRef }),
+        digitalTwinChangeContract: approvedDigitalTwin(undefined, {
+          approvalRef: dtcBuildApprovalRef,
+        }),
+        semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+        userApprovalPromptId: envelope.promptId,
+        userApprovalPromptHash: "stale-hash-does-not-match-captured-envelope",
+        userApprovalQuote: "approve the DTC build",
+      });
+
+      expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
+      expect(result.ontologyDtcBuildReadinessGate?.userApprovalAuthorized).toBe(false);
+      const deniedEvent = readEvents(project).find(
+        (entry) =>
+          entry.type === "validation_phase_completed" &&
+          entry.payload?.errorClass === "dtc_build_approval_denied",
+      );
+      expect(deniedEvent).toBeDefined();
+      expect(deniedEvent?.payload?.passed).toBe(false);
+      expect(String(deniedEvent?.payload?.reason)).toContain("promptHash");
+    }
+
+    // (b2) STALE-HASH on the continuity field itself — the main gate continuity
+    //      check fails and the prompt is not promoted (the spoof negative the
+    //      D-tests plan calls out at gate.test.ts:1098 shape).
+    {
+      const project = makeTmpProject();
+      const { store, envelope } = await createCapturedPrompt(project, rawIntent);
+      const result = await semanticIntentGate({
+        project,
+        rawIntent,
+        scopePaths,
+        complexityHint: "multi-file",
+        promptId: envelope.promptId,
+        promptHash: "stale-hash",
+        sessionId: envelope.sessionId,
+        runtime: envelope.runtime,
+        semanticIntentContract: approvedSemantic(),
+        digitalTwinChangeContract: approvedDigitalTwin(),
+        semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+        userApprovalPromptId: envelope.promptId,
+        userApprovalPromptHash: "stale-hash",
+        userApprovalQuote: "approve the DTC build",
+      });
+      const saved = await store.readEnvelope(envelope.sessionId, envelope.promptId);
+
+      expect(result.promptContinuity?.valid).toBe(false);
+      expect(result.status).toBe("blocked_for_clarification");
+      expect(result.promptEnvelope?.state).not.toBe("digital_twin_approved");
+      expect(saved?.state).toBe("captured");
+    }
+
+    // (c) MALFORMED approval ref — a structured ref missing a required field
+    //     (userVisibleSummaryHash) on the CONTRACT approvalRef is rejected by the
+    //     gate's own approval-ref validator; the contracts stay unapproved.
+    {
+      const project = makeTmpProject();
+      const { envelope } = await createCapturedPrompt(project, rawIntent);
+      const goodRef = createUserApprovalRef({
+        promptId: envelope.promptId,
+        promptHash: envelope.promptHash,
+        sessionId: envelope.sessionId,
+        runtime: envelope.runtime,
+        userVisibleSummary: "Approve the DTC build dispatch.",
+        userAnswer: "approve the DTC build",
+        approvalSurface: "digital-twin-change",
+        approvedAt: "2026-05-10T04:01:00.000Z",
+      });
+      // Drop a required field to forge a malformed structured ref.
+      const { userVisibleSummaryHash: _dropped, ...malformedRef } = goodRef;
+      const result = await semanticIntentGate({
+        project,
+        rawIntent,
+        scopePaths,
+        complexityHint: "multi-file",
+        promptId: envelope.promptId,
+        promptHash: envelope.promptHash,
+        sessionId: envelope.sessionId,
+        runtime: envelope.runtime,
+        semanticIntentContract: approvedSemantic({
+          approvalRef: malformedRef as unknown as typeof goodRef,
+        }),
+        digitalTwinChangeContract: approvedDigitalTwin(undefined, {
+          approvalRef: malformedRef as unknown as typeof goodRef,
+        }),
+        semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+        userApprovalPromptId: envelope.promptId,
+        userApprovalPromptHash: envelope.promptHash,
+        userApprovalQuote: "approve the DTC build",
+      });
+
+      // A malformed structured approvalRef (missing userVisibleSummaryHash) is
+      // rejected by the main contract validation: the gate blocks, the prompt is
+      // NOT promoted, and the readiness gate's body-validated check fails. The
+      // verified envelope can stand in for WorkContract/RouterBinding, but it
+      // NEVER masks an invalid contract approvalRef body.
+      expect(result.status).toBe("blocked_for_clarification");
+      expect(result.allowsRouting).toBe(false);
+      expect(result.promptEnvelope?.state).not.toBe("digital_twin_approved");
+      expect(result.gate.semanticIntent.issues.map((issue) => issue.field)).toContain(
+        "approvalRef.userVisibleSummaryHash",
+      );
+      expect(result.gate.digitalTwin.issues.map((issue) => issue.field)).toContain(
+        "approvalRef.userVisibleSummaryHash",
+      );
+      expect(result.ontologyDtcBuildReadinessGate?.checks["body-validated"].valid).toBe(false);
+      expect(result.ontologyDtcBuildReadinessGate?.readyForRouter).toBe(false);
+    }
+
+    // (d) GOVERNANCE-INCOMPLETE REGRESSION — a verified envelope does NOT bypass
+    //     body-validated: a DTC missing eval/branch/permission evidence still
+    //     fails. The envelope only substitutes for WorkContract/RouterBinding.
+    {
+      const project = makeTmpProject();
+      const { envelope } = await createCapturedPrompt(project, rawIntent);
+      const dtcBuildApprovalRef = createUserApprovalRef({
+        promptId: envelope.promptId,
+        promptHash: envelope.promptHash,
+        sessionId: envelope.sessionId,
+        runtime: envelope.runtime,
+        userVisibleSummary: "Approve the DTC build dispatch.",
+        userAnswer: "approve the DTC build",
+        approvalSurface: "digital-twin-change",
+        approvedAt: "2026-05-10T04:01:00.000Z",
+      });
+      const result = await semanticIntentGate({
+        project,
+        rawIntent,
+        scopePaths,
+        complexityHint: "multi-file",
+        promptId: envelope.promptId,
+        promptHash: envelope.promptHash,
+        sessionId: envelope.sessionId,
+        runtime: envelope.runtime,
+        semanticIntentContract: approvedSemantic({ approvalRef: dtcBuildApprovalRef }),
+        digitalTwinChangeContract: approvedDigitalTwin(undefined, {
+          approvalRef: dtcBuildApprovalRef,
+          requiredEvaluationRefs: [],
+          requiredBranchPolicyRef: undefined,
+          requiredPermissionPolicyRef: undefined,
+        }),
+        semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+        userApprovalPromptId: envelope.promptId,
+        userApprovalPromptHash: envelope.promptHash,
+        userApprovalQuote: "approve the DTC build",
+      });
+
+      // The envelope WAS authorized (granted), but governance evidence is still
+      // mandatory: body-validated fails and the gate stays blocked — no promotion.
+      expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
+      expect(result.ontologyDtcBuildReadinessGate?.readyForRouter).toBe(false);
+      expect(result.ontologyDtcBuildReadinessGate?.checks["body-validated"].valid).toBe(false);
+      const govFields =
+        result.ontologyDtcBuildReadinessGate?.issues.map((issue) => issue.field) ?? [];
+      expect(govFields).toContain("digitalTwinChangeContract.requiredEvaluationRefs");
+      expect(govFields).toContain("digitalTwinChangeContract.requiredBranchPolicyRef");
+      expect(govFields).toContain("digitalTwinChangeContract.requiredPermissionPolicyRef");
+    }
+  });
+
   test("stale promptHash fails prompt continuity and does not persist drafts", async () => {
     const project = makeTmpProject();
     const rawIntent = "Persist prompt-front-door continuity";

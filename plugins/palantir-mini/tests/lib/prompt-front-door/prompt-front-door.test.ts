@@ -6,12 +6,21 @@ import {
   createUserApprovalRef,
   createPromptEnvelope,
   hashPrompt,
+  hasApprovalRef,
   PromptFrontDoorStore,
   transitionPromptEnvelope,
+  validateApprovalRefValue,
   validateDigitalTwinBoundaryFields,
   validatePromptContinuity,
 } from "../../../lib/prompt-front-door";
 import type { SemanticIntentContract } from "../../../lib/lead-intent/contracts";
+import type { PromptEnvelope } from "../../../lib/prompt-front-door/envelope";
+import {
+  DTC_BUILD_APPROVAL_TTL_MS,
+  excerptExpressesDtcBuildApproval,
+  verifyDtcBuildApprovalAgainstEnvelope,
+  type EnvelopeStore,
+} from "../../../lib/lead-intent/dtc-build-approval";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 
 describe("prompt front door envelope", () => {
@@ -351,6 +360,34 @@ describe("prompt front door validators", () => {
     ]);
   });
 
+  test("flags a hash-mismatched / malformed structured approval ref (fail-closed primitive)", () => {
+    const envelope = createPromptEnvelope({
+      rawPrompt: "approve the DTC build for this ontology digital twin",
+      sessionId: "session",
+      runtime: "codex",
+      projectRoot: "/repo",
+      capturedAt: "2026-05-10T04:00:00.000Z",
+    });
+    const good = createUserApprovalRef({
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      userVisibleSummary: "Approve the DTC build.",
+      userAnswer: "approve the DTC build",
+      approvalSurface: "digital-twin-change",
+      approvedAt: "2026-05-10T04:01:00.000Z",
+    });
+    // A complete structured ref passes the validator (hasApprovalRef === true).
+    expect(hasApprovalRef(good)).toBe(true);
+
+    // Dropping a required field fails the fail-closed validator.
+    const { userVisibleSummaryHash: _dropped, ...malformed } = good;
+    expect(hasApprovalRef(malformed as unknown as typeof good)).toBe(false);
+    const issues = validateApprovalRefValue("approvalRef", malformed as unknown as typeof good);
+    expect(issues.map((issue) => issue.field)).toContain("approvalRef.userVisibleSummaryHash");
+  });
+
   test("requires closed structured Digital Twin boundary fields", () => {
     const issues = validateDigitalTwinBoundaryFields({
       changeBoundary: {
@@ -397,5 +434,119 @@ describe("prompt front door validators", () => {
     expect(issues.map((issue) => issue.field)).toEqual([
       "toolSurfaceReadiness.designAlternative",
     ]);
+  });
+});
+
+describe("dtc-build-approval read-time verifier", () => {
+  function captured(over: Partial<PromptEnvelope> = {}): PromptEnvelope {
+    const base = createPromptEnvelope({
+      rawPrompt: "Please approve the DTC build for this ontology digital twin.",
+      sessionId: "verifier-session",
+      runtime: "codex",
+      projectRoot: "/repo",
+      capturedAt: "2026-05-10T04:00:00.000Z",
+      sequence: 1,
+    });
+    return { ...base, ...over };
+  }
+
+  function stubStore(
+    envelope: PromptEnvelope | null,
+    pointer: { promptId: string; promptHash: string } | null,
+  ): EnvelopeStore {
+    return {
+      async readEnvelope() {
+        return envelope;
+      },
+      async readCurrentPointer() {
+        return pointer;
+      },
+    };
+  }
+
+  async function verifyWith(
+    envelope: PromptEnvelope | null,
+    over: Partial<Parameters<typeof verifyDtcBuildApprovalAgainstEnvelope>[0]> = {},
+  ) {
+    const pointer = envelope
+      ? { promptId: envelope.promptId, promptHash: envelope.promptHash }
+      : null;
+    return verifyDtcBuildApprovalAgainstEnvelope({
+      projectRoot: "/repo",
+      promptId: envelope?.promptId ?? "prompt-missing",
+      promptHash: envelope?.promptHash ?? "hash-missing",
+      userQuote: "approve the DTC build",
+      sessionId: envelope?.sessionId ?? "verifier-session",
+      runtime: "codex",
+      envelopeStore: stubStore(envelope, pointer),
+      ...over,
+    });
+  }
+
+  test("the DTC-build approval lexicon requires verb + surface marker, no negation", () => {
+    expect(excerptExpressesDtcBuildApproval("approve the DTC build")).toBe(true);
+    expect(excerptExpressesDtcBuildApproval("승인합니다, 온톨로지 빌드 진행")).toBe(true);
+    // surface marker without an approval verb
+    expect(excerptExpressesDtcBuildApproval("the DTC build is in progress")).toBe(false);
+    // negated directive voids the approval verb
+    expect(excerptExpressesDtcBuildApproval("do not approve the DTC build")).toBe(false);
+    expect(DTC_BUILD_APPROVAL_TTL_MS).toBe(15 * 60 * 1000);
+  });
+
+  test("authorizes a fresh on-current-turn build-approval envelope", async () => {
+    const envelope = captured();
+    const result = await verifyWith(envelope);
+    expect(result.authorized).toBe(true);
+    if (result.authorized) {
+      expect(result.approvalRef.approvalSurface).toBe("digital-twin-change");
+      expect(result.approvalRef.promptHash).toBe(envelope.promptHash);
+    }
+  });
+
+  test("fails closed when the captured envelope is absent (LLM cannot create one)", async () => {
+    const result = await verifyWith(null);
+    expect(result.authorized).toBe(false);
+    expect(result.reason).toContain("not found");
+  });
+
+  test("fails closed on promptHash mismatch", async () => {
+    const result = await verifyWith(captured(), { promptHash: "WRONG-HASH" });
+    expect(result.authorized).toBe(false);
+    expect(result.reason).toContain("promptHash");
+  });
+
+  test("fails closed when userQuote is not a substring of the captured excerpt", async () => {
+    const result = await verifyWith(captured(), {
+      userQuote: "this sentence was never in the captured prompt",
+    });
+    expect(result.authorized).toBe(false);
+    expect(result.reason).toContain("substring");
+  });
+
+  test("fails closed when the excerpt carries no approval-verb / DTC-build co-occurrence", async () => {
+    const envelope = captured({
+      promptExcerpt: "Just a routine status check on the build pipeline.",
+    });
+    const result = await verifyWith(envelope, { userQuote: "routine status check" });
+    expect(result.authorized).toBe(false);
+    expect(result.reason).toContain("co-occurrence");
+  });
+
+  test("fails closed when the approval promptId is neither current nor just-prior (stale/replay)", async () => {
+    const envelope = captured();
+    const result = await verifyDtcBuildApprovalAgainstEnvelope({
+      projectRoot: "/repo",
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      userQuote: "approve the DTC build",
+      sessionId: envelope.sessionId,
+      runtime: "codex",
+      envelopeStore: stubStore(envelope, {
+        promptId: "prompt-some-other-newer-turn",
+        promptHash: "newer-hash",
+      }),
+    });
+    expect(result.authorized).toBe(false);
+    expect(result.reason).toContain("stale");
   });
 });

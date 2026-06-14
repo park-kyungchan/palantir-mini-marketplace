@@ -481,6 +481,20 @@ export interface OntologyDtcBuildReadinessGateInput extends ContractBindingRefCo
   workContract?: WorkContract;
   routerBinding?: RouterBinding;
   routerBindingRef?: string;
+  /**
+   * Improvement #3 (ADDITIVE) — a verifiable user-approval envelope (re-verified
+   * fail-closed against the hook-captured PromptEnvelope by the fs-bound
+   * `lib/lead-intent/dtc-build-approval` verifier) authorizes DTC-build dispatch.
+   * When `true`, it acts as an ALTERNATIVE satisfier for ONLY the four
+   * WorkContract/RouterBinding-derived checks (`ref-present` for
+   * workContractRef/routerBindingRef, `body-dereferenced` for
+   * workContract/routerBinding, `work-contract-valid`, `router-binding-valid`).
+   * It NEVER relaxes `body-validated` (DTC validity + eval/branch/permission
+   * governance evidence) or `approval-ref-present`. Absence (undefined/false) ⇒
+   * byte-identical legacy behavior. This is a PRE-VERIFIED boolean only; this pure
+   * lib never reads fs / the envelope store itself.
+   */
+  userApprovalAuthorizesDispatch?: boolean;
 }
 
 export interface OntologyDtcBuildReadinessGate {
@@ -495,6 +509,13 @@ export interface OntologyDtcBuildReadinessGate {
   workContract: ContractValidationResult;
   routerBinding: ContractValidationResult;
   issues: ContractValidationIssue[];
+  /**
+   * Improvement #3 (ADDITIVE audit) — true iff a verified user-approval envelope
+   * acted as the alternative satisfier for the WorkContract/RouterBinding-derived
+   * checks on this assessment. False/absent ⇒ legacy WorkContract+RouterBinding
+   * basis. Surfaced for audit only; it never widens which checks must pass.
+   */
+  userApprovalAuthorized: boolean;
 }
 
 export type ContractRoutingBasisKind =
@@ -1707,6 +1728,15 @@ export function assessOntologyDtcBuildReadinessGate(
     workContract?.contractId ?? input.workContractRef ?? routerBinding?.workContractRef;
   const routerBindingRef = routerBinding?.bindingId ?? input.routerBindingRef;
 
+  // Improvement #3 (ADDITIVE) — a PRE-VERIFIED user-approval envelope authorizes
+  // the WorkContract/RouterBinding dispatch lane. It substitutes ONLY for the four
+  // WorkContract/RouterBinding-derived checks (ref-present for
+  // workContractRef/routerBindingRef, body-dereferenced for
+  // workContract/routerBinding, work-contract-valid, router-binding-valid). Default
+  // false ⇒ byte-identical legacy behavior. It never touches SIC/DTC ref presence,
+  // body validity, governance evidence, or approval-ref presence.
+  const userApprovalAuthorizesDispatch = input.userApprovalAuthorizesDispatch === true;
+
   const refPresentIssues: ContractValidationIssue[] = [];
   for (const [field, value] of [
     ["semanticIntentContractRef", semanticIntentContractRef],
@@ -1714,7 +1744,12 @@ export function assessOntologyDtcBuildReadinessGate(
     ["workContractRef", workContractRef],
     ["routerBindingRef", routerBindingRef],
   ] as const) {
-    if (!hasGateRef(value)) {
+    // The envelope is an alternative satisfier for ONLY the WorkContract +
+    // RouterBinding ref-presence requirements; SIC/DTC refs stay mandatory.
+    const satisfiedByEnvelope =
+      userApprovalAuthorizesDispatch &&
+      (field === "workContractRef" || field === "routerBindingRef");
+    if (!hasGateRef(value) && !satisfiedByEnvelope) {
       refPresentIssues.push({
         field,
         message: `${field} is required for ontology-DTC router readiness`,
@@ -1769,14 +1804,14 @@ export function assessOntologyDtcBuildReadinessGate(
         "DigitalTwinChangeContract body must be dereferenced; ref strings alone are not execution authority.",
     });
   }
-  if (!workContract) {
+  if (!workContract && !userApprovalAuthorizesDispatch) {
     bodyDereferencedIssues.push({
       field: "workContract",
       message:
         "WorkContract body must be dereferenced before router dispatch can be authorized.",
     });
   }
-  if (!routerBinding) {
+  if (!routerBinding && !userApprovalAuthorizesDispatch) {
     bodyDereferencedIssues.push({
       field: "routerBinding",
       message:
@@ -1856,13 +1891,26 @@ export function assessOntologyDtcBuildReadinessGate(
     workContractRef,
   });
 
+  // Improvement #3 (ADDITIVE) — when a verified user-approval envelope authorizes
+  // dispatch, the WorkContract/RouterBinding VALIDITY checks are satisfied by the
+  // envelope in lieu of the (absent) process artifacts. The substitution is applied
+  // ONLY to these two checks; `body-validated` + `approval-ref-present` are left
+  // exactly as computed above, so DTC validity and governance evidence stay
+  // mandatory. When a WorkContract/RouterBinding body IS supplied, its own
+  // validation result is preserved (the envelope does not mask a malformed body).
+  const envelopeSatisfied: ContractValidationResult = { valid: true, issues: [] };
+  const workContractCheck =
+    userApprovalAuthorizesDispatch && !workContract ? envelopeSatisfied : workContractResult;
+  const routerBindingCheck =
+    userApprovalAuthorizesDispatch && !routerBinding ? envelopeSatisfied : routerBindingResult;
+
   const checks: Record<OntologyDtcBuildReadinessGateCheck, ContractValidationResult> = {
     "ref-present": ontologyDtcGateValidationResult(refPresentIssues),
     "body-dereferenced": ontologyDtcGateValidationResult(bodyDereferencedIssues),
     "body-validated": ontologyDtcGateValidationResult(bodyValidatedIssues),
     "approval-ref-present": ontologyDtcGateValidationResult(approvalRefPresentIssues),
-    "work-contract-valid": workContractResult,
-    "router-binding-valid": routerBindingResult,
+    "work-contract-valid": workContractCheck,
+    "router-binding-valid": routerBindingCheck,
     "ready-for-router": { valid: false, issues: [] },
   };
   const readyForRouter = (
@@ -1888,6 +1936,11 @@ export function assessOntologyDtcBuildReadinessGate(
         ],
       };
 
+  // Audit: true iff the verified envelope actually stood in for an absent
+  // WorkContract and/or RouterBinding on this assessment.
+  const userApprovalAuthorized =
+    userApprovalAuthorizesDispatch && (!workContract || !routerBinding);
+
   return {
     gateSubject: "ontology-affecting-dispatch",
     status: readyForRouter ? "ready-for-router" : "blocked",
@@ -1902,6 +1955,7 @@ export function assessOntologyDtcBuildReadinessGate(
     issues: mergeValidationIssues(
       Object.values(checks).flatMap((check) => check.issues),
     ),
+    userApprovalAuthorized,
   };
 }
 
