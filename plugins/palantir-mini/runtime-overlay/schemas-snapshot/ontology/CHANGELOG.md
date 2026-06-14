@@ -1,5 +1,13 @@
 # Ontology Schema Changelog
 
+## 1.77.0 — retire DTC boundary-field deprecation annotations (grader bound to canonical predicate, OE-10) — 2026-06-14
+
+Additive MINOR (rule 08 — annotation-only change on an existing primitive; no field/type/export/guard added, removed, or edited; no consumer breaks).
+
+### Changed
+
+- `primitives/digital-twin-change-contract.ts` — the 8 `@deprecated ... migration pending` JSDoc tags on the `DigitalTwinChangeContract` boundary fields (`affectedSurfaces` + the 7 flat boundary prose fields `changeBoundary` / `branchProposalPolicy` / `permissionBoundary` / `replayMigrationPlan` / `observabilityPlan` / `toolSurfaceReadiness` / `evaluationPlan`) are retired. OE-10 deleted the grader's duplicate `isOntologyAffectingDtc` (was `touchedOntologyRefs`-only) and bound `lib/lead-intent/dtc-grading-rubric.ts` to the single CANONICAL `isOntologyAffectingDtc` in `lib/lead-intent/contracts.ts`, which reads `affectedSurfaces` + `changeBoundary` (plus the typed-ref siblings `touchedOntologyRefs` / `permittedMutationSurfaces` and `structuredBoundary`) — so these boundary fields are first-class predicate inputs, not migration-pending placeholders, and the stale deprecation tags would mislead. The field shapes are byte-identical (names, `readonly`, types, ordering); only the doc comments change. Grader and validator now share ONE predicate and can never disagree about whether a DTC is ontology-affecting. Zero runtime/type/guard behavior change.
+
 ## 1.76.0 — executable Action model bound to the descriptive SSoT (OE-6) — 2026-06-14
 
 Additive MINOR (rule 08 — additive executable-projection exports + additive `Operation` union members and rule-family exports on existing primitives; no removals, no breaking field edits).

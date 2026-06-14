@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.87.0 — 2026-06-14 (retire DTC boundary-field deprecation annotations — grader bound to canonical predicate — OE-10)
+
+Additive MINOR (rule 08 — annotation-only change on an existing ontology primitive: the 8 `@deprecated "migration pending"` JSDoc tags on the `DigitalTwinChangeContract` boundary fields are removed; NO field, type, export, or guard is added/removed/edited, so no consumer breaks). See `ontology/CHANGELOG.md` v1.77.0 for the canonical ontology-axis entry.
+
+### Changed — boundary-field annotations (`ontology/primitives/digital-twin-change-contract.ts`)
+
+- The `DigitalTwinChangeContract` boundary fields (`affectedSurfaces` + the 7 flat boundary prose fields `changeBoundary` / `branchProposalPolicy` / `permissionBoundary` / `replayMigrationPlan` / `observabilityPlan` / `toolSurfaceReadiness` / `evaluationPlan`) shed their `@deprecated ... migration pending` JSDoc annotations. Rationale (OE-10): the grader (`lib/lead-intent/dtc-grading-rubric.ts`) deleted its duplicate, narrower `isOntologyAffectingDtc` and now binds to the single CANONICAL predicate in `lib/lead-intent/contracts.ts`, which legitimately drives its verdict from `affectedSurfaces` + `changeBoundary` (alongside the typed-ref siblings `touchedOntologyRefs` / `permittedMutationSurfaces` and `structuredBoundary`). These boundary fields are therefore first-class inputs, not migration-pending placeholders — the deprecation tags were stale. The field shapes (names, `readonly` modifiers, types) are byte-identical; only the JSDoc comments change. No runtime, type, or guard behavior changes.
+
 ## v1.86.0 — 2026-06-14 (executable Action model bound to the descriptive SSoT — OE-6)
 
 Additive MINOR (rule 08 — additive executable-projection exports on `ontology/action/schema.ts` + additive members/exports on the `ontology/primitives/action-type.ts` `Operation` union and rule-family set; no removals, no breaking field edits). See `ontology/CHANGELOG.md` v1.76.0 for the canonical ontology-axis entry.

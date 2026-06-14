@@ -22,6 +22,7 @@ import {
   type GradingRubricDeclaration,
   type GradingRubricRid,
 } from "#schemas/ontology/primitives/grading-rubric";
+import { isOntologyAffectingDtc } from "./contracts";
 import type { DigitalTwinChangeContract } from "./contracts";
 import type { PromptRuntime } from "../prompt-front-door/envelope";
 import { resolveHostRuntimeIdentity } from "../runtime/identity";
@@ -45,12 +46,16 @@ export type DtcRuntime = PromptRuntime;
 // =============================================================================
 
 /**
- * Returns true when the DTC declares at least one touched ontology ref.
- * Used by criterion #3 (dtc-typed-refs-presence-when-ontology-affecting).
+ * Re-export of the CANONICAL `isOntologyAffectingDtc` from `./contracts` (OE-10).
+ *
+ * The grader previously carried a duplicate, narrower predicate (touchedOntologyRefs
+ * only). It now binds to the single canonical version, which drives the verdict solely
+ * from typed refs (`touchedOntologyRefs` / `permittedMutationSurfaces`) plus the
+ * `affectedSurfaces` / `changeBoundary` (and `structuredBoundary`) boundary fields, so
+ * the grader and the validator can never disagree about whether a DTC is ontology-affecting.
+ * Used by criterion #3 (dtc-typed-refs-presence-when-ontology-affecting) and #8.
  */
-export function isOntologyAffectingDtc(dtc: DtcWithFillFields): boolean {
-  return (dtc.touchedOntologyRefs?.length ?? 0) >= 1;
-}
+export { isOntologyAffectingDtc };
 
 // =============================================================================
 // Shared evidence schema (free-form; mirrors FDE rubric pattern)

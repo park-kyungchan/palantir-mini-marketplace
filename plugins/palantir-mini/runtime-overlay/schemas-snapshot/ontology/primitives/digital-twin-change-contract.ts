@@ -48,22 +48,21 @@ export interface DigitalTwinChangeContract {
   readonly status: DigitalTwinChangeContractStatus;
   readonly semanticIntentContractRef: string;
 
-  /** Backward-compatible runtime fields. */
-  /** @deprecated superseded by permittedMutationSurfaces; migration pending */
+  /**
+   * Boundary fields (OE-10). These are the prose boundary surface of the contract; the
+   * canonical `isOntologyAffectingDtc` (`lib/lead-intent/contracts.ts`) drives its verdict
+   * from `affectedSurfaces` + `changeBoundary` (alongside the typed-ref siblings below), so
+   * these stay first-class inputs — they are NOT migration-pending placeholders. The earlier
+   * `@deprecated "migration pending"` annotations are retired now that the grader and validator
+   * share the single canonical predicate.
+   */
   readonly affectedSurfaces: readonly string[];
-  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly changeBoundary: string;
-  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly branchProposalPolicy: string;
-  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly permissionBoundary: string;
-  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly replayMigrationPlan: string;
-  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly observabilityPlan: string;
-  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly toolSurfaceReadiness: string;
-  /** @deprecated collapse into the typed-ref sibling once it is required; migration pending */
   readonly evaluationPlan: string;
 
   /** Additive typed control-plane fields. */
