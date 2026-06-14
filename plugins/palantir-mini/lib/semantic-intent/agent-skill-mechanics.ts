@@ -95,6 +95,16 @@ function axisStatusFragment(axis: SicAxis | undefined): { open: boolean; note: s
   if (!axis || axis.status === "open") {
     return { open: true, note: "미정 / open" };
   }
+  if (axis.status === "draft") {
+    // A draft axis is a PROPOSAL, not a confirmation: still treated as open
+    // (asked turn-by-turn) while surfacing the proposed text (propose-then-confirm).
+    return {
+      open: true,
+      note: axis.summary
+        ? `제안(확인 필요) / proposed-unconfirmed: ${axis.summary}`
+        : "제안(확인 필요) / proposed-unconfirmed",
+    };
+  }
   if (axis.status === "not-applicable") {
     return { open: false, note: "해당 없음 / N/A" };
   }

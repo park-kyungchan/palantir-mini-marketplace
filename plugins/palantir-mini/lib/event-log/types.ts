@@ -97,7 +97,18 @@ export interface EventEnvelopeBase
 // v0: a minimal OntologyEdit shape — the 3 edit classes from OSDK 2.0.
 export type OntologyEdit =
   | { kind: "object"; rid: string; properties: Record<string, unknown> }
-  | { kind: "link";   rid: string; srcRid: string; dstRid: string; linkName: string }
+  | {
+      kind: "link";
+      rid: string;
+      srcRid: string;
+      dstRid: string;
+      linkName: string;
+      // OE-11: endpoint cardinalities (the first-class `Cardinality` primitive
+      // "one"|"many"), optional + additive so the FOLD-1 declaration carries the
+      // link's cardinality when the register seam threaded it. Absent on legacy edits.
+      srcCardinality?: "one" | "many";
+      dstCardinality?: "one" | "many";
+    }
   | { kind: "interface"; rid: string; interfaceName: string };
 
 // ─── 10 variants ────────────────────────────────────────────────────────────
@@ -1089,6 +1100,26 @@ export type SourceMutationApprovalDeniedEnvelope = EventEnvelopeBase & {
   payload: SourceMutationApprovalDeniedPayload;
 };
 
+/**
+ * OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage.
+ * A UniversalOntologyEntry advanced its lifecycle status (e.g. context-retrieved
+ * → semantic-approved → registered). Replaces the prior `phase_completed`
+ * piggyback in `lib/ontology-entry/lifecycle.ts` with a typed discriminator.
+ */
+export type UniversalOntologyEntryTransitionedEnvelope = EventEnvelopeBase & {
+  type: "universal_ontology_entry_transitioned";
+  payload: {
+    /** Stable entry reference (entryId-derived). */
+    entryRef:   string;
+    /** Status before the transition. */
+    fromStatus: string;
+    /** Status after the transition (=== fromStatus on a no-op). */
+    toStatus:   string;
+    /** True when fromStatus === toStatus (idempotent no-op transition). */
+    isNoOp:     boolean;
+  };
+};
+
 // ─── The discriminated union ───────────────────────────────────────────────
 export type EventEnvelope =
   | EditProposedEnvelope
@@ -1173,7 +1204,9 @@ export type EventEnvelope =
   | DtcEvalRefsBypassInvokedEnvelope
   // Improvement #2 — developer/source-mutation fast-path audit events
   | SourceMutationApprovalGrantedEnvelope
-  | SourceMutationApprovalDeniedEnvelope;
+  | SourceMutationApprovalDeniedEnvelope
+  // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
+  | UniversalOntologyEntryTransitionedEnvelope;
 
 export type EventType = EventEnvelope["type"];
 
@@ -1201,6 +1234,9 @@ export const isDigitalTwinContractFinalized   = (e: EventEnvelope): e is Digital
 export const isDtcGradingCompleted            = (e: EventEnvelope): e is DtcGradingCompletedEnvelope            => e.type === "dtc_grading_completed";
 export const isDtcGraderRuntimeGap            = (e: EventEnvelope): e is DtcGraderRuntimeGapEnvelope            => e.type === "dtc_grader_runtime_gap";
 export const isDtcEvalRefsBypassInvoked       = (e: EventEnvelope): e is DtcEvalRefsBypassInvokedEnvelope       => e.type === "dtc_eval_refs_bypass_invoked";
+
+// OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
+export const isUniversalOntologyEntryTransitioned = (e: EventEnvelope): e is UniversalOntologyEntryTransitionedEnvelope => e.type === "universal_ontology_entry_transitioned";
 
 // ─── Snapshot type produced by foldToSnapshot (prim-data-04 SnapshotManifest) ─
 
@@ -1312,6 +1348,8 @@ export interface EventSnapshot {
   // Improvement #2 — developer/source-mutation fast-path audit events
   source_mutation_approval_granted?:  number;
   source_mutation_approval_denied?:   number;
+  // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
+  universal_ontology_entry_transitioned?: number;
   // O-2 — register→commit→materialize→read loop closure. Projection of committed
   // applyRegister* edits into a readable typed-primitive collection (fold-snapshot.ts).
   // FOLD-1 — each bucket entry carries the registered rid PLUS the committed

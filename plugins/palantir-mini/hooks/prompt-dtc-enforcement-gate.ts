@@ -1,8 +1,14 @@
 // palantir-mini PR-13 — Hook enforcement level
-//   enforcement: advisory
-//   rationale:   default mode="off"; opt-in via PALANTIR_MINI_PROMPT_DTC_GATE_MODE env; never blocks unless explicitly set to blocking/scoped-blocking/selective-blocking.
+//   enforcement: blocking-on-ontology-write (OE-1, T3)
+//   rationale:   WIRED LIVE as a PreToolUse entry on the mutation tool set (hooks/hooks.json).
+//                The env default mode (PALANTIR_MINI_PROMPT_DTC_GATE_MODE) is the FLOOR, but
+//                resolveEffectiveGateMode raises the effective mode to `blocking` for the
+//                `ontology-write` mutation class (PROJECT_GATE_POLICY_MINIMUMS), so an
+//                ontology-affecting mutation is hard-gated regardless of the env default.
+//                Non-mutating / read-only tools self-skip; the CLI entry (import.meta.main)
+//                fails closed on any unexpected error.
 // palantir-mini sprint-064 W4 - Prompt-to-DTC PreToolUse gate
-// Fires on mutating PreToolUse surfaces. Default mode is advisory.
+// Fires on mutating PreToolUse surfaces; ontology-write mutations are blocking via the floor.
 // PR 5.11 (sprint-122): adds selective-blocking mode (blocks ONLY ontology-affecting MCP tools)
 // + 60-min SIC approval cache.
 // sprint-138 Slice 6: additive FDE-aware skip branch.
@@ -110,10 +116,13 @@ interface FDEEngineeringSkipAssessment {
   readonly reason: string;
 }
 
-// v3.18.0 (foamy-giggling-kettle plan v3.18.0 chore): default flipped from
-// "advisory" to "off" — plan-level approval (ExitPlanMode) supersedes per-
-// prompt DTC gate; advisory text on every tool call was Lead-protocol noise.
-// Opt-in: set PALANTIR_MINI_PROMPT_DTC_GATE_MODE=advisory|selective-blocking|scoped-blocking|blocking.
+// v3.18.0 (foamy-giggling-kettle plan v3.18.0 chore): env default flipped from
+// "advisory" to "off" — plan-level approval (ExitPlanMode) supersedes the advisory
+// per-prompt DTC text on non-ontology tool calls. NOTE (OE-1, T3): this env default is
+// only the FLOOR for non-protected mutation classes; once wired live, an `ontology-write`
+// mutation is raised to `blocking` by resolveEffectiveGateMode regardless of this default,
+// so the dead-gate hole is closed for the ontology-affecting write path.
+// Opt-in (raise the floor further): set PALANTIR_MINI_PROMPT_DTC_GATE_MODE=advisory|selective-blocking|scoped-blocking|blocking.
 // PR 5.11: selective-blocking mode added — blocks ONLY ontology-affecting MCP tools
 // with 60-min SIC approval cache exemption.
 function gateMode(): GateMode {
@@ -969,3 +978,47 @@ export const __test__ = {
   assessFDEEngineeringReadOnlySkip,
   evaluatePreMutationImpactGate,
 };
+
+// OE-1 (T3): CLI entry — makes this gate runnable as a live hooks.json PreToolUse
+// command (mirrors ontology-engineering-workflow-enforcement-gate.ts). The gate is
+// wired LIVE on the mutation tool set; resolveEffectiveGateMode floors the
+// `ontology-write` mutation class to `blocking`, so an ontology-affecting mutation is
+// gated regardless of the env default mode. Reads the hook payload from stdin and
+// writes the HookResult (incl. hookSpecificOutput.permissionDecision) to stdout; any
+// failure fails closed via the default-export wrapper.
+async function readStdin(): Promise<string> {
+  if (process.stdin.isTTY) return "";
+  const chunks: Buffer[] = [];
+  try {
+    for await (const chunk of process.stdin) {
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : (chunk as Buffer));
+    }
+  } catch {
+    return "";
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function main(): Promise<void> {
+  const raw = await readStdin();
+  let payload: unknown = {};
+  if (raw.trim().length > 0) {
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      process.stdout.write(
+        JSON.stringify({
+          message: "palantir-mini: prompt-DTC gate skipped - malformed hook payload",
+          decision: "continue",
+        }) + "\n",
+      );
+      return;
+    }
+  }
+  const result = await promptDtcEnforcementGate(payload);
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+}
+
+if (import.meta.main) {
+  void main();
+}

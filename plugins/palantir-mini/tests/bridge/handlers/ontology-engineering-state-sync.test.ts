@@ -27,6 +27,8 @@ import {
   writeOntologyEngineeringWorkflowState,
   type SourceMutationApprovalRecord,
 } from "../../../lib/ontology-engineering-workflow";
+import { mintApprovedSemanticIntentContract } from "../../fixtures/minted-approved-sic";
+import { seedMintedApprovedSicWorkflowState } from "../../fixtures/seed-register-workflow-state";
 import type {
   FDEOntologyEngineeringSession,
   FDEReadinessProfileEvaluation,
@@ -121,6 +123,8 @@ function seedSession(root: string, opts: { graded: boolean }): FDEOntologyEngine
     readinessProfile: readinessProfile(opts.graded),
   };
   writeFDEOntologyEngineeringSessionSnapshot(session);
+  // OE-2 — seed a genuinely minted approved-SIC snapshot for the register re-verify.
+  seedMintedApprovedSicWorkflowState(root, session.sessionId);
   return session;
 }
 
@@ -248,6 +252,9 @@ describe("OE-workflow state-sync closure (S1)", () => {
     const seededState = {
       ...deriveOntologyEngineeringWorkflowState({ projectRoot: P, fdeSession: session }),
       sourceMutationApprovals: [synthetic],
+      // OE-2 — carry a genuinely minted approved-SIC snapshot so register authorizes
+      // (re-verify) AND the source-mutation approvals survive the terminal write.
+      approvedSemanticIntentContractSnapshot: mintApprovedSemanticIntentContract(),
     };
     writeOntologyEngineeringWorkflowState(seededState);
 
@@ -261,6 +268,10 @@ describe("OE-workflow state-sync closure (S1)", () => {
   test("elevate commit reconciles namespaces", async () => {
     const P = setupRoot("elevate");
     const fixture = writeElevateFixture();
+    // OE-2 — elevate reads the session's INDEPENDENT readiness grade (no longer a
+    // fabricated pass). Seed a genuinely-graded current session; ingest merges the
+    // fixture candidates onto it, preserving the grade.
+    seedSession(P, { graded: true });
 
     const result = await handleOntologyEngineeringWorkflow({
       action: "elevate",

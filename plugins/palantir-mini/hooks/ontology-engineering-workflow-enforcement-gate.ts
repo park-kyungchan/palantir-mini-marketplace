@@ -20,6 +20,7 @@ import {
 } from "../lib/ontology-engineering-workflow";
 import { PromptFrontDoorStore } from "../lib/prompt-front-door/store";
 import { buildOntologyEngineeringResponseTemplateContext } from "../lib/ontology-engineering-response-template";
+import { emit } from "../scripts/log";
 
 interface HookPayload {
   readonly cwd?: string;
@@ -227,6 +228,44 @@ function targetsProtectedSurface(payload: HookPayload): boolean {
   return PROTECTED_SURFACE_MARKERS.some((marker) => haystack.includes(marker));
 }
 
+// OE-3 — project-ontology path-CLASS markers. Unlike PROTECTED_SURFACE_MARKERS
+// (pm-self surfaces, matched by literal substring) these are *path-class* segments
+// that name a PROJECT'S ontology source — a structural ontology mutation regardless
+// of which project owns it and regardless of any OE-marker string in the payload.
+// Path-class is unforgeable by the adapter; OE-marker strings are. A raw
+// Edit/Write/MultiEdit to e.g. `projects/foo/ontology/object-type/bar.ts` trips here
+// even with no `ontology-engineering`/`SemanticIntentContract` marker present.
+//
+// NEVER-CLOSE: matching here only routes the call into the SAME
+// `protectedSurfaceMutation && !mutationAuthorized` branch the pm-self markers use —
+// the envelope-bound source-mutation fast-path stays reachable; this adds NO blanket
+// deny and weakens no allow.
+const PROJECT_ONTOLOGY_PATH_CLASS_SEGMENTS = [
+  "/ontology/",
+  "/object-type/",
+  "/object-types/",
+  "/link-type/",
+  "/link-types/",
+  "/interface-type/",
+  "/interface-types/",
+  "/action-type/",
+  "/action-types/",
+  "/shared-property/",
+  "/shared-properties/",
+] as const;
+
+function pathSegmentMatchesOntologyClass(candidate: string): boolean {
+  // Bracket with leading "/" so a bare segment like "ontology/foo.ts" matches too.
+  const bracketed = `/${candidate.replace(/^\/+/, "")}`;
+  return PROJECT_ONTOLOGY_PATH_CLASS_SEGMENTS.some((segment) => bracketed.includes(segment));
+}
+
+function targetsProjectOntologyPathClass(payload: HookPayload): boolean {
+  return collectPathLikeValues(payload.tool_input)
+    .map((value) => normalize(value))
+    .some((value) => pathSegmentMatchesOntologyClass(value));
+}
+
 function isSemanticOrRouterTool(payload: HookPayload): boolean {
   const name = normalize(payload.tool_name ?? "");
   return name.includes("pm_semantic_intent_gate") || name.includes("pm_intent_router");
@@ -337,7 +376,57 @@ async function computeSourceMutationFastPath(
   return { authorized: false, reason: lastReason };
 }
 
-function deny(reason: string, additionalContext: string): HookResult {
+/**
+ * OE-12 — instrument the OE-3 deny branch so an enforcement DENIAL produces
+ * valuable data (rule 10 / rule 26 / audit D4-6). The hook's `assess...` is
+ * synchronous, so the emit is FIRE-AND-FORGET (`void`, never awaited, swallowed
+ * on failure) — the deny RESULT is returned synchronously unchanged. The
+ * `errorClass` is pinned to the ONE governed provenance vocabulary
+ * (`fde_provenance_required`, matching `pm-intent-router`) on the provenance
+ * deny, and to `oe_workflow_mutation_unauthorized` on the protected-surface
+ * mutation deny. NEVER-CLOSE: the envelope-bound source-mutation fast-path
+ * returns BEFORE this branch, so the express-lane is untouched.
+ */
+function deny(
+  reason: string,
+  additionalContext: string,
+  errorClass: string,
+  payload?: HookPayload,
+): HookResult {
+  if (payload !== undefined) {
+    try {
+      void emit({
+        type: "validation_phase_completed",
+        payload: {
+          passed: false,
+          errorClass,
+          phase: "runtime",
+          tool: payload.tool_name ?? "unknown",
+          decision: "block",
+          advisory: false,
+        } as Record<string, unknown>,
+        toolName: "ontology-engineering-workflow-enforcement-gate",
+        cwd: resolveProjectRoot(payload),
+        sessionId: payload.session_id,
+        reasoning:
+          `ontology-engineering workflow gate DENIED (${errorClass}): ${reason} ` +
+          `[tool=${payload.tool_name ?? "unknown"}]`,
+        refinementTarget: {
+          kind: "other",
+          filePathOrRid: "ontology-engineering-workflow-enforcement-gate",
+          description:
+            `Ontology-engineering enforcement gate denied a control-plane call (${errorClass}); ` +
+            `route the FDE/SIC/DTC provenance or approved mutation state before retrying.`,
+          confidenceLevel: "high",
+        },
+        memoryLayers: ["semantic", "procedural"],
+      }).catch(() => {
+        // Best-effort — emit failure never blocks the deny verdict.
+      });
+    } catch {
+      // Best-effort — synchronous throw never blocks the deny verdict.
+    }
+  }
   return {
     message: `palantir-mini: ontology-engineering workflow gate BLOCKED - ${reason}`,
     decision: "block",
@@ -393,8 +482,16 @@ export function assessOntologyEngineeringWorkflowHook(
   }
 
   const ontologyEngineeringContext = containsOntologyEngineeringMarker(payload);
+  // OE-3 — a protected mutation is one to a pm-self protected surface OR to a
+  // PROJECT-ontology path-class. The path-class trip is INDEPENDENT of any
+  // OE-marker (`!ontologyEngineeringContext` no longer skips it), closing the
+  // raw-edit front-door hole (OP-1/D4-1): a silent no-signal structural ontology
+  // edit now routes through the same mutationAuthorized gate. NEVER-CLOSE: it lands
+  // in the existing `protectedSurfaceMutation && !mutationAuthorized` branch, so the
+  // envelope-bound source-mutation fast-path still authorizes.
   const protectedSurfaceMutation =
-    classification.isProtectedMutation && targetsProtectedSurface(payload);
+    classification.isProtectedMutation &&
+    (targetsProtectedSurface(payload) || targetsProjectOntologyPathClass(payload));
   const semanticOrRouterOntologyCall =
     isSemanticOrRouterTool(payload) && ontologyEngineeringContext;
   const workflowToolCall = normalize(payload.tool_name ?? "").includes("pm_ontology_engineering_workflow");
@@ -412,6 +509,8 @@ export function assessOntologyEngineeringWorkflowHook(
     return deny(
       "FDE workflow provenance is required before Ontology Engineering SIC/DTC authoring, routing, or mutation",
       "Start the plugin-owned Ontology Engineering workflow first, then carry the FDE session reference into SIC/DTC and routing calls. This removes model-specific interpretation before contracts exist.",
+      "fde_provenance_required",
+      payload,
     );
   }
 
@@ -436,6 +535,8 @@ export function assessOntologyEngineeringWorkflowHook(
     return deny(
       "Ontology Engineering workflow mutation requires approved SIC and DTC workflow state",
       "The current workflow state must have mutationAuthorized=true before edits to hooks, gate/router handlers, workflow libraries, skills, or managed-settings surfaces proceed.",
+      "oe_workflow_mutation_unauthorized",
+      payload,
     );
   }
 

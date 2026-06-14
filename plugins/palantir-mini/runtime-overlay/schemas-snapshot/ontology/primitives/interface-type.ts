@@ -20,6 +20,20 @@ export interface InterfaceTypeDeclaration {
   readonly rid: InterfaceTypeRid;
   readonly name: string;
   readonly description?: string;
+  /**
+   * Parent interfaces this interface extends (OE-11 / ARCH-5). Foundry InterfaceTypes
+   * support MULTIPLE inheritance: an implementer of this interface must also satisfy
+   * every extended interface's required properties. Optional + additive — a flat
+   * interface with no parents omits it.
+   */
+  readonly extends?: ReadonlyArray<InterfaceTypeRid>;
+  /**
+   * Abstract / non-instantiable marker (OE-11 / ARCH-5). When true, this interface is
+   * a pure behavioral contract that no ObjectType may directly instantiate as its sole
+   * type — it exists only to be extended/implemented. Optional + additive (defaults to
+   * instantiable when absent).
+   */
+  readonly abstract?: boolean;
   /** Required properties every implementer must expose */
   readonly requiredProperties: ReadonlyArray<{
     readonly name: string;

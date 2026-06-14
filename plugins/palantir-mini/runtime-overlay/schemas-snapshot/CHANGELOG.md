@@ -8,6 +8,82 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.91.0 — 2026-06-14 (first-class universal_ontology_entry_transitioned lineage event — OE-14 / D5-7)
+
+Additive MINOR (rule 08 — one new event-type discriminator registered in the lineage axis; ADDITIVE only, no existing discriminator/field/export is removed or retyped, so every legacy producer/consumer stays byte-compatible). See `ontology/CHANGELOG.md` v1.81.0 for the canonical ontology-axis entry.
+
+### Added — first-class UniversalOntologyEntry status-transition event (`ontology/lineage/event-types.ts`)
+
+- `EVENT_TYPE_NAMES` + `EVENT_TYPE_REGISTRY` gain `"universal_ontology_entry_transitioned"` (`primaryDomain: "learn"`), the 84th event discriminator (was 83). OE-14 / D5-7 promotes the `UniversalOntologyEntry` lifecycle status-transition from a `phase_completed` piggyback (transition data buried in `withWhat.reasoning`, `phaseTag:"universal-ontology-entry-transitioned"`) to a FIRST-CLASS typed discriminator carrying its own payload `{ entryRef, fromStatus, toStatus, isNoOp }`. The self-Ontology seed drift guard tracks it: `ontology/self/event-envelope.objecttype.ts` `EVENT_ENVELOPE_INSTANCES` gains the member (83 → 84) and `tests/ontology/self/event-envelope-registration.test.ts` `EXPECTED_EVENT_ENVELOPE_COUNT` advances 83 → 84. Paired non-snapshot edits land the runtime envelope (`lib/event-log/types.ts` `UniversalOntologyEntryTransitionedEnvelope` + union member + `isUniversalOntologyEntryTransitioned` guard + `EventCounts` field) and flip the emitter (`lib/ontology-entry/lifecycle.ts` emits `type:"universal_ontology_entry_transitioned"` with the typed payload, reasoning + refs preserved). Additive + backward-compatible — no consumer that switches on the existing discriminators breaks.
+
+## v1.90.0 — 2026-06-14 (missing Palantir structural primitives: LinkType FK/join backing + cross-ontology boundary + InterfaceType extends/abstract — OE-11)
+
+Additive MINOR (rule 08 — additive optional fields + additive sub-types on two existing ontology primitives; no field is removed, retyped, or made required, so every legacy producer/consumer stays byte-compatible). See `ontology/CHANGELOG.md` v1.80.0 for the canonical ontology-axis entry.
+
+### Added — LinkType data-layer backing + cross-ontology boundary (`ontology/primitives/link-type.ts`)
+
+- `PlainLinkTypeDeclaration` / `ObjectBackedLinkTypeDeclaration` gain an additive optional `backing?: LinkBacking` and `crossOntologyBoundary?: CrossOntologyBoundary` (OE-11 / ARCH-5 / D6-6, D6-7). `LinkBacking` is the new discriminated union modeling HOW the relationship is backed at the data layer — `{ kind: "fk-property"; fkProperty; onSide }` (the Foundry FK-on-the-many-side pattern for 1:M / M:1) vs `{ kind: "join-datasource"; joinDatasource }` (the M:N join-datasource binding; an M:N link needs a join table, never an FK). `CrossOntologyBoundary` (`{ srcOntology; dstOntology }`, PF-3) marks a LinkType whose endpoints live in DIFFERENT ontologies and is only traversable through an explicit shared/import boundary; absent ⇒ intra-ontology (the common case). The existing `Cardinality = "one" | "many"` and the `srcCardinality`/`dstCardinality` fields are unchanged. Both new fields are optional + additive — legacy declarations that don't model their backing or cross an ontology boundary omit them.
+
+### Added — InterfaceType multiple-inheritance + abstract marker (`ontology/primitives/interface-type.ts`)
+
+- `InterfaceTypeDeclaration` gains an additive optional `extends?: readonly InterfaceTypeRid[]` (Foundry InterfaceType MULTIPLE inheritance — an implementer must satisfy every extended interface's required properties) and `abstract?: boolean` (the abstract / non-instantiable marker — a pure behavioral contract no ObjectType may directly instantiate as its sole type). Both optional + additive; a flat instantiable interface omits them.
+
+### Changed — Cardinality survives SOURCE-jsonl ingest into the registered LinkType declaration (paired non-snapshot edits)
+
+- The first-class `Cardinality` primitive now SURVIVES the ingest→register→fold path so the registered LinkType declaration carries it (the OE-11 e2e flip, `tests/e2e/oe-full-flow.e2e.test.ts` D-ingest-cardinality LIVE). Paired non-snapshot edits, all additive/back-compatible: `lib/fde-ontology-engineering/types.ts` `LinkTypeCandidate` gains optional `srcCardinality?`/`dstCardinality?: Cardinality`; `lib/fde-ontology-engineering/source-ingest.ts` derives endpoint cardinalities from the EDGE record (explicit `src_cardinality`/`dst_cardinality` when present, else the canonical many-to-one FK-on-the-many-side default); `lib/event-log/types.ts` `OntologyEdit` `kind:"link"` gains optional `srcCardinality`/`dstCardinality`; `lib/actions/ontology-register.ts` `applyRegisterLinkType` threads them into the edit; `lib/ontology-engineering-workflow/register-accepted.ts` passes the candidate's cardinality through; `lib/event-log/read/fold-snapshot.ts` carries them present-only into the FOLD-1 declaration so legacy folds stay byte-identical. The submission-criteria + property-access-security D-ingest sub-parts remain a separate ingest-widening tranche (e2e `test.todo`).
+
+## v1.89.0 — 2026-06-14 (property column-level access-boundary on the GOVERNANCE fold — OE-4 capstone)
+
+Additive MINOR (rule 08 — one additive optional field on `SicAccessBoundary` + one additive sub-interface on an existing primitive; no removals, no field edits, no breaking change). See `ontology/CHANGELOG.md` v1.79.0 for the canonical ontology-axis entry.
+
+### Added — property access-security fold (`ontology/primitives/semantic-intent-contract.ts`)
+
+- `SicAccessBoundary` gains an additive optional `propertyAccessBoundaries?: readonly SicPropertyAccessBoundary[]` plus the new `SicPropertyAccessBoundary` sub-interface (`{ propertyName; readableBy }`). OE-4 (the govern-fold CAPSTONE) folds a per-property column-level access-security boundary onto the GOVERNANCE access boundary (the SIC-layer projection of the descriptive `CLSPolicy`/`PropertySecurityPolicy`), so the DTC/register layer can REQUIRE a property access-boundary for a sensitive property (`score`) fail-closed — a GOVERNANCE access boundary missing it (or with an empty `readableBy`) REFUSES the DTC/register. Security stays the GOVERNANCE access-control facet: the `DigitalTwinDecisionDomain` union remains EXACTLY 5 (`DATA|LOGIC|ACTION|TECHNOLOGY|GOVERNANCE`), NO `SECURITY` member, NO 10th axis. Additive + backward-compatible (optional field, absent on all legacy producers; not validated by `isSemanticIntentContract`). Paired non-snapshot edits land the fail-closed predicate (`requiresPropertyAccessBoundary` in `lib/lead-intent/contracts.ts`), the DTC/register enforcement helper (`lib/context-engineering/govern-fold-access-boundary.ts`), and the removal of the dead V3 SECURITY lane's `"SECURITY" as DigitalTwinDecisionDomain` cast (`context-plan-builder.ts` — folded onto the GOVERNANCE domain; the dead lane stays built/flagged, not deleted).
+
+## v1.88.0 — 2026-06-14 (self-Ontology Hook wiring fact: prompt-dtc-enforcement-gate wired LIVE — OE-1 / T3)
+
+Additive MINOR (rule 08 — instance-data fact change on the self-Ontology `Hook` ObjectType seed: ONE `HOOK_INSTANCES` entry flips `orphanInRegistry` `true`→`false`; no ObjectType/property/field/export/guard is added, removed, or edited, so no consumer breaks). See `ontology/CHANGELOG.md` v1.78.0 for the canonical ontology-axis entry.
+
+### Changed — self-Ontology Hook wiring axis (`ontology/self/hook.objecttype.ts`)
+
+- `HOOK_INSTANCES` entry `prompt-dtc-enforcement-gate` flips `orphanInRegistry: true` → `false`. OE-1 (T3) wires the complete, Foundry-grade SIC/DTC write gate `hooks/prompt-dtc-enforcement-gate.ts` (`assessPromptDtc`) — previously referenced by ZERO `hooks.json` entries (present-but-dead) — as a LIVE PreToolUse command on the mutation tool set, gated by `resolveEffectiveGateMode` (which floors the `ontology-write` mutation class to `blocking`). The hooks/ surface wired/orphan split moves 45/2 → 46/1 (`prompt-fde-readiness-advisory` is now the sole orphan). The seed's drift-guard (`tests/ontology/self/hook-registration.test.ts`) and the citation audit (`check-hook-citations-unwired.test.ts`) now both assert this hook is REGISTERED, not orphan. The `Hook` ObjectType shape, properties, RID, and all other instances are byte-identical; only this one wiring boolean + the header doc count change.
+
+## v1.87.0 — 2026-06-14 (retire DTC boundary-field deprecation annotations — grader bound to canonical predicate — OE-10)
+
+Additive MINOR (rule 08 — annotation-only change on an existing ontology primitive: the 8 `@deprecated "migration pending"` JSDoc tags on the `DigitalTwinChangeContract` boundary fields are removed; NO field, type, export, or guard is added/removed/edited, so no consumer breaks). See `ontology/CHANGELOG.md` v1.77.0 for the canonical ontology-axis entry.
+
+### Changed — boundary-field annotations (`ontology/primitives/digital-twin-change-contract.ts`)
+
+- The `DigitalTwinChangeContract` boundary fields (`affectedSurfaces` + the 7 flat boundary prose fields `changeBoundary` / `branchProposalPolicy` / `permissionBoundary` / `replayMigrationPlan` / `observabilityPlan` / `toolSurfaceReadiness` / `evaluationPlan`) shed their `@deprecated ... migration pending` JSDoc annotations. Rationale (OE-10): the grader (`lib/lead-intent/dtc-grading-rubric.ts`) deleted its duplicate, narrower `isOntologyAffectingDtc` and now binds to the single CANONICAL predicate in `lib/lead-intent/contracts.ts`, which legitimately drives its verdict from `affectedSurfaces` + `changeBoundary` (alongside the typed-ref siblings `touchedOntologyRefs` / `permittedMutationSurfaces` and `structuredBoundary`). These boundary fields are therefore first-class inputs, not migration-pending placeholders — the deprecation tags were stale. The field shapes (names, `readonly` modifiers, types) are byte-identical; only the JSDoc comments change. No runtime, type, or guard behavior changes.
+
+## v1.86.0 — 2026-06-14 (executable Action model bound to the descriptive SSoT — OE-6)
+
+Additive MINOR (rule 08 — additive executable-projection exports on `ontology/action/schema.ts` + additive members/exports on the `ontology/primitives/action-type.ts` `Operation` union and rule-family set; no removals, no breaking field edits). See `ontology/CHANGELOG.md` v1.76.0 for the canonical ontology-axis entry.
+
+### Added — executable projection crosswalk (`ontology/action/schema.ts`)
+
+- New Section 9 "Executable Projection (OE-6)": `EXECUTABLE_CONSTRAINT_PROJECTION` (maps each of the 9 executable leaf classes — `Range` … `Unevaluable` — to its canonical descriptive `SubmissionConstraintType`), `EXECUTABLE_CONDITION_CLASSES` (projects the `currentUser`/`parameter` `SubmissionConditionType` set), and `EXECUTABLE_RULE_FAMILIES` (projects the 8 `ActionRuleType` Foundry rule families). This closes the D6-8 root split: `ontology/action/schema.ts` was imported by ZERO runtime files; the executable evaluator `lib/actions/submission-criteria.ts` now imports this crosswalk so its union is a PROJECTION of the SSoT instead of a parallel re-derivation. Additive — no existing export changed.
+
+### Changed — Operation union + rule families (`ontology/primitives/action-type.ts`)
+
+- `Operation` widened from `"create" | "update" | "delete"` to add `"createOrModify" | "createLink" | "deleteLink" | "interfaceRule"` (the link/upsert/interface verbs from the descriptive 8 `ActionRuleType` families). The three original object-CRUD verbs are unchanged (back-compatible). New `ActionRuleFamily` union + `ACTION_RULE_FAMILIES` constant (the 8 Foundry rule families) added so the primitive widens off the canonical set. Additive; no consumer of the prior 3-member `Operation` breaks.
+
+## v1.85.0 — 2026-06-14 (additive SicAxis.facet typed-facet substrate — DP-deepening DP-0)
+
+Additive MINOR (rule 08 — one additive optional field + one additive union type + five additive sub-interfaces on an existing ontology primitive; no removals, no field edits). See `ontology/CHANGELOG.md` v1.75.0 for the canonical ontology-axis entry.
+
+### Added — SicAxis.facet + SicAxisFacet union (`ontology/primitives/semantic-intent-contract.ts`)
+
+- `SicAxis` gains an optional `facet?: SicAxisFacet` (after `status`) + the `SicAxisFacet` discriminated union (`data-graph` / `logic-block` / `action-writeback` / `access-boundary`) and its five sub-interfaces (`SicDataObject`, `SicDataLink`, `SicLogicFunction`, `SicWritebackAction`, `SicAccessBoundary`). This is the DP-deepening DP-0 substrate: each enriched axis gets a typed home for the structured proposal behind the prose `summary`, so the DTC synthesis can bind to structure instead of re-parsing the string. Additive; no existing producer emits `facet`; `isSemanticIntentContract` does not validate axis internals — zero behavior change. DP-1..DP-4 fill / extend their own variant interiors under their own CHANGELOG notes. The `SicAccessBoundary` literal `failClosed: true` is the govern-fold fail-closed contract carried in the type (Security folds INTO GOVERNANCE — no 10th axis, no SECURITY decision-domain member).
+
+## v1.84.0 — 2026-06-14 (additive SicAxisStatus member `draft` — session-derived, unconfirmed)
+
+Additive MINOR (rule 08 — one additive enum member on an existing ontology primitive; no removals, no field edits). See `ontology/CHANGELOG.md` v1.74.0 for the canonical ontology-axis entry.
+
+### Changed — SicAxisStatus (`ontology/primitives/semantic-intent-contract.ts`)
+
+- `SicAxisStatus` gains `"draft"` (`"open" | "draft" | "filled" | "not-applicable"`). Rationale (OE-5 / D1-2): session-derived axes must not claim `filled` — `filled` is reserved for a per-axis USER-turn confirmation. `draft` names the proposed-but-unconfirmed state. Zero behavior change for existing producers (no current producer emits `draft`; `isSemanticIntentContract` does not validate axis status).
+
 ## v1.83.1 — 2026-06-10 (rule-registry regen: rule 29 fable5-ultracode-workflow-archiving 1.0.0→1.1.0 + authoring-mirror resync)
 
 PATCH (rule 08 — generated-content regen only; no primitive type added/removed, no field edits).

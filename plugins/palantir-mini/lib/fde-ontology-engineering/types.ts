@@ -1,3 +1,5 @@
+import type { Cardinality } from "../../runtime-overlay/schemas-snapshot/ontology/primitives/link-type";
+
 export const FDE_ONTOLOGY_ENGINEERING_SESSION_SCHEMA_VERSION =
   "palantir-mini/fde-ontology-engineering-session/v1" as const;
 
@@ -136,6 +138,14 @@ export interface LinkTypeCandidate {
   readonly businessMeaning: string;
   readonly evidenceRefs: readonly string[];
   readonly declaredRid?: string;
+  /**
+   * Endpoint cardinalities (OE-11). The first-class `Cardinality` primitive
+   * (`"one" | "many"`) threaded from the SOURCE EDGE record through register so
+   * it SURVIVES into the registered LinkType declaration. Optional + additive —
+   * absent on legacy candidates (register then omits cardinality from the edit).
+   */
+  readonly srcCardinality?: Cardinality;
+  readonly dstCardinality?: Cardinality;
 }
 
 export interface ActionTypeCandidate {
@@ -153,6 +163,21 @@ export interface FunctionCandidate {
   readonly plainName: string;
   readonly logicIntent: string;
   readonly deterministic?: boolean;
+  /**
+   * AIP-Logic block model (DP-2). `pure-evaluator` persists nothing;
+   * `routes-through-apply-action` writes back ONLY via an ActionType (never a
+   * side door). Additive + optional (post-dates existing fixtures); read as
+   * `candidate.evaluatorKind` with an `"unspecified"` default in the facet.
+   */
+  readonly evaluatorKind?: "pure-evaluator" | "routes-through-apply-action";
+  /**
+   * A {@link RoleCandidate.candidateId} whose GOVERNANCE scope this function's
+   * tool calls inherit (DP-2): tool calls run under the INVOKING ACTOR's
+   * permissions, not the model's — the model cannot widen the scope. Additive +
+   * optional. An unresolved ref (no matching role) is confirmation debt, NEVER a
+   * default grant (fail-closed; see the GOVERNANCE access-boundary facet).
+   */
+  readonly invokingActorScopeRef?: string;
   readonly evidenceRefs: readonly string[];
   readonly declaredRid?: string;
 }

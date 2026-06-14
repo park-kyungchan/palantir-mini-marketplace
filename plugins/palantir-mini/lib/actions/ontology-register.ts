@@ -48,6 +48,9 @@ export interface ApplyRegisterLinkTypeParams {
   readonly srcRid: string;
   readonly dstRid: string;
   readonly linkName: string;
+  /** OE-11: endpoint cardinalities (first-class `Cardinality`), threaded into the edit so they survive into the FOLD-1 declaration. Optional + additive. */
+  readonly srcCardinality?: "one" | "many";
+  readonly dstCardinality?: "one" | "many";
 }
 
 export interface ApplyRegisterActionTypeParams {
@@ -91,7 +94,19 @@ export function applyRegisterLinkType(params: ApplyRegisterLinkTypeParams): Onto
   if (typeof params?.srcRid !== "string" || typeof params?.dstRid !== "string" || typeof params?.linkName !== "string") {
     throw new Error("applyRegisterLinkType: `srcRid`, `dstRid`, `linkName` (strings) are required");
   }
-  return [{ kind: "link", rid, srcRid: params.srcRid, dstRid: params.dstRid, linkName: params.linkName }];
+  return [
+    {
+      kind: "link",
+      rid,
+      srcRid: params.srcRid,
+      dstRid: params.dstRid,
+      linkName: params.linkName,
+      // OE-11: carry endpoint cardinalities only when the register seam supplied them
+      // (back-compatible — legacy callers omit them and the declaration stays cardinality-free).
+      ...(params.srcCardinality !== undefined ? { srcCardinality: params.srcCardinality } : {}),
+      ...(params.dstCardinality !== undefined ? { dstCardinality: params.dstCardinality } : {}),
+    },
+  ];
 }
 
 /** ActionType → `kind:"object"` tagged `primitiveKind:"ActionType"` (no link-kind fit). */

@@ -21,6 +21,7 @@ import type {
   FDEOntologyEngineeringSession,
   FDEReadinessProfileEvaluation,
 } from "../../../lib/fde-ontology-engineering/types";
+import { seedMintedApprovedSicWorkflowState } from "../../fixtures/seed-register-workflow-state";
 
 const tmpRoots: string[] = [];
 
@@ -158,6 +159,8 @@ describe("register advisory lint attach (non-blocking)", () => {
   test("approved + graded session with a Misnomer → committed:true WITH register.lint findings", async () => {
     const P = setupRoot("attach");
     const session = seedSession(P, { graded: true });
+    // OE-2 — seed a genuinely minted approved-SIC snapshot for the register re-verify.
+    seedMintedApprovedSicWorkflowState(P, session.sessionId);
 
     const result = await handleOntologyEngineeringWorkflow({
       action: "register",

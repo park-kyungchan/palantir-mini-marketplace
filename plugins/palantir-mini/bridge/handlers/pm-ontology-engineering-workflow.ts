@@ -789,11 +789,17 @@ function writeRegisteredState(input: {
     session: input.session,
     registeredAt: input.registeredAt,
   });
-  const prevApprovals =
-    readPreviousWorkflowState({ root, action: input.handlerInput.action, session: input.session })
-      ?.sourceMutationApprovals ?? [];
-  const nextState: OntologyEngineeringWorkflowState =
-    prevApprovals.length > 0 ? { ...state, sourceMutationApprovals: prevApprovals } : state;
+  const prev = readPreviousWorkflowState({ root, action: input.handlerInput.action, session: input.session });
+  const prevApprovals = prev?.sourceMutationApprovals ?? [];
+  // OE-2 — preserve the minted approved-SIC snapshot across the terminal write the
+  // same accumulate-from-disk way as sourceMutationApprovals (derive drops both).
+  const nextState: OntologyEngineeringWorkflowState = {
+    ...state,
+    ...(prevApprovals.length > 0 ? { sourceMutationApprovals: prevApprovals } : {}),
+    ...(prev?.approvedSemanticIntentContractSnapshot !== undefined
+      ? { approvedSemanticIntentContractSnapshot: prev.approvedSemanticIntentContractSnapshot }
+      : {}),
+  };
   const written = writeOntologyEngineeringWorkflowState(nextState);
   return {
     action: input.handlerInput.action,
@@ -905,18 +911,39 @@ async function handleRegister(
   // Derive the workflow state (reads prior persisted contract approval + handler
   // input). phase digital-twin-approved / mutation-authorized ⇒ SIC + DTC approved.
   const state = deriveStateSnapshot({ handlerInput: input, session, preservePreviousUpdatedAt: true });
-  const approved =
+  const phaseApproved =
     state.phase === "digital-twin-approved" ||
     state.phase === "mutation-authorized" ||
     state.phase === "registered";
+  // OE-2 (OP-2 / D3-1) — the phase above is derived from the caller-settable
+  // semanticIntentContractStatus string (forgeable). RE-VERIFY against the MINTED
+  // approved-SIC snapshot persisted by `approve_sic`: load it from the persisted
+  // workflow state and run `isApprovedSemanticIntentContract` (unforgeable minted
+  // approvalRef required). A model adapter passing status:"approved" with NO minted
+  // SIC no longer authorizes — the snapshot is absent ⇒ mintedSicReverified is false.
+  const persistedSnapshot = readPreviousWorkflowState({
+    root,
+    action: input.action,
+    session,
+  })?.approvedSemanticIntentContractSnapshot;
+  const mintedSicReverified = isApprovedSemanticIntentContract(persistedSnapshot);
+  const approved = phaseApproved && mintedSicReverified;
   const graded = session.readinessProfile?.readyForDigitalTwin === true;
 
   if (!approved || !graded) {
     const reasons: string[] = [];
     if (!approved) {
-      reasons.push(
-        `digital-twin contract not approved (workflow phase=${state.phase}; require SIC+DTC approved)`,
-      );
+      if (!phaseApproved) {
+        reasons.push(
+          `digital-twin contract not approved (workflow phase=${state.phase}; require SIC+DTC approved)`,
+        );
+      }
+      if (!mintedSicReverified) {
+        reasons.push(
+          "no minted approved SemanticIntentContract re-verified (OE-2): the persisted SIC snapshot must pass " +
+            "isApprovedSemanticIntentContract (minted approvalRef) — a caller-supplied status:\"approved\" alone does not authorize",
+        );
+      }
     }
     if (!graded) {
       reasons.push("FDE readiness grade not passed (readinessProfile.readyForDigitalTwin !== true)");
@@ -1230,13 +1257,30 @@ function handleApproveSic(
     session,
     semanticIntentContract: approved,
   });
+  // OE-2 (OP-2 / D3-1) — PERSIST the MINTED approved SIC object (with its unforgeable
+  // minted approvalRef) onto the workflow state, SEPARATE from the caller-settable
+  // ref/status strings. `deriveStateSnapshot` does not carry it, so merge it in over
+  // the just-written state (same accumulate-from-disk pattern as the source-mutation
+  // approvals). The register seam re-verifies THIS snapshot via
+  // `isApprovedSemanticIntentContract` rather than trusting `status==="approved"`.
+  const snapshotState: OntologyEngineeringWorkflowState = {
+    ...written.state,
+    approvedSemanticIntentContractSnapshot: approved,
+  };
+  const persisted = writeOntologyEngineeringWorkflowState(snapshotState);
   const sicApproval: SicApprovalActionResult = {
     approved: true,
     message:
       `SIC가 승인되었습니다 (contractId=${approved.contractId}). ` +
       `Semantic Intent Contract approved (contractId=${approved.contractId}).`,
   };
-  return { ...written, sicApproval };
+  return {
+    ...written,
+    state: snapshotState,
+    statePath: persisted.statePath,
+    currentPath: persisted.currentPath,
+    sicApproval,
+  };
 }
 
 /**

@@ -1,7 +1,9 @@
-// palantir-mini v2.24.0 — rule-audit consolidated hook tests (Phase 2a T1)
+// palantir-mini — rule-audit consolidated hook tests
 //
-// Verifies all 3 modes (bottleneck | drift | citation) via the exported
-// runMode() helper. Default-export argv parsing tested separately.
+// Single live mode after the 2026-06-14 rules-lightening: bottleneck.
+// (drift + citation modes retired — drift was registered in ZERO hook entries
+// and stays live via pm_rule_audit detect-drift; citation was an accidental
+// no-op covered by pm_rule_audit detect-stale-crossrefs.)
 
 import { describe, expect, test } from "bun:test";
 import ruleAudit, { runMode, parseModeFromArgv } from "../../hooks/rule-audit";
@@ -11,12 +13,12 @@ describe("rule-audit hook — argv parsing", () => {
     expect(parseModeFromArgv(["bun", "rule-audit.ts", "--mode=bottleneck"])).toBe("bottleneck");
   });
 
-  test("parses --mode=drift", () => {
-    expect(parseModeFromArgv(["bun", "rule-audit.ts", "--mode=drift"])).toBe("drift");
+  test("rejects retired --mode=drift", () => {
+    expect(parseModeFromArgv(["bun", "rule-audit.ts", "--mode=drift"])).toBeNull();
   });
 
-  test("parses --mode=citation", () => {
-    expect(parseModeFromArgv(["bun", "rule-audit.ts", "--mode=citation"])).toBe("citation");
+  test("rejects retired --mode=citation", () => {
+    expect(parseModeFromArgv(["bun", "rule-audit.ts", "--mode=citation"])).toBeNull();
   });
 
   test("returns null when no mode flag", () => {
@@ -51,56 +53,6 @@ describe("rule-audit hook — bottleneck mode", () => {
       expect(result.reason).toBeDefined();
       expect(result.reason).toContain("ceiling violation");
     }
-  });
-});
-
-describe("rule-audit hook — drift mode", () => {
-  test("returns continue decision (SessionStart advisory)", async () => {
-    const result = await runMode("drift", { cwd: "/home/palantirkc" });
-    expect(result.decision).toBe("continue");
-  });
-
-  test("message indicates OK or advisory or skipped", async () => {
-    const result = await runMode("drift", { cwd: "/home/palantirkc" });
-    expect(
-      result.message.includes("OK") ||
-        result.message.includes("advisory") ||
-        result.message.includes("skipped"),
-    ).toBe(true);
-  });
-
-  test("reason populated when drift detected", async () => {
-    const result = await runMode("drift", { cwd: "/home/palantirkc" });
-    if (result.message.includes("advisory")) {
-      expect(result.reason).toBeDefined();
-      expect(result.reason).toContain("drift");
-    }
-  });
-});
-
-describe("rule-audit hook — citation mode", () => {
-  test("skips when no file_path in payload", async () => {
-    const result = await runMode("citation", { cwd: "/home/palantirkc" });
-    expect(result.decision).toBe("continue");
-    expect(result.message).toContain("non-hook file");
-  });
-
-  test("skips when file_path is non-hook", async () => {
-    const result = await runMode("citation", {
-      cwd: "/home/palantirkc",
-      tool_input: { file_path: "/tmp/some/random.ts" },
-    });
-    expect(result.decision).toBe("continue");
-    expect(result.message).toContain("non-hook file");
-  });
-
-  test("skips when edited file is missing (matches hook regex but file gone)", async () => {
-    const result = await runMode("citation", {
-      cwd: "/home/palantirkc",
-      tool_input: { file_path: "/tmp/nonexistent/hooks/missing.ts" },
-    });
-    expect(result.decision).toBe("continue");
-    expect(result.message).toContain("edited file missing");
   });
 });
 

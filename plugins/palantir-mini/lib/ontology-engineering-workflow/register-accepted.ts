@@ -232,7 +232,16 @@ export async function registerAcceptedCandidates(
     if (alreadyRegistered.has(rid)) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterLinkType",
-      { rid, srcRid, dstRid, linkName: candidate.plainName },
+      {
+        rid,
+        srcRid,
+        dstRid,
+        linkName: candidate.plainName,
+        // OE-11: thread the candidate's first-class cardinality through register so
+        // it survives into the FOLD-1 LinkType declaration. Omitted when absent.
+        ...(candidate.srcCardinality !== undefined ? { srcCardinality: candidate.srcCardinality } : {}),
+        ...(candidate.dstCardinality !== undefined ? { dstCardinality: candidate.dstCardinality } : {}),
+      },
     );
     edits.push(...e);
     registered.linkTypes.push(rid);

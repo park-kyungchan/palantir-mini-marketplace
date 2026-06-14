@@ -10,12 +10,24 @@ import {
   type RuleDeclaration,
 } from "#schemas/ontology/primitives/rule";
 import { readEvents } from "../../../lib/event-log/read";
+import { OVERLAY_RULES_DIR } from "../../../lib/runtime-overlay/resolve-rule";
 import { MEMORY_MD, RULES_DIR } from "./types";
 
+/**
+ * Count the canonical overlay bodies (the real rule files) so the drift check
+ * measures the SSoT, not the external `~/.claude/rules/` stub mirror. After the
+ * 2026-06-14 rules-lightening the external dir holds only the CORE/BROWSE routers
+ * (the numbered NN-*.md bodies were relocated out of the per-turn inject set), so
+ * counting it directly would falsely report 0-vs-9. Mirrors detect-bottleneck.ts.
+ */
+function bodyDir(): string {
+  return fs.existsSync(OVERLAY_RULES_DIR) ? OVERLAY_RULES_DIR : RULES_DIR;
+}
+
 export function checkFileCountDrift(findings: RuleAuditFinding[]): void {
-  if (!fs.existsSync(RULES_DIR)) return;
+  if (!fs.existsSync(bodyDir())) return;
   const diskFiles = fs
-    .readdirSync(RULES_DIR)
+    .readdirSync(bodyDir())
     .filter((f) => f.endsWith(".md") && /^\d{2}-/.test(f));
   // Compare disk to ACTIVE rules only — retired stubs + scope-migrated entries
   // remain in registry for historical traceability (rule 08 codegen authority +

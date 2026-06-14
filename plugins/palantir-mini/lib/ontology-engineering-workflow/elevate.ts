@@ -24,6 +24,7 @@
 
 import { ingestJsonlSourceToCandidates } from "../fde-ontology-engineering/source-ingest";
 import { createSemanticIntentContractDraftFromFDEOntologySession } from "../fde-ontology-engineering/sic-from-session";
+import { evaluateFDEReadinessProfile } from "../fde-ontology-engineering/readiness-profile";
 import {
   readFDEOntologyEngineeringSession,
   writeFDEOntologyEngineeringSessionSnapshot,
@@ -88,17 +89,24 @@ function lintFindingsForSession(
   });
 }
 
-/** A passing readiness grade — set on the session ONLY when the caller authorized. */
-function passedReadinessProfile(): FDEReadinessProfileEvaluation {
-  return {
-    profileId: "mission-decision",
-    score: 1,
-    readyForSemanticIntent: true,
-    readyForDigitalTwin: true,
-    requirementResults: [],
-    missingRequired: [],
-    warnings: [],
-  };
+/**
+ * OE-2 (D3-2) — read the session's INDEPENDENT readiness grade. The grade is NOT
+ * fabricated by this flow: it is whatever a real grading run persisted on the
+ * session (`session.readinessProfile`), or — when none was persisted — computed
+ * live from the session candidates via `evaluateFDEReadinessProfile`. A caller
+ * flag (`readyForDigitalTwin`) can NEVER manufacture a passing grade; if the
+ * session does not independently grade ready, the register step does not run.
+ * (Replaces the former `passedReadinessProfile()` which stamped score:1 /
+ * readyForDigitalTwin:true regardless of evidence.)
+ */
+function independentReadinessProfile(
+  session: FDEOntologyEngineeringSession,
+): FDEReadinessProfileEvaluation {
+  if (session.readinessProfile !== undefined) return session.readinessProfile;
+  return evaluateFDEReadinessProfile(
+    session,
+    session.readinessProfileId ?? "mission-decision",
+  );
 }
 
 /**
@@ -184,7 +192,11 @@ export async function elevateOntologyFromSource(input: ElevateInput): Promise<El
   const lint = { findings };
   const sic = { contractRef };
 
-  // ── 4) APPROVAL GATE (caller-supplied governance — never auto-fabricated). ──
+  // ── 4) APPROVAL GATE (caller-supplied governance INTENT — never the grade). ──
+  // The caller flags express the governance DECISION to elevate; they do NOT
+  // manufacture readiness. OE-2 (D3-2): the readiness GRADE is read INDEPENDENTLY
+  // from the session below — a caller flag can clear the intent gate but cannot
+  // fabricate a passing readiness profile.
   const authorized =
     input.semanticIntentContractStatus === "approved" &&
     input.digitalTwinChangeContractStatus === "approved" &&
@@ -200,13 +212,27 @@ export async function elevateOntologyFromSource(input: ElevateInput): Promise<El
     };
   }
 
-  // Authorized: persist the passing readiness grade on the session (the grade
-  // signal the register gate reads), then run the governed register step.
+  // Authorized intent: read the session's INDEPENDENT readiness grade (NOT a
+  // fabricated pass). Register runs ONLY when the session itself grades ready.
   const persisted = readFDEOntologyEngineeringSession(projectRoot, sessionId) ?? ingestedSession;
+  const readinessProfile = independentReadinessProfile(persisted);
+
+  if (readinessProfile.readyForDigitalTwin !== true) {
+    return {
+      phase: "awaiting-approval",
+      ingest,
+      lint,
+      sic,
+      note:
+        "session is not independently graded ready for digital twin " +
+        "(readinessProfile.readyForDigitalTwin !== true); the caller flag cannot fabricate readiness",
+    };
+  }
+
   const gradedSession: FDEOntologyEngineeringSession = {
     ...persisted,
-    readinessProfileId: "mission-decision",
-    readinessProfile: passedReadinessProfile(),
+    readinessProfileId: persisted.readinessProfileId ?? readinessProfile.profileId,
+    readinessProfile,
     updatedAt: new Date().toISOString(),
   };
   writeFDEOntologyEngineeringSessionSnapshot(gradedSession);

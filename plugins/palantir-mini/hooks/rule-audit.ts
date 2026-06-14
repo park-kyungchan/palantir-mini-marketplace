@@ -1,33 +1,27 @@
 // palantir-mini v3.7.0 — hooks/rule-audit.ts (orchestrator)
-// Mode dispatcher across bottleneck | drift | citation modes.
-// Decomposed in v3.7.0 A.1: per-mode logic moved to ./rule-audit/{mode-bottleneck, mode-drift, mode-citation}.ts.
-// Shared helpers in ./rule-audit/shared.ts. Types in ./rule-audit/types.ts.
+// Single live mode: bottleneck. The drift + citation modes were retired in the
+// 2026-06-14 rules-lightening — drift was registered in ZERO hook entries (its
+// capability stays live via pm_rule_audit detect-drift), and citation was an
+// accidental no-op (broken registry path) whose stale-citation capability is
+// covered by pm_rule_audit detect-stale-crossrefs. Full rationale: pm_rule_query
+// (rule bodies) + the rules-lightening apply report.
 //
-// Authority: ~/.claude/plans/2026-04-25-harness/06-plugin-only-architecture.md §8.2
-//            ~/.claude/plans/deep-wiggling-mccarthy.md T1
-//            ~/.claude/plans/concurrent-gathering-taco.md (v2.24.1 retire plan)
-//            rules/CONTEXT.md §8 enforcement hooks.
+// Shared helpers in ./rule-audit/shared.ts. Types in ./rule-audit/types.ts.
 //
 // Mode dispatch:
 //   bottleneck — kind="bottleneck:*", PreCompact event, advisory
-//   drift      — kind="drift:*|stale-crossref|stale-hook-citation", SessionStart, advisory
-//   citation   — scans edited hooks/*.ts for "rule NN" citations, PostToolUse, advisory
 
 import { runBottleneckMode } from "./rule-audit/mode-bottleneck";
-import { runDriftMode } from "./rule-audit/mode-drift";
-import { runCitationMode } from "./rule-audit/mode-citation";
 import type { HookPayload, HookResult, RuleAuditMode } from "./rule-audit/types";
 
 // Backward-compat re-exports for tests + external callers
 export type { RuleAuditMode, HookPayload, HookResult, AuditResult, KnownRule } from "./rule-audit/types";
 export { runBottleneckMode } from "./rule-audit/mode-bottleneck";
-export { runDriftMode } from "./rule-audit/mode-drift";
-export { runCitationMode } from "./rule-audit/mode-citation";
 
 /** Parse --mode=X from process.argv. */
 export function parseModeFromArgv(argv: string[]): RuleAuditMode | null {
   for (const arg of argv) {
-    const m = arg.match(/^--mode=(bottleneck|drift|citation)$/);
+    const m = arg.match(/^--mode=(bottleneck)$/);
     if (m) return m[1] as RuleAuditMode;
   }
   return null;
@@ -38,8 +32,6 @@ export async function runMode(mode: RuleAuditMode, payload: unknown): Promise<Ho
   const p = (payload ?? {}) as HookPayload;
   switch (mode) {
     case "bottleneck": return runBottleneckMode(p);
-    case "drift":      return runDriftMode(p);
-    case "citation":   return runCitationMode(p);
   }
 }
 
@@ -47,7 +39,7 @@ export default async function ruleAudit(payload: unknown): Promise<HookResult> {
   const mode = parseModeFromArgv(process.argv);
   if (!mode) {
     return {
-      message: "palantir-mini: rule-audit error — missing --mode={bottleneck|drift|citation} argv flag",
+      message: "palantir-mini: rule-audit error — missing --mode={bottleneck} argv flag",
       decision: "continue",
     };
   }

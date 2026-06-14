@@ -1,12 +1,10 @@
 // Test: Wave-2 self-Ontology Rule ObjectType — pm's global behavioral-overlay rules
 // registered AS an ObjectType + 9 active-rule instances. Proves the self-model gains the
-// Rule noun and that the seed (ruleId + slug + scope) stays true to the LIVE
-// ~/.claude/rules/ numbered files (drift guard) — a rule added/removed without updating
-// the seed fails loud here.
+// Rule noun and that the seed (ruleId + slug + scope) stays true to the canonical rule
+// files (drift guard) — a rule added/removed without updating the seed fails loud here.
 
 import { test, expect } from "bun:test";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { OBJECT_TYPE_REGISTRY } from "#schemas/ontology/primitives/object-type";
 // Direct import executes the instance module → self-registration side effect.
@@ -15,11 +13,20 @@ import {
   RULE_OBJECT_TYPE_RID,
   RULE_INSTANCES,
 } from "#schemas/ontology/self/rule.objecttype";
+// The in-repo, plugin-resident rules overlay — the canonical rule-body SSoT that
+// pm_rule_query serves (host-independent; __dirname-based, never a ~/.claude path).
+import { OVERLAY_RULES_DIR } from "../../../lib/runtime-overlay/resolve-rule";
 
 const EXPECTED_RULE_COUNT = 9;
 
-// Live rules directory — the global Claude-overlay rules home (rule 02 §Memory / CORE.md).
-const RULES_DIR = path.join(os.homedir(), ".claude", "rules");
+// Canonical rule directory — the plugin-resident runtime-overlay rules home (the SSoT
+// pm_rule_query reads). The numbered NN-<slug>.md bodies (01/02/07/08/10/25/26/27/29)
+// are the active rule set; the non-numbered router files (CORE/CONTEXT/BROWSE/AUTHORING)
+// carry no numeric prefix and are excluded by the NN- filename filter. Reading this
+// in-repo overlay makes the guard HOST-INDEPENDENT: it no longer couples to any
+// ~/.claude/rules* dir, so ~/.claude/rules-bodies/ is a pure archive with no test
+// dependency.
+const RULES_DIR = OVERLAY_RULES_DIR;
 
 test("self Rule ObjectType is registered with ruleId identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(RULE_OBJECT_TYPE_RID);
@@ -35,10 +42,10 @@ test(`Rule seed has ${EXPECTED_RULE_COUNT} unique rule instances`, () => {
   expect(new Set(ids).size).toBe(EXPECTED_RULE_COUNT); // no duplicates
 });
 
-test("Rule seed ruleId set matches the LIVE ~/.claude/rules/ numbered files (drift guard)", () => {
-  // The snapshot OWNS the seed (no rules-tree import); this guard reads the live
-  // ~/.claude/rules/ directory and asserts the self-model's 9 ruleIds equal pm's actual
-  // active-rule set, so adding or removing a numbered rule file fails loud until
+test("Rule seed ruleId set matches the canonical overlay numbered files (drift guard)", () => {
+  // The snapshot OWNS the seed (no rules-tree import); this guard reads the in-repo
+  // runtime-overlay rules directory and asserts the self-model's 9 ruleIds equal pm's
+  // actual active-rule set, so adding or removing a numbered rule file fails loud until
   // rule.objecttype.ts is updated. CORE/CONTEXT/BROWSE/AUTHORING routers carry no numeric
   // prefix and are excluded by the NN- filename filter.
   const liveIds = fs

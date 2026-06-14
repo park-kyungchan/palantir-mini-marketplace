@@ -6,6 +6,10 @@ import type {
   SemanticIntentContract,
 } from "../lead-intent/contracts";
 import { resolveOntologyRefs } from "../lead-intent/ontology-ref-resolver";
+import {
+  bindSuccessEvalToActionCriteria,
+  type SuccessEvalActionBindingViolation,
+} from "./success-eval-action-binding";
 import type { DigitalTwinChangeBoundary } from "../prompt-front-door/boundary-field";
 import { semanticIntentContractRefFromApproved } from "../semantic-intent/approved-contract";
 import {
@@ -226,6 +230,10 @@ export interface SynthesizedOntologyDtcBuildFields {
   // (not ontologyDtcBuildReadiness.semanticTermRefs), so both validators agree in every
   // gate mode — including PALANTIR_MINI_SEMANTIC_CONSISTENCY_GATE=blocking.
   readonly semanticConsistencyRefs: readonly string[];
+  // OE-8: fail-closed flags for any SUCCESS-EVAL that omits / contradicts the ACTION
+  // submission criteria. Each becomes an OPEN evaluation risk on the DTC so the gate
+  // refuses (never a silent pass).
+  readonly successEvalActionBindingViolations: readonly SuccessEvalActionBindingViolation[];
 }
 
 function dedupeRefsByKey<T extends { kind?: string; rid?: string }>(
@@ -293,9 +301,16 @@ function synthesizeOntologyDtcBuildFields(
     ...resolved.touchedOntologyRefs,
   ]);
 
-  // (b) requiredEvaluationRefs — real ValidationPack rids from the resolver only.
+  // (b) requiredEvaluationRefs — real ValidationPack rids from the resolver UNIONED with
+  // the OE-8 SUCCESS-EVAL<->ACTION binding (gate-facing): the SIC's bound action submission
+  // criteria + SUCCESS-EVAL success-signal validation items. D2-2: success-criteria are now
+  // ENFORCED as submission criteria instead of staying review/risk prose only. The binding
+  // ALSO returns fail-closed violations for any omitted/contradicted action criteria, which
+  // become OPEN evaluation risks below (the gate refuses; never a silent pass).
+  const successEvalBinding = bindSuccessEvalToActionCriteria(sic);
   const requiredEvaluationRefs = dedupeRefsByKey<ValidationPackRef>([
     ...resolved.requiredEvaluationRefs,
+    ...successEvalBinding.requiredEvaluationRefs,
   ]);
 
   // (d) per-kind readiness arrays + non-applicable evidence for missing required kinds.
@@ -383,7 +398,25 @@ function synthesizeOntologyDtcBuildFields(
     ontologyDtcBuildReadiness,
     ontologyDtcBuildSequence,
     semanticConsistencyRefs,
+    successEvalActionBindingViolations: successEvalBinding.violations,
   };
+}
+
+/**
+ * OE-8: turn each SUCCESS-EVAL<->ACTION binding violation into an OPEN evaluation
+ * risk. validateDigitalTwinChangeContract rejects any contract with open risks, so a
+ * SUCCESS-EVAL that omits / contradicts the ACTION submission criteria fails closed at
+ * the gate (it cannot be approved until the binding is fixed).
+ */
+function successEvalBindingRiskRecords(
+  violations: readonly SuccessEvalActionBindingViolation[],
+): DigitalTwinRiskRecord[] {
+  return violations.map((violation) => ({
+    riskId: `success-eval-action-binding.${violation.kind}:${violation.ref}`,
+    kind: "evaluation",
+    status: "open",
+    description: violation.message,
+  }));
 }
 
 export function draftDtcFromContextPlan(
@@ -660,7 +693,10 @@ export function draftDtcFromContextPlanV2(
     ontologyDtcBuildReadiness: buildFields.ontologyDtcBuildReadiness,
     ontologyDtcBuildSequence: buildFields.ontologyDtcBuildSequence,
     semanticConsistencyRefs: [...buildFields.semanticConsistencyRefs],
-    risks: riskRecordsV2(plan),
+    risks: [
+      ...riskRecordsV2(plan),
+      ...successEvalBindingRiskRecords(buildFields.successEvalActionBindingViolations),
+    ],
     requiredUserDecisions: [...plan.requiredUserDecisions],
   };
 
@@ -738,7 +774,10 @@ export function draftDtcFromContextPlanV3(
     ontologyDtcBuildReadiness: buildFields.ontologyDtcBuildReadiness,
     ontologyDtcBuildSequence: buildFields.ontologyDtcBuildSequence,
     semanticConsistencyRefs: [...buildFields.semanticConsistencyRefs],
-    risks: riskRecordsV3(plan),
+    risks: [
+      ...riskRecordsV3(plan),
+      ...successEvalBindingRiskRecords(buildFields.successEvalActionBindingViolations),
+    ],
     requiredUserDecisions: [...plan.requiredUserDecisions],
   };
 

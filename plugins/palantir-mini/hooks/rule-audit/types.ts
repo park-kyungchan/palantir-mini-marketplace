@@ -1,7 +1,7 @@
 // palantir-mini v3.7.0 — hooks/rule-audit/types.ts
 // Types extracted from rule-audit.ts during A.1 decomposition.
 
-export type RuleAuditMode = "bottleneck" | "drift" | "citation";
+export type RuleAuditMode = "bottleneck";
 
 export interface HookPayload {
   cwd?:           string;

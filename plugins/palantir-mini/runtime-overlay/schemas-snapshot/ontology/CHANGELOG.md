@@ -1,5 +1,78 @@
 # Ontology Schema Changelog
 
+## 1.81.0 — first-class universal_ontology_entry_transitioned lineage event (OE-14 / D5-7) — 2026-06-14
+
+Additive MINOR (rule 08 — one new event-type discriminator on the lineage axis; ADDITIVE only, no existing discriminator/field/export removed or retyped).
+
+### Added
+
+- `lineage/event-types.ts` — `EVENT_TYPE_NAMES` + `EVENT_TYPE_REGISTRY` gain `"universal_ontology_entry_transitioned"` (`primaryDomain: "learn"`), the 84th discriminator (was 83). OE-14 / D5-7 promotes the `UniversalOntologyEntry` lifecycle status-transition from a `phase_completed` piggyback to a first-class typed event with payload `{ entryRef, fromStatus, toStatus, isNoOp }`. The self-Ontology seed (`self/event-envelope.objecttype.ts` `EVENT_ENVELOPE_INSTANCES`) advances 83 → 84 to track it (drift guard `tests/ontology/self/event-envelope-registration.test.ts`). Paired non-snapshot runtime edits: `lib/event-log/types.ts` envelope + union + guard + counts, `lib/ontology-entry/lifecycle.ts` emitter flip. Additive + backward-compatible.
+
+## 1.80.0 — additive Palantir structural primitives: LinkType FK/join backing + cross-ontology boundary + InterfaceType extends/abstract (OE-11) — 2026-06-14
+
+Additive MINOR (rule 08 — additive optional fields + additive sub-types on two existing primitives; no removal, retype, or required-field change, so every legacy producer/consumer stays byte-compatible).
+
+### Added
+
+- `primitives/link-type.ts` — `PlainLinkTypeDeclaration` / `ObjectBackedLinkTypeDeclaration` gain optional `backing?: LinkBacking` + `crossOntologyBoundary?: CrossOntologyBoundary` (OE-11 / ARCH-5 / D6-6, D6-7). `LinkBacking` (new union) models the data-layer backing: `{ kind: "fk-property"; fkProperty; onSide }` (FK-on-the-many-side, 1:M / M:1) vs `{ kind: "join-datasource"; joinDatasource }` (the M:N join-datasource binding — M:N needs a join table, never an FK). `CrossOntologyBoundary` (`{ srcOntology; dstOntology }`, PF-3) marks a cross-ontology link only traversable through an explicit shared/import boundary; absent ⇒ intra-ontology. The existing `Cardinality = "one"|"many"` and the `srcCardinality`/`dstCardinality` fields are unchanged. Both new fields optional + additive — legacy declarations omit them.
+- `primitives/interface-type.ts` — `InterfaceTypeDeclaration` gains optional `extends?: readonly InterfaceTypeRid[]` (Foundry InterfaceType MULTIPLE inheritance — an implementer must satisfy every extended interface's required properties) + `abstract?: boolean` (abstract / non-instantiable marker). Both optional + additive.
+
+### Changed (paired non-snapshot edits — Cardinality survives ingest)
+
+- The first-class `Cardinality` primitive now SURVIVES the SOURCE-jsonl ingest→register→fold path into the registered LinkType declaration (the OE-11 e2e flip `D-ingest-cardinality` is LIVE; the scenario's many-to-one `belongsToRubric` cardinality reaches the registered declaration via `getOntology`). Paired non-snapshot edits, all additive/back-compatible: `lib/fde-ontology-engineering/types.ts` (`LinkTypeCandidate.srcCardinality?`/`dstCardinality?`), `lib/fde-ontology-engineering/source-ingest.ts` (derive endpoint cardinalities from the EDGE record — explicit `src_cardinality`/`dst_cardinality` else the canonical many-to-one FK-on-the-many-side default), `lib/event-log/types.ts` (`OntologyEdit` `kind:"link"` optional cardinalities), `lib/actions/ontology-register.ts` (`applyRegisterLinkType` threads them), `lib/ontology-engineering-workflow/register-accepted.ts` (passes the candidate's cardinality through), `lib/event-log/read/fold-snapshot.ts` (present-only into the FOLD-1 declaration; legacy folds byte-identical). The submission-criteria + property-access-security D-ingest sub-parts remain a separate ingest-widening tranche.
+
+## 1.79.0 — additive property column-level access-boundary on the GOVERNANCE fold (OE-4 capstone) — 2026-06-14
+
+Additive MINOR (rule 08 — one additive optional field on `SicAccessBoundary` + one additive sub-interface; no removals, no field edits, no breaking change).
+
+### Added
+
+- `primitives/semantic-intent-contract.ts` — `SicAccessBoundary` gains an additive optional `propertyAccessBoundaries?: readonly SicPropertyAccessBoundary[]` (before `failClosed`) plus the new `SicPropertyAccessBoundary` sub-interface (`{ propertyName: string; readableBy: readonly string[] }`). This is the OE-4 govern-fold CAPSTONE: a per-property column-level access-security boundary folded onto the GOVERNANCE access boundary — the SIC-layer projection of the descriptive column-level `CLSPolicy`/`PropertySecurityPolicy` in `ontology/types/types-security.ts`. It lets the DTC/register layer REQUIRE a property access-boundary for a sensitive property (e.g. `score`) fail-closed (not advisory): a GOVERNANCE access boundary missing the property access-boundary for that property — or carrying an empty `readableBy` (no reader = fail-closed, never a default grant) — REFUSES the DTC/register. Security stays the GOVERNANCE access-control facet — NO 10th axis, NO `SECURITY` `DigitalTwinDecisionDomain` member (the union remains EXACTLY `DATA|LOGIC|ACTION|TECHNOLOGY|GOVERNANCE`). Additive + backward-compatible: the field is optional and absent on every legacy producer (the session-derivation `buildAccessBoundaryFacet` emits no property boundaries until the ingest-widening tranche), and `isSemanticIntentContract` does not validate axis internals — guard-conformance stays green. Paired non-snapshot edits: `lib/lead-intent/contracts.ts` adds the `requiresPropertyAccessBoundary` fail-closed predicate (sibling to `canApproveRequiredUserDecision`) and `lib/context-engineering/govern-fold-access-boundary.ts` the DTC/register-layer enforcement helper; `lib/context-engineering/context-plan-builder.ts` removes the dead V3 SECURITY lane's `"SECURITY" as DigitalTwinDecisionDomain` cast (folding its advisory-only decision onto the GOVERNANCE domain; the dead lane stays built/flagged, not deleted).
+
+## 1.78.0 — self-Ontology Hook wiring fact: prompt-dtc-enforcement-gate wired LIVE (OE-1 / T3) — 2026-06-14
+
+Additive MINOR (rule 08 — instance-data fact change on the self-Ontology `Hook` ObjectType seed; no field/type/export/guard added, removed, or edited; no consumer breaks).
+
+### Changed
+
+- `self/hook.objecttype.ts` — the `HOOK_INSTANCES` seed entry `prompt-dtc-enforcement-gate` flips `orphanInRegistry: true` → `false`. OE-1 (T3) registers the complete SIC/DTC write gate `hooks/prompt-dtc-enforcement-gate.ts` (`assessPromptDtc`) — previously cited by ZERO `hooks.json` entries (the dead gate, OP-3) — as a LIVE PreToolUse command on the mutation tool set, gated by `resolveEffectiveGateMode` (floors the `ontology-write` class to `blocking`). The hooks/ wired/orphan split moves 45/2 → 46/1; `prompt-fde-readiness-advisory` is now the sole present-but-unwired hook. The drift-guard (`hook-registration.test.ts`) and the rule citation audit (`detect-stale-crossrefs` / `check-hook-citations-unwired.test.ts`) now assert this hook is REGISTERED. `Hook` ObjectType shape, RID, properties, and all other instances are byte-identical; only the one wiring boolean and the seed header doc count change.
+
+## 1.77.0 — retire DTC boundary-field deprecation annotations (grader bound to canonical predicate, OE-10) — 2026-06-14
+
+Additive MINOR (rule 08 — annotation-only change on an existing primitive; no field/type/export/guard added, removed, or edited; no consumer breaks).
+
+### Changed
+
+- `primitives/digital-twin-change-contract.ts` — the 8 `@deprecated ... migration pending` JSDoc tags on the `DigitalTwinChangeContract` boundary fields (`affectedSurfaces` + the 7 flat boundary prose fields `changeBoundary` / `branchProposalPolicy` / `permissionBoundary` / `replayMigrationPlan` / `observabilityPlan` / `toolSurfaceReadiness` / `evaluationPlan`) are retired. OE-10 deleted the grader's duplicate `isOntologyAffectingDtc` (was `touchedOntologyRefs`-only) and bound `lib/lead-intent/dtc-grading-rubric.ts` to the single CANONICAL `isOntologyAffectingDtc` in `lib/lead-intent/contracts.ts`, which reads `affectedSurfaces` + `changeBoundary` (plus the typed-ref siblings `touchedOntologyRefs` / `permittedMutationSurfaces` and `structuredBoundary`) — so these boundary fields are first-class predicate inputs, not migration-pending placeholders, and the stale deprecation tags would mislead. The field shapes are byte-identical (names, `readonly`, types, ordering); only the doc comments change. Grader and validator now share ONE predicate and can never disagree about whether a DTC is ontology-affecting. Zero runtime/type/guard behavior change.
+
+## 1.76.0 — executable Action model bound to the descriptive SSoT (OE-6) — 2026-06-14
+
+Additive MINOR (rule 08 — additive executable-projection exports + additive `Operation` union members and rule-family exports on existing primitives; no removals, no breaking field edits).
+
+### Added
+
+- `action/schema.ts` — new Section 9 "Executable Projection (OE-6)" exporting `EXECUTABLE_CONSTRAINT_PROJECTION`, `EXECUTABLE_CONDITION_CLASSES`, and `EXECUTABLE_RULE_FAMILIES`. These bind the executable submission-criteria evaluator (`lib/actions/submission-criteria.ts`) to this descriptive Action SSoT, closing the D6-8 root split (the file was previously imported by zero runtime files). `EXECUTABLE_CONSTRAINT_PROJECTION` maps the 9 executable leaf classes to the canonical `SubmissionConstraintType`; `EXECUTABLE_CONDITION_CLASSES` projects the `SubmissionConditionType` (`currentUser`/`parameter`) set the new Current-User condition class binds to; `EXECUTABLE_RULE_FAMILIES` projects the 8 `ActionRuleType` Foundry rule families. Additive only.
+
+### Changed
+
+- `primitives/action-type.ts` — `Operation` widened from the 3 object-CRUD verbs to add `"createOrModify" | "createLink" | "deleteLink" | "interfaceRule"`, matching the descriptive SSoT's 8 `ActionRuleType` rule families (mutations.md §2). The original `"create" | "update" | "delete"` members are unchanged (back-compatible). Added `ActionRuleFamily` union + `ACTION_RULE_FAMILIES` constant (the 8 families) so the executable Action primitive widens off the canonical set rather than re-deriving it. Additive; no existing consumer breaks.
+
+## 1.75.0 — additive SicAxis.facet typed-facet substrate (DP-deepening DP-0) — 2026-06-14
+
+Additive MINOR (rule 08 — one additive optional field + one additive discriminated union + five additive sub-interfaces on an existing primitive; no removals, no field edits, no breaking change).
+
+### Added
+
+- `primitives/semantic-intent-contract.ts` — `SicAxis` gains an optional `facet?: SicAxisFacet` field (after `status`) plus the `SicAxisFacet` discriminated union and its five sub-interfaces. The union variants: `{ kind: "data-graph"; objects: SicDataObject[]; links: SicDataLink[] }` (DP-1 DATA noun-graph), `{ kind: "logic-block"; functions: SicLogicFunction[] }` (DP-2 AIP-Logic block + invoking-actor scope), `{ kind: "action-writeback"; actions: SicWritebackAction[] }` (DP-3 write-back + submission criteria), `{ kind: "access-boundary"; accessBoundary: SicAccessBoundary }` (DP-4 govern-fold access-security). This is the DP-deepening DP-0 substrate: each enriched axis gets a typed home for the structured proposal behind the prose `summary`, so downstream synthesis binds to structure instead of re-parsing the string. The `SicAccessBoundary` carries the literal `failClosed: true` — the govern-fold fail-closed contract is in the type itself (Security folds INTO GOVERNANCE as a facet; no 10th axis, no `SECURITY` `DigitalTwinDecisionDomain` member). Additive + backward-compatible: no existing producer emits `facet`, and `isSemanticIntentContract` does not validate axis internals, so guard-conformance stays green. DP-1..DP-4 may extend a variant's interior fields under their own CHANGELOG notes; the field, the four variant tags, and the five interface declarations land here.
+
+## 1.74.0 — additive SicAxisStatus member `draft` (session-derived, unconfirmed) — 2026-06-14
+
+Additive MINOR (rule 08 — one additive enum member on an existing primitive; no removals, no field edits, no breaking change).
+
+### Changed
+
+- `primitives/semantic-intent-contract.ts` — `SicAxisStatus` gains a third non-`open`/non-`not-applicable` member: `"draft"` (`"open" | "draft" | "filled" | "not-applicable"`). Rationale (OE-5 / D1-2): the session-derivation path (`createSemanticIntentContractDraftFromFDEOntologySession`) must NOT claim `filled` for an axis that only accumulated session signal — `filled` is reserved for a per-axis USER-turn confirmation minted by the 9-axis turn engine (`advanceNineAxisSicSequence`). `draft` names the proposed-but-unconfirmed state. Zero behavior change for existing producers: no current producer emits `draft`, and `isSemanticIntentContract` does not validate axis status. The type doc now spells out the full open → draft → filled (+ user `not-applicable`) confirmation ladder.
+
 ## 1.73.0 — SIC/DTC consolidation (canonical clarification additive fields + TurnCardDecisionSpec promotion) — 2026-06-10
 
 Additive MINOR (rule 08 — additive optional fields on an existing primitive + one new primitive; no removals/breaking edits).

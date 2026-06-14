@@ -398,6 +398,43 @@ export const LATENT_HYPOTHESIS_TEMPLATES = {
       "Accepting this hypothesis will not authorize mutation.",
     ],
   },
+  /**
+   * DP-5: the generic per-`"draft"`-axis confirmation-debt template. The session
+   * derivation proposes each axis as a `"draft"` (NEVER `"filled"` — only the 9-axis
+   * turn engine mints `"filled"`); every unconfirmed draft is standing confirmation
+   * debt the user has not yet confirmed. This template supplies the STABLE boilerplate
+   * (the plain-language framing + the non-authorization disclaimers); the derivation
+   * (`deriveDraftAxisConfirmationDebt` in `sic-from-session.ts`) overrides the per-axis
+   * `family` / `decisionAxis` / `readinessRequirementIds` / `riskIfWrong` (facet-bound)
+   * from the draft axis it describes. Reuses the existing template-instantiation path —
+   * no new machinery, no new `LatentIntentFamily` / `decisionAxis` member.
+   */
+  draftAxisConfirmationDebt: {
+    templateId: "latent-template:draft-axis-confirmation-debt",
+    family: "framework-discovery",
+    decisionAxis: "data",
+    readinessRequirementIds: ["latent-intent-decision"],
+    possibleObjects: [],
+    possibleLinks: [],
+    possibleActions: [],
+    possibleFunctions: [],
+    evidenceNeeded: ["per-axis user confirmation (the axis turn)"],
+    plainLanguage: (summary) =>
+      `Proposed for this axis but not yet user-confirmed: ${summary}`,
+    whyLeadInferredThis:
+      "The session produced a draft proposal for this axis from accepted session signal, but the 9-axis turn engine has not yet confirmed it.",
+    whatUserMayNotHaveNoticed:
+      "A draft axis is a proposal awaiting confirmation; until the axis turn fills it, it carries standing confirmation debt and cannot authorize the mutation it implies.",
+    recommendedDefault:
+      "Confirm or revise the axis at its 9-axis turn before any DTC synthesis or registration relies on it.",
+    riskIfWrong:
+      "An unconfirmed axis could authorize a mutation the user never approved.",
+    whatWillNotHappenIfAccepted: [
+      "Surfacing this confirmation debt will not authorize ontology mutation.",
+      "Surfacing this confirmation debt will not confirm the axis on the user's behalf.",
+      "Surfacing this confirmation debt will not persist raw prompt text.",
+    ],
+  },
 } as const satisfies Record<string, LatentHypothesisTemplate>;
 
 export function instantiateLatentHypothesisTemplate(input: {

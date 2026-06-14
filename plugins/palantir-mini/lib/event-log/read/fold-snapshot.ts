@@ -94,10 +94,19 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
         for (const edit of appliedEdits) {
           if (edit.kind === "link") {
             // FOLD-1: carry the link's meaning (its endpoints + name) as the
-            // declaration so the fold is meaning-bearing, not a bare rid.
+            // declaration so the fold is meaning-bearing, not a bare rid. OE-11:
+            // the first-class `Cardinality` ("one"|"many") survives here too when
+            // the register seam threaded it — present-only so legacy folds are
+            // byte-identical.
             reg.linkTypes.push({
               rid: edit.rid,
-              declaration: { srcRid: edit.srcRid, dstRid: edit.dstRid, linkName: edit.linkName },
+              declaration: {
+                srcRid: edit.srcRid,
+                dstRid: edit.dstRid,
+                linkName: edit.linkName,
+                ...(edit.srcCardinality !== undefined ? { srcCardinality: edit.srcCardinality } : {}),
+                ...(edit.dstCardinality !== undefined ? { dstCardinality: edit.dstCardinality } : {}),
+              },
             });
           } else if (edit.kind === "object") {
             // FOLD-1: project the committed declaration (the edit's properties
@@ -193,6 +202,8 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
       // Improvement #2 — developer/source-mutation fast-path audit events
       case "source_mutation_approval_granted":  snapshot.source_mutation_approval_granted = (snapshot.source_mutation_approval_granted ?? 0) + 1; break;
       case "source_mutation_approval_denied":   snapshot.source_mutation_approval_denied = (snapshot.source_mutation_approval_denied ?? 0) + 1; break;
+      // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
+      case "universal_ontology_entry_transitioned": snapshot.universal_ontology_entry_transitioned = (snapshot.universal_ontology_entry_transitioned ?? 0) + 1; break;
       default: {
         const _exhaustive: never = ev;
         void _exhaustive;

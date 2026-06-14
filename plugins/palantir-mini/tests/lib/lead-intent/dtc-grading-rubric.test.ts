@@ -335,22 +335,38 @@ describe("gradeDigitalTwinChangeContract Codex fallback", () => {
 });
 
 // =============================================================================
-// Suite 7: isOntologyAffectingDtc helper
+// Suite 7: isOntologyAffectingDtc helper (canonical predicate — OE-10)
+//
+// The grader binds to the CANONICAL `isOntologyAffectingDtc` (lib/lead-intent/contracts.ts),
+// which is richer than the retired local predicate: it returns true when ANY of
+// touchedOntologyRefs / permittedMutationSurfaces are non-empty OR affectedSurfaces /
+// changeBoundary (or structuredBoundary) carry an ontology signal. These tests pin that
+// canonical contract through the grader's re-export.
 // =============================================================================
 
-describe("isOntologyAffectingDtc", () => {
-  test("returns false when touchedOntologyRefs is undefined", () => {
-    const dtc = minimalDtc({ touchedOntologyRefs: undefined });
-    expect(isOntologyAffectingDtc(dtc)).toBe(false);
+/** A DTC with NO ontology signal in any input field (boundary prose + surfaces are neutral). */
+function neutralDtc(overrides: Partial<DigitalTwinChangeContract> = {}): DtcWithFillFields {
+  return minimalDtc({
+    affectedSurfaces: ["docs/readme.md"],
+    changeBoundary: "Reword one paragraph in the project README; no typed control-plane edits.",
+    touchedOntologyRefs: undefined,
+    permittedMutationSurfaces: undefined,
+    structuredBoundary: undefined,
+    ...overrides,
+  });
+}
+
+describe("isOntologyAffectingDtc (canonical, re-exported by the grader)", () => {
+  test("returns false when no input field carries an ontology signal", () => {
+    expect(isOntologyAffectingDtc(neutralDtc())).toBe(false);
   });
 
-  test("returns false when touchedOntologyRefs is empty array", () => {
-    const dtc = minimalDtc({ touchedOntologyRefs: [] });
-    expect(isOntologyAffectingDtc(dtc)).toBe(false);
+  test("returns false when touchedOntologyRefs is an empty array and no other signal", () => {
+    expect(isOntologyAffectingDtc(neutralDtc({ touchedOntologyRefs: [] }))).toBe(false);
   });
 
   test("returns true when touchedOntologyRefs has at least one entry", () => {
-    const dtc = minimalDtc({
+    const dtc = neutralDtc({
       touchedOntologyRefs: [
         {
           rid: "ontology-ref:lib/lead-intent/contracts.ts",
@@ -358,6 +374,13 @@ describe("isOntologyAffectingDtc", () => {
           editKind: "modify",
         } as any,
       ],
+    });
+    expect(isOntologyAffectingDtc(dtc)).toBe(true);
+  });
+
+  test("returns true on a changeBoundary ontology signal even with no typed refs (canonical breadth)", () => {
+    const dtc = neutralDtc({
+      changeBoundary: "Add an ontology primitive field for typed-ref enforcement.",
     });
     expect(isOntologyAffectingDtc(dtc)).toBe(true);
   });

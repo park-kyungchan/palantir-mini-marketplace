@@ -43,6 +43,7 @@ import type {
   RoleCandidate,
 } from "./types";
 import { createUniversalOntologyEntry } from "../ontology-entry/universal-entry";
+import type { Cardinality } from "../../runtime-overlay/schemas-snapshot/ontology/primitives/link-type";
 
 /**
  * Normalized layer (lowercased `kg_layer`) → candidate kind. The five SOURCE
@@ -150,6 +151,37 @@ function normalizeLayer(value: unknown): SourceLayer | undefined {
   if (typeof value !== "string") return undefined;
   const lowered = value.trim().toLowerCase();
   return (lowered in AXIS_TO_CANDIDATE_KIND) ? (lowered as SourceLayer) : undefined;
+}
+
+/**
+ * Normalize an authored cardinality scalar to the first-class `Cardinality`
+ * primitive (`"one" | "many"`, OE-11). Accepts the primitive literals plus the
+ * common SOURCE synonyms ("1"/"single" ⇒ "one"; "n"/"*"/"multiple" ⇒ "many").
+ * Returns undefined when no recognizable cardinality is present.
+ */
+function asCardinality(value: unknown): Cardinality | undefined {
+  const s = asString(value)?.toLowerCase();
+  if (s === undefined) return undefined;
+  if (s === "one" || s === "1" || s === "single") return "one";
+  if (s === "many" || s === "n" || s === "*" || s === "multiple") return "many";
+  return undefined;
+}
+
+/**
+ * Resolve an EDGE record's endpoint cardinalities (OE-11). Honors explicit
+ * `src_cardinality`/`dst_cardinality` SOURCE fields when present; otherwise a
+ * relationship edge defaults to the canonical Foundry many-to-one (FK-on-the-
+ * many-side) shape — `src` (the many side, e.g. Submission) → `dst` (the one
+ * side, e.g. Rubric). This is the cardinality that SURVIVES ingest into the
+ * registered LinkType declaration.
+ */
+function resolveEdgeCardinality(
+  record: Record<string, unknown>,
+): { readonly srcCardinality: Cardinality; readonly dstCardinality: Cardinality } {
+  return {
+    srcCardinality: asCardinality(record.src_cardinality) ?? "many",
+    dstCardinality: asCardinality(record.dst_cardinality) ?? "one",
+  };
 }
 
 /**
@@ -309,6 +341,7 @@ export function parseJsonlSourceToCandidateArrays(
       continue;
     }
 
+    const { srcCardinality, dstCardinality } = resolveEdgeCardinality(record);
     linkCandidates.push({
       candidateId: `link:${slug(`${edgeKind}-${srcId}-${dstId}`)}`,
       plainName: String(edgeKind),
@@ -317,6 +350,8 @@ export function parseJsonlSourceToCandidateArrays(
       businessMeaning: String(edgeKind),
       evidenceRefs: nonEmpty([candidateId]),
       declaredRid: asDeclaredRid(record),
+      srcCardinality,
+      dstCardinality,
     });
   }
 

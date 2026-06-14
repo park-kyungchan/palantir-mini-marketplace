@@ -101,6 +101,9 @@ export const EVENT_TYPE_NAMES = [
   "sprint_completed",
   "failure_mode_synthesized",
   "events_summarized",
+  // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
+  // (was piggybacked on phase_completed; now a typed discriminator).
+  "universal_ontology_entry_transitioned",
 ] as const;
 
 export type EventTypeName = typeof EVENT_TYPE_NAMES[number];
@@ -536,5 +539,10 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
     name: "events_summarized",
     description: "Compactor summary envelope replacing N consecutive same-type low-value events (canonical plan v2 §4 row 4.3; rule 10 append-only). Payload: { summarizedType, count, firstSeq, lastSeq, firstAt, lastAt, sampledPayloads, threshold }.",
     primaryDomain: "data",
+  },
+  universal_ontology_entry_transitioned: {
+    name: "universal_ontology_entry_transitioned",
+    description: "A UniversalOntologyEntry advanced its lifecycle status (e.g. context-retrieved → semantic-approved → registered). First-class typed lineage (OE-14 / D5-7) replacing the prior phase_completed piggyback. Payload: { entryRef, fromStatus, toStatus, isNoOp }.",
+    primaryDomain: "learn",
   },
 });
