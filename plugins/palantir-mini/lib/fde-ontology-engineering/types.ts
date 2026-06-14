@@ -209,6 +209,17 @@ export interface PropertyCandidate {
   /** PropertyType (e.g. "String", "Integer") or a free-form value-type hint. */
   readonly dataType?: string;
   readonly whyItMayMatter?: string;
+  /**
+   * Column-level access-security principals (ingest-widening). The set of
+   * principals that may READ this property — the SOURCE's "본인 학생과 담당 교사만
+   * 읽기" / property-level access boundary. Threaded from the SOURCE row through
+   * register so it SURVIVES into the registered Property declaration (mirrors the
+   * C2 govern-fold `propertyAccessBoundaries[].readableBy` vocabulary — one
+   * access-security meaning across the elicitation-side and the ingest-side).
+   * Optional + additive — absent on legacy candidates (declaration stays
+   * access-security-free).
+   */
+  readonly readableBy?: readonly string[];
   readonly evidenceRefs?: readonly string[];
   readonly declaredRid?: string;
 }
