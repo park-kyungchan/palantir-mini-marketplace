@@ -97,7 +97,18 @@ export interface EventEnvelopeBase
 // v0: a minimal OntologyEdit shape — the 3 edit classes from OSDK 2.0.
 export type OntologyEdit =
   | { kind: "object"; rid: string; properties: Record<string, unknown> }
-  | { kind: "link";   rid: string; srcRid: string; dstRid: string; linkName: string }
+  | {
+      kind: "link";
+      rid: string;
+      srcRid: string;
+      dstRid: string;
+      linkName: string;
+      // OE-11: endpoint cardinalities (the first-class `Cardinality` primitive
+      // "one"|"many"), optional + additive so the FOLD-1 declaration carries the
+      // link's cardinality when the register seam threaded it. Absent on legacy edits.
+      srcCardinality?: "one" | "many";
+      dstCardinality?: "one" | "many";
+    }
   | { kind: "interface"; rid: string; interfaceName: string };
 
 // ─── 10 variants ────────────────────────────────────────────────────────────

@@ -1,3 +1,5 @@
+import type { Cardinality } from "../../runtime-overlay/schemas-snapshot/ontology/primitives/link-type";
+
 export const FDE_ONTOLOGY_ENGINEERING_SESSION_SCHEMA_VERSION =
   "palantir-mini/fde-ontology-engineering-session/v1" as const;
 
@@ -136,6 +138,14 @@ export interface LinkTypeCandidate {
   readonly businessMeaning: string;
   readonly evidenceRefs: readonly string[];
   readonly declaredRid?: string;
+  /**
+   * Endpoint cardinalities (OE-11). The first-class `Cardinality` primitive
+   * (`"one" | "many"`) threaded from the SOURCE EDGE record through register so
+   * it SURVIVES into the registered LinkType declaration. Optional + additive —
+   * absent on legacy candidates (register then omits cardinality from the edit).
+   */
+  readonly srcCardinality?: Cardinality;
+  readonly dstCardinality?: Cardinality;
 }
 
 export interface ActionTypeCandidate {

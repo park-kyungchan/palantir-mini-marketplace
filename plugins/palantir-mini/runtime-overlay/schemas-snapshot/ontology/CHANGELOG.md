@@ -1,5 +1,18 @@
 # Ontology Schema Changelog
 
+## 1.80.0 — additive Palantir structural primitives: LinkType FK/join backing + cross-ontology boundary + InterfaceType extends/abstract (OE-11) — 2026-06-14
+
+Additive MINOR (rule 08 — additive optional fields + additive sub-types on two existing primitives; no removal, retype, or required-field change, so every legacy producer/consumer stays byte-compatible).
+
+### Added
+
+- `primitives/link-type.ts` — `PlainLinkTypeDeclaration` / `ObjectBackedLinkTypeDeclaration` gain optional `backing?: LinkBacking` + `crossOntologyBoundary?: CrossOntologyBoundary` (OE-11 / ARCH-5 / D6-6, D6-7). `LinkBacking` (new union) models the data-layer backing: `{ kind: "fk-property"; fkProperty; onSide }` (FK-on-the-many-side, 1:M / M:1) vs `{ kind: "join-datasource"; joinDatasource }` (the M:N join-datasource binding — M:N needs a join table, never an FK). `CrossOntologyBoundary` (`{ srcOntology; dstOntology }`, PF-3) marks a cross-ontology link only traversable through an explicit shared/import boundary; absent ⇒ intra-ontology. The existing `Cardinality = "one"|"many"` and the `srcCardinality`/`dstCardinality` fields are unchanged. Both new fields optional + additive — legacy declarations omit them.
+- `primitives/interface-type.ts` — `InterfaceTypeDeclaration` gains optional `extends?: readonly InterfaceTypeRid[]` (Foundry InterfaceType MULTIPLE inheritance — an implementer must satisfy every extended interface's required properties) + `abstract?: boolean` (abstract / non-instantiable marker). Both optional + additive.
+
+### Changed (paired non-snapshot edits — Cardinality survives ingest)
+
+- The first-class `Cardinality` primitive now SURVIVES the SOURCE-jsonl ingest→register→fold path into the registered LinkType declaration (the OE-11 e2e flip `D-ingest-cardinality` is LIVE; the scenario's many-to-one `belongsToRubric` cardinality reaches the registered declaration via `getOntology`). Paired non-snapshot edits, all additive/back-compatible: `lib/fde-ontology-engineering/types.ts` (`LinkTypeCandidate.srcCardinality?`/`dstCardinality?`), `lib/fde-ontology-engineering/source-ingest.ts` (derive endpoint cardinalities from the EDGE record — explicit `src_cardinality`/`dst_cardinality` else the canonical many-to-one FK-on-the-many-side default), `lib/event-log/types.ts` (`OntologyEdit` `kind:"link"` optional cardinalities), `lib/actions/ontology-register.ts` (`applyRegisterLinkType` threads them), `lib/ontology-engineering-workflow/register-accepted.ts` (passes the candidate's cardinality through), `lib/event-log/read/fold-snapshot.ts` (present-only into the FOLD-1 declaration; legacy folds byte-identical). The submission-criteria + property-access-security D-ingest sub-parts remain a separate ingest-widening tranche.
+
 ## 1.79.0 — additive property column-level access-boundary on the GOVERNANCE fold (OE-4 capstone) — 2026-06-14
 
 Additive MINOR (rule 08 — one additive optional field on `SicAccessBoundary` + one additive sub-interface; no removals, no field edits, no breaking change).

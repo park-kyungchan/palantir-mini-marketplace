@@ -874,10 +874,47 @@ describe("E2E Stage D — governed write-path (elevate + gate)", () => {
     }
   });
 
-  // ---- LATER TRANCHE (flip to live at the named step) ----
+  // ---- OE-11 / Step 13: the cardinality piece of D-ingest goes LIVE ----
+
+  test("D-ingest-cardinality (OE-11 / Step 13): the scenario's many-to-one belongsToRubric cardinality is a first-class Cardinality primitive that SURVIVES the SOURCE jsonl ingest into the registered linkTypes declaration", async () => {
+    const P = setupProjectRoot("d-ingest-card");
+    const fixture = writeSourceFixture();
+    // AUTHORIZED elevate (same governed path as D1a): SOURCE jsonl → ingest →
+    // register, with a genuinely-graded session so the gate authorizes.
+    seedGradedCurrentSession(P);
+
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "elevate",
+      project: P,
+      sourceJsonlPath: fixture,
+      semanticIntentContractStatus: "approved",
+      digitalTwinChangeContractStatus: "approved",
+      readyForDigitalTwin: true,
+    });
+    expect(result.elevate?.phase).toBe("elevated");
+    expect(result.elevate?.register?.committed).toBe(true);
+
+    // Read the registered belongsToRubric LinkType back through getOntology and
+    // assert its FOLD-1 declaration carries the first-class Cardinality primitive
+    // ("one"|"many"). The EDGE candidate carried NO explicit cardinality in the
+    // SOURCE, so the ingest derived the canonical many-to-one (FK-on-the-many-side)
+    // shape — many Submissions → one Rubric — and it SURVIVED into the declaration.
+    const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
+    const linkRid = projectPrimitiveRid(P, "link-type", "belongsToRubric");
+    const link = reg.linkTypes.find((e) => e.rid === linkRid);
+    expect(link).toBeDefined();
+    const decl = link!.declaration as
+      | { srcCardinality?: unknown; dstCardinality?: unknown }
+      | undefined;
+    // The Cardinality primitive survived ingest: many (src=Submission) → one (dst=Rubric).
+    expect(decl?.srcCardinality).toBe("many");
+    expect(decl?.dstCardinality).toBe("one");
+  });
+
+  // ---- LATER TRANCHE (ingest-widening; the remaining D-ingest sub-parts) ----
 
   test.todo(
-    "D-ingest (LATER — ingest-widening; cardinality flips at OE-11 / Step 13): submissionCriteria + many-to-one cardinality + property access-security survive the SOURCE jsonl ingest into the registered declarations",
+    "D-ingest (LATER — ingest-widening tranche): submissionCriteria + property access-security survive the SOURCE jsonl ingest into the registered declarations (the cardinality sub-part flipped LIVE at OE-11 / Step 13 above; these two await source-ingest widening per E2E-DESIGN §4)",
     () => {},
   );
 });

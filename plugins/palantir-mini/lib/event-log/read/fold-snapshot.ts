@@ -94,10 +94,19 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
         for (const edit of appliedEdits) {
           if (edit.kind === "link") {
             // FOLD-1: carry the link's meaning (its endpoints + name) as the
-            // declaration so the fold is meaning-bearing, not a bare rid.
+            // declaration so the fold is meaning-bearing, not a bare rid. OE-11:
+            // the first-class `Cardinality` ("one"|"many") survives here too when
+            // the register seam threaded it — present-only so legacy folds are
+            // byte-identical.
             reg.linkTypes.push({
               rid: edit.rid,
-              declaration: { srcRid: edit.srcRid, dstRid: edit.dstRid, linkName: edit.linkName },
+              declaration: {
+                srcRid: edit.srcRid,
+                dstRid: edit.dstRid,
+                linkName: edit.linkName,
+                ...(edit.srcCardinality !== undefined ? { srcCardinality: edit.srcCardinality } : {}),
+                ...(edit.dstCardinality !== undefined ? { dstCardinality: edit.dstCardinality } : {}),
+              },
             });
           } else if (edit.kind === "object") {
             // FOLD-1: project the committed declaration (the edit's properties
