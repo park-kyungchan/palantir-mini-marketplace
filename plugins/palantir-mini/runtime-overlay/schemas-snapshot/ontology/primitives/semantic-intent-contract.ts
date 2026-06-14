@@ -22,6 +22,15 @@
  * producer emits `facet`, `isSemanticIntentContract` does not validate axis
  * internals — zero behavior change. DP-1..DP-4 fill their own variant interiors.
  *
+ * v1.89.0 — additive optional `SicAccessBoundary.propertyAccessBoundaries` (+ the
+ * `SicPropertyAccessBoundary` sub-interface). The OE-4 govern-fold CAPSTONE: a
+ * property-level access-security boundary (`propertyName` + `readableBy`) folded
+ * onto the GOVERNANCE access boundary — the SIC-layer projection of the descriptive
+ * column-level `CLSPolicy`/`PropertySecurityPolicy` (`ontology/types/types-security.ts`).
+ * Lets the DTC/register layer REQUIRE a property access-boundary for a sensitive
+ * property (fail-closed, not advisory). Additive + backward-compatible: optional,
+ * absent on every legacy producer; `isSemanticIntentContract` does not validate it.
+ *
  * @owner palantirkc-ontology
  * @purpose User-approved semantic routing boundary for ontology-affecting work
  */
@@ -246,8 +255,32 @@ export interface SicAccessBoundary {
   readonly accessibleSurfaces: readonly ("data" | "logic" | "action" | "tools" | "memory" | "logs")[];
   /** Per-tool invoking-actor scope inherited from LOGIC (DP-2); resolved=false ⇒ confirmation debt, never a grant. */
   readonly toolScopes: readonly { readonly toolName: string; readonly actorScope: string; readonly resolved: boolean }[];
+  /**
+   * OE-4 govern-fold CAPSTONE: per-property column-level access-security
+   * (the SIC-layer projection of the descriptive `CLSPolicy`/`PropertySecurityPolicy`).
+   * The DTC/register layer REQUIRES an entry here for a sensitive property
+   * (fail-closed, not advisory) — a GOVERNANCE access boundary missing the property
+   * access-boundary for that property REFUSES the DTC/register. Optional + additive:
+   * absent on every legacy producer; empty when the session carries no property
+   * access-security signal (the ingest-widening tranche fills it from source).
+   */
+  readonly propertyAccessBoundaries?: readonly SicPropertyAccessBoundary[];
   /** Default-deny: surfaces NOT in accessibleSurfaces are denied. */
   readonly failClosed: true;
+}
+
+/**
+ * OE-4 govern-fold (capstone): one property's column-level access-security boundary
+ * folded onto the GOVERNANCE access boundary — who may READ a sensitive property.
+ * Projects the descriptive `CLSPolicy.readableBy` (`ontology/types/types-security.ts`)
+ * into the GOVERNANCE decision so Security lives, fail-closed, INSIDE GOVERNANCE
+ * (NOT a 10th axis, NOT a `DigitalTwinDecisionDomain` member).
+ */
+export interface SicPropertyAccessBoundary {
+  /** plainName of the property this column-level boundary guards (e.g. "score"). */
+  readonly propertyName: string;
+  /** The roles/principals permitted to READ the property; an empty list is fail-closed (no reader). */
+  readonly readableBy: readonly string[];
 }
 
 /**

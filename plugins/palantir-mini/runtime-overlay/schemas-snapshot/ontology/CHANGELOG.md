@@ -1,5 +1,13 @@
 # Ontology Schema Changelog
 
+## 1.79.0 — additive property column-level access-boundary on the GOVERNANCE fold (OE-4 capstone) — 2026-06-14
+
+Additive MINOR (rule 08 — one additive optional field on `SicAccessBoundary` + one additive sub-interface; no removals, no field edits, no breaking change).
+
+### Added
+
+- `primitives/semantic-intent-contract.ts` — `SicAccessBoundary` gains an additive optional `propertyAccessBoundaries?: readonly SicPropertyAccessBoundary[]` (before `failClosed`) plus the new `SicPropertyAccessBoundary` sub-interface (`{ propertyName: string; readableBy: readonly string[] }`). This is the OE-4 govern-fold CAPSTONE: a per-property column-level access-security boundary folded onto the GOVERNANCE access boundary — the SIC-layer projection of the descriptive column-level `CLSPolicy`/`PropertySecurityPolicy` in `ontology/types/types-security.ts`. It lets the DTC/register layer REQUIRE a property access-boundary for a sensitive property (e.g. `score`) fail-closed (not advisory): a GOVERNANCE access boundary missing the property access-boundary for that property — or carrying an empty `readableBy` (no reader = fail-closed, never a default grant) — REFUSES the DTC/register. Security stays the GOVERNANCE access-control facet — NO 10th axis, NO `SECURITY` `DigitalTwinDecisionDomain` member (the union remains EXACTLY `DATA|LOGIC|ACTION|TECHNOLOGY|GOVERNANCE`). Additive + backward-compatible: the field is optional and absent on every legacy producer (the session-derivation `buildAccessBoundaryFacet` emits no property boundaries until the ingest-widening tranche), and `isSemanticIntentContract` does not validate axis internals — guard-conformance stays green. Paired non-snapshot edits: `lib/lead-intent/contracts.ts` adds the `requiresPropertyAccessBoundary` fail-closed predicate (sibling to `canApproveRequiredUserDecision`) and `lib/context-engineering/govern-fold-access-boundary.ts` the DTC/register-layer enforcement helper; `lib/context-engineering/context-plan-builder.ts` removes the dead V3 SECURITY lane's `"SECURITY" as DigitalTwinDecisionDomain` cast (folding its advisory-only decision onto the GOVERNANCE domain; the dead lane stays built/flagged, not deleted).
+
 ## 1.78.0 — self-Ontology Hook wiring fact: prompt-dtc-enforcement-gate wired LIVE (OE-1 / T3) — 2026-06-14
 
 Additive MINOR (rule 08 — instance-data fact change on the self-Ontology `Hook` ObjectType seed; no field/type/export/guard added, removed, or edited; no consumer breaks).

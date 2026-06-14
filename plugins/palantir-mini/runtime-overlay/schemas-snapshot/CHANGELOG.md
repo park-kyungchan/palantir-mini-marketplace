@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.89.0 — 2026-06-14 (property column-level access-boundary on the GOVERNANCE fold — OE-4 capstone)
+
+Additive MINOR (rule 08 — one additive optional field on `SicAccessBoundary` + one additive sub-interface on an existing primitive; no removals, no field edits, no breaking change). See `ontology/CHANGELOG.md` v1.79.0 for the canonical ontology-axis entry.
+
+### Added — property access-security fold (`ontology/primitives/semantic-intent-contract.ts`)
+
+- `SicAccessBoundary` gains an additive optional `propertyAccessBoundaries?: readonly SicPropertyAccessBoundary[]` plus the new `SicPropertyAccessBoundary` sub-interface (`{ propertyName; readableBy }`). OE-4 (the govern-fold CAPSTONE) folds a per-property column-level access-security boundary onto the GOVERNANCE access boundary (the SIC-layer projection of the descriptive `CLSPolicy`/`PropertySecurityPolicy`), so the DTC/register layer can REQUIRE a property access-boundary for a sensitive property (`score`) fail-closed — a GOVERNANCE access boundary missing it (or with an empty `readableBy`) REFUSES the DTC/register. Security stays the GOVERNANCE access-control facet: the `DigitalTwinDecisionDomain` union remains EXACTLY 5 (`DATA|LOGIC|ACTION|TECHNOLOGY|GOVERNANCE`), NO `SECURITY` member, NO 10th axis. Additive + backward-compatible (optional field, absent on all legacy producers; not validated by `isSemanticIntentContract`). Paired non-snapshot edits land the fail-closed predicate (`requiresPropertyAccessBoundary` in `lib/lead-intent/contracts.ts`), the DTC/register enforcement helper (`lib/context-engineering/govern-fold-access-boundary.ts`), and the removal of the dead V3 SECURITY lane's `"SECURITY" as DigitalTwinDecisionDomain` cast (`context-plan-builder.ts` — folded onto the GOVERNANCE domain; the dead lane stays built/flagged, not deleted).
+
 ## v1.88.0 — 2026-06-14 (self-Ontology Hook wiring fact: prompt-dtc-enforcement-gate wired LIVE — OE-1 / T3)
 
 Additive MINOR (rule 08 — instance-data fact change on the self-Ontology `Hook` ObjectType seed: ONE `HOOK_INSTANCES` entry flips `orphanInRegistry` `true`→`false`; no ObjectType/property/field/export/guard is added, removed, or edited, so no consumer breaks). See `ontology/CHANGELOG.md` v1.78.0 for the canonical ontology-axis entry.

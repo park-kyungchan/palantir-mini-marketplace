@@ -33,6 +33,7 @@ import type {
   SemanticIntentAxes,
   SemanticIntentContract as PrimitiveSemanticIntentContract,
   SicAccessBoundary,
+  SicPropertyAccessBoundary,
 } from "#schemas/ontology/primitives/semantic-intent-contract";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import type {
@@ -260,6 +261,9 @@ export interface DigitalTwinRequiredUserDecision {
    * NOT a 10th axis and NOT a `DigitalTwinDecisionDomain` member). Present only on
    * the GOVERNANCE decision; sourced from the SIC's GOVERNANCE `access-boundary`
    * facet. Its approval is fail-closed — see {@link canApproveRequiredUserDecision}.
+   * OE-4 (capstone) adds the column-level `propertyAccessBoundaries` facet shape
+   * onto this same `accessBoundary`; the DTC/register layer REQUIRES a property
+   * access-boundary for a sensitive property — see {@link requiresPropertyAccessBoundary}.
    */
   accessBoundary?: SicAccessBoundary;
 }
@@ -283,6 +287,30 @@ export function canApproveRequiredUserDecision(
   if (boundary.toolScopes.some((scope) => scope.resolved === false)) return false;
   if (context.ontologyAffecting && boundary.accessibleSurfaces.length === 0) return false;
   return true;
+}
+
+/**
+ * OE-4 govern-fold CAPSTONE — the DTC/register-layer property access-security gate.
+ * On an ontology-affecting plan, a sensitive property REQUIRES a column-level
+ * access-boundary on the GOVERNANCE decision (`accessBoundary.propertyAccessBoundaries`)
+ * naming who may READ it; a present entry with a NON-EMPTY `readableBy` resolves it.
+ * A MISSING entry — or an entry with an empty `readableBy` (no reader = fail-closed,
+ * never a default-open grant) — means the property access-boundary is ABSENT, and
+ * the DTC/register layer REFUSES (Security is fail-closed INSIDE GOVERNANCE, not
+ * advisory). Returns the property boundary when resolved, else `undefined`.
+ *
+ * @returns the resolved `SicPropertyAccessBoundary`, or `undefined` when the
+ *          required property access-boundary is absent (caller fails closed).
+ */
+export function requiresPropertyAccessBoundary(
+  decision: Pick<DigitalTwinRequiredUserDecision, "accessBoundary">,
+  propertyName: string,
+): SicPropertyAccessBoundary | undefined {
+  const entry = decision.accessBoundary?.propertyAccessBoundaries?.find(
+    (boundary) => boundary.propertyName === propertyName,
+  );
+  if (entry === undefined || entry.readableBy.length === 0) return undefined;
+  return entry;
 }
 
 // DTC mirror = primitive base (contractId / status / semanticIntentContractRef

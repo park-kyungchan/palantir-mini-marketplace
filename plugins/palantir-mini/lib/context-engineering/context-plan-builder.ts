@@ -750,10 +750,15 @@ export function buildContextEngineeringPlanV3(
     axisProjections: v2.axisProjections,
     requiredUserDecisions: [
       ...v2.requiredUserDecisions,
+      // OE-4 govern-fold: the dead V3 SECURITY lane stays BUILT (flagged-not-deleted,
+      // a separate cleanup tranche), but its required-decision no longer smuggles a
+      // `"SECURITY" as DigitalTwinDecisionDomain` cast. Security is the GOVERNANCE
+      // access-control facet (NOT a 6th union member, NOT a 10th axis), so the lane's
+      // advisory-only boundary decision is folded onto the canonical GOVERNANCE domain.
       requiredDecision(
         planId,
-        "SECURITY" as DigitalTwinDecisionDomain,
-        "Approve SECURITY advisory-only boundary",
+        "GOVERNANCE",
+        "Approve SECURITY advisory-only boundary (V3 lane — folded into GOVERNANCE)",
         securityEvidenceRefs,
       ),
     ],

@@ -234,9 +234,16 @@ describe("draftDtcFromContextPlan", () => {
     expect(result.digitalTwinChangeContract.structuredBoundary?.changeBoundary.evidenceRefs).toContain(
       "INDEX.md",
     );
-    expect(result.digitalTwinChangeContract.requiredUserDecisions?.map((decision) => String(decision.domain))).toContain(
-      "SECURITY",
+    // OE-4 govern-fold: the dead V3 SECURITY lane stays BUILT (flagged-not-deleted)
+    // for the changeBoundary/risk/lane evidence below, but its required-decision no
+    // longer smuggles a `"SECURITY" as DigitalTwinDecisionDomain` cast — Security is
+    // the GOVERNANCE access-control facet, so the folded advisory-only boundary
+    // decision is on the canonical GOVERNANCE domain (the union stays EXACTLY 5).
+    const v3DtcDomains = result.digitalTwinChangeContract.requiredUserDecisions?.map((decision) =>
+      String(decision.domain),
     );
+    expect(v3DtcDomains).not.toContain("SECURITY");
+    expect(v3DtcDomains).toContain("GOVERNANCE");
     expect(result.digitalTwinChangeContract.risks.map((risk) => risk.riskId)).toContain(
       "context-plan-v3.security-lane-advisory-only",
     );

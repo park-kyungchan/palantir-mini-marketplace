@@ -225,7 +225,17 @@ describe("buildContextEngineeringPlan", () => {
     expect(plan.lanes.every((lane) => lane.mutationAuthorizedFromCard === false)).toBe(true);
     expect(plan.reviewCards.map((card) => card.domain)).toContain("SECURITY");
     expect(plan.reviewCards.every((card) => card.mutationAuthorizedFromCard === false)).toBe(true);
-    expect(plan.requiredUserDecisions.map((decision) => String(decision.domain))).toContain("SECURITY");
+    // OE-4 govern-fold: the dead V3 SECURITY lane + its review card stay BUILT
+    // (flagged-not-deleted), but its required-decision NO LONGER smuggles a
+    // `"SECURITY" as DigitalTwinDecisionDomain` cast — Security is the GOVERNANCE
+    // access-control facet, so the folded advisory-only boundary decision is on the
+    // canonical GOVERNANCE domain (the `DigitalTwinDecisionDomain` union stays EXACTLY 5).
+    const v3DecisionDomains = plan.requiredUserDecisions.map((decision) => String(decision.domain));
+    expect(v3DecisionDomains).not.toContain("SECURITY");
+    expect(v3DecisionDomains).toContain("GOVERNANCE");
+    expect(new Set(v3DecisionDomains)).toEqual(
+      new Set(["DATA", "LOGIC", "ACTION", "TECHNOLOGY", "GOVERNANCE"]),
+    );
     expect(plan.validationPlan.map((item) => item.validationId)).toContain(
       "context-plan-v3-security-lane",
     );

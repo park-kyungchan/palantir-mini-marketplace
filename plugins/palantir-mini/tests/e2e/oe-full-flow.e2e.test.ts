@@ -16,7 +16,7 @@
 // BASELINE LIVE NOW (Tranche-1 `feat/pm-oe-front-half-elicitation-unify` + descendants):
 //   A1 A2 B1a B1b B2 B3 C1 D1u D1a D2p D2m E1 E2.
 // `test.todo()` at Step 0, flipped later:
-//   C2  (govern-fold access-boundary REQUIRED) — flips at OE-4 / Step 12.
+//   C2  (govern-fold access-boundary REQUIRED) — FLIPPED LIVE at OE-4 / Step 12.
 //   C3  (SUCCESS-EVAL ↔ ACTION enforced cross-axis bind) — FLIPPED LIVE at OE-8 / Step 8.
 //   D-ingest (submissionCriteria + cardinality + property-security survive ingest)
 //        — flips at OE-11 / Step 13 (cardinality) + ingest-widening tranche.
@@ -54,8 +54,13 @@ import {
 import {
   canApproveRequiredUserDecision,
   draftSemanticIntentContract,
+  requiresPropertyAccessBoundary,
 } from "../../lib/lead-intent/contracts";
-import { buildContextEngineeringPlanV2 } from "../../lib/context-engineering/context-plan-builder";
+import {
+  buildContextEngineeringPlanV2,
+  buildContextEngineeringPlanV3,
+} from "../../lib/context-engineering/context-plan-builder";
+import { assertGovernFoldPropertyAccessBoundary } from "../../lib/context-engineering/govern-fold-access-boundary";
 import type { SemanticIntentContract } from "../../lib/lead-intent/contracts";
 import type { SicWithFillFields } from "../../lib/semantic-intent/sic-fill-types";
 import {
@@ -563,10 +568,128 @@ describe("E2E Stage C — DTC synthesis (per-primitive build sequence)", () => {
 
   // ---- LATER TRANCHE (flip to live at the named step) ----
 
-  test.todo(
-    "C2 (LATER — govern-fold, flips at OE-4 / Step 12): property accessBoundary for 'score' is REQUIRED on the GOVERNANCE axis (fail-closed, not advisory); the V3 SECURITY cast is gone",
-    () => {},
-  );
+  // C2 — LIVE as of OE-4 / Step 12 (govern-fold CAPSTONE). At the DTC/register layer,
+  // a property column-level access-boundary for `score` is REQUIRED on the GOVERNANCE
+  // axis and FAIL-CLOSED (not advisory): a GOVERNANCE access boundary MISSING the
+  // property access-boundary for `score` REFUSES the DTC/register; the dead V3 SECURITY
+  // lane's `"SECURITY" as DigitalTwinDecisionDomain` cast is GONE; and the structural
+  // govern-fold guard (exactly 5 decision domains, access-security on GOVERNANCE only)
+  // re-asserts at the live V2 plan / register layer.
+  test("C2 (OE-4 / Step 12): property accessBoundary for 'score' is REQUIRED on the GOVERNANCE axis (fail-closed, not advisory) at the DTC/register layer; a missing one REFUSES; the V3 SECURITY cast is gone; the union stays EXACTLY 5", () => {
+    // A GOVERNANCE-signal session (Teacher role) yields a GOVERNANCE access-boundary
+    // facet, but a bare session carries NO property column-level access-security — so
+    // `propertyAccessBoundaries` is absent (the ingest-widening tranche fills it from
+    // source). That ABSENCE is exactly the fail-closed negative case.
+    const governanceSignalSession: FDEOntologyEngineeringSession = {
+      ...SCENARIO_SIGNAL_SESSION,
+      roleCandidates: [
+        {
+          candidateId: "role:teacher",
+          plainName: "Teacher",
+          principalKind: "agent",
+          permissions: ["finalize-score"],
+          evidenceRefs: ["evidence://teacher-role"],
+        },
+      ],
+    };
+    const draftWithoutPropertyBoundary =
+      createSemanticIntentContractDraftFromFDEOntologySession(governanceSignalSession);
+
+    // (1) FAIL-CLOSED: on an ontology-affecting plan, the sensitive property `score`
+    //     REQUIRES a property access-boundary; the bare GOVERNANCE access-boundary
+    //     lacks it ⇒ a `missing-property-access-boundary` violation (REFUSE), not advice.
+    const refused = assertGovernFoldPropertyAccessBoundary(draftWithoutPropertyBoundary, {
+      sensitiveProperties: ["score"],
+      ontologyAffecting: true,
+    });
+    expect(refused.violations.length).toBe(1);
+    expect(refused.violations[0]!.kind).toBe("missing-property-access-boundary");
+    expect(refused.violations[0]!.propertyName).toBe("score");
+    expect(refused.resolvedPropertyAccessBoundaries).toEqual([]);
+
+    // (2) RESOLVED: the GOVERNANCE turn confirms a column-level access-boundary —
+    //     `score` is readable only by the owning student + assigned teacher (the
+    //     scenario's "본인 학생과 담당 교사만 읽기"). With it present + non-empty
+    //     `readableBy`, the fold resolves and the DTC/register may proceed.
+    const governanceFacet = draftWithoutPropertyBoundary.axes!.governance.facet;
+    if (!governanceFacet || governanceFacet.kind !== "access-boundary") {
+      throw new Error("expected an access-boundary facet");
+    }
+    const draftWithPropertyBoundary: SemanticIntentContract = {
+      ...(draftWithoutPropertyBoundary as SemanticIntentContract),
+      axes: {
+        ...draftWithoutPropertyBoundary.axes!,
+        governance: {
+          ...draftWithoutPropertyBoundary.axes!.governance,
+          facet: {
+            kind: "access-boundary",
+            accessBoundary: {
+              ...governanceFacet.accessBoundary,
+              propertyAccessBoundaries: [
+                { propertyName: "score", readableBy: ["owning-student", "assigned-teacher"] },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const resolved = assertGovernFoldPropertyAccessBoundary(draftWithPropertyBoundary, {
+      sensitiveProperties: ["score"],
+      ontologyAffecting: true,
+    });
+    expect(resolved.violations).toEqual([]);
+    expect(resolved.resolvedPropertyAccessBoundaries).toEqual([
+      { propertyName: "score", readableBy: ["owning-student", "assigned-teacher"] },
+    ]);
+
+    // (3) NOT advisory — the register-layer predicate on the live V2 GOVERNANCE
+    //     required-decision returns the property boundary only when present + readable.
+    const planWithBoundary = buildContextEngineeringPlanV2({
+      semanticIntentContract: { ...draftWithPropertyBoundary, status: "approved", approvalRef: "user:approved:grading-flow" },
+      fdeSession: governanceSignalSession,
+      projectIndex: { projectRoot: governanceSignalSession.projectRoot, indexRef: "INDEX.md", sourceRefs: ["evidence://session-source"] },
+    });
+    const govWithBoundary = planWithBoundary.requiredUserDecisions.find((d) => d.domain === "GOVERNANCE")!;
+    expect(requiresPropertyAccessBoundary(govWithBoundary, "score")).toBeDefined();
+
+    const planWithoutBoundary = buildContextEngineeringPlanV2({
+      semanticIntentContract: { ...draftWithoutPropertyBoundary, status: "approved", approvalRef: "user:approved:grading-flow" },
+      fdeSession: governanceSignalSession,
+      projectIndex: { projectRoot: governanceSignalSession.projectRoot, indexRef: "INDEX.md", sourceRefs: ["evidence://session-source"] },
+    });
+    const govWithoutBoundary = planWithoutBoundary.requiredUserDecisions.find((d) => d.domain === "GOVERNANCE")!;
+    // Fail-closed at the register layer: no property boundary ⇒ predicate refuses (undefined).
+    expect(requiresPropertyAccessBoundary(govWithoutBoundary, "score")).toBeUndefined();
+
+    // (4) GOVERN-FOLD structural guard re-asserts at the live V2 plan / register layer:
+    //     EXACTLY 5 decision domains, access-security on the GOVERNANCE decision ONLY
+    //     (no SECURITY member, no 10th axis).
+    const domains = planWithBoundary.requiredUserDecisions.map((d) => d.domain);
+    expect(domains).toEqual(["DATA", "LOGIC", "ACTION", "TECHNOLOGY", "GOVERNANCE"]);
+    expect(domains).not.toContain("SECURITY");
+    expect(
+      planWithBoundary.requiredUserDecisions
+        .filter((d) => d.accessBoundary !== undefined)
+        .map((d) => d.domain),
+    ).toEqual(["GOVERNANCE"]);
+
+    // (5) The dead V3 SECURITY lane stays BUILT (flagged-not-deleted) but its
+    //     required-decision NO LONGER smuggles a `"SECURITY" as DigitalTwinDecisionDomain`
+    //     cast — every V3 required-decision domain is a canonical union member, and the
+    //     folded advisory-only boundary lives on the GOVERNANCE domain.
+    const v3Plan = buildContextEngineeringPlanV3({
+      semanticIntentContract: { ...draftWithPropertyBoundary, status: "approved", approvalRef: "user:approved:grading-flow" },
+      fdeSession: governanceSignalSession,
+      projectIndex: { projectRoot: governanceSignalSession.projectRoot, indexRef: "INDEX.md", sourceRefs: ["evidence://session-source"] },
+    });
+    const v3Domains = v3Plan.requiredUserDecisions.map((d) => d.domain);
+    expect(v3Domains).not.toContain("SECURITY");
+    expect(new Set(v3Domains)).toEqual(
+      new Set(["DATA", "LOGIC", "ACTION", "TECHNOLOGY", "GOVERNANCE"]),
+    );
+    // The V3 SECURITY lane itself is still present (flagged, not deleted).
+    expect(v3Plan.security).toBeDefined();
+  });
 
   // C3 — LIVE as of OE-8 / Step 8. SUCCESS-EVAL binds to ACTION submission criteria as
   // an ENFORCED cross-axis relation (no longer an elicitation-only proposal): the bound
