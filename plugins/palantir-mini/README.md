@@ -1,12 +1,12 @@
 # palantir-mini
 
-> Cross-project Ontology-First control-plane plugin packaged for the Codex native runtime.
+> Cross-project Ontology-First control-plane plugin — runtime-neutral, packaged for native LLM runtimes (Codex and Claude are active adapters; Gemini contract-only). One governed pm meaning; each runtime is a swappable adapter over a generated, governed binding.
 > Current release: **v6.79.0** — FDE turn quality, structured DTC surfaces, and image-teacher-qa retirement. The control plane now documents the PR-B through PR-J closeout surface: Lead orchestration, ContextEngineeringPlanV3 advisory lanes, MCP capability metadata, DTC surface pre-mutation checks, WorkContract router bindings, agent output contracts, harness ratchet release gates, Codex runtime-gap docs, and BackPropagation ratchet proposals.
 > Release inventory is checked by `pm_plugin_self_check mode=release`; do not copy volatile MCP/hook/skill/agent counts into this header.
 
 ## What this is
 
-palantir-mini is the **Ontology-First Brain for multi-harness agent swarms** — a control plane that grounds Codex-native plugin workflows and compatible task-specific harnesses in:
+palantir-mini is the **Ontology-First Brain for multi-harness agent swarms** — a control plane that grounds runtime-native plugin workflows (Codex and Claude adapters) and compatible task-specific harnesses in:
 - Append-only `events.jsonl` lineage (rule 10)
 - `~/.claude/schemas/` ontology (rule 08)
 - 5-dimensional Decision Lineage (when / atopWhich / throughWhich / byWhom / withWhat)
@@ -18,9 +18,9 @@ palantir-mini is **not itself a harness species** — it dispatches to and audit
 
 ## Plugin Source Authority (SSoT)
 
-The canonical local source root is `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/`, backed by the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. Runtime plugin caches are install payloads, not semantic SSoT. Runtime-neutral ownership boundaries remain described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`; current local install support is Codex-only, and Codex-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and capability facts belong under `~/.codex/**`. Machine-readable authority marker: `.ssot-authority.json`. Human-readable companion: `SSOT-AUTHORITY.md`.
+The canonical local source root is `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/`, backed by the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. Runtime plugin caches are install payloads, not semantic SSoT. Runtime-neutral ownership boundaries remain described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`; current local install support covers Codex and Claude (both active adapters; Gemini contract-only), and each adapter's runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and capability facts belong under its own runtime home (`~/.codex/**` for Codex, `~/.claude/**` for Claude). Machine-readable authority marker: `.ssot-authority.json`. Human-readable companion: `SSOT-AUTHORITY.md`.
 
-`docs/RUNTIME_LAYER_BOUNDARY.md` is the mandatory operator checklist for palantir-mini self-improvement. It separates the LLM/provider layer, Codex-native runtime adapter layer, runtime-neutral local source checkout, upstream GitHub marketplace source, and installed cache payloads. A palantir-mini implementation plan must name those layers before editing.
+`docs/RUNTIME_LAYER_BOUNDARY.md` is the mandatory operator checklist for palantir-mini self-improvement. It separates the LLM/provider layer, the per-runtime adapter layer (Codex and Claude active; Gemini contract-only), runtime-neutral local source checkout, upstream GitHub marketplace source, and installed cache payloads. A palantir-mini implementation plan must name those layers before editing.
 
 `docs/PALANTIR_MINI_USER_REQUIREMENT_PROMPT_TEMPLATE.md` is the sole pasteable first-prompt template for users who want an LLM to handle a request through palantir-mini without bypassing workflow classification, SSoT grounding, mutation authority checks, runtime-gap disclosure, and plain-language explanation. It also embeds the user-visible response requirements, so there is no separate answer-template document.
 

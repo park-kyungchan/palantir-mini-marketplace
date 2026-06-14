@@ -236,6 +236,32 @@ describe("pm_plugin_self_check", () => {
     expect(deriveOverall(["fail", "fail", "fail", "fail", "fail"])).toBe("fail");
   });
 
+  test("7b. result carries in-band runtimeIdentity self-report (version matches running package.json)", async () => {
+    const eventsDir = makeTmpDir();
+    process.env.PALANTIR_MINI_PROJECT = eventsDir;
+    process.env.PALANTIR_MINI_EVENTS_FILE = path.join(eventsDir, "events.jsonl");
+
+    // Import the running package.json dynamically — do NOT hardcode the version
+    // (a sibling task bumps it); the assertion stays correct across bumps.
+    const pkg = (await import("../../../package.json")).default as {
+      name: string;
+      version: string;
+    };
+
+    const result = await pmPluginSelfCheck({});
+
+    expect(result.runtimeIdentity).toBeDefined();
+    expect(result.runtimeIdentity.packageName).toBe(pkg.name);
+    expect(result.runtimeIdentity.version).toBe(pkg.version);
+    expect(typeof result.runtimeIdentity.pluginRoot).toBe("string");
+    expect(result.runtimeIdentity.pluginRoot.length).toBeGreaterThan(0);
+    // gitSha is best-effort: a string in a git checkout, null in an installed cache copy.
+    expect(
+      result.runtimeIdentity.gitSha === null ||
+        typeof result.runtimeIdentity.gitSha === "string",
+    ).toBe(true);
+  });
+
   test("8. public-mcp mode separates handler inventory from public MCP registration", async () => {
     const eventsDir = makeTmpDir();
     process.env.PALANTIR_MINI_PROJECT = eventsDir;

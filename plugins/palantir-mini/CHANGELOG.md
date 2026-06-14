@@ -7,6 +7,19 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.13.0] - 2026-06-15 — feat: pm_plugin_self_check runtimeIdentity (in-band running-version oracle) + RUNTIME_LAYER_BOUNDARY directory-source correction
+
+### Added
+- feat(ontology-staleness): READ-ONLY ontology staleness detector (dynamic-ontology increment 1) — `lib/event-log/ontology-staleness.ts` `detectOntologyStaleness({ project, headSha })`. Implements G2 §4 drift signal #1 (`atopWhich` vs HEAD) as a pure read-side fold that JOINS data pm already stores (the committing `edit_committed` event's `atopWhich` × its `appliedEdits[].rid` × the declaration's `backingSourceRef`) — NO field added to the persisted event log, NO change to the snapshot bucket-entry shape, NO change to any governance/commit/elevate path. Strictly additive + read-only: it DETECTS only, emits NO re-elevation proposal, and never enters the DTC/approval gate. Every result is tagged `comparator: "raw-sha"` with a `noiseWarning` because raw-SHA staleness fires on benign commits (DESIGN OPEN #1); the structural-fingerprint comparator and the proposal lane are the next increment. New test `tests/event-log/ontology-staleness.test.ts` validates the 7.13.0 case (adding `runtimeIdentity` to `pm_plugin_self_check`'s OUTPUT yields ZERO new staleness — output shape is registered nowhere) + the fail-safe indeterminate path.
+
+- feat(self-check): `pm_plugin_self_check` now returns `runtimeIdentity { packageName, version, pluginRoot, gitSha }` — an in-band one-call answer to "what pm version is running?", closing the directory-source staleness-inference trap. Running version = the running copy's own `package.json` (authoritative); `gitSha` is best-effort and `null` when run from an installed cache copy.
+
+### Changed
+- docs(RUNTIME_LAYER_BOUNDARY): corrected the directory-source nuance — a "source: directory" marketplace is COPIED to a versioned cache; the running-version oracle is `installed_plugins.json` (or `runtimeIdentity`), and the SOURCE working tree may be AHEAD (drift) after an un-synced edit.
+- docs: runtime-agnostic reframing — pm is runtime-neutral; Claude + Codex are active adapters (Gemini contract-only); removed stale Codex-only/Claude-removed framing.
+
+Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.12.0 → 7.13.0.
+
 ## [7.12.0] - 2026-06-15 — feat: Improvement #3 — additive, fail-closed acceptance of a verifiable user-approval envelope at the OntologyDtcBuildReadinessGate
 
 ### Added

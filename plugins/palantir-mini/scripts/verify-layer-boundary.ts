@@ -96,6 +96,7 @@ export interface LayerBoundaryContract {
     upstreamMarketplaceSource: string;
     upstreamPluginSource: string;
     codexRuntimeCache: string;
+    claudeRuntimeCache: string;
     runtimeBoundaryContract: string;
     releasePath: string;
   };
@@ -492,6 +493,7 @@ export function validateLayerBoundary(
       "upstreamMarketplaceSource",
       "upstreamPluginSource",
       "codexRuntimeCache",
+      "claudeRuntimeCache",
       "runtimeBoundaryContract",
       "releasePath",
     ]) {

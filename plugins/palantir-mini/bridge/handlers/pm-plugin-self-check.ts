@@ -14,6 +14,9 @@
 //   - rules/07-plugins-and-mcp.md (file-ownership: hook-builder writes handlers/)
 //   - rules/10-events-jsonl.md (5-dim envelope via emit())
 
+import * as fs from "fs";
+import * as path from "path";
+import pkg from "../../package.json";
 import { emit, projectRoot as resolveProjectRoot } from "../../scripts/log";
 import { checkSchemaPin } from "./pm-plugin-self-check/check-schema-pin";
 import { checkCodegenHeaders } from "./pm-plugin-self-check/check-codegen-headers";
@@ -35,10 +38,32 @@ import {
   type PmPluginSelfCheckArgs,
   type PmPluginSelfCheckMode,
   type PmPluginSelfCheckResult,
+  type PmRuntimeIdentity,
 } from "./pm-plugin-self-check/types";
 
 // Backward-compat re-exports
 export type { PmPluginSelfCheckArgs, PmPluginSelfCheckResult } from "./pm-plugin-self-check/types";
+
+/**
+ * fs-only best-effort git HEAD of a checkout (mirrors gitHeadSha in
+ * session_resume.ts). Returns null — never throws — when the path is not a git
+ * checkout (e.g. an installed cache copy of the plugin).
+ */
+function gitHeadSha(root: string): string | null {
+  const gitHead = path.join(root, ".git", "HEAD");
+  if (!fs.existsSync(gitHead)) return null;
+  try {
+    const head = fs.readFileSync(gitHead, "utf8").trim();
+    if (head.startsWith("ref: ")) {
+      const refPath = path.join(root, ".git", head.slice(5));
+      if (fs.existsSync(refPath)) return fs.readFileSync(refPath, "utf8").trim();
+      return head.slice(5);
+    }
+    return head;
+  } catch {
+    return null;
+  }
+}
 
 const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {
   "public-mcp": ["mcp-tools"],
@@ -152,11 +177,21 @@ export async function pmPluginSelfCheck(
   };
   const deletionReadinessResult = checkDeletionReadiness();
 
+  // In-band runtime-identity self-report (additive; always populated regardless
+  // of mode). Answers "what pm version is running?" in ONE tool call.
+  const runtimeIdentity: PmRuntimeIdentity = {
+    packageName: pkg.name,
+    version: pkg.version,
+    pluginRoot: PLUGIN_ROOT,
+    gitSha: gitHeadSha(PLUGIN_ROOT) ?? null,
+  };
+
   // overallStatus: PASS iff none of the active authoritative axes is FAIL (skipped is OK).
   // primitiveSeedAdvisories and consumerPeerDepResult are advisory in release mode:
   // consumer repos can drift independently from this plugin release surface.
   const overallStatus: "pass" | "fail" = activeChecks
     .map((check) => statusFor({
+      runtimeIdentity,
       mode,
       activeChecks,
       skippedChecks: [],
@@ -186,6 +221,7 @@ export async function pmPluginSelfCheck(
   );
 
   const result: PmPluginSelfCheckResult = {
+    runtimeIdentity,
     mode,
     activeChecks,
     skippedChecks: allChecks.filter((check) => !activeChecks.includes(check)),
@@ -215,7 +251,7 @@ export async function pmPluginSelfCheck(
     toolName: "pm_plugin_self_check",
     cwd: project,
     agentName: args.agentName,
-    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} workflowResponseTemplate=${workflowResponseTemplateResult.status} workflowFamilyReleaseGate=${workflowFamilyReleaseGateResult.status} workflowFamilyReleaseFindings=${workflowFamilyReleaseGateResult.findings.length} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length}`,
+    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} workflowResponseTemplate=${workflowResponseTemplateResult.status} workflowFamilyReleaseGate=${workflowFamilyReleaseGateResult.status} workflowFamilyReleaseFindings=${workflowFamilyReleaseGateResult.findings.length} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length} runtimeVersion=${runtimeIdentity.version}`,
     hypothesis:
       "Substrate health aggregation provides a single-call readiness signal before Phase 2 migration steps execute.",
   });

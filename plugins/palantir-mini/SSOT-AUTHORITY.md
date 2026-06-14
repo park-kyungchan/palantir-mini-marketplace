@@ -2,7 +2,7 @@
 
 The canonical palantir-mini source root on this machine is `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/`. Its upstream provenance is the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. The local source root owns workflow semantics, MCP handler source, hook intent, skills, agents, tests, and installable plugin manifests.
 
-Runtime plugin caches are install targets. They must not become semantic forks. Runtime-neutral ownership is described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`. Current local install support is Codex-only; runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong under `~/.codex/**`.
+Runtime plugin caches are install targets. They must not become semantic forks. Runtime-neutral ownership is described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`. Current local install support covers Codex and Claude (both active adapters; Gemini contract-only). Each adapter's runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong under its own runtime home (`~/.codex/**` for Codex, `~/.claude/**` for Claude).
 
 ## Machine-Readable Marker
 
@@ -19,10 +19,11 @@ Runtime plugin caches are install targets. They must not become semantic forks. 
 | Runtime | Consumption method |
 |---------|-------------------|
 | `codex-cli` | Codex plugin marketplace reads `palantir-mini@palantir-mini-marketplace` from the private GitHub marketplace; Codex protocol ownership stays under `~/.codex/**`. |
+| `claude-code` | Claude reads `palantir-mini@palantir-mini-marketplace` from the directory-source marketplace (`~/.claude/plugins/cache`); Claude protocol ownership stays under `~/.claude/**`. |
 
 ## Invariant
 
-> Codex consumes palantir-mini workflow semantics from the private marketplace payload; no runtime-home semantic source forks should be created. Runtime-native wrappers are authority for provider protocol details, but not for durable palantir-mini workflow semantics.
+> Each active runtime (Codex, Claude) consumes palantir-mini workflow semantics from the marketplace payload; no runtime-home semantic source forks should be created. Runtime-native wrappers are authority for provider protocol details, but not for durable palantir-mini workflow semantics.
 
 ## What Is and Is Not an Authority
 
@@ -78,6 +79,7 @@ Authority split:
 
 ## Version History
 
+- v1.7.0 (2026-06-15): Runtime-agnostic correction — Claude is an ACTIVE adapter via the directory-source marketplace install (`~/.claude/plugins/cache`), not a removed/contract-only surface. pm is runtime-NEUTRAL: one governed meaning, consumed by each runtime through its own generated binding. Codex + Claude both active; Gemini stays contract-only / `runtime_gap`. Added a `claude-code` row to the Consumer Runtime Map and generalized the consume invariant + install-support statement to both active adapters. (Does not rewrite the v1.6.1 historical entry, which was true on 2026-05-30.)
 - v1.5.0 (2026-05-25): Relocated canonical source authority to the private GitHub marketplace and demoted runtime caches to install payloads.
 - v1.6.1 (2026-05-30): Removed active Claude/Gemini install/package surfaces from this checkout; kept Codex marketplace installation as the only current local install path.
 - v1.6.0 (2026-05-30): Relocated the local implementation checkout to `/home/palantirkc/palantir-mini-marketplace` and demoted runtime-home marketplace checkouts to removable consumers.

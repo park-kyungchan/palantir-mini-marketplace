@@ -7,6 +7,7 @@
     "upstreamMarketplaceSource": "https://github.com/park-kyungchan/palantir-mini-marketplace",
     "upstreamPluginSource": "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini",
     "codexRuntimeCache": "~/.codex/plugins/cache/palantir-mini-marketplace/**",
+    "claudeRuntimeCache": "~/.claude/plugins/cache/palantir-mini-marketplace/**",
     "runtimeBoundaryContract": "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
     "releasePath": "branch -> pull request -> merge to main -> Codex marketplace refresh/install"
   },
@@ -126,13 +127,16 @@
     "mayAuthorizeProtectedMutation": false,
     "deterministicForGate": false,
     "ownedPaths": [
-      "~/.codex/plugins/cache/palantir-mini-marketplace/**"
+      "~/.codex/plugins/cache/palantir-mini-marketplace/**",
+      "~/.claude/plugins/cache/palantir-mini-marketplace/**"
     ],
     "readOnlyPaths": [
-      "~/.codex/plugins/cache/palantir-mini-marketplace/**"
+      "~/.codex/plugins/cache/palantir-mini-marketplace/**",
+      "~/.claude/plugins/cache/palantir-mini-marketplace/**"
     ],
     "forbiddenPaths": [
-      "~/.codex/plugins/cache/palantir-mini-marketplace/**"
+      "~/.codex/plugins/cache/palantir-mini-marketplace/**",
+      "~/.claude/plugins/cache/palantir-mini-marketplace/**"
     ],
     "allowedActions": [
       "inspect-installed-behavior",
@@ -143,7 +147,7 @@
       "commit-cache-diff",
       "override-source-contract"
     ],
-    "notes": "Installed cache payloads are consumers only and refresh from the marketplace source after merge."
+    "notes": "Installed cache payloads (Codex and Claude marketplace caches alike) are consumers only and refresh from the marketplace source after merge."
   },
   "marketplaceRoot": {
     "role": "marketplace-root",

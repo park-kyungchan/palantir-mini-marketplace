@@ -1,9 +1,15 @@
 # Runtime Layer Boundary
 
-palantir-mini must keep workflow semantics independent from the LLM provider
-that invokes it. In this checkout the only active install target is Codex. Claude
-and Gemini packaging/install surfaces have been removed locally and can be added
-later through their own marketplace paths.
+palantir-mini is runtime-NEUTRAL: it holds ONE governed meaning (its ontology +
+contracts), and each LLM runtime is a swappable adapter that consumes that one
+meaning through a generated, permission-scoped, per-runtime binding — the
+semantics are identical across adapters; an adapter changes only the binding /
+packaging / runtime-API face, never the meaning. In this checkout Codex and
+Claude are both active adapters: Codex installs from the marketplace into
+`~/.codex/plugins/cache`, and Claude installs the same source via a
+directory-source marketplace into `~/.claude/plugins/cache` (harness-upstream
+CLAUDE.md Q2). Gemini packaging/install surface is contract-only (`runtime_gap`
+/ not installed) and can be added later through its own marketplace path.
 
 The machine-readable source for this boundary is
 `contracts/layer-boundary.contract.json`, validated by
@@ -15,11 +21,12 @@ The machine-readable source for this boundary is
 - Runtime-neutral local source checkout: `/home/palantirkc/palantir-mini-marketplace`
 - Upstream source: `https://github.com/park-kyungchan/palantir-mini-marketplace`
 - Plugin source root: `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/`
-- Active local install target: Codex marketplace only
-- Release path: branch -> PR -> merge to `main` -> Codex marketplace refresh/install
+- Active local install targets: Codex marketplace AND Claude directory-source marketplace (Gemini contract-only / not installed)
+- Release path: branch -> PR -> merge to `main` -> marketplace refresh/install on each active adapter (Codex marketplace; Claude directory-source marketplace)
 
 Any implementation plan for palantir-mini self-improvement must name the source
-repo, branch, remote, plugin source root, and Codex install/cache path before
+repo, branch, remote, plugin source root, and each active adapter install/cache
+path (Codex `~/.codex/plugins/cache` and Claude `~/.claude/plugins/cache`) before
 editing.
 
 ## LayerBoundaryV1 Roles
@@ -45,12 +52,36 @@ non-authorizing inputs.
 | Runtime | Native install surface | Runtime-owned state | Cache/install payload rule |
 |---|---|---|---|
 | Codex | local dev: `codex plugin marketplace add /home/palantirkc/palantir-mini-marketplace`; post-merge: `codex plugin marketplace add park-kyungchan/palantir-mini-marketplace --ref main`; then `codex plugin add palantir-mini@palantir-mini-marketplace` | `~/.codex/config.toml`, Codex hooks, MCP exposure, memories, `/plugins`, `/hooks`, `/mcp`, restart/reload state | `~/.codex/plugins/cache/**` is an installed payload; do not edit as semantic authority |
+| Claude | local dev: directory-source marketplace registered in `~/.claude/plugins/known_marketplaces.json` (`source: directory` -> `/home/palantirkc/palantir-mini-marketplace`) -> `palantir-mini@palantir-mini-marketplace` installed under `~/.claude/plugins/cache/palantir-mini-marketplace/palantir-mini/<version>/`; reload via `/plugin update` + `/reload-plugins` (monitors need a full restart) | `~/.claude` settings enable toggle, Claude hooks, MCP exposure, skills, `/plugins`, `/mcp`, `/hooks`, reload state | `~/.claude/plugins/cache/**` is an installed payload; do not edit as semantic authority |
 
-Claude and Gemini runtime install/package paths are intentionally absent from the
+Gemini runtime install/package paths are intentionally absent from the
 current local checkout. Do not keep source-looking Git working copies under
 runtime homes such as `~/.claude/plugins/marketplaces/palantir-mini-marketplace`
 or `~/.codex/.tmp/marketplaces/palantir-mini-marketplace`. Treat the runtime
 home prefix as installation locality, not semantic ownership.
+
+### Directory-source marketplace = copied to a versioned cache
+
+A `source: directory` marketplace is **copied** into a versioned cache, not executed
+in place. The runtime stages distinct per-version copies under
+`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`, and the RUNNING plugin
+executes that **cache copy** — in-place execution applies only to `--plugin-dir` /
+`@skills-dir` dev plugins. To answer "what version runs NOW?" in one read, consult the
+running-version oracle, which is authoritative even with pm OFF:
+`~/.claude/plugins/installed_plugins.json` -> the `palantir-mini@palantir-mini-marketplace`
+entry (`installPath` / `version` / `gitCommitSha`); in-band (pm ON, v7.13.0+),
+`pm_plugin_self_check` returns `runtimeIdentity.version` from the running copy's own
+`package.json`. The **source** (`.claude-plugin/plugin.json` version + `git rev-parse HEAD`)
+may be **ahead** of the cached copy after an un-synced edit, so reading source
+**over-reports** the running version — trust the oracle for what executes, and compare
+to source only to **detect drift**. If installed `gitCommitSha` != source HEAD, the edit
+is not live: re-sync (`/plugin marketplace update` + `/plugin update` with a bumped
+version) then `/reload-plugins`; only monitors need a full restart. harness-upstream
+installs pm into Claude via exactly this directory marketplace (CLAUDE.md Q2), so
+Claude install/package surfaces are ACTIVE — consistent with the Claude row in the
+Native Runtime Consumer table above. Claude is the swappable adapter's generated
+binding/packaging face over the one governed pm meaning; the semantics it consumes
+are identical to Codex's.
 
 ## PR5 Runtime Adapter Contracts
 
@@ -66,8 +97,8 @@ an unsupported runtime active.
 
 | Adapter contract slot | Current support claim | Required evidence before active-runtime claim |
 |---|---|---|
-| `runtime-adapters/codex/contract.json` | Codex is the only active package/install target in this checkout. | Source-complete branch, Codex reinstall/reload/restart, and Codex smoke evidence such as `contracts/runtime-evidence/codex.json` plus targeted tests. |
-| `runtime-adapters/claude/contract.json` | Contract-only `runtime_gap` / unsupported surface. | Native Claude package/install surface plus smoke evidence checked into source authority. |
+| `runtime-adapters/codex/contract.json` | Codex is an active package/install target (adapter-native) in this checkout. | Source-complete branch, Codex reinstall/reload/restart, and Codex smoke evidence such as `contracts/runtime-evidence/codex.json` plus targeted tests. |
+| `runtime-adapters/claude/contract.json` | Active adapter (directory-source marketplace install; `~/.claude/plugins/cache`). Provider-native hook/tool/approval/subagent APIs differ from Codex; the governed pm meaning consumed is identical. | Native Claude package/install surface plus smoke evidence checked into source authority. |
 | `runtime-adapters/gemini/contract.json` | Contract-only `runtime_gap` / unsupported surface. | Native Gemini package/install surface plus smoke evidence checked into source authority. |
 
 Provider identity remains metadata. A per-runtime adapter contract can document
@@ -100,7 +131,7 @@ state exists.
 
 ```text
 LLM/provider metadata
-  -> runtime adapter contract (Codex active; Claude/Gemini unsupported gaps)
+  -> runtime adapter contract (Codex + Claude active; Gemini unsupported gap)
   -> installed palantir-mini payload
   -> deterministic palantir-mini contracts, handlers, validation, lineage
 ```
@@ -116,8 +147,8 @@ Before editing palantir-mini itself, write down:
 
 1. Runtime-neutral local source checkout, GitHub source remote, branch, and plugin root.
 2. Codex marketplace registration and cache paths that must not be edited.
-3. Inactive runtime surfaces that must stay absent in this checkout: Claude plugin packaging and Gemini extension packaging.
-4. Runtime gaps: which hooks, MCP tools, skills, subagents, or reload steps differ natively in Codex.
+3. Inactive runtime surfaces that must stay absent in this checkout: Gemini extension packaging. (Claude plugin packaging is ACTIVE via the directory-source marketplace.)
+4. Runtime gaps / adapter-face differences: which hooks, MCP tools, skills, subagents, or reload steps differ natively per adapter (Codex vs Claude), and which surfaces remain absent under Gemini.
 5. Deterministic plugin-layer invariant: which behavior must remain identical regardless of LLM provider.
 
 If a plan does not separate those items, stop and fix the plan before

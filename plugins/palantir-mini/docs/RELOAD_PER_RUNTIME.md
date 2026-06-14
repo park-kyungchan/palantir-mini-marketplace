@@ -1,10 +1,12 @@
-# RELOAD_PER_RUNTIME.md — Codex Reload Requirements
+# RELOAD_PER_RUNTIME.md — Per-Adapter Reload Requirements (Codex + Claude)
 
-> Current local install scope: Codex only. Claude and Gemini install/package
-> surfaces are intentionally absent from this checkout and can be installed later
-> through their own marketplace paths.
+> Current local install scope: Codex AND Claude (both active adapters consuming
+> the one governed pm meaning via their own generated binding/packaging face).
+> Gemini install/package surface is intentionally absent from this checkout
+> (contract-only / `runtime_gap`) and can be installed later through its own
+> marketplace path.
 >
-> Last audited: 2026-05-30.
+> Last audited: 2026-06-15 (Claude-active agnostic correction; Codex body 2026-05-30).
 
 ## Source vs Runtime Legend
 
@@ -12,7 +14,7 @@
 - Upstream source of truth: `https://github.com/park-kyungchan/palantir-mini-marketplace`.
 - Codex marketplace registration should point at `/home/palantirkc/palantir-mini-marketplace` for local development.
 - Installed payloads such as `~/.codex/plugins/cache/**` are runtime consumers and must not be edited as semantic authority.
-- Claude/Gemini runtime install paths are not active in this checkout.
+- Claude installs via the directory-source marketplace (`~/.claude/plugins/cache`) and is active in this checkout. Gemini runtime install path is not active (contract-only / `runtime_gap`).
 
 ## PR5 Runtime Adapter Contract Scope
 
@@ -22,12 +24,15 @@ PR5 per-runtime source contracts live at
 `runtime-adapters/gemini/contract.json`. Those paths are source contracts, not
 runtime reload commands or proof of native support.
 
-Codex is the only active package/install target. Source-complete is not
-active-runtime-complete: Codex observes runtime-surface changes only after
-marketplace refresh or reinstall, process restart, and targeted smoke evidence.
-Claude and Gemini remain contract-only `runtime_gap` / unsupported surfaces until
-native package/install surfaces and smoke evidence exist. Do not add Claude or
-Gemini reload command sections without that evidence.
+Codex and Claude are both active package/install targets. Source-complete is not
+active-runtime-complete: each adapter observes runtime-surface changes only after
+its own marketplace refresh/reinstall, process or session reload, and targeted
+smoke evidence (Codex: full process restart; Claude: `/plugin update` +
+`/reload-plugins`, with monitors needing a full restart).
+Gemini remains a contract-only `runtime_gap` / unsupported surface until a native
+package/install surface and smoke evidence exist; do not add a Gemini reload
+command section without that evidence. Claude is active: add and maintain its
+reload section (directory-source marketplace update + `/reload-plugins`).
 
 ## What triggers a reload requirement
 
