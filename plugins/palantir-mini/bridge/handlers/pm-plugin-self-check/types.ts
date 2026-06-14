@@ -22,6 +22,18 @@ export type PmPluginSelfCheckMode =
 
 export type PmPluginSelfCheckStatus = "pass" | "fail" | "skipped";
 
+/**
+ * In-band runtime-identity self-report (additive identity metadata, NOT a
+ * pass/fail check). Lets "what pm version is running?" be answered by ONE tool
+ * call. Always populated, regardless of mode.
+ */
+export interface PmRuntimeIdentity {
+  packageName: string;   // package.json "name"
+  version: string;       // package.json "version" — AUTHORITATIVE running version (the running copy's own package.json)
+  pluginRoot: string;    // PLUGIN_ROOT — where the running code executes from (cache copy when installed, source when dev)
+  gitSha: string | null; // best-effort git HEAD of pluginRoot; null when pluginRoot is not a git checkout (an installed cache copy)
+}
+
 export interface PmPluginSelfCheckArgs {
   /** Optional: project path for project-specific codegen header verification. Defaults to plugin root. */
   projectPath?: string;
@@ -32,6 +44,12 @@ export interface PmPluginSelfCheckArgs {
 }
 
 export interface PmPluginSelfCheckResult {
+  /**
+   * In-band runtime-identity self-report. Identity metadata only — NOT a
+   * pass/fail check, so it is absent from every mode/check list and does not
+   * influence overallStatus.
+   */
+  runtimeIdentity: PmRuntimeIdentity;
   mode: PmPluginSelfCheckMode;
   activeChecks: string[];
   skippedChecks: string[];

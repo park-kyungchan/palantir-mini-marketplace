@@ -15,7 +15,18 @@ const CODEX_UNMOUNTED_HOOK_EVENTS = [] as const;
 const FORBIDDEN_SOURCE_REFS = [
   "~/.codex/plugins/cache",
   "/home/palantirkc/.codex/plugins/cache",
+  "~/.claude/plugins/cache",
+  "/home/palantirkc/.claude/plugins/cache",
 ] as const;
+
+// Each adapter family is verified against the date it was last empirically checked.
+// Active adapters (codex, claude) carry install + smoke evidence; gemini stays
+// contract-only at its original unsupported verification date.
+const EXPECTED_LAST_VERIFIED: Record<RuntimeId, string> = {
+  codex: "2026-06-05",
+  claude: "2026-06-15",
+  gemini: "2026-05-31",
+};
 
 export interface RuntimeAdapterContractVerification {
   readonly status: "pass" | "fail";
@@ -80,7 +91,7 @@ export function verifyRuntimeAdapterContracts(
     if (contract.unsupportedParityClaimsForbidden !== true) {
       errors.push(`${contract.runtime}: unsupportedParityClaimsForbidden must be true`);
     }
-    const expectedLastVerified = contract.runtime === "codex" ? "2026-06-05" : "2026-05-31";
+    const expectedLastVerified = EXPECTED_LAST_VERIFIED[contract.runtime];
     if (contract.lastVerified !== expectedLastVerified) {
       errors.push(`${contract.runtime}: lastVerified must be ${expectedLastVerified}`);
     }
@@ -131,7 +142,32 @@ export function verifyRuntimeAdapterContracts(
     }
   }
 
-  for (const runtime of ["claude", "gemini"] as const) {
+  const claude = byRuntime.get("claude");
+  if (claude) {
+    if (claude.support !== "adapter-native" || claude.packageSurface !== "claude-plugin") {
+      errors.push("claude: support must be adapter-native with claude-plugin package surface");
+    }
+    if (claude.smokeEvidenceRefs.length === 0) {
+      errors.push("claude: adapter-native support must list smokeEvidenceRefs");
+    }
+    if (claude.manifestRefs.length === 0 || claude.hookRegistryRefs.length === 0) {
+      errors.push("claude: active adapter must list manifestRefs and hookRegistryRefs");
+    }
+    const runtimeEvidence = readJson<{
+      support?: string;
+      unsupportedSurfaceRefs?: readonly string[];
+    }>(join(pluginRoot, "contracts", "runtime-evidence", "claude.json"));
+    if (runtimeEvidence.support !== "adapter-native") {
+      errors.push("claude: runtime evidence support must be adapter-native");
+    }
+    for (const ref of runtimeEvidence.unsupportedSurfaceRefs ?? []) {
+      if (!claude.unsupportedSurfaceRefs.includes(ref)) {
+        errors.push(`claude: missing unsupportedSurfaceRef from runtime evidence (${ref})`);
+      }
+    }
+  }
+
+  for (const runtime of ["gemini"] as const) {
     const contract = byRuntime.get(runtime);
     if (!contract) continue;
     if (contract.support !== "unsupported") {
@@ -148,7 +184,10 @@ export function verifyRuntimeAdapterContracts(
     }
   }
 
-  for (const absentSurface of [".gemini-extension", "lib/gemini", "hooks/claude-hooks.json"]) {
+  // Gemini stays contract-only: its native package surfaces must remain absent.
+  // The Claude hook adapter rides the shared hooks/hooks.json registry, so a
+  // dedicated hooks/claude-hooks.json is intentionally NOT a required surface.
+  for (const absentSurface of [".gemini-extension", "lib/gemini"]) {
     if (existsSync(join(pluginRoot, absentSurface))) {
       errors.push(`${absentSurface}: unsupported runtime package surface must remain absent`);
     }

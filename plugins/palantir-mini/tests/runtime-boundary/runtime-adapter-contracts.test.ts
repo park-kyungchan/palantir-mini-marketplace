@@ -54,19 +54,31 @@ describe("runtime adapter contracts", () => {
     );
   });
 
-  test("Claude and Gemini remain explicit unsupported runtime gaps", () => {
-    for (const runtime of ["claude", "gemini"] as const) {
-      const contract = readContract(runtime);
+  test("Claude is an active adapter bound to the directory-marketplace install", () => {
+    const contract = readContract("claude");
 
-      expect(contract.support).toBe("unsupported");
-      expect(contract.packageSurface).toBe("absent");
-      expect(contract.manifestRefs).toEqual([]);
-      expect(contract.hookRegistryRefs).toEqual([]);
-      expect(contract.adapterRefs).toEqual([]);
-      expect(contract.smokeEvidenceRefs).toEqual([]);
-      expect(contract.runtimeGapRefs.length).toBeGreaterThan(0);
-      expect(contract.unsupportedSurfaceRefs.length).toBeGreaterThan(0);
-    }
+    expect(contract.support).toBe("adapter-native");
+    expect(contract.packageSurface).toBe("claude-plugin");
+    expect(contract.manifestRefs).toContain(".claude-plugin/plugin.json");
+    expect(contract.hookRegistryRefs).toContain("hooks/hooks.json");
+    expect(contract.smokeEvidenceRefs.length).toBeGreaterThan(0);
+    // Active operating adapter only — never marketplace-root release authority.
+    expect(contract.fallbackObligations.join(" ")).toContain(
+      "does not hold marketplace-root deterministic release authority",
+    );
+  });
+
+  test("Gemini remains an explicit unsupported runtime gap", () => {
+    const contract = readContract("gemini");
+
+    expect(contract.support).toBe("unsupported");
+    expect(contract.packageSurface).toBe("absent");
+    expect(contract.manifestRefs).toEqual([]);
+    expect(contract.hookRegistryRefs).toEqual([]);
+    expect(contract.adapterRefs).toEqual([]);
+    expect(contract.smokeEvidenceRefs).toEqual([]);
+    expect(contract.runtimeGapRefs.length).toBeGreaterThan(0);
+    expect(contract.unsupportedSurfaceRefs.length).toBeGreaterThan(0);
   });
 
   test("verification script enforces adapter separation and evidence bounds", () => {

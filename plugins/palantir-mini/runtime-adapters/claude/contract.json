@@ -1,33 +1,61 @@
 {
   "schemaVersion": "palantir-mini/runtime-adapter-contract/v1",
   "runtime": "claude",
-  "support": "unsupported",
+  "support": "adapter-native",
   "providerIdentityAuthority": "metadata-only",
   "sourceAuthority": "plugins/palantir-mini",
-  "packageSurface": "absent",
-  "manifestRefs": [],
-  "hookRegistryRefs": [],
-  "adapterRefs": [],
-  "mcpProfileRefs": [],
-  "skillSurfaceRefs": [],
-  "mountedHookEvents": [],
+  "packageSurface": "claude-plugin",
+  "manifestRefs": [
+    ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    ".mcp.json",
+    "skills/pm-ai-fde-route/SKILL.md"
+  ],
+  "hookRegistryRefs": [
+    "hooks/hooks.json"
+  ],
+  "adapterRefs": [
+    "hooks/hooks.json",
+    ".mcp.json"
+  ],
+  "mcpProfileRefs": [
+    ".mcp.json",
+    "lib/capability-registry/mcp-tool-capability.ts"
+  ],
+  "skillSurfaceRefs": [
+    ".claude-plugin/plugin.json",
+    "skills/pm-ai-fde-route/SKILL.md"
+  ],
+  "mountedHookEvents": [
+    "SessionStart",
+    "PreToolUse",
+    "PostToolUse",
+    "PreCompact",
+    "PostCompact",
+    "UserPromptSubmit",
+    "Stop"
+  ],
   "unmountedHookEvents": [],
   "unsupportedSurfaceRefs": [
-    "claude:palantir-mini-runtime-package-absent",
-    "claude:runtime-adapter-contract-only"
+    "claude:gemini-extension-parity"
   ],
   "runtimeGapRefs": [
-    "claude:install-surface-absent",
-    "claude:hook-registry-absent",
-    "claude:mcp-profile-absent",
-    "claude:skill-surface-absent"
+    "claude:source-complete-is-not-active-runtime-complete",
+    "claude:requires-plugin-reinstall-reload-on-source-change",
+    "claude:directory-marketplace-cache-refreshes-from-source-not-the-reverse"
   ],
   "fallbackObligations": [
-    "Do not claim Claude runtime support until a native package surface, hook registry, MCP exposure, and smoke evidence exist.",
-    "Provider identity remains metadata and must not authorize approvals or mutations."
+    "A source plan or source merge is not live Claude behavior until the directory-marketplace cache is refreshed/reinstalled and the Claude session reloads the plugin.",
+    "Mounted hook, MCP profile, and skill surface claims require smoke evidence from the installed runtime payload.",
+    "Provider identity remains metadata and must not authorize approvals or mutations.",
+    "Claude is an active operating adapter only; it does not hold marketplace-root deterministic release authority and must not rewrite the canonical release path."
   ],
-  "smokeEvidenceRefs": [],
-  "reloadEvidenceRefs": [],
-  "lastVerified": "2026-05-31",
+  "smokeEvidenceRefs": [
+    "tests/runtime-boundary/runtime-adapter-contracts.test.ts"
+  ],
+  "reloadEvidenceRefs": [
+    "docs/RELOAD_PER_RUNTIME.md"
+  ],
+  "lastVerified": "2026-06-15",
   "unsupportedParityClaimsForbidden": true
 }

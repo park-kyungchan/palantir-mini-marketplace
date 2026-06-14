@@ -12,6 +12,7 @@ export const RUNTIME_ADAPTER_PROVIDER_IDENTITY_AUTHORITY =
 export const RUNTIME_ADAPTER_PACKAGE_SURFACES = [
   "absent",
   "codex-plugin",
+  "claude-plugin",
 ] as const;
 
 export type RuntimeAdapterPackageSurface =

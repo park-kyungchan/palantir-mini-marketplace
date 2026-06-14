@@ -67,6 +67,7 @@
         "upstreamMarketplaceSource",
         "upstreamPluginSource",
         "codexRuntimeCache",
+        "claudeRuntimeCache",
         "runtimeBoundaryContract",
         "releasePath"
       ],
@@ -90,6 +91,10 @@
         "codexRuntimeCache": {
           "type": "string",
           "pattern": "^~/.codex/plugins/cache/"
+        },
+        "claudeRuntimeCache": {
+          "type": "string",
+          "pattern": "^~/.claude/plugins/cache/"
         },
         "runtimeBoundaryContract": {
           "type": "string",

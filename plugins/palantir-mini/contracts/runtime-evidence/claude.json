@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "palantir-mini/runtime-evidence/v1",
+  "runtime": "claude",
+  "support": "adapter-native",
+  "sourceAuthority": "plugins/palantir-mini",
+  "evidenceRefs": [
+    ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    ".mcp.json",
+    "hooks/hooks.json",
+    "skills/pm-ai-fde-route/SKILL.md"
+  ],
+  "unsupportedSurfaceRefs": [
+    "claude:gemini-extension-parity"
+  ],
+  "smokeEvidenceRefs": [
+    "tests/runtime-boundary/runtime-adapter-contracts.test.ts"
+  ],
+  "lastVerified": "2026-06-15"
+}
