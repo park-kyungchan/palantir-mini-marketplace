@@ -142,6 +142,10 @@ import {
   advanceNineAxisSicSequence,
   nineAxisSicReadinessIssues,
 } from "../../lib/semantic-intent/nine-axis-sic-fill-sequence";
+import type {
+  SicAxis,
+  SemanticIntentAxes,
+} from "#schemas/ontology/primitives/semantic-intent-contract";
 import {
   nineAxisTurnCard,
   type NineAxisProposedDraft,
@@ -234,6 +238,16 @@ export interface SemanticIntentGateInput {
    * Only meaningful when `turn` is provided. Records source = "user".
    */
   turnUserInput?: string;
+  /**
+   * OE-14 / D1-5 — mark the CURRENT nine-axis turn's axis `not-applicable` via the
+   * MCP gate (previously N/A was unreachable through this turn API — only
+   * `advanceNineAxisSicSequence`'s filled/open states were). When true on the
+   * nine-axis-sic branch, the axis is stamped `status:"not-applicable"` as the USER's
+   * explicit waiver (source = "user", mirroring `answerCard`'s N/A path), so a waived
+   * axis is Q2-confirmable and `isNineAxisSicComplete` can reach true. Ignored on the
+   * intent turn (T0) and on the legacy / context-engineering / fde / dtc branches.
+   */
+  turnNotApplicable?: boolean;
   /**
    * OPTIONAL — fill sequence policy. Absence (default) preserves legacy
    * T0-T7 EIGHT_TURN_FILL_SEQUENCE behavior byte-identically. When set to
@@ -2279,12 +2293,36 @@ export async function semanticIntentGate(
               `nine-axis-sic: turn ${input.turn} out of bounds (max ${seq.length - 1})`,
             );
           }
-          const advanced: SicWithFillFields = advanceNineAxisSicSequence(
-            baseContract,
-            input.turn,
-            input.turnUserInput,
-            undefined,
-          );
+          // OE-14 / D1-5 — N/A reachable through the MCP gate. When the caller marks
+          // the current axis not-applicable, record a USER-sourced fill step (the
+          // explicit waiver) via advanceNineAxisSicSequence("(N/A)") then overwrite the
+          // target axis to status:"not-applicable" — byte-mirroring answerCard's N/A
+          // path. Ignored on T0 (no targetAxis). A waived axis is Q2-confirmable
+          // (user-sourced step) and counts toward isNineAxisSicComplete.
+          const markNotApplicable =
+            input.turnNotApplicable === true && descriptor.targetAxis !== undefined;
+          let advanced: SicWithFillFields;
+          if (markNotApplicable) {
+            const waived = advanceNineAxisSicSequence(
+              baseContract,
+              input.turn,
+              "(N/A)",
+              undefined,
+            ) as SicWithFillFields & { axes?: SemanticIntentAxes };
+            const axes = waived.axes ?? ({} as SemanticIntentAxes);
+            const naAxis: SicAxis = { summary: "(not applicable)", refs: [], status: "not-applicable" };
+            advanced = {
+              ...waived,
+              axes: { ...axes, [descriptor.targetAxis!]: naAxis } as SemanticIntentAxes,
+            } as SicWithFillFields;
+          } else {
+            advanced = advanceNineAxisSicSequence(
+              baseContract,
+              input.turn,
+              input.turnUserInput,
+              undefined,
+            );
+          }
           const issues = nineAxisSicReadinessIssues(advanced);
           const complete = issues.length === 0;
           const isLastTurn = input.turn === seq.length - 1;

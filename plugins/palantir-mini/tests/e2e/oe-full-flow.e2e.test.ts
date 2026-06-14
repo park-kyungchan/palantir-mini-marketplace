@@ -498,6 +498,34 @@ describe("E2E Stage B — SIC approval through Q2", () => {
     // Bilingual KO/EN cue.
     expect(result.reason).toMatch(/사용자 확인/);
   });
+
+  test("B3-OE13 (OE-14/D4-7/OP-5): Q2 is whole-contract-scoped — an agentAutoFill scalar fill step that maps to NO axis key is ALSO caught (the agentAutoFill seam is closed)", () => {
+    // A complete user-confirmed 9-axis SIC, then inject an extra AI-sourced fill step
+    // that does NOT map to any of the 10 descriptor steps (step ordinal beyond the
+    // sequence). Pre-OE-13 the gate SKIPPED such a step (fillStepTargetKey === undefined),
+    // letting an `agentAutoFill`-written approval-surface scalar ride past the Q2 gate.
+    // OE-13 makes the gate whole-contract-scoped: any source!=="user" step is unconfirmed,
+    // surfaced as the synthetic `agentAutoFill:scalar` marker.
+    const draft = sessionContract(driveCompleteUserConfirmedSession()) as SicWithFillFields;
+    const seamStep = {
+      step: NINE_AXIS_SIC_SEQUENCE.length + 1, // maps to NO descriptor → the scalar seam
+      question: "(agentAutoFill scalar write)",
+      answer: "{\"confirmedIntent\":\"AI-rewritten\"}",
+      filledAt: new Date().toISOString(),
+      source: "agent" as const,
+    };
+    const withScalarSeam: SemanticIntentContract = {
+      ...(draft as SemanticIntentContract),
+      fillSequence: [...(draft.fillSequence ?? []), seamStep],
+    } as SemanticIntentContract;
+
+    const result = approveSemanticIntentContract(withScalarSeam, { approverIdentity: "claude-code" });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected Q2 refusal on the agentAutoFill scalar seam");
+    expect(result.unconfirmedAxes).toContain("agentAutoFill:scalar");
+    // The whole-contract-scoped gate names the AI-filled scalar surface bilingually.
+    expect(result.reason).toMatch(/agentAutoFill/);
+  });
 });
 
 // ===========================================================================
@@ -852,6 +880,52 @@ describe("E2E Stage D — governed write-path (elevate + gate)", () => {
       tool_input: { file_path: protectedPath },
     });
     expect(allowed.decision).toBe("continue");
+  });
+
+  test("D2m-deny-event (OE-12 / Step 15): the OE-3 deny branch emits a 5-dim valuable-data event with the pinned governed errorClass", async () => {
+    // OE-12 instruments the deny path: a protected-surface mutation blocked when
+    // mutationAuthorized:false produces a `validation_phase_completed` (passed:false)
+    // 5-dim event with errorClass pinned to the governed vocabulary. The emit is
+    // best-effort/fire-and-forget, so the gate's deny RESULT is unchanged (NEVER-CLOSE);
+    // we await a tick for the async append, then read events.jsonl under the project root.
+    const P = setupProjectRoot("d2m-deny-event");
+    const protectedPath = path.join(P, ".claude/plugins/palantir-mini/hooks/hooks.json");
+
+    writeWorkflowState(P, false);
+    const blocked = assessOntologyEngineeringWorkflowHook({
+      cwd: P,
+      tool_name: "Edit",
+      tool_input: { file_path: protectedPath },
+    });
+    // The deny verdict is returned synchronously, untouched by the emit.
+    expect(blocked.decision).toBe("block");
+    expect(blocked.reason).toContain("mutation requires approved SIC and DTC");
+
+    // Let the fire-and-forget async append settle, then read the lineage row.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const eventsPath = path.join(P, ".palantir-mini", "session", "events.jsonl");
+    expect(fs.existsSync(eventsPath)).toBe(true);
+    const rows = fs
+      .readFileSync(eventsPath, "utf8")
+      .trim()
+      .split("\n")
+      .filter((l) => l.length > 0)
+      .map((l) => JSON.parse(l) as Record<string, unknown>);
+    const denyEvent = rows.find((r) => {
+      const payload = r["payload"] as Record<string, unknown> | undefined;
+      return (
+        r["type"] === "validation_phase_completed" &&
+        (payload?.["errorClass"] === "oe_workflow_mutation_unauthorized")
+      );
+    });
+    expect(denyEvent).toBeDefined();
+    const denyPayload = denyEvent!["payload"] as Record<string, unknown>;
+    // 5-dim valuable data: failed verdict + the governed errorClass + block decision.
+    expect(denyPayload["passed"]).toBe(false);
+    expect(denyPayload["decision"]).toBe("block");
+    // The deny event carries a typed refinementTarget (rule 26 §R5) in withWhat.
+    const denyWithWhat = denyEvent!["withWhat"] as Record<string, unknown> | undefined;
+    expect(denyWithWhat?.["refinementTarget"]).toBeDefined();
   });
 
   test("D2-gate-live (OE-1 / Step 10): the complete SIC/DTC write gate (prompt-dtc-enforcement-gate) is WIRED LIVE as a PreToolUse command — no longer the dead gate", () => {

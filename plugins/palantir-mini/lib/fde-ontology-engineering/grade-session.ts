@@ -28,6 +28,17 @@ function hasText(value: string | undefined): boolean {
   return value !== undefined && value.trim().length > 0;
 }
 
+/**
+ * OE-14 / D1-4 — the number of graded readiness dimensions `missing` can grow to:
+ * 3 mission-state checks (mission decision, decision owner, evidence definition)
+ * + 5 candidate-presence checks (object/link/action/function/chatbot context)
+ * + 1 blocking-clarification check = 9. The score denominator MUST equal this count
+ * (the prior `/ 8` constant was a stale 9÷8 mismatch — a fully-incomplete session
+ * could underflow `completed` to -1 before the Math.max clamp). Single-sourced here
+ * so adding/removing a `missing.push` check keeps the denominator honest.
+ */
+const TOTAL_GRADED_DIMENSIONS = 9;
+
 export function gradeFDEOntologyEngineeringSession(
   session: FDEOntologyEngineeringSession,
   options: GradeFDEOntologyEngineeringSessionOptions = {},
@@ -106,8 +117,8 @@ export function gradeFDEOntologyEngineeringSession(
     };
   }
 
-  const completed = 8 - missing.length;
-  const score = Math.max(0, Math.min(1, completed / 8));
+  const completed = TOTAL_GRADED_DIMENSIONS - missing.length;
+  const score = Math.max(0, Math.min(1, completed / TOTAL_GRADED_DIMENSIONS));
 
   if (missing.length === 0) {
     reasons.push("Required FDE ontology engineering state is complete enough to draft a semantic contract.");

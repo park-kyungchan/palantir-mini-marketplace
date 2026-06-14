@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.91.0 — 2026-06-14 (first-class universal_ontology_entry_transitioned lineage event — OE-14 / D5-7)
+
+Additive MINOR (rule 08 — one new event-type discriminator registered in the lineage axis; ADDITIVE only, no existing discriminator/field/export is removed or retyped, so every legacy producer/consumer stays byte-compatible). See `ontology/CHANGELOG.md` v1.81.0 for the canonical ontology-axis entry.
+
+### Added — first-class UniversalOntologyEntry status-transition event (`ontology/lineage/event-types.ts`)
+
+- `EVENT_TYPE_NAMES` + `EVENT_TYPE_REGISTRY` gain `"universal_ontology_entry_transitioned"` (`primaryDomain: "learn"`), the 84th event discriminator (was 83). OE-14 / D5-7 promotes the `UniversalOntologyEntry` lifecycle status-transition from a `phase_completed` piggyback (transition data buried in `withWhat.reasoning`, `phaseTag:"universal-ontology-entry-transitioned"`) to a FIRST-CLASS typed discriminator carrying its own payload `{ entryRef, fromStatus, toStatus, isNoOp }`. The self-Ontology seed drift guard tracks it: `ontology/self/event-envelope.objecttype.ts` `EVENT_ENVELOPE_INSTANCES` gains the member (83 → 84) and `tests/ontology/self/event-envelope-registration.test.ts` `EXPECTED_EVENT_ENVELOPE_COUNT` advances 83 → 84. Paired non-snapshot edits land the runtime envelope (`lib/event-log/types.ts` `UniversalOntologyEntryTransitionedEnvelope` + union member + `isUniversalOntologyEntryTransitioned` guard + `EventCounts` field) and flip the emitter (`lib/ontology-entry/lifecycle.ts` emits `type:"universal_ontology_entry_transitioned"` with the typed payload, reasoning + refs preserved). Additive + backward-compatible — no consumer that switches on the existing discriminators breaks.
+
 ## v1.90.0 — 2026-06-14 (missing Palantir structural primitives: LinkType FK/join backing + cross-ontology boundary + InterfaceType extends/abstract — OE-11)
 
 Additive MINOR (rule 08 — additive optional fields + additive sub-types on two existing ontology primitives; no field is removed, retyped, or made required, so every legacy producer/consumer stays byte-compatible). See `ontology/CHANGELOG.md` v1.80.0 for the canonical ontology-axis entry.

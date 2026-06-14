@@ -110,6 +110,8 @@ const AXIS_LABELS_KO_EN: Record<string, string> = {
   constraintsNonGoals: "제약·비목표(CONSTRAINTS-NONGOALS) / constraints-non-goals",
   actors: "행위자(ACTORS) / actors",
   memoryPrior: "선례기억(MEMORY-PRIOR) / memory-prior",
+  // OE-13 — the agentAutoFill scalar seam (a non-axis approval-surface field the AI wrote).
+  "agentAutoFill:scalar": "AI 자동채움 스칼라 필드(agentAutoFill) / AI auto-filled scalar fields",
 };
 
 /** Map a fill step (by 1-based ordinal) to the axis/intent key it filled. */
@@ -134,16 +136,33 @@ function draftOrOpenAxisKeys(contract: SemanticIntentContract): string[] {
 }
 
 /**
+ * OE-13 — synthetic key surfaced when a non-user fill step does NOT map to a
+ * recognized axis/intent key (the `agentAutoFill` scalar seam, audit D4-7 / OP-5).
+ * The 9-axis turn engine's `agentAutoFill` arg spreads ARBITRARY scalar
+ * `SemanticIntentContract` fields onto the contract while recording the step
+ * `source:"agent"`; those fields feed the approval surface yet previously slipped
+ * past the axis-scoped Q2 gate (a step whose descriptor has no `targetAxis` and
+ * is not T0 returned `undefined` and was SKIPPED). Surfacing this marker makes the
+ * gate WHOLE-CONTRACT-scoped: any AI-sourced fill step is unconfirmed, mapped or not.
+ */
+const AGENT_AUTOFILL_SCALAR_KEY = "agentAutoFill:scalar";
+
+/**
  * Q2 hard gate: collect the axis keys whose nine-axis fill step was filled by the
  * AI alone (source !== 'user'). Empty ⇒ every recorded axis answer is user-confirmed.
+ *
+ * OE-13 — whole-contract-scoped: a non-user step that DOES map to a known axis/intent
+ * key surfaces that key (unchanged); one that does NOT map (the `agentAutoFill` scalar
+ * seam) surfaces `AGENT_AUTOFILL_SCALAR_KEY`, so an AI-written approval-surface scalar
+ * can no longer ride past the gate just because its step targets no recognized axis.
  */
 function unconfirmedAxisKeys(contract: SemanticIntentContract): string[] {
   const fillSequence = (contract as SicWithFillFields).fillSequence ?? [];
   const unconfirmed: string[] = [];
   for (const stepRecord of fillSequence) {
     if (stepRecord.source === "user") continue;
-    const key = fillStepTargetKey(stepRecord);
-    if (key !== undefined && !unconfirmed.includes(key)) unconfirmed.push(key);
+    const key = fillStepTargetKey(stepRecord) ?? AGENT_AUTOFILL_SCALAR_KEY;
+    if (!unconfirmed.includes(key)) unconfirmed.push(key);
   }
   return unconfirmed;
 }

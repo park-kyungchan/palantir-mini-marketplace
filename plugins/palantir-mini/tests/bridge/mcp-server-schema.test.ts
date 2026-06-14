@@ -44,6 +44,7 @@ const SEMANTIC_INTENT_GATE_PUBLIC_FIELDS = [
   "preferredLanguage",
   "turn",
   "turnUserInput",
+  "turnNotApplicable",
   "fillPolicy",
   "semanticConsistencyResolverInput",
   "proposedAxisDraft",

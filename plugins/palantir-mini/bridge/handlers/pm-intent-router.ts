@@ -1251,7 +1251,10 @@ export async function routeIntent(
           errorClass: isFailClosed
             ? "raw_intent_ontology_affecting_fail_closed"
             : fdeProvenanceMissing
-              ? "fde_session_required"
+              // OE-12 — one governed provenance error vocabulary across the router
+              // AND the enforcement hook (D4-6): the provenance-missing denial pins
+              // `fde_provenance_required` (was `fde_session_required`).
+              ? "fde_provenance_required"
               : routingContractGate.status,
           decision: blockedDecision,
           prefetchSucceeded: succeeded,

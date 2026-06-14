@@ -1,5 +1,13 @@
 # Ontology Schema Changelog
 
+## 1.81.0 — first-class universal_ontology_entry_transitioned lineage event (OE-14 / D5-7) — 2026-06-14
+
+Additive MINOR (rule 08 — one new event-type discriminator on the lineage axis; ADDITIVE only, no existing discriminator/field/export removed or retyped).
+
+### Added
+
+- `lineage/event-types.ts` — `EVENT_TYPE_NAMES` + `EVENT_TYPE_REGISTRY` gain `"universal_ontology_entry_transitioned"` (`primaryDomain: "learn"`), the 84th discriminator (was 83). OE-14 / D5-7 promotes the `UniversalOntologyEntry` lifecycle status-transition from a `phase_completed` piggyback to a first-class typed event with payload `{ entryRef, fromStatus, toStatus, isNoOp }`. The self-Ontology seed (`self/event-envelope.objecttype.ts` `EVENT_ENVELOPE_INSTANCES`) advances 83 → 84 to track it (drift guard `tests/ontology/self/event-envelope-registration.test.ts`). Paired non-snapshot runtime edits: `lib/event-log/types.ts` envelope + union + guard + counts, `lib/ontology-entry/lifecycle.ts` emitter flip. Additive + backward-compatible.
+
 ## 1.80.0 — additive Palantir structural primitives: LinkType FK/join backing + cross-ontology boundary + InterfaceType extends/abstract (OE-11) — 2026-06-14
 
 Additive MINOR (rule 08 — additive optional fields + additive sub-types on two existing primitives; no removal, retype, or required-field change, so every legacy producer/consumer stays byte-compatible).

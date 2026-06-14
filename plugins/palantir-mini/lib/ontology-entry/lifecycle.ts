@@ -96,18 +96,20 @@ export async function transitionUniversalOntologyEntry(
   }
 
   // 4. Emit event (best-effort; never blocks the return)
-  // NOTE: event type "universal_ontology_entry_transitioned" is not yet in the event-types union.
-  // Using "phase_completed" with phaseTag "universal-ontology-entry-transitioned" per the
-  // same pattern used by agent-router-suggestion-emit (PR-2). Transition data embedded in
-  // withWhat.reasoning; taskId set to entryId for replay correlation.
+  // OE-14 / D5-7 — first-class `universal_ontology_entry_transitioned` typed event
+  // (registered in the EVENT_TYPE_NAMES union + EventEnvelope union). Replaces the
+  // prior `phase_completed` piggyback so the lineage row carries its own typed
+  // discriminator + payload {entryRef, fromStatus, toStatus, isNoOp} rather than
+  // prose embedded in reasoning. taskId-equivalent correlation stays via entryRef.
   try {
     const entryRef = `universal-ontology-entry://${entry.entryId.replace(/^universal-ontology-entry:/, "").replace(/[^a-z0-9._:-]/g, "-")}`;
     await emit({
-      type: "phase_completed",
+      type: "universal_ontology_entry_transitioned",
       payload: {
-        phaseTag: "universal-ontology-entry-transitioned",
-        taskId: entry.entryId,
-        validations: isNoOp ? ["no-op-transition"] : [`${fromStatus}-to-${nextStatus}`],
+        entryRef,
+        fromStatus,
+        toStatus: nextStatus,
+        isNoOp,
       },
       toolName: "transitionUniversalOntologyEntry",
       cwd: projectRoot,
