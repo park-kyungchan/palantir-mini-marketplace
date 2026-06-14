@@ -18,8 +18,12 @@ import {
 
 const EXPECTED_RULE_COUNT = 9;
 
-// Live rules directory — the global Claude-overlay rules home (rule 02 §Memory / CORE.md).
-const RULES_DIR = path.join(os.homedir(), ".claude", "rules");
+// Live rule-BODY directory — the global Claude-overlay rule bodies. The per-turn
+// router files (CORE.md/BROWSE.md) stay in ~/.claude/rules/, but the numbered NN-*.md
+// bodies were relocated OUT of the per-turn flat-glob inject set into the sibling
+// rules-bodies/ home (2026-06-14 rules-lightening). This guard reads that body home so
+// it still asserts the self-model's 9 ruleIds against pm's actual active-rule files.
+const RULES_DIR = path.join(os.homedir(), ".claude", "rules-bodies", "2026-06-14");
 
 test("self Rule ObjectType is registered with ruleId identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(RULE_OBJECT_TYPE_RID);
