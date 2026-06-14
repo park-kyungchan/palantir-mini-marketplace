@@ -94,6 +94,12 @@ import {
   type OntologyEngineeringWorkflowState,
   writeOntologyEngineeringWorkflowState,
 } from "../../lib/ontology-engineering-workflow";
+import {
+  createFDEOntologyEngineeringSessionFromEntry,
+  writeFDEOntologyEngineeringSessionSnapshot,
+} from "../../lib/fde-ontology-engineering/session-store";
+import { createUniversalOntologyEntry } from "../../lib/ontology-entry/universal-entry";
+import type { FDEReadinessProfileEvaluation } from "../../lib/fde-ontology-engineering/types";
 
 // --- Stage E: the intentional envelope-bound escape-hatch (OP-2) -----------
 import {
@@ -339,6 +345,36 @@ afterEach(() => {
   for (const r of tmpRoots.splice(0)) fs.rmSync(r, { recursive: true, force: true });
   for (const f of tmpFiles.splice(0)) fs.rmSync(f, { force: true });
 });
+
+/**
+ * OE-2 (D3-2) — seed a GENUINELY-graded CURRENT FDE session for `projectRoot`. The
+ * elevate flow no longer FABRICATES a passing readiness profile from the caller
+ * flag; it reads the session's INDEPENDENT readiness grade. So the AUTHORIZED path
+ * (D1a) must persist a real passing `readinessProfile` first (ingest merges its
+ * candidates onto this current session, preserving the grade). The grade here stands
+ * for a prior real grading run — the caller flag alone can NEVER manufacture it.
+ */
+function seedGradedCurrentSession(projectRoot: string): void {
+  const entry = createUniversalOntologyEntry({
+    rawUserRequest: HARD_KOREAN_INTENT,
+    projectRoot,
+  });
+  const base = createFDEOntologyEngineeringSessionFromEntry({ entry });
+  const readinessProfile: FDEReadinessProfileEvaluation = {
+    profileId: "mission-decision",
+    score: 1,
+    readyForSemanticIntent: true,
+    readyForDigitalTwin: true,
+    requirementResults: [],
+    missingRequired: [],
+    warnings: [],
+  };
+  writeFDEOntologyEngineeringSessionSnapshot({
+    ...base,
+    readinessProfileId: "mission-decision",
+    readinessProfile,
+  });
+}
 
 // ===========================================================================
 // STAGE A — 9-axis SACRED turn session
@@ -598,9 +634,14 @@ describe("E2E Stage D — governed write-path (elevate + gate)", () => {
     expect(reg.properties.length).toBe(0);
   });
 
-  test("D1a (baseline): elevate WITH approved SIC+DTC+readiness → 'elevated', register.committed, all primitive kinds READABLE", async () => {
+  test("D1a (baseline; OE-2 / Step 11 re-assert): elevate WITH approved SIC+DTC + a GENUINELY-graded session → 'elevated', register.committed, all primitive kinds READABLE", async () => {
     const P = setupProjectRoot("d1a");
     const fixture = writeSourceFixture();
+    // OE-2: the caller flag is governance INTENT, NOT the grade. elevate reads the
+    // session's INDEPENDENT readiness — so the AUTHORIZED path requires a genuinely
+    // graded session (a prior real grading run), seeded here. A bare status string
+    // can no longer manufacture readiness.
+    seedGradedCurrentSession(P);
 
     const result = await handleOntologyEngineeringWorkflow({
       action: "elevate",
@@ -628,6 +669,30 @@ describe("E2E Stage D — governed write-path (elevate + gate)", () => {
     expect(has(reg.actionTypes, "action-type", "finalizeScore")).toBe(true);
     expect(has(reg.roles, "role", "Teacher")).toBe(true);
     expect(has(reg.linkTypes, "link-type", "belongsToRubric")).toBe(true);
+  });
+
+  test("D1a-forge (OE-2 / Step 11): the FORGEABLE flag alone does NOT materialize — caller passes approved status+readyForDigitalTwin but the session is NOT independently graded → 'awaiting-approval', NOTHING registered", async () => {
+    const P = setupProjectRoot("d1a-forge");
+    const fixture = writeSourceFixture();
+    // No seedGradedCurrentSession: the ingested session has NO independent passing
+    // readiness. A model adapter forging the caller flags can no longer fabricate it.
+
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "elevate",
+      project: P,
+      sourceJsonlPath: fixture,
+      semanticIntentContractStatus: "approved",
+      digitalTwinChangeContractStatus: "approved",
+      readyForDigitalTwin: true,
+    });
+
+    expect(result.elevate?.phase).toBe("awaiting-approval");
+    expect(result.elevate?.register).toBeUndefined();
+
+    const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
+    expect(reg.objectTypes.length).toBe(0);
+    expect(reg.actionTypes.length).toBe(0);
+    expect(reg.linkTypes.length).toBe(0);
   });
 
   test("D2p (baseline): the gate BLOCKS SIC authoring before FDE workflow provenance exists", () => {
@@ -874,6 +939,36 @@ describe("E2E Stage E — intentional escape-hatch (OP-2) + silent-edit caught",
     );
     expect(gate.decision).toBe("block");
     expect(gate.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("E2-pathclass (OE-3 / Step 11): a SILENT no-signal edit to a PROJECT-ontology path-class trips the widened predicate and FAILS CLOSED — no OE-marker, no fast-path → gate DENIES", () => {
+    // OP-1/D4-1 closure: a raw structural ontology edit carries NO OE-marker string
+    // and NO envelope-bound approval, yet the path-class (`/ontology/`, `/object-type/`)
+    // alone now routes it through the SAME mutationAuthorized gate. NEVER-CLOSE: it
+    // lands in the protectedSurfaceMutation && !mutationAuthorized branch (the
+    // express-lane would still authorize here on a re-verified envelope; with no
+    // fast-path it fails closed).
+    const P = setupProjectRoot("e2-pathclass");
+    writeWorkflowState(P, false); // provenance present (fdeSessionId), mutationAuthorized:false
+
+    // A project-ontology structural edit with NO OE-marker and NO fast-path.
+    const blocked = assessOntologyEngineeringWorkflowHook({
+      cwd: P,
+      tool_name: "Edit",
+      tool_input: { file_path: path.join(P, "projects/grading/ontology/object-type/submission.ts") },
+    });
+    expect(blocked.decision).toBe("block");
+    expect(blocked.reason).toContain("mutation requires approved SIC and DTC");
+
+    // After the workflow state is mutation-authorized the SAME edit CONTINUES — the
+    // gate gates governed ontology MUTATIONS, it never blanket-denies.
+    writeWorkflowState(P, true);
+    const allowed = assessOntologyEngineeringWorkflowHook({
+      cwd: P,
+      tool_name: "Edit",
+      tool_input: { file_path: path.join(P, "projects/grading/ontology/object-type/submission.ts") },
+    });
+    expect(allowed.decision).toBe("continue");
   });
 });
 

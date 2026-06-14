@@ -6,6 +6,7 @@ import type { LeadOntologyTurnCardV2Choice } from "../chatbot-studio/lead-ontolo
 import type { ConstructionLintFinding } from "../construction-lint/lint-candidates";
 import type { StructuredApprovalRef } from "../prompt-front-door/approval-ref";
 import type { PromptRuntime } from "../prompt-front-door/envelope";
+import type { SemanticIntentContract } from "../lead-intent/contracts";
 
 // Persisted-state schema version. Bumped to `…/v2` for the P4 mutation-mode lane:
 // the new fields (`mutationMode`, `mutationAuthorization`) are additive and
@@ -284,6 +285,19 @@ export interface OntologyEngineeringWorkflowState
    * preserved across re-derivations). Absent ⇒ no fast-path approvals.
    */
   readonly sourceMutationApprovals?: readonly SourceMutationApprovalRecord[];
+  /**
+   * OE-2 (OP-2 / D3-1) — the MINTED approved SemanticIntentContract OBJECT, persisted
+   * by the `approve_sic` seam after `approveSemanticIntentContract` ran the Q2 hard
+   * gate. SEPARATE from `semanticIntentContractRef`/`semanticIntentContractStatus`
+   * (caller-settable strings a model adapter can forge): this carries the unforgeable
+   * minted `approvalRef`, so the register seam re-verifies via
+   * `isApprovedSemanticIntentContract` instead of trusting `status==="approved"`.
+   * Optional + additive: `deriveOntologyEngineeringWorkflowState` never populates it
+   * (only the `approve_sic` write path does); preserved across re-derivations the same
+   * accumulate-from-disk way `sourceMutationApprovals` is. Absent ⇒ no minted SIC ⇒
+   * the register seam does NOT authorize on a bare forgeable status string.
+   */
+  readonly approvedSemanticIntentContractSnapshot?: SemanticIntentContract;
 }
 
 export interface DeriveWorkflowStateInput {

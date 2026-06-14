@@ -220,6 +220,12 @@ describe("ingest seam — jsonl SOURCE → session candidate arrays", () => {
       "../../../lib/fde-ontology-engineering/session-store"
     );
     writeFDEOntologyEngineeringSessionSnapshot(graded);
+    // OE-2 — seed a genuinely minted approved-SIC snapshot so the register seam
+    // re-verify (isApprovedSemanticIntentContract) passes, not a bare status string.
+    const { seedMintedApprovedSicWorkflowState } = await import(
+      "../../fixtures/seed-register-workflow-state"
+    );
+    seedMintedApprovedSicWorkflowState(P, sessionId);
 
     // 3) register with an approved SIC + DTC
     const reg = await handleOntologyEngineeringWorkflow({

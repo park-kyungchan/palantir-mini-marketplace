@@ -20,6 +20,7 @@ import {
   writeFDEOntologyEngineeringSessionSnapshot,
 } from "../../../lib/fde-ontology-engineering/session-store";
 import { projectPrimitiveRid } from "../../../lib/actions/project-primitive-rid";
+import { seedMintedApprovedSicWorkflowState } from "../../fixtures/seed-register-workflow-state";
 import { getEditFunction } from "../../../lib/actions/tier2-function";
 import {
   APPLY_REGISTER_ROLE_NAME,
@@ -92,6 +93,8 @@ function seedSession(root: string): FDEOntologyEngineeringSession {
     readinessProfile: readinessProfile(true),
   };
   writeFDEOntologyEngineeringSessionSnapshot(session);
+  // OE-2 — seed a genuinely minted approved-SIC snapshot for the register re-verify.
+  seedMintedApprovedSicWorkflowState(root, session.sessionId);
   return session;
 }
 

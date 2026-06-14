@@ -24,6 +24,7 @@ import type {
   FDEOntologyEngineeringSession,
   FDEReadinessProfileEvaluation,
 } from "../../../lib/fde-ontology-engineering/types";
+import { seedMintedApprovedSicWorkflowState } from "../../fixtures/seed-register-workflow-state";
 
 const tmpRoots: string[] = [];
 
@@ -112,6 +113,11 @@ function seedSession(root: string, opts: { graded: boolean }): FDEOntologyEngine
     readinessProfile: readinessProfile(opts.graded),
   };
   writeFDEOntologyEngineeringSessionSnapshot(session);
+  // OE-2 — seed a workflow state carrying a GENUINELY minted approved-SIC snapshot so
+  // the register seam re-verify (isApprovedSemanticIntentContract) passes for the
+  // AUTHORIZED path. The NEGATIVE tests override the contract refs/status at call time
+  // (un-approved DTC) or use graded:false, so they still fail on their intended gate.
+  seedMintedApprovedSicWorkflowState(root, session.sessionId);
   return session;
 }
 

@@ -18,6 +18,12 @@ import * as path from "path";
 import { handleOntologyEngineeringWorkflow } from "../../../bridge/handlers/pm-ontology-engineering-workflow";
 import getOntology from "../../../bridge/handlers/get-ontology";
 import { projectPrimitiveRid } from "../../../lib/actions/project-primitive-rid";
+import {
+  createFDEOntologyEngineeringSessionFromEntry,
+  writeFDEOntologyEngineeringSessionSnapshot,
+} from "../../../lib/fde-ontology-engineering/session-store";
+import { createUniversalOntologyEntry } from "../../../lib/ontology-entry/universal-entry";
+import type { FDEReadinessProfileEvaluation } from "../../../lib/fde-ontology-engineering/types";
 
 const tmpRoots: string[] = [];
 const tmpFiles: string[] = [];
@@ -79,10 +85,40 @@ function writeFixture(): string {
   return file;
 }
 
+/**
+ * OE-2 (D3-2) — seed a GENUINELY-graded current FDE session. elevate no longer
+ * fabricates a passing readiness from the caller flag; it reads the session's
+ * INDEPENDENT grade. Ingest merges its candidates onto this current session,
+ * preserving the grade. The grade stands for a prior real grading run.
+ */
+function seedGradedCurrentSession(projectRoot: string): void {
+  const entry = createUniversalOntologyEntry({
+    rawUserRequest: "elevate a linear-function ontology",
+    projectRoot,
+  });
+  const base = createFDEOntologyEngineeringSessionFromEntry({ entry });
+  const readinessProfile: FDEReadinessProfileEvaluation = {
+    profileId: "mission-decision",
+    score: 1,
+    readyForSemanticIntent: true,
+    readyForDigitalTwin: true,
+    requirementResults: [],
+    missingRequired: [],
+    warnings: [],
+  };
+  writeFDEOntologyEngineeringSessionSnapshot({
+    ...base,
+    readinessProfileId: "mission-decision",
+    readinessProfile,
+  });
+}
+
 describe("COMPOSED GOVERNED OE-ELEVATION FLOW — `elevate` seam", () => {
-  test("AUTHORIZED: approved SIC+DTC + readiness → phase 'elevated' + READABLE primitives", async () => {
+  test("AUTHORIZED: approved SIC+DTC + a GENUINELY-graded session → phase 'elevated' + READABLE primitives", async () => {
     const P = setupRoot("auth");
     const fixture = writeFixture();
+    // OE-2: the caller flag is governance INTENT; the GRADE is read independently.
+    seedGradedCurrentSession(P);
 
     const result = await handleOntologyEngineeringWorkflow({
       action: "elevate",
