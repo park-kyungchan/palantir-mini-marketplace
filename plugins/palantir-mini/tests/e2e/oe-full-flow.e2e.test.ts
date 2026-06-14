@@ -17,7 +17,7 @@
 //   A1 A2 B1a B1b B2 B3 C1 D1u D1a D2p D2m E1 E2.
 // `test.todo()` at Step 0, flipped later:
 //   C2  (govern-fold access-boundary REQUIRED) — flips at OE-4 / Step 12.
-//   C3  (SUCCESS-EVAL ↔ ACTION enforced cross-axis bind) — flips at OE-8 / Step 8.
+//   C3  (SUCCESS-EVAL ↔ ACTION enforced cross-axis bind) — FLIPPED LIVE at OE-8 / Step 8.
 //   D-ingest (submissionCriteria + cardinality + property-security survive ingest)
 //        — flips at OE-11 / Step 13 (cardinality) + ingest-widening tranche.
 //   DP-facet shape groups (data-graph / logic-block / action-writeback / access-boundary)
@@ -72,6 +72,7 @@ import {
   createSemanticIntentContractDraftFromFDEOntologySession,
   deriveDraftAxisConfirmationDebt,
 } from "../../lib/fde-ontology-engineering/sic-from-session";
+import { bindSuccessEvalToActionCriteria } from "../../lib/context-engineering/success-eval-action-binding";
 import { FDE_ONTOLOGY_ENGINEERING_SESSION_SCHEMA_VERSION } from "../../lib/fde-ontology-engineering/types";
 import type { FDEOntologyEngineeringSession } from "../../lib/fde-ontology-engineering/types";
 
@@ -531,10 +532,40 @@ describe("E2E Stage C — DTC synthesis (per-primitive build sequence)", () => {
     () => {},
   );
 
-  test.todo(
-    "C3 (LATER — binding, flips at OE-8 / Step 8): SUCCESS-EVAL binds to ACTION submission criteria as an ENFORCED cross-axis relation (a SUCCESS-EVAL that omits/contradicts finalizeScore criteria is flagged)",
-    () => {},
-  );
+  // C3 — LIVE as of OE-8 / Step 8. SUCCESS-EVAL binds to ACTION submission criteria as
+  // an ENFORCED cross-axis relation (no longer an elicitation-only proposal): the bound
+  // finalizeScore criteria flow into the gate-facing requiredEvaluationRefs, and a
+  // SUCCESS-EVAL that omits/contradicts the action criteria is FLAGGED (fail-closed).
+  test("C3 (OE-8 / Step 8): SUCCESS-EVAL binds to ACTION submission criteria as an ENFORCED cross-axis relation (criteria reach requiredEvaluationRefs; an omitting SUCCESS-EVAL is flagged fail-closed)", () => {
+    const draft = createSemanticIntentContractDraftFromFDEOntologySession(SCENARIO_SIGNAL_SESSION);
+
+    // The scenario's finalizeScore submission criteria ("모든 항목 채점됨 + 교사 승인")
+    // are bound on the SUCCESS-EVAL axis (DP-3) — OE-8 ENFORCES them as gate-facing
+    // requiredEvaluationRefs: "every submission scored exactly once, sum matches record"
+    // now binds to the ACTION criteria through requiredEvaluationRefs.
+    const bound = bindSuccessEvalToActionCriteria(draft);
+    expect(bound.violations).toEqual([]);
+    expect(bound.requiredEvaluationRefs.map((ref) => ref.rid)).toEqual([
+      "submission-criteria://finalizeScore/0",
+      "submission-criteria://finalizeScore/1",
+    ]);
+    expect(bound.requiredEvaluationRefs.every((ref) => ref.kind === "ValidationPack")).toBe(true);
+
+    // A SUCCESS-EVAL that OMITS one of the action's submission criteria is FLAGGED
+    // (fail-closed) — the binding is an enforced relation, not advisory prose.
+    const omittingSuccessEval = {
+      ...draft.axes!.successEval,
+      refs: ["submission-criteria://finalizeScore/0"], // /1 dropped
+    };
+    const contradicting: SemanticIntentContract = {
+      ...(draft as SemanticIntentContract),
+      axes: { ...draft.axes!, successEval: omittingSuccessEval },
+    };
+    const flagged = bindSuccessEvalToActionCriteria(contradicting);
+    expect(flagged.violations.length).toBe(1);
+    expect(flagged.violations[0]!.kind).toBe("omits-action-criteria");
+    expect(flagged.violations[0]!.ref).toBe("submission-criteria://finalizeScore/1");
+  });
 });
 
 // ===========================================================================
