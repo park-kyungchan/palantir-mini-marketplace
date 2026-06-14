@@ -88,6 +88,10 @@ import type {
   SemanticIntentContract,
   TurnCardDecisionSpec,
 } from "../../lib/lead-intent/contracts";
+import {
+  verifyDtcBuildApprovalAgainstEnvelope,
+  type VerifyDtcBuildApprovalResult,
+} from "../../lib/lead-intent/dtc-build-approval";
 import type { BuildRecipeInput } from "../../lib/delegation-recipe/recipe-builder";
 import {
   PromptFrontDoorStore,
@@ -216,6 +220,19 @@ export interface SemanticIntentGateInput {
   runtime?: PromptRuntime;
   /** FDE Ontology Engineering session provenance required for workflow-control-plane changes. */
   fdeOntologyEngineeringSessionRef?: string;
+  /**
+   * Improvement #3 (ADDITIVE) — verifiable user-approval envelope pointer that can
+   * authorize DTC-build router dispatch in lieu of a dereferenced WorkContract +
+   * RouterBinding. These are model-CLAIMED pointers; the handler re-verifies them
+   * fail-closed against the hook-captured PromptEnvelope via
+   * `verifyDtcBuildApprovalAgainstEnvelope` before passing the resulting boolean to
+   * the gate. Absence ⇒ byte-identical legacy behavior. promptId/promptHash default
+   * to the continuity `promptId`/`promptHash` above when omitted; sessionId/runtime
+   * reuse `sessionId`/`runtime`.
+   */
+  userApprovalPromptId?: string;
+  userApprovalPromptHash?: string;
+  userApprovalQuote?: string;
   /** Legacy alias for draftMode="required-only" callers that still need pass-through drafts. */
   includeDrafts?: boolean;
   /** Draft emission policy. Default: "always" for prompt-level semantic memory. */
@@ -689,10 +706,99 @@ function shouldAssessOntologyDtcBuildReadiness(
   });
 }
 
+/**
+ * Improvement #3 (ADDITIVE) — re-verify a caller-supplied user-approval envelope
+ * pointer against the hook-captured PromptEnvelope, FAIL-CLOSED. Returns `undefined`
+ * when the caller supplied NO approval inputs (so the gate behaves byte-identically
+ * to legacy and no audit event is emitted). Returns a verdict object when at least
+ * one approval input is present — `{ authorized: false }` on any verification
+ * failure (default not-authorized). promptId/promptHash fall back to the continuity
+ * `promptId`/`promptHash`; sessionId/runtime reuse the gate's `sessionId`/`runtime`.
+ */
+async function assessDtcBuildApprovalForGate(
+  input: SemanticIntentGateInput,
+): Promise<VerifyDtcBuildApprovalResult | undefined> {
+  const suppliedQuote = input.userApprovalQuote?.trim();
+  const suppliedPromptId = input.userApprovalPromptId?.trim();
+  const suppliedPromptHash = input.userApprovalPromptHash?.trim();
+  if (!suppliedQuote && !suppliedPromptId && !suppliedPromptHash) {
+    return undefined;
+  }
+  const promptId = suppliedPromptId ?? input.promptId?.trim() ?? "";
+  const promptHash = suppliedPromptHash ?? input.promptHash?.trim() ?? "";
+  const runtime = isPromptRuntime(input.runtime) ? input.runtime : undefined;
+  return verifyDtcBuildApprovalAgainstEnvelope({
+    projectRoot: input.project,
+    promptId,
+    promptHash,
+    userQuote: suppliedQuote ?? "",
+    sessionId: input.sessionId,
+    runtime,
+  });
+}
+
+/**
+ * Improvement #3 (ADDITIVE) — emit a 5-dim audit event on both grant and deny of a
+ * DTC-build user-approval envelope (rule 10). Best-effort: a failed emit never
+ * blocks the gate result. The grant originates from the user turn (byWhom.identity
+ * = "user"); the deny is attributed to the host runtime.
+ */
+async function emitDtcBuildApprovalAuditEvent(
+  input: SemanticIntentGateInput,
+  verdict: VerifyDtcBuildApprovalResult,
+): Promise<void> {
+  const granted = verdict.authorized === true;
+  try {
+    await emit({
+      type: "validation_phase_completed",
+      payload: {
+        phase: "design",
+        passed: granted,
+        errorClass: granted ? "dtc_build_approval_granted" : "dtc_build_approval_denied",
+        reason: verdict.reason,
+        approvalSurface: "digital-twin-change",
+        approvalRef: granted ? verdict.approvalRef.promptHash : null,
+        promptId: input.userApprovalPromptId ?? input.promptId ?? null,
+        projectRoot: input.project,
+        runtime: input.runtime ?? "unknown",
+      } as Record<string, unknown>,
+      toolName: "pm_semantic_intent_gate",
+      cwd: input.project,
+      ...(granted ? { identity: "user" as const } : {}),
+      reasoning:
+        `pm_semantic_intent_gate: DTC-build approval ${granted ? "granted" : "denied"} — ${verdict.reason}`,
+      hypothesis:
+        "A user-approval envelope re-verified fail-closed against the hook-captured PromptEnvelope " +
+        "is the binding a WorkContract+RouterBinding pair mechanically reconstructs; accepting it as " +
+        "an alternative satisfier for ONLY those derived checks preserves governance while removing " +
+        "the redundant process artifacts.",
+      memoryLayers: granted ? ["working", "episodic"] : ["working"],
+      ...(granted
+        ? {}
+        : {
+            refinementTarget: {
+              kind: "rule-conformance-policy" as const,
+              filePathOrRid: "bridge/handlers/pm-semantic-intent-gate.ts",
+              description:
+                "DTC-build user-approval envelope failed fail-closed re-verification against the captured PromptEnvelope.",
+              confidenceLevel: "high" as const,
+            },
+          }),
+    });
+  } catch {
+    // Non-fatal — the gate result is returned regardless of emit failure.
+  }
+}
+
 function assessSemanticGateOntologyDtcBuildReadiness(input: {
   gateInput: SemanticIntentGateInput;
   gate: ContractGateResult;
   semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+  /**
+   * Improvement #3 (ADDITIVE) — PRE-VERIFIED boolean computed by the handler from
+   * `verifyDtcBuildApprovalAgainstEnvelope` (fs-bound, fail-closed). Default false.
+   */
+  userApprovalAuthorizesDispatch?: boolean;
 }): OntologyDtcBuildReadinessGate | undefined {
   if (!shouldAssessOntologyDtcBuildReadiness(input.gateInput, input.gate)) {
     return undefined;
@@ -712,6 +818,7 @@ function assessSemanticGateOntologyDtcBuildReadiness(input: {
     digitalTwinChangeContract: input.gateInput.digitalTwinChangeContract,
     semanticConsistencyResult: input.semanticConsistencyResult,
     semanticConsistencyResultRef: input.semanticConsistencyResult?.resolverRunId,
+    userApprovalAuthorizesDispatch: input.userApprovalAuthorizesDispatch === true,
   });
 }
 
@@ -1830,10 +1937,23 @@ export async function semanticIntentGate(
       // Non-fatal — the gate result is returned regardless of emit failure.
     }
   }
+  // Improvement #3 (ADDITIVE) — when the caller supplies a verifiable user-approval
+  // envelope pointer, re-verify it FAIL-CLOSED against the hook-captured
+  // PromptEnvelope (the model cannot forge it). On success the verified envelope is
+  // an ALTERNATIVE satisfier for ONLY the WorkContract/RouterBinding-derived gate
+  // checks; it never relaxes DTC validity, governance evidence, or approval-ref
+  // presence. Absence of all three inputs ⇒ `envelopeAuthorized` stays false and the
+  // gate is byte-identical to legacy.
+  const dtcBuildApproval = await assessDtcBuildApprovalForGate(input);
+  const envelopeAuthorized = dtcBuildApproval?.authorized === true;
+  if (dtcBuildApproval !== undefined) {
+    await emitDtcBuildApprovalAuditEvent(input, dtcBuildApproval);
+  }
   const ontologyDtcBuildReadinessGate = assessSemanticGateOntologyDtcBuildReadiness({
     gateInput: input,
     gate: effectiveGate,
     semanticConsistencyResult,
+    userApprovalAuthorizesDispatch: envelopeAuthorized,
   });
   let persisted =
     continuity && !continuity.valid
