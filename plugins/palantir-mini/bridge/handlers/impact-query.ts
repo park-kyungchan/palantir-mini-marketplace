@@ -58,6 +58,21 @@ interface ImpactQueryArgs {
 interface ImpactQueryResult {
   forwardProp:  ImpactEdgeDeclaration[];
   backwardProp: ImpactEdgeDeclaration[];
+  /**
+   * OE-9: which lane the PRIMARY `forwardProp`/`backwardProp` were served from.
+   * `"typed-graph"` = the registered governed graph is THE propagation source
+   * (the queried rid matched a registered primitive node); `"legacy-fallback"` =
+   * no typed-graph match, so the legacy IMPACT_EDGE_REGISTRY/SQLite lane answered.
+   * The typed graph is now PRIMARY; the legacy lane is the coverage/fallback signal.
+   */
+  propagationSource: "typed-graph" | "legacy-fallback";
+  /**
+   * OE-9: the legacy IMPACT_EDGE_REGISTRY/SQLite edges, ALWAYS exposed as the
+   * coverage/fallback signal (G-A5 keep-SQLite). When `propagationSource` is
+   * `"legacy-fallback"` these equal `forwardProp`/`backwardProp`.
+   */
+  legacyForwardProp:  ImpactEdgeDeclaration[];
+  legacyBackwardProp: ImpactEdgeDeclaration[];
   transitive: {
     forward:  ImpactGraph;
     backward: ImpactGraph;
@@ -96,6 +111,31 @@ function storedToDecl(e: StoredEdge): ImpactEdgeDeclaration {
     confidence:   e.confidence,
     evidence:     e.evidence,
     registeredAt: e.scannedAt,
+  };
+}
+
+/**
+ * OE-9: Project a typed-graph edge into the ImpactEdgeDeclaration contract.
+ *
+ * The typed graph carries NATIVE ontology kinds (usesTool/gates/imports/
+ * describes/linkType …), not the legacy `ImpactEdgeKind` enum — so the native
+ * kind is carried as `evidence` and the declaration's `edgeKind` is the
+ * canonical `"semantic"` (a typed-graph edge IS a semantic ontology relation).
+ * `confidence:1.0` because the edge is statically projected from the registered
+ * governed graph (the SSoT), not heuristically scanned.
+ */
+function typedEdgeToDecl(
+  e: { fromRid: string; toRid: string; kind: string },
+  nowIso: string,
+): ImpactEdgeDeclaration {
+  return {
+    rid:          impactEdgeRid(`${e.fromRid}:${e.toRid}:${e.kind}`),
+    fromRid:      e.fromRid,
+    toRid:        e.toRid,
+    edgeKind:     "semantic",
+    confidence:   1.0,
+    evidence:     `typed-graph:${e.kind}`,
+    registeredAt: nowIso,
   };
 }
 
@@ -292,10 +332,28 @@ export default async function impactQuery(
   }));
   const missingEdges = computeMissingEdges(legacyShape, typedProbe.edges);
 
+  // ── OE-9: invert the propagation layering ─────────────────────────────────
+  // The registered governed graph is now the PRIMARY source for forwardProp /
+  // backwardProp; the legacy IMPACT_EDGE_REGISTRY/SQLite lane is the fallback +
+  // coverage signal (KEPT live — G-A5 option-b). When the queried rid matches a
+  // node in the typed graph, project its incident edges as the primary answer;
+  // otherwise fall back to the legacy decls verbatim.
+  const nowIso = new Date().toISOString();
+  const typedForwardDecl  = typedProbe.forward.map((e) => typedEdgeToDecl(e, nowIso));
+  const typedBackwardDecl = typedProbe.backward.map((e) => typedEdgeToDecl(e, nowIso));
+  const propagationSource: "typed-graph" | "legacy-fallback" = typedProbe.matched
+    ? "typed-graph"
+    : "legacy-fallback";
+  const primaryForwardDecl  = typedProbe.matched ? typedForwardDecl  : legacyForwardDecl;
+  const primaryBackwardDecl = typedProbe.matched ? typedBackwardDecl : legacyBackwardDecl;
+
   // ── Compose result ──────────────────────────────────────────────────────
   return {
-    forwardProp: legacyForwardDecl,
-    backwardProp: legacyBackwardDecl,
+    forwardProp: primaryForwardDecl,
+    backwardProp: primaryBackwardDecl,
+    propagationSource,
+    legacyForwardProp: legacyForwardDecl,
+    legacyBackwardProp: legacyBackwardDecl,
     transitive: {
       forward: transitiveForward,
       backward: transitiveBackward,
