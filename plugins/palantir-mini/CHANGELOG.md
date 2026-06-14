@@ -7,6 +7,32 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.10.0] - 2026-06-14 — fix: OE + Ontology-First audit remediation — SOLE-path-to-confirmed front half, DP-deepening typed axis facets, fail-closed OE criteria, GOVERN-FOLD V3 SECURITY into live accessBoundary, structural primitives + rules-lightening
+
+### Added
+- OE-5 front-half 9-axis SOLE-path-to-confirmed: the front-half 9-axis FDE session is now the SOLE route by which an axis reaches `confirmed` — there is no side door that mints a confirmed axis without traversing the 9-axis path.
+- DP-deepening typed axis facets: each axis carries a typed facet rather than free prose — DATA noun-graph, ACTION write-back, LOGIC + GOVERNANCE govern-fold `accessBoundary`, and a `confirmation-debt` facet that tracks unconfirmed obligations.
+- OE-7 fail-closed criteria: missing/ambiguous OE criteria now fail CLOSED (deny by default) rather than defaulting permissive.
+- OE-6 executable Action bound to the descriptive SSoT: the OE-6 executable Action is wired to read from the descriptive SSoT (no parallel hand-maintained copy).
+- OE-8 SUCCESS-EVAL as gate-facing submission criteria: SUCCESS-EVAL is restated as the gate-facing submission criteria so the gate evaluates against the same criteria the submission declares.
+- OE-10 grader canonical-predicate bind: the grader binds to the canonical predicate; the prior deprecated string predicate is retired.
+- OE-1 live SIC/DTC write-gate: SIC/DTC writes route through a live write-gate.
+- OE-2 minted-approval re-verify: a minted approval is re-verified at consumption rather than trusted on its face.
+- OE-3 project-ontology path-class: project-ontology paths are classified; the INTENTIONAL envelope-bound bypass is PRESERVED (never closed — closing it would break the legitimate consuming-layer path).
+- OE-11 structural primitives: link cardinality / FK / join, interface `extends` / `abstract`, and cross-ontology link primitives are now first-class.
+- NEW e2e coverage `tests/e2e/oe-full-flow.e2e.test.ts` exercises the end-to-end OE flow.
+
+### Changed
+- OE-4 GOVERN-FOLD V3 SECURITY into the live GOVERNANCE `accessBoundary`: the V3 SECURITY axis is folded into the live GOVERNANCE `accessBoundary` and the cast is removed; `DigitalTwinDecisionDomain` stays at 5 (the fold does NOT add a domain).
+- OE-12/13/14 hygiene fixes.
+- Rules-lightening: per-turn rule budget cut, plus D1 citation-path and C1 overlay-drift fixes.
+- The removed rule-audit citation/drift modes and the orphan capsule were DEAD/inert (not public surfaces) — their removal is internal hardening, hence a MINOR bump (rule 08).
+- DEFERRED: OE-9 (G-A5 gate) is intentionally out of scope for this release.
+
+Invariant: the SACRED 9-axis is byte-untouched by this campaign. The schemas snapshot reached v1.87+/ontology 1.81 during the campaign.
+
+Verification: `bunx tsc --noEmit` (es2022) exit 0; full `bun test` green (3321 pass / 0 fail); SACRED untouched; union-5; e2e 27 pass / 1 deferred-todo. Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.9.0 → 7.10.0 stays green (dtc-end-to-end-smoke three-file equality test).
+
 ## [7.9.0] - 2026-06-11 — fix: pm OE front-door SSoT-conformance (Round 2) — gate mutationMode lane + P3 decision-round-trip advisory + P5b phase/next-action self-location + P6 one-hop FDE-provenance front door
 
 ### Added
