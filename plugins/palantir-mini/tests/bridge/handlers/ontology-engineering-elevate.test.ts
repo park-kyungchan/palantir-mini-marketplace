@@ -24,6 +24,7 @@ import {
 } from "../../../lib/fde-ontology-engineering/session-store";
 import { createUniversalOntologyEntry } from "../../../lib/ontology-entry/universal-entry";
 import type { FDEReadinessProfileEvaluation } from "../../../lib/fde-ontology-engineering/types";
+import { seedMintedApprovedSicWorkflowState } from "../../fixtures/seed-register-workflow-state";
 
 const tmpRoots: string[] = [];
 const tmpFiles: string[] = [];
@@ -113,7 +114,64 @@ function seedGradedCurrentSession(projectRoot: string): void {
   });
 }
 
+/**
+ * OE-2 (dead-gate repair) — seed a current FDE session (so ingest REUSES it,
+ * preserving its sessionId) WITHOUT hand-stamping a passing readinessProfile, then
+ * persist a GENUINELY minted approved-SIC snapshot onto the workflow state keyed to
+ * that session. This is the SANCTIONED readiness path: the minted approvalRef is
+ * unforgeable (it passed the Q2 per-axis user-confirmation gate inside
+ * approveSemanticIntentContract), and a caller cannot supply it. Returns the
+ * seeded session id. Contrast with seedGradedCurrentSession, which hand-writes
+ * readyForDigitalTwin:true (NOT a sanctioned grade — only used by legacy tests).
+ */
+function seedMintedSicCurrentSession(projectRoot: string): string {
+  const entry = createUniversalOntologyEntry({
+    rawUserRequest: "elevate a linear-function ontology via minted SIC",
+    projectRoot,
+  });
+  const base = createFDEOntologyEngineeringSessionFromEntry({ entry });
+  // Write as the CURRENT session (no readinessProfile stamp) so ingest reuses it.
+  writeFDEOntologyEngineeringSessionSnapshot(base);
+  // Persist the genuinely minted approved-SIC snapshot keyed to this session.
+  seedMintedApprovedSicWorkflowState(projectRoot, base.sessionId);
+  return base.sessionId;
+}
+
 describe("COMPOSED GOVERNED OE-ELEVATION FLOW — `elevate` seam", () => {
+  test("SANCTIONED (OE-2): a genuinely MINTED approved-SIC snapshot + ingested candidates → phase 'elevated' + READABLE primitives (NO hand-stamped readiness)", async () => {
+    const P = setupRoot("minted-sic");
+    const fixture = writeFixture();
+    // The sanctioned readiness evidence: an unforgeable minted approved SIC + an
+    // ingested source yielding >=1 objectCandidate. NO seedGradedCurrentSession,
+    // NO hand-written readyForDigitalTwin:true on the session.
+    seedMintedSicCurrentSession(P);
+
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "elevate",
+      project: P,
+      sourceJsonlPath: fixture,
+      // Authorized-intent gate (governance DECISION) — unchanged; cannot fabricate
+      // the readiness GRADE, which now derives from the persisted minted SIC.
+      semanticIntentContractStatus: "approved",
+      digitalTwinChangeContractStatus: "approved",
+      readyForDigitalTwin: true,
+    });
+
+    expect(result.elevate?.phase).toBe("elevated");
+    expect(result.elevate?.register?.committed).toBe(true);
+    expect(result.elevate?.ingest.counts.objects).toBeGreaterThan(0);
+
+    // Registered + READABLE: the object + function rids and the cross-layer link.
+    const objRid = projectPrimitiveRid(P, "object-type", "선형함수");
+    const fnRid = projectPrimitiveRid(P, "function", "기울기 계산");
+    const linkRid = projectPrimitiveRid(P, "link-type", "computes");
+    const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
+    expect(reg.objectTypes.map((e) => e.rid)).toContain(objRid);
+    expect(reg.functions.map((e) => e.rid)).toContain(fnRid);
+    expect(reg.linkTypes.map((e) => e.rid)).toContain(linkRid);
+  });
+
+
   test("AUTHORIZED: approved SIC+DTC + a GENUINELY-graded session → phase 'elevated' + READABLE primitives", async () => {
     const P = setupRoot("auth");
     const fixture = writeFixture();

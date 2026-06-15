@@ -99,6 +99,7 @@ import {
   type OntologyEngineeringWorkflowState,
   writeOntologyEngineeringWorkflowState,
 } from "../../lib/ontology-engineering-workflow";
+import { seedMintedApprovedSicWorkflowState } from "../fixtures/seed-register-workflow-state";
 import {
   createFDEOntologyEngineeringSessionFromEntry,
   writeFDEOntologyEngineeringSessionSnapshot,
@@ -855,6 +856,42 @@ describe("E2E Stage D — governed write-path (elevate + gate)", () => {
     expect(reg.objectTypes.length).toBe(0);
     expect(reg.actionTypes.length).toBe(0);
     expect(reg.linkTypes.length).toBe(0);
+  });
+
+  test("D1a-minted (OE-2 dead-gate repair): the SANCTIONED RUN completes — a genuinely MINTED approved-SIC snapshot + ingested candidates → 'elevated', primitives REGISTERED (no hand-stamped readiness)", async () => {
+    const P = setupProjectRoot("d1a-minted");
+    const fixture = writeSourceFixture();
+    // Seed a CURRENT FDE session (no readinessProfile stamp) so ingest reuses it,
+    // then persist a GENUINELY minted approved-SIC snapshot keyed to it. This is the
+    // sanctioned readiness evidence the dead FDE-flag gate could never produce — a
+    // caller cannot forge the minted approvalRef.
+    const entry = createUniversalOntologyEntry({ rawUserRequest: HARD_KOREAN_INTENT, projectRoot: P });
+    const base = createFDEOntologyEngineeringSessionFromEntry({ entry });
+    writeFDEOntologyEngineeringSessionSnapshot(base);
+    seedMintedApprovedSicWorkflowState(P, base.sessionId);
+
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "elevate",
+      project: P,
+      sourceJsonlPath: fixture,
+      semanticIntentContractStatus: "approved",
+      digitalTwinChangeContractStatus: "approved",
+      readyForDigitalTwin: true,
+    });
+
+    expect(result.elevate?.phase).toBe("elevated");
+    expect(result.elevate?.register?.committed).toBe(true);
+
+    const reg = (await getOntology({ project: P })).snapshot.registeredPrimitives!;
+    const has = (
+      bucket: ReadonlyArray<{ rid: string }>,
+      kind: Parameters<typeof projectPrimitiveRid>[1],
+      name: string,
+    ) => bucket.map((e) => e.rid).includes(projectPrimitiveRid(P, kind, name));
+    expect(has(reg.objectTypes, "object-type", "Submission")).toBe(true);
+    expect(has(reg.functions, "function", "제출기준 판정")).toBe(true);
+    expect(has(reg.actionTypes, "action-type", "finalizeScore")).toBe(true);
+    expect(has(reg.linkTypes, "link-type", "belongsToRubric")).toBe(true);
   });
 
   test("D2p (baseline): the gate BLOCKS SIC authoring before FDE workflow provenance exists", () => {

@@ -7,6 +7,17 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.17.0] - 2026-06-15 — fix(OE-2): repair the dead elevate→register readiness gate so an approved-SIC + ingested-candidate session can complete the RUN
+
+### Fixed
+- fix(OE-2): the ontology-build `register` step was structurally unreachable — `readyForDigitalTwin` could NEVER be true because every `FDE_READINESS_PROFILE` carries `allowsDtcDraft:false`, which `evaluateFDEReadinessProfile` ANDs into the grade, and the removed `passedReadinessProfile()` left nothing else to set it true. With no path to `readyForDigitalTwin`, no ontology could be registered via the sanctioned `elevate`/`register` path. The fix grades readiness ALSO from the re-verified MINTED approved-SIC snapshot (persisted by `approve_sic`, re-verified via `isApprovedSemanticIntentContract`) plus ingested object candidates, OR'd with the existing flag — never caller-forgeable: the snapshot is sourced from the persisted workflow store by the handler, never from MCP input. New lib `lib/ontology-engineering-workflow/sic-backed-readiness.ts` (`sicBackedDigitalTwinReady`), wired into `elevate.ts` and `handleRegister`.
+
+Behavioral fix: the `elevate`→`register` RUN is now completable for an approved-SIC + ingested-candidate session. Anti-fabrication preserved — the D1a-forge / UNAUTHORIZED negatives still pass.
+
+Files touched: `lib/ontology-engineering-workflow/sic-backed-readiness.ts` [new], `lib/ontology-engineering-workflow/elevate.ts`, `bridge/handlers/pm-ontology-engineering-workflow.ts`, `tests/bridge/handlers/ontology-engineering-elevate.test.ts`, `tests/bridge/handlers/ontology-engineering-register.test.ts`, `tests/e2e/oe-full-flow.e2e.test.ts`.
+
+Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.16.0 → 7.17.0.
+
 ## [7.16.0] - 2026-06-15 — docs(cold-start): route Ontology work to the ssot/palantir design-authority (scan-then-inject) + correct-when-wrong-grounded posture
 
 ### Changed

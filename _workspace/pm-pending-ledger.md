@@ -86,3 +86,4 @@ quarantine rejects" was mostly a **re-scan illusion** — 6 distinct poison line
 - **Legacy-audit D6** (ceremony/1b) → folded into PR-E/E2.
 - **D2 (Chatbot Studio rename) → DROPPED ENTIRELY** — direction was BACKWARDS; pm's "Chatbot Studio" naming is already current ("Agent Studio" is the DEPRECATED name). Do NOT re-litigate.
 - **2026-06-12 campaign:** Codex prompt-to-DTC deadweight removed; A-#3/#4 done; B10-8 schemas modernized (skill seed re-sync); tracking consolidated into THIS ledger.
+- **OE-2 elevate-readiness dead-gate** — `readyForDigitalTwin` structurally always-false (all profiles `allowsDtcDraft:false`) made `register` unreachable; repaired @ **7.17.0** via `sicBackedDigitalTwinReady` (minted approved-SIC + ingested candidates, OR'd, handler-sourced never MCP-input), anti-fabrication preserved, suite green.

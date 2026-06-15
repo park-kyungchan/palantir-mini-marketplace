@@ -35,6 +35,8 @@ import type {
 } from "../fde-ontology-engineering/types";
 import { lintConstructionCandidates } from "../construction-lint/lint-candidates";
 import type { ConstructionLintFinding } from "../construction-lint/lint-candidates";
+import { sicBackedDigitalTwinReady } from "./sic-backed-readiness";
+import type { SemanticIntentContract } from "../lead-intent/contracts";
 import { registerAcceptedCandidates } from "./register-accepted";
 import commitEditsHandler from "../../bridge/handlers/commit-edits";
 import getOntology from "../../bridge/handlers/get-ontology";
@@ -49,6 +51,15 @@ export interface ElevateInput {
   readonly readyForDigitalTwin?: boolean;
   readonly rawUserRequest?: string;
   readonly sessionId?: string;
+  /**
+   * The MINTED approved SemanticIntentContract snapshot persisted on the project's
+   * workflow state. ANTI-FABRICATION: this MUST be populated by the HANDLER from the
+   * persisted workflow store (the same `approvedSemanticIntentContractSnapshot` the
+   * register seam re-verifies) — NEVER from the MCP caller's input params. It is the
+   * unforgeable readiness evidence the decoupled FDE session lacks; a caller cannot
+   * supply it to manufacture readiness.
+   */
+  readonly approvedSicSnapshot?: SemanticIntentContract | undefined;
 }
 
 export interface ElevateResult {
@@ -213,11 +224,19 @@ export async function elevateOntologyFromSource(input: ElevateInput): Promise<El
   }
 
   // Authorized intent: read the session's INDEPENDENT readiness grade (NOT a
-  // fabricated pass). Register runs ONLY when the session itself grades ready.
+  // fabricated pass). Register runs ONLY when the session itself grades ready —
+  // EITHER via a real persisted FDE readiness profile, OR via the GENUINE,
+  // UNFORGEABLE minted approved-SIC snapshot the handler sourced from the
+  // persisted workflow store (`approvedSicSnapshot`) plus ingested candidates
+  // (`sicBackedDigitalTwinReady`). The OR never replaces the unforgeable check; a
+  // caller flag still cannot fabricate either branch.
   const persisted = readFDEOntologyEngineeringSession(projectRoot, sessionId) ?? ingestedSession;
   const readinessProfile = independentReadinessProfile(persisted);
+  const ready =
+    readinessProfile.readyForDigitalTwin === true ||
+    sicBackedDigitalTwinReady(input.approvedSicSnapshot, persisted);
 
-  if (readinessProfile.readyForDigitalTwin !== true) {
+  if (!ready) {
     return {
       phase: "awaiting-approval",
       ingest,
@@ -225,7 +244,8 @@ export async function elevateOntologyFromSource(input: ElevateInput): Promise<El
       sic,
       note:
         "session is not independently graded ready for digital twin " +
-        "(readinessProfile.readyForDigitalTwin !== true); the caller flag cannot fabricate readiness",
+        "(neither readinessProfile.readyForDigitalTwin === true nor a re-verified minted " +
+        "approved-SIC snapshot + ingested candidates); the caller flag cannot fabricate readiness",
     };
   }
 

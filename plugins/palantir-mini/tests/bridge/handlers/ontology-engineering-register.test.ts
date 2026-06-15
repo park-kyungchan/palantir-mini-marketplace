@@ -213,9 +213,31 @@ describe("ENTRY-loop register seam — full loop closure for a NEW project", () 
     expect(reg.objectTypes.length).toBe(0);
   });
 
-  test("NEGATIVE (D5 gate): approved but NOT graded → INVALID no-op", async () => {
-    const P = setupRoot("neg-grade");
-    const session = seedSession(P, { graded: false });
+  test("NEGATIVE (D5 gate): minted approved SIC present BUT zero objectCandidates → INVALID no-op (no empty-ontology register)", async () => {
+    // OE-2 (dead-gate repair): the FDE readinessProfile flag can never be true via
+    // a sanctioned path, so register's grade now derives from the GENUINE,
+    // UNFORGEABLE minted approved-SIC snapshot + ingested candidates
+    // (sicBackedDigitalTwinReady). The legitimate "not ready" case is therefore an
+    // EMPTY ontology: a minted approved SIC is persisted (so the approval re-verify
+    // passes) but the session has ZERO objectCandidates → the empty-ontology guard
+    // blocks register. This stays a TRUE negative under the new semantics.
+    const P = setupRoot("neg-empty");
+    const entry = createUniversalOntologyEntry({
+      rawUserRequest: "register with no ingested candidates",
+      projectRoot: P,
+    });
+    const base = createFDEOntologyEngineeringSessionFromEntry({ entry });
+    const session: FDEOntologyEngineeringSession = {
+      ...base,
+      phase: "dtc-ready",
+      // ZERO objectCandidates (and no other candidates) — empty ontology.
+      readinessProfileId: "mission-decision",
+      readinessProfile: readinessProfile(false),
+    };
+    writeFDEOntologyEngineeringSessionSnapshot(session);
+    // Persist a GENUINELY minted approved-SIC snapshot so the failure is ABOUT the
+    // empty-ontology grade gate, not a missing approval.
+    seedMintedApprovedSicWorkflowState(P, session.sessionId);
 
     const result = await handleOntologyEngineeringWorkflow(
       approvedRegisterInput(P, session.sessionId),

@@ -60,6 +60,7 @@ import {
   type MutationMode,
 } from "../../lib/ontology-engineering-workflow";
 import { registerAcceptedCandidates } from "../../lib/ontology-engineering-workflow/register-accepted";
+import { sicBackedDigitalTwinReady } from "../../lib/ontology-engineering-workflow/sic-backed-readiness";
 import {
   elevateOntologyFromSource,
   type ElevateResult,
@@ -928,7 +929,15 @@ async function handleRegister(
   })?.approvedSemanticIntentContractSnapshot;
   const mintedSicReverified = isApprovedSemanticIntentContract(persistedSnapshot);
   const approved = phaseApproved && mintedSicReverified;
-  const graded = session.readinessProfile?.readyForDigitalTwin === true;
+  // OE-2 (dead-gate repair) — the FDE readiness flag can NEVER be true via a
+  // sanctioned path (every FDE_READINESS_PROFILE has allowsDtcDraft:false, so the
+  // evaluator can only ever grade readyForDigitalTwin:false). Grade ALSO from the
+  // GENUINE, UNFORGEABLE evidence: the re-verified minted approved-SIC snapshot
+  // (the SAME persistedSnapshot above) + ingested object candidates. OR'd, never
+  // replacing the flag — a caller still cannot fabricate either branch.
+  const graded =
+    session.readinessProfile?.readyForDigitalTwin === true ||
+    sicBackedDigitalTwinReady(persistedSnapshot, session);
 
   if (!approved || !graded) {
     const reasons: string[] = [];
@@ -1034,6 +1043,17 @@ async function handleElevate(
     throw new Error("pm_ontology_engineering_workflow elevate requires a sourceJsonlPath.");
   }
 
+  // OE-2 (anti-fabrication) — source the MINTED approved-SIC snapshot from the
+  // PERSISTED workflow store (the SAME read handleRegister uses), NEVER from the
+  // caller's input params. This is the unforgeable readiness evidence elevate's
+  // decoupled FDE session lacks; passing it from the store (not from MCP input)
+  // means a caller cannot supply it to manufacture readiness.
+  const approvedSicSnapshot = readPreviousWorkflowState({
+    root,
+    action: input.action,
+    session: readSessionByInput(input),
+  })?.approvedSemanticIntentContractSnapshot;
+
   const elevate = await elevateOntologyFromSource({
     projectRoot: root,
     sourceJsonlPath,
@@ -1042,6 +1062,7 @@ async function handleElevate(
     readyForDigitalTwin: input.readyForDigitalTwin,
     rawUserRequest: input.recordedDecisionNote,
     sessionId: input.sessionId,
+    approvedSicSnapshot,
   });
 
   // Read the freshly-derived workflow state over the (now ingested + possibly
