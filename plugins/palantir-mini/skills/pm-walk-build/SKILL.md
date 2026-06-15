@@ -174,7 +174,7 @@ Quick concept questions: 3-4 sentences, then "계속 진행할까요?"
 | Need | Read |
 |------|------|
 | 12-scene progression | `references/scene-maps.md` |
-| Full philosophy | `~/.claude/research/palantir/philosophy/README.md` |
-| Digital Twin loop | `~/.claude/research/palantir/philosophy/digital-twin.md` |
+| Full philosophy (WHY, DESIGN-authority) | `~/harness-upstream/ssot/palantir/ontology/decision-model.md` (scan `ssot/palantir/BROWSE.md` → smallest slice) |
+| Digital Twin loop | `~/harness-upstream/ssot/palantir/architecture-center/intent-to-build-flow.md` |
 | DH/HC constants | `~/.claude/schemas/ontology/semantics.ts` |
 | Shared protocols | `../_shared/walk-reference.md` |

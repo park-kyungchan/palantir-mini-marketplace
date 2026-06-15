@@ -7,6 +7,14 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.15.0] - 2026-06-15 — docs: ground ontology-building skills + agents in ssot/palantir DESIGN-authority + repoint Palantir research-root citations
+
+### Changed
+- docs(skills/agents): ground pm's ontology-building skills + agents in the harness-upstream `ssot/palantir` DESIGN-authority (scan README->BROWSE->INDEX->slice; design grounds, source governs).
+- fix(docs): repoint dead/inconsistent Palantir research-root citations (`palantir-foundry` -> `palantir-official/foundry`; dead `palantir/philosophy` -> `ssot/palantir`); README §Plugin Source Authority gains the design-authority entry; pm-orchestrate Sonnet->opus staleness fix.
+
+Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.14.0 → 7.15.0.
+
 ## [7.14.0] - 2026-06-15 — docs: ssot/palantir design-authority pointers + 4-quadrant SSoT disambiguation
 
 ### Changed

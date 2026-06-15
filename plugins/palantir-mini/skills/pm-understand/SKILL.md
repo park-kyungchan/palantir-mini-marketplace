@@ -17,6 +17,15 @@ Surface what the user *means* — explicit and implicit — into a reviewable **
 - `lib/semantic-intent/nine-axis-understand-session.ts` — `nineAxisTurnCard` (the card), session runner (`startNineAxisSession` / `nextCard` / `answerCard` / `isSessionComplete` / `sessionContract`).
 If this skill and the engine ever diverge, the engine wins.
 
+**Design grounding (the 9-axis WHY):** before running the axes, SCAN
+`~/harness-upstream/ssot/README.md` → `ssot/palantir/BROWSE.md` → `INDEX.md` →
+smallest slice (e.g. `ssot/palantir/ontology/decision-model.md`) and inject ONLY
+the needed slice — the rationale behind 9-axis/DTC/OSDK-binding/lineage
+(DESIGN-authority). Design grounds, the engine above governs the protocol; both
+are distinct from the raw research firehose
+(`~/.claude/research/palantir-official/foundry/`) and from pm's source-authority
+(`.ssot-authority.json`).
+
 ## When to use
 - A request is ambiguous, large, or ontology-affecting and you want to fix its meaning + boundary before building.
 - Implicit intent (constraints, non-goals, success criteria) is likely under-specified.

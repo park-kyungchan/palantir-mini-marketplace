@@ -137,6 +137,16 @@ Direct invocation is via `/palantir-mini:pm-fde-session-preview`.
 
 ## Authority + cross-refs
 
+**Design grounding (before the 9-axis / SIC / DTC / build):** SCAN
+`~/harness-upstream/ssot/README.md` → `ssot/palantir/BROWSE.md` → `INDEX.md` →
+smallest slice (`ssot/palantir/ontology/` + `architecture-center/intent-to-build-flow.md`)
+and inject ONLY the needed slice — the WHY behind the build-session levels this
+skill renders (9-axis/DTC/OSDK-binding/lineage, DESIGN-authority). Design
+grounds, source governs; this is distinct from the raw research firehose
+(`~/.claude/research/palantir-official/foundry/`) and from pm's source-authority
+(`.ssot-authority.json`).
+
+- Design-authority (WHY): `~/harness-upstream/ssot/palantir/ontology/`, `~/harness-upstream/ssot/palantir/architecture-center/intent-to-build-flow.md`
 - Schema primitive: `runtime-overlay/schemas-snapshot/ontology/primitives/fde-ontology-build-session.ts`
 - Composer: `lib/fde-build/session-composer.ts`
 - Level builders: `lib/fde-build/level-builders.ts`

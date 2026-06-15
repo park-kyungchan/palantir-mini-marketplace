@@ -67,6 +67,14 @@ and especially before implementation when a request can change ontology,
 schema, agent routing, evaluation, replay, migration, permission, or Digital
 Twin runtime behavior.
 
+**Design grounding (before the 9-axis / SIC / DTC / build):** SCAN
+`~/harness-upstream/ssot/README.md` → `ssot/palantir/BROWSE.md` → `INDEX.md` →
+smallest slice and inject ONLY the needed slice — the WHY behind
+9-axis/DTC/OSDK-binding/lineage (DESIGN-authority). Design grounds, source
+governs; this is distinct from the raw research firehose
+(`~/.claude/research/palantir-official/foundry/`) and from pm's source-authority
+(`.ssot-authority.json`).
+
 ## FDE-First Meaning Boundary
 
 `SemanticIntentContract` is not the first place where user meaning is

@@ -1495,7 +1495,8 @@ export async function handleOntologyEngineeringWorkflow(
       // status:"draft" (schema-compatible), but a HOLLOW draft (all axes open, no
       // candidates, placeholder intent) is reported as "clarification-required" with
       // the blocking questions as the primary payload — never a success-shaped draft
-      // (intent-to-build-flow.md:53 — "Stop if any 9-axis slot is missing").
+      // (~/harness-upstream/ssot/palantir/architecture-center/intent-to-build-flow.md:53
+      //  — "Stop if any 9-axis slot is missing").
       if (!isSemanticIntentContractHollow(semanticIntentContract)) {
         return { ...base, sicDraftStatus: "draft" };
       }
@@ -1504,7 +1505,7 @@ export async function handleOntologyEngineeringWorkflow(
         sicDraftStatus: "clarification-required",
         clarificationRequired: {
           reason:
-            "SemanticIntentContract draft is hollow: every axis is open, no noun/verb candidates, and intent is unset. Per intent-to-build-flow.md:53 the flow stops when 9-axis slots are missing. Answer the blocking questions (or run `turn` with typed candidate fields) before drafting.",
+            "SemanticIntentContract draft is hollow: every axis is open, no noun/verb candidates, and intent is unset. Per ~/harness-upstream/ssot/palantir/architecture-center/intent-to-build-flow.md:53 the flow stops when 9-axis slots are missing. Answer the blocking questions (or run `turn` with typed candidate fields) before drafting.",
           blockingQuestions: blockingClarificationQuestions(semanticIntentContract),
         },
       };

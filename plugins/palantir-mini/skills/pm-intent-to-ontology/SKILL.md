@@ -26,6 +26,15 @@ The canonical prompt-to-DTC front door is `prompt-front-door-capture` plus
 downstream discovery/advisory pass that grounds Lead's work in the ontology
 layer before any Edit/Write/MultiEdit:
 
+**Design grounding (the WHY this is the ontology front door):** before the pass,
+SCAN `~/harness-upstream/ssot/README.md` → `ssot/palantir/BROWSE.md` →
+`INDEX.md` → smallest slice (e.g. `ssot/palantir/ontology/`) and inject ONLY the
+needed slice — the rationale behind 9-axis/DTC/OSDK-binding/lineage
+(DESIGN-authority). Design grounds, source governs; distinct from the raw
+research firehose (`~/.claude/research/palantir-official/foundry/`) and from pm's
+source-authority (`.ssot-authority.json`).
+
+
 1. **get_ontology** — snapshot the current ontology state for the project.
 2. **impact_query** — blast radius walk from scope RIDs (depth=2).
 3. **pm_workflow_lineage_query** — past 7-day edit history for the project (last 30 committed edits).

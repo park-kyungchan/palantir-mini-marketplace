@@ -261,5 +261,6 @@ Persisted: <experimentId path>
 ## Authority + cross-refs
 
 - Schemas: `~/.claude/schemas/ontology/primitives/aip-evaluation.ts` (v1.37+, `AIPEvaluationSuiteDeclaration` / `AIPEvaluationRunDeclaration` / `AIPExperimentDeclaration`), `grader-domain-extension.ts` (v1.40+).
-- 1차 자료: `~/.claude/research/palantir-foundry/aip/aip-evals-overview-and-ontology-edits-2026-04-14.md`.
+- Design-authority (WHY, primary): `~/harness-upstream/ssot/palantir/aip-evals/` (scan `ssot/palantir/BROWSE.md` → `INDEX.md` → smallest slice). Design grounds, source governs; distinct from the raw research firehose and pm's `.ssot-authority.json`.
+- 1차 자료 (raw research, reference-only): `~/.claude/research/palantir-official/foundry/aip/`.
 - Plan §3.W2.B — `~/.claude/plans/mossy-mapping-eich.md`.

@@ -11,18 +11,26 @@ effort: high
 disable-model-invocation: false
 ---
 
-# Orchestrate — Ontology-Driven 6-Phase Lead Protocol v1.0
+# Orchestrate — Ontology-Driven 6-Phase Lead Protocol
 
 > Note: `model:` param is NEVER passed at Agent spawn — frontmatter `model:` is the single source of truth (Model policy). [Applied — defect #2 fix, 2026-04-19]
 
 This skill replaces ad-hoc orchestration with a rigorous, observable protocol
 derived from proven Ontology-Driven sessions. The Lead (Opus) never codes directly
 unless fixing cross-cutting issues between phases. All execution is delegated to
-parallel Sonnet agents with exclusive file ownership.
+parallel opus subagents with exclusive file ownership.
 
-palantir-mini v1.0 is the substrate — every phase gate emits events, every task
+palantir-mini is the substrate — every phase gate emits events, every task
 dispatch flows through plugin MCP, and every session is replayable via
 `events.jsonl` Decision Lineage.
+
+**Design grounding (before the 9-axis / SIC / DTC / build):** SCAN
+`~/harness-upstream/ssot/README.md` → `ssot/palantir/BROWSE.md` → `INDEX.md` →
+smallest slice and inject ONLY the needed slice — the WHY behind
+9-axis/DTC/OSDK-binding/lineage (DESIGN-authority). Design grounds, source
+governs; this is distinct from the raw research firehose
+(`~/.claude/research/palantir-official/foundry/`) and from pm's source-authority
+(`.ssot-authority.json`).
 
 ## Why This Protocol Exists
 
@@ -372,7 +380,7 @@ mcp__palantir-mini__emit_event({
 
 ## Phase 5: EXECUTE — Parallel Agents with Phase Gates
 
-**Purpose**: Spawn Sonnet implementer agents per phase, gate between phases.
+**Purpose**: Spawn opus implementer subagents per phase, gate between phases.
 
 ### Spawn Pattern
 ```
@@ -431,7 +439,7 @@ See [references/spawn-prompts.md](references/spawn-prompts.md) for templates.
 
 **Purpose**: Run the complete validation pipeline and summarize.
 
-### Validation via palantir-mini v1.0
+### Validation via palantir-mini
 
 Run `/pm-verify` (6-phase pipeline: Design + Compile + Runtime + Post-Write + Deploy + Merge):
 
@@ -550,12 +558,12 @@ Not every task needs all 6 phases. The Lead chooses:
 
 ---
 
-## palantir-mini v1.0 Integration
+## palantir-mini Integration
 
-palantir-mini v1.0 provides 10 MCP tools, 15 hooks, 6-phase validation, and
+palantir-mini provides the MCP tools, hooks, 6-phase validation, and
 L2/L3 RBAC. The orchestration protocol maps onto these capabilities as follows:
 
-| Phase | palantir-mini v1.0 surface |
+| Phase | palantir-mini surface |
 |-------|---------------------------|
 | Phase 0 CHECK | `mcp__palantir-mini__replay_lineage` — prior session event query |
 | Phase 1 INJECT | `mcp__palantir-mini__get_ontology` — canonical ontology snapshot |
@@ -565,7 +573,7 @@ L2/L3 RBAC. The orchestration protocol maps onto these capabilities as follows:
 | Phase 5 EXECUTE | `mcp__palantir-mini__commit_edits` + `capability_token_check` (L2) |
 | Phase 6 VALIDATE | `/pm-verify` (6-phase pipeline) + `emit_event` phase_completed |
 
-### Mechanical Enforcement via Hooks (v1.0)
+### Mechanical Enforcement via Hooks
 
 Plugin hooks enforce Principles mechanically:
 - **TaskCreated hook** — rejects duplicate file-ownership declarations across tasks

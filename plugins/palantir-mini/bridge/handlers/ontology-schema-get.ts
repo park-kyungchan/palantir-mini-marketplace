@@ -5,8 +5,10 @@
 // Looks up the primitive file in the plugin-owned schemas snapshot by default
 // (or plugin-owned shared-core index for shared-core re-exports).
 //
-// Authority: research/palantir/data/ → schemas/ontology/primitives/
+// Authority: ~/.claude/research/palantir-official/foundry/ontology/ (raw research firehose,
+//   reference-only) → schemas/ontology/primitives/
 //   → home-ontology/shared-core → per-project ontology/
+//   Design-authority (the WHY) is ~/harness-upstream/ssot/palantir/; see .ssot-authority.json designAuthority.
 
 import * as fs from "fs";
 import * as path from "path";

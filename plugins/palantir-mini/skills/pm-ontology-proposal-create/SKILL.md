@@ -109,6 +109,7 @@ Next: reviewers run /pm-ontology-proposal-review on this proposalId.
 ## Authority + cross-refs
 
 - Schemas: `ontology-branch-proposal.ts` (v1.37+), `global-branching-proposal.ts` (v1.40+).
-- 1차 자료: `~/.claude/research/palantir-foundry/ontology/global-branching-overview-2026-05-05.md`.
+- Design-authority (WHY, primary): `~/harness-upstream/ssot/palantir/global-branching/` (scan `ssot/palantir/BROWSE.md` → `INDEX.md` → smallest slice). Design grounds, source governs; distinct from the raw research firehose and pm's `.ssot-authority.json`.
+- 1차 자료 (raw research, reference-only): `~/.claude/research/palantir-official/foundry/ontology/`.
 - Companion: `/pm-ontology-branch-create` (precondition), `/pm-ontology-proposal-review`.
 - Plan §3.W3.B — `~/.claude/plans/mossy-mapping-eich.md`.
