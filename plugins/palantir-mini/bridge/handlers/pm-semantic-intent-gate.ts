@@ -62,6 +62,11 @@
 import { emit } from "../../scripts/log";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import { boundedReturn } from "../../lib/bounded-return";
+import {
+  resolveOverflowRoot,
+  makeOverflowFileSink,
+} from "../../lib/bounded-return/overflow-file-sink";
 import {
   transitionOntologyWorkflowTrace,
   type OntologyWorkflowTrace,
@@ -287,6 +292,16 @@ export interface SemanticIntentGateInput {
    * turn (source = "user"); it never auto-fills the axis.
    */
   readonly proposedAxisDraft?: NineAxisProposedDraft;
+  /**
+   * P3 — response shaping. 'turn' (default): fillResult + active card + blocked count inline,
+   * heavy readiness bodies + full semanticConversationState relocated to overflow.fullPath.
+   * 'readiness': full diagnostics inline (ontologyDtcBuildReadinessGate + semanticConversationState).
+   * Gate SEMANTICS are identical across views — only payload shape differs. The
+   * `render-readiness-diagnostics` next-action remains the SIGNAL that the full block is
+   * worth fetching; the handler does NOT auto-flip the view (re-call with 'readiness' or
+   * read overflow.fullPath).
+   */
+  readonly responseView?: "turn" | "readiness";
 }
 
 /**
@@ -381,10 +396,34 @@ export interface DtcSemanticIntentFillResult {
   readonly policy: "dtc-turn-fill" | "ontology-dtc-build";
 }
 
+/** P4 — a by-id pointer that replaces a full {@link TurnCardDecisionSpec} body at an emit site. */
+export interface DecisionRef {
+  readonly decisionRef: string;
+}
+
+/** P4 — the emitted `gate` with `questions[].decisionSpec` projected to a by-id ref. */
+export type GateProjection = Omit<ContractGateResult, "questions"> & {
+  questions: Array<
+    Omit<SemanticClarificationQuestion, "decisionSpec"> & {
+      decisionSpec: TurnCardDecisionSpec | DecisionRef;
+    }
+  >;
+};
+
+/** P4 — the emitted `layer0.bridge` with `materialAmbiguities[].decisionSpec` projected to a by-id ref. */
+export type Layer0IntentBridgeProjection = Omit<Layer0IntentBridge, "materialAmbiguities"> & {
+  materialAmbiguities: ReadonlyArray<
+    Omit<SemanticClarificationQuestion, "decisionSpec"> & {
+      decisionSpec: TurnCardDecisionSpec | DecisionRef;
+    }
+  >;
+};
+
 export interface SemanticIntentGateResult {
   status: ContractGateResult["status"];
   allowsRouting: boolean;
-  gate: ContractGateResult;
+  /** P4 — `questions[].decisionSpec` projected to a by-id ref (dereference via `decisions` / queue). */
+  gate: GateProjection;
   /** Ontology-DTC dispatch readiness diagnostics. Semantic gate never treats context/tools as authority. */
   ontologyDtcBuildReadinessGate?: OntologyDtcBuildReadinessGate;
   turnCardDecisionQueue: SemanticIntentTurnCardDecision[];
@@ -400,7 +439,8 @@ export interface SemanticIntentGateResult {
   userReviewCard?: SemanticIntentUserReviewCard;
   semanticConversationState?: SemanticConversationState;
   layer0?: {
-    bridge: Layer0IntentBridge;
+    /** P4 — `materialAmbiguities[].decisionSpec` projected to a by-id ref. */
+    bridge: Layer0IntentBridgeProjection;
     clarificationGuards: ClarificationGuardResult;
     readiness: Layer0ReadinessGrade;
     ontologyActivation?: OntologyActivation;
@@ -420,6 +460,23 @@ export interface SemanticIntentGateResult {
   dtcFillResult?: DtcSemanticIntentFillResult;
   /** Deterministic resolver output for source-system term consistency, when requested. */
   semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+  /**
+   * P1 — present (turn view) when heavy invariant bodies were relocated off-inline.
+   * Caller re-reads `fullPath` for the full
+   * { ontologyDtcBuildReadinessGate, semanticConversationState, decisions, materialAmbiguities }.
+   * `digest` = sha256[:16] of the sunk JSON; `contains` lists the relocated keys. Absent in
+   * 'readiness' view (bodies inline). FAIL-SAFE: on a sink throw the bodies stay inline and
+   * this field is omitted (never errors, never drops).
+   */
+  overflow?: { fullPath: string; bytes: number; digest: string; contains: string[]; note: string };
+  /**
+   * P4 — canonical decision-body map keyed by `decisionId`. Present inline ONLY in 'readiness'
+   * view (turn view: it rides in the overflow file). Every id-ref elsewhere
+   * (workflowContract.turnCards/activeTurnCard, gate.questions[].decisionSpec,
+   * layer0.bridge.materialAmbiguities[].decisionSpec) dereferences against this map (or the
+   * inline `turnCardDecisionQueue[].decisionSpec`, the single inline body home).
+   */
+  decisions?: Record<string, TurnCardDecisionSpec>;
 }
 
 export type PromptEnvelopeLookupSelectedBy =
@@ -449,8 +506,14 @@ export interface SemanticIntentWorkflowContractProjection {
   workflowContractRef: string;
   runtime: PromptRuntime;
   currentPhase: "semantic-intent" | "digital-twin-change" | "ready-to-route";
-  activeTurnCard?: TurnCardDecisionSpec;
-  turnCards: TurnCardDecisionSpec[];
+  /**
+   * P4 — `decisionId` ref of the active (first open blocking) decision; dereference against
+   * `result.decisions` (readiness view / overflow file) or `turnCardDecisionQueue[].decisionSpec`
+   * (inline body home). Previously the full `TurnCardDecisionSpec` body.
+   */
+  activeTurnCard?: string;
+  /** P4 — `decisionId` refs of open decisions (previously full bodies). Dereference per `activeTurnCard`. */
+  turnCards: string[];
   openDecisionIds: string[];
   closedDecisionIds: string[];
   allowedNextActions: string[];
@@ -567,6 +630,25 @@ function buildTurnCardDecisionQueue(
     }));
 }
 
+/**
+ * P4 — build the canonical `decisions{}` map keyed by `decisionId`. Collects every distinct
+ * full {@link TurnCardDecisionSpec} so the by-id refs scattered across the result
+ * (workflowContract.turnCards, gate.questions[].decisionSpec, layer0 materialAmbiguities) all
+ * dereference here. `decisionId === questionId` (a deterministic slug), so the question specs and
+ * the nine-axis per-turn cards (T${turnIndex} keys) never collide. This map is the single full-body
+ * home that rides in the overflow file (turn view) and inline (readiness view); the inline
+ * `turnCardDecisionQueue[].decisionSpec` keeps a body reachable without reading the file.
+ */
+function buildDecisionsMap(
+  questions: readonly SemanticClarificationQuestion[],
+  nineAxisCards: readonly TurnCardDecisionSpec[],
+): Record<string, TurnCardDecisionSpec> {
+  const map: Record<string, TurnCardDecisionSpec> = {};
+  for (const q of questions) map[q.decisionSpec.decisionId] = q.decisionSpec;
+  for (const c of nineAxisCards) map[c.decisionId] = c;
+  return map;
+}
+
 function buildWorkflowContractProjection(
   input: SemanticIntentGateInput,
   gate: ContractGateResult,
@@ -575,8 +657,15 @@ function buildWorkflowContractProjection(
   ontologyDtcBuildReadinessGate?: OntologyDtcBuildReadinessGate,
 ): SemanticIntentWorkflowContractProjection {
   const runtime = input.runtime ?? "unknown";
-  const turnCards = questions.map((question) => question.decisionSpec);
-  const openDecisionIds = turnCards.filter((card) => card.blocking).map((card) => card.decisionId);
+  // P4 — keep the FULL specs in-scope to compute `openDecisionIds` from `.blocking` BEFORE
+  // projecting to id-refs (blocking must stay reachable; value byte-identical to pre-change).
+  const turnCardsFull = questions.map((question) => question.decisionSpec);
+  const openDecisionIds = turnCardsFull
+    .filter((card) => card.blocking)
+    .map((card) => card.decisionId);
+  // P4 — emit decisionId refs instead of full bodies (dereference via `result.decisions`
+  // / `turnCardDecisionQueue[].decisionSpec`).
+  const turnCards = turnCardsFull.map((card) => card.decisionId);
   const mutationAuthorized =
     gate.allowsRouting &&
     gate.semanticIntent.valid &&
@@ -1826,6 +1915,11 @@ export async function semanticIntentGate(
     throw new Error("pm_semantic_intent_gate: `rawIntent` is required");
   }
 
+  // P3 — response shaping. Default 'turn' (slim: heavy invariant bodies relocated to
+  // overflow.fullPath); 'readiness' keeps the full diagnostics inline. Gate semantics
+  // are identical across views.
+  const effectiveResponseView: "turn" | "readiness" = input.responseView ?? "turn";
+
   const semanticConsistencyResult = input.semanticConsistencyResolverInput
     ? resolveSemanticConsistency(input.semanticConsistencyResolverInput)
     : undefined;
@@ -2646,11 +2740,87 @@ export async function semanticIntentGate(
     ontologyDtcBuildReadinessGate,
   );
 
+  // ── P4 — canonical decision-body map (keyed by decisionId). Collects the question
+  //    specs PLUS any nine-axis per-turn cards PLUS the layer0 materialAmbiguities specs
+  //    (so the layer0 id-refs dereference inline in readiness view), so every id-ref
+  //    scattered across the result dereferences here.
+  const nineAxisCards: TurnCardDecisionSpec[] = [
+    ...(fillResult?.turnCard ? [fillResult.turnCard] : []),
+    ...(fillResult?.nextTurnCard ? [fillResult.nextTurnCard] : []),
+    ...layer0Bridge.materialAmbiguities.map((q) => q.decisionSpec),
+  ];
+  const decisions = buildDecisionsMap(effectiveGate.questions, nineAxisCards);
+
+  // ── P4 — project the four full-embed sites to by-id refs on SHALLOW COPIES, never
+  //    mutating the live producers (effectiveGate / layer0Bridge are passed to guards /
+  //    persistence above). Site (b) turnCardDecisionQueue keeps its full body (single inline home).
+  const gateProjected: GateProjection = {
+    ...effectiveGate,
+    questions: effectiveGate.questions.map((q) => ({
+      ...q,
+      decisionSpec: { decisionRef: q.decisionSpec.decisionId },
+    })),
+  };
+  const bridgeProjected: Layer0IntentBridgeProjection = {
+    ...layer0Bridge,
+    materialAmbiguities: layer0Bridge.materialAmbiguities.map((q) => ({
+      ...q,
+      decisionSpec: { decisionRef: q.decisionSpec.decisionId },
+    })),
+  };
+
+  // ── P1 — heavy invariant bodies. In 'turn' view they are relocated to an overflow file
+  //    (deterministically, via maxBytes:0) and OMITTED from the inline result; in 'readiness'
+  //    view they (and the decisions map) stay inline. FAIL-SAFE: a sink throw falls back to
+  //    emitting the bodies inline (never errors, never drops) — mirrors the MCP seam.
+  const heavyBundle = {
+    ontologyDtcBuildReadinessGate,
+    semanticConversationState,
+    decisions,
+    materialAmbiguitiesFull: layer0Bridge.materialAmbiguities,
+  };
+  let overflow: SemanticIntentGateResult["overflow"];
+  let relocateHeavyBodies = false;
+  if (effectiveResponseView === "turn") {
+    try {
+      const serialized = JSON.stringify(heavyBundle, null, 2);
+      const sink = makeOverflowFileSink(
+        "pm_semantic_intent_gate",
+        resolveOverflowRoot({ project: input.project }),
+      );
+      const bounded = await boundedReturn(
+        { summary: {}, full: heavyBundle, serialized, maxBytes: 0 },
+        sink,
+      );
+      if (bounded.bounded === true) {
+        overflow = {
+          fullPath: bounded.fullPath,
+          bytes: bounded.bytes,
+          digest: bounded.digest,
+          contains: [
+            "ontologyDtcBuildReadinessGate",
+            "semanticConversationState",
+            "decisions",
+            "materialAmbiguitiesFull",
+          ],
+          note:
+            "readiness diagnostics relocated; re-call with responseView:'readiness' or read fullPath",
+        };
+        relocateHeavyBodies = true;
+      }
+    } catch {
+      // FAIL-SAFE — the sink/write failed; keep the heavy bodies inline so the gate never
+      // errors and never drops an invariant body.
+      overflow = undefined;
+      relocateHeavyBodies = false;
+    }
+  }
+
   return {
     status: effectiveGate.status,
     allowsRouting: effectiveGate.allowsRouting,
-    gate: effectiveGate,
-    ...(ontologyDtcBuildReadinessGate
+    gate: gateProjected,
+    ...(ontologyDtcBuildReadinessGate && !relocateHeavyBodies
       ? { ontologyDtcBuildReadinessGate }
       : {}),
     turnCardDecisionQueue,
@@ -2661,9 +2831,11 @@ export async function semanticIntentGate(
     ...(persisted.contractRefs ? { contractRefs: persisted.contractRefs } : {}),
     ...(continuity ? { promptContinuity: continuity } : {}),
     ...(userReviewCard ? { userReviewCard } : {}),
-    semanticConversationState,
+    ...(relocateHeavyBodies ? {} : { semanticConversationState }),
+    ...(relocateHeavyBodies ? {} : { decisions }),
+    ...(overflow ? { overflow } : {}),
     layer0: {
-      bridge: layer0Bridge,
+      bridge: bridgeProjected,
       clarificationGuards: layer0ClarificationGuards,
       readiness: layer0Readiness,
       ...(ontologyActivation ? { ontologyActivation } : {}),
