@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.18.0] - 2026-06-16 — feat(gate): slim the pm_semantic_intent_gate per-turn payload (P1+P3+P4)
+
+### Added
+- feat(gate): `pm_semantic_intent_gate` gains an additive public MCP input param `responseView: "turn" | "readiness"` (default `"turn"`). The default `"turn"` view returns the slim per-turn payload; `"readiness"` returns the full readiness diagnostics inline. This cuts the per-call payload from a ~12KB full-state snapshot toward ~3KB on the common path (P1), with the heavy readiness diagnostics relocated behind the opt-in view or an overflow file (`responseView:'readiness'` or read `fullPath`). New overflow helper `lib/bounded-return/overflow-file-sink.ts`.
+
+### Changed
+- P3 + P4: slim the projected gate payload at the gate-projection sites — semantics, `mutationAuthorized`, continuity, and the R5 boundary are all preserved; criterion-4 was rescoped to the gate-projection sites (Option A) per user decision. Option B (full cross-surface decisionSpec dedup) and R2 overflow age-out GC are deferred as follow-ups.
+
+Verification: typecheck clean, targeted tests green (81 pass / 0 fail across the gate + overflow-sink + mcp-server-schema suites), zero new suite failures. Rule-04 adversarial review found no blockers.
+
+Files touched: `bridge/handlers/pm-semantic-intent-gate.ts`, `bridge/mcp-server.ts`, `lib/bounded-return/overflow-file-sink.ts` [new], plus tests (`tests/bridge/handlers/pm-semantic-intent-gate.test.ts`, `tests/bridge/mcp-server-schema.test.ts`, `tests/lib/bounded-return/overflow-file-sink.test.ts`).
+
+Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.17.0 → 7.18.0.
+
 ## [7.17.0] - 2026-06-15 — fix(OE-2): repair the dead elevate→register readiness gate so an approved-SIC + ingested-candidate session can complete the RUN
 
 ### Fixed
