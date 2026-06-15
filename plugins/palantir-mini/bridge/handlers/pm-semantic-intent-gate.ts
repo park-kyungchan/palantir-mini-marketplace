@@ -396,7 +396,14 @@ export interface DtcSemanticIntentFillResult {
   readonly policy: "dtc-turn-fill" | "ontology-dtc-build";
 }
 
-/** P4 — a by-id pointer that replaces a full {@link TurnCardDecisionSpec} body at an emit site. */
+/**
+ * P4 — a by-id pointer that replaces a full {@link TurnCardDecisionSpec} body at an emit site.
+ * Resolve `decisionRef` against the `decisions{}` map — inline in `readiness` view, or inside the
+ * `overflow.fullPath` file in `turn` view. Note: a ref is NOT guaranteed to resolve from the inline
+ * `turnCardDecisionQueue` alone — that queue only holds open, approval-requiring decisions, so on an
+ * approved-turn view (empty queue) with non-empty `materialAmbiguities` the body lives only in the
+ * `decisions{}` map (readiness view / overflow file).
+ */
 export interface DecisionRef {
   readonly decisionRef: string;
 }
@@ -632,20 +639,22 @@ function buildTurnCardDecisionQueue(
 
 /**
  * P4 — build the canonical `decisions{}` map keyed by `decisionId`. Collects every distinct
- * full {@link TurnCardDecisionSpec} so the by-id refs scattered across the result
- * (workflowContract.turnCards, gate.questions[].decisionSpec, layer0 materialAmbiguities) all
- * dereference here. `decisionId === questionId` (a deterministic slug), so the question specs and
- * the nine-axis per-turn cards (T${turnIndex} keys) never collide. This map is the single full-body
- * home that rides in the overflow file (turn view) and inline (readiness view); the inline
- * `turnCardDecisionQueue[].decisionSpec` keeps a body reachable without reading the file.
+ * full {@link TurnCardDecisionSpec} TARGETED BY A `{decisionRef}` so the by-id refs scattered
+ * across the result (workflowContract.turnCards, gate.questions[].decisionSpec, layer0
+ * materialAmbiguities) all dereference here. `decisionId === questionId` (a deterministic slug).
+ * The nine-axis per-turn cards (fillResult.turnCard/nextTurnCard, `nine-axis-sic:T...` keys) are
+ * intentionally EXCLUDED: no `{decisionRef}` site points at a nine-axis id, and those cards
+ * already ride inline via `fillResult`. This map is the full-body home that rides in the overflow
+ * file (turn view) and inline (readiness view); the inline `turnCardDecisionQueue[].decisionSpec`
+ * keeps a body reachable without reading the file.
  */
 function buildDecisionsMap(
   questions: readonly SemanticClarificationQuestion[],
-  nineAxisCards: readonly TurnCardDecisionSpec[],
+  extraSpecs: readonly TurnCardDecisionSpec[],
 ): Record<string, TurnCardDecisionSpec> {
   const map: Record<string, TurnCardDecisionSpec> = {};
   for (const q of questions) map[q.decisionSpec.decisionId] = q.decisionSpec;
-  for (const c of nineAxisCards) map[c.decisionId] = c;
+  for (const c of extraSpecs) map[c.decisionId] = c;
   return map;
 }
 
@@ -2740,16 +2749,17 @@ export async function semanticIntentGate(
     ontologyDtcBuildReadinessGate,
   );
 
-  // ── P4 — canonical decision-body map (keyed by decisionId). Collects the question
-  //    specs PLUS any nine-axis per-turn cards PLUS the layer0 materialAmbiguities specs
-  //    (so the layer0 id-refs dereference inline in readiness view), so every id-ref
-  //    scattered across the result dereferences here.
-  const nineAxisCards: TurnCardDecisionSpec[] = [
-    ...(fillResult?.turnCard ? [fillResult.turnCard] : []),
-    ...(fillResult?.nextTurnCard ? [fillResult.nextTurnCard] : []),
-    ...layer0Bridge.materialAmbiguities.map((q) => q.decisionSpec),
-  ];
-  const decisions = buildDecisionsMap(effectiveGate.questions, nineAxisCards);
+  // ── P4 — canonical decision-body map (keyed by decisionId). Collects ONLY the
+  //    projection-target specs: the clarification-question specs PLUS the layer0
+  //    materialAmbiguities specs (so the layer0 id-refs dereference inline in readiness
+  //    view). The nine-axis per-turn cards (fillResult.turnCard/nextTurnCard) are NOT
+  //    folded in — they are NEVER targeted by a {decisionRef} (no decisionRef site draws
+  //    from a nine-axis-sic:T... id) and they already ride inline via fillResult.turnCard,
+  //    so folding them here would only double their full nine-axis body inline in the
+  //    readiness view (where the decisions map is inline alongside fillResult).
+  const projectedDecisionSpecs: TurnCardDecisionSpec[] =
+    layer0Bridge.materialAmbiguities.map((q) => q.decisionSpec);
+  const decisions = buildDecisionsMap(effectiveGate.questions, projectedDecisionSpecs);
 
   // ── P4 — project the four full-embed sites to by-id refs on SHALLOW COPIES, never
   //    mutating the live producers (effectiveGate / layer0Bridge are passed to guards /
