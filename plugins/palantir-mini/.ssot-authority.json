@@ -1,8 +1,14 @@
 {
   "kind": "palantir-mini-workflow-authority",
-  "version": "1.6.0",
-  "asOf": "2026-05-30",
+  "version": "1.7.0",
+  "asOf": "2026-06-15",
   "authority": "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini",
+  "designAuthority": {
+    "path": "harness-upstream/ssot/palantir",
+    "role": "design-grounding (the WHY behind 9-axis/DTC/OSDK-binding/lineage)",
+    "scope": "Runtime-neutral DESIGN-authority for Ontology construction + Ontology-First operation; SCAN (README->BROWSE->INDEX->slice) and selectively inject before such work. NOT a source/workflow authority and NOT a runtime dependency; the 'authority' field above remains the canonical plugin-source.",
+    "router": "harness-upstream/ssot/README.md"
+  },
   "upstreamAuthority": "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini",
   "runtimeBoundaryAuthority": "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
   "runtimeBoundaryAuthorityScope": "Runtime-neutral boundary contract only; canonical plugin workflow source remains the runtime-neutral local checkout backed by the private marketplace remote.",
