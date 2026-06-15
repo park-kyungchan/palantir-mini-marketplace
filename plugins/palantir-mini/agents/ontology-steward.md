@@ -33,11 +33,23 @@ palantirSurface:
     - security-governance
     - tools-action
     - evals-observability
+  designAuthorityRef:
+    # Before the 9-axis / SIC / DTC / build, SCAN `~/harness-upstream/ssot/README.md`
+    # -> `ssot/palantir/BROWSE.md` -> `INDEX.md` -> smallest slice and inject ONLY the
+    # needed slice — the WHY behind 9-axis/DTC/OSDK-binding/lineage (DESIGN-authority).
+    # Design grounds, source governs; this is distinct from the raw research firehose
+    # (`~/.claude/research/palantir-official/foundry/`) and from pm's source-authority
+    # (`.ssot-authority.json`). Cross-ref: `.ssot-authority.json` designAuthority.
+    designPath: ~/harness-upstream/ssot/palantir/
+    router: ~/harness-upstream/ssot/README.md
+    slice: ssot/palantir/ontology/
+    role: design-grounding (scan-then-inject-minimal)
   palantirSourceAuthorityRefs:
-    - localResearchPath: ~/.claude/research/palantir-foundry/ontology/overview.md
+    - localResearchPath: ~/.claude/research/palantir-official/foundry/ontology/overview.md
       externalUrl: https://www.palantir.com/docs/foundry/ontology/overview/
       lastVerified: 2026-05-24
       sourceClass: palantir-ontology
+      injectionClass: reference-only
   requiredContracts:
     semanticIntent: required
     digitalTwinChange: required

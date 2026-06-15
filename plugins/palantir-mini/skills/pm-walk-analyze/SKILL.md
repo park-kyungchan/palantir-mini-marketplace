@@ -139,8 +139,8 @@ Trace one concept through the full authority chain:
 ```
 ## Authority Chain: [EntityName]
 
-### 1. Research (WHY)
-§[marker] in research/palantir/[file]:
+### 1. Design-authority (WHY)
+§[slice] in `~/harness-upstream/ssot/palantir/[area]/[file].md` (scan `ssot/palantir/BROWSE.md` → smallest slice; legacy `research/palantir/*` markers resolve via the snapshot `research-source-map.ts`):
 "[key finding that motivates this entity]"
 
 ### 2. Schema Type (HOW)
@@ -301,8 +301,8 @@ Ordered: DATA → LOGIC → ACTION → LEARN → FRONTEND → RUNTIME
 | Need | Read |
 |------|------|
 | Project analysis protocol | `references/project-analysis-guide.md` |
-| Full philosophy | `~/.claude/research/palantir/philosophy/README.md` |
-| Digital Twin loop | `~/.claude/research/palantir/philosophy/digital-twin.md` |
+| Full philosophy (WHY, DESIGN-authority) | `~/harness-upstream/ssot/palantir/ontology/decision-model.md` (scan `ssot/palantir/BROWSE.md` → smallest slice) |
+| Digital Twin loop | `~/harness-upstream/ssot/palantir/architecture-center/intent-to-build-flow.md` |
 | Flow Walk protocol (B6) | `references/flow-walk-guide.md` |
 | DH/HC constants | `~/.claude/schemas/ontology/semantics.ts` |
 | Shared protocols | `../_shared/walk-reference.md` |
