@@ -41,6 +41,13 @@
 | G-A6 | 11 orphan removed-tool handler `.ts` | **DELETION_READINESS** (same gate as G-B10-8-DELETE) | same as G-B10-8-DELETE (live-runtime Codex smoke ref) | b10-8 proposal SURFACE 1 |
 | G-B10-9 | accumulated-data **CLEANUP** (snapshot trim / quarantine dedup / outcome-pairs filter) | **analysis DONE 2026-06-12** (read-only); substrate is live (written by other sessions) — re-pin before any prune | a **confirmed prune pass** is run under explicit go (see B10-9 block below for the GATED disk targets + BackwardProp candidates) | tracking-dedup-plan / data-cleanup lane; report at artifacts/b10-9-bottleneck-report.md |
 
+### Follow-ups from P5 gate-slim (merged #168) — deferred, not OPEN
+
+| id | title | gate (the blocker) | unblocks-when | source |
+|----|-------|--------------------|---------------|--------|
+| F-gate-dedup-B | full cross-surface decisionSpec dedup (Option B) | needs emit-boundary plumbing + a `fillResult` cross-view byte-identity rescope (not just the gate-projection sites Option A already covered) | project `fillResult.contract.clarificationQuestions` + `draftContracts.semanticIntent.clarificationQuestions` to `{decisionRef}` via emit-boundary shallow copies → turn view ~3KB→~1KB | harness-upstream/_workspace/2026-06-15-pm-frontdoor-gate-improvement edit-spec doc |
+| F-gate-overflow-gc | age-out GC for `<project>/.palantir-mini/mcp-response-overflow/` (R2) | P1 writes one overflow file per gate turn with **no cleanup**; needs an age-out GC pass | an age-out GC for the `mcp-response-overflow/` dir is built (aligns with B10-9 GATED "overflow dumps ~1.3M") | this session (P1 overflow→fullPath relocation, #168) |
+
 ---
 
 ## B10-9 — accumulated-data analysis (2026-06-12)
@@ -87,3 +94,4 @@ quarantine rejects" was mostly a **re-scan illusion** — 6 distinct poison line
 - **D2 (Chatbot Studio rename) → DROPPED ENTIRELY** — direction was BACKWARDS; pm's "Chatbot Studio" naming is already current ("Agent Studio" is the DEPRECATED name). Do NOT re-litigate.
 - **2026-06-12 campaign:** Codex prompt-to-DTC deadweight removed; A-#3/#4 done; B10-8 schemas modernized (skill seed re-sync); tracking consolidated into THIS ledger.
 - **OE-2 elevate-readiness dead-gate** — `readyForDigitalTwin` structurally always-false (all profiles `allowsDtcDraft:false`) made `register` unreachable; repaired @ **7.17.0** via `sicBackedDigitalTwinReady` (minted approved-SIC + ingested candidates, OR'd, handler-sourced never MCP-input), anti-fabrication preserved, suite green.
+- **P5 gate token-bloat reduction (P1+P3+P4)** → MERGED **PR #168** (commits 7771693+489a667, squash 7b66e28; plugin **7.18.0**); per-turn ~12KB→~3KB via additive `responseView:"turn"|"readiness"` (default slim) + overflow→fullPath relocation; criterion-4 rescoped to the gate-projection sites (**Option A**, user decision); rule-04 review found no blockers (semantics/mutationAuthorized/continuity/R5 preserved). Follow-ups F-gate-dedup-B (Option B full dedup) + F-gate-overflow-gc (R2 overflow GC) logged under GATED.
