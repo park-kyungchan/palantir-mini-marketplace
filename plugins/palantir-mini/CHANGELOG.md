@@ -7,6 +7,14 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.14.0] - 2026-06-15 — docs: ssot/palantir design-authority pointers + 4-quadrant SSoT disambiguation
+
+### Changed
+- docs(ssot-authority): add the harness-upstream `ssot/palantir` DESIGN-authority pointer to the runtime-neutral dev surfaces (`RUNTIME_LAYER_BOUNDARY` §Self-Improvement Checklist + `.ssot-authority.json` `designAuthority` field + `SSOT-AUTHORITY.md`) — design grounds, source governs.
+- docs(ssot): disambiguate the 4-way SSoT taxonomy (design-authority `ssot/palantir` vs source-authority `.ssot-authority.json` vs in-plugin snapshot `runtime-overlay/schemas-snapshot` vs project state `.palantir-mini`) so "SSoT" is no longer overloaded.
+
+Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.13.0 → 7.14.0.
+
 ## [7.13.0] - 2026-06-15 — feat: pm_plugin_self_check runtimeIdentity (in-band running-version oracle) + RUNTIME_LAYER_BOUNDARY directory-source correction
 
 ### Added

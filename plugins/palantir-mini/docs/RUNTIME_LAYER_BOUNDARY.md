@@ -150,6 +150,7 @@ Before editing palantir-mini itself, write down:
 3. Inactive runtime surfaces that must stay absent in this checkout: Gemini extension packaging. (Claude plugin packaging is ACTIVE via the directory-source marketplace.)
 4. Runtime gaps / adapter-face differences: which hooks, MCP tools, skills, subagents, or reload steps differ natively per adapter (Codex vs Claude), and which surfaces remain absent under Gemini.
 5. Deterministic plugin-layer invariant: which behavior must remain identical regardless of LLM provider.
+6. DESIGN-authority grounding: before ontology-construction or Ontology-First work, SCAN `~/harness-upstream/ssot/README.md` -> `ssot/palantir/BROWSE.md` -> `INDEX.md` -> smallest slice and selectively inject ONLY the needed section (per `ssot/harness/agent-context-injection-router.md`). This is the WHY (9-axis/DTC/OSDK-binding/lineage); it does NOT replace the plugin-source/source-of-truth authority above — design grounds, source governs.
 
 If a plan does not separate those items, stop and fix the plan before
 implementation.

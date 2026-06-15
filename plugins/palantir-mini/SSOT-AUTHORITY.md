@@ -70,6 +70,14 @@ Authority split:
 | Plugin `runtime-overlay/research-library/**` | Portable runtime source carried with the plugin |
 | Official Palantir URLs | Upstream factual source; verify before currentness claims |
 
+## Design Authority (external grounding)
+
+This document and `.ssot-authority.json` are the **SOURCE/WORKFLOW-authority** for pm — they say what *is* pm (the canonical plugin code). They are distinct from the **DESIGN-authority** that explains *why* pm's Ontology machinery is shaped the way it is.
+
+- The DESIGN-authority is `harness-upstream/ssot/palantir/` — the runtime-neutral rationale behind the 9-axis FDE session, SIC→DTC, OSDK runtime-binding, and lineage. SCAN it (README→BROWSE→INDEX→slice) and selectively inject before Ontology construction or Ontology-First operation.
+- It is **NOT** the source/workflow authority (that is this doc → the canonical plugin path) and **NOT** the portable research-snapshot (the vendored `runtime-overlay/research-library/**` facts described above). It is also not a runtime dependency.
+- Machine-readable cross-reference: the `designAuthority` field in the sibling `.ssot-authority.json` encodes this same path, role, scope, and router (`harness-upstream/ssot/README.md`).
+
 ## Cross-References
 
 - `CONTEXT.md §13.5` — Cross-runtime coexistence map (Codex/Gemini).
@@ -79,6 +87,7 @@ Authority split:
 
 ## Version History
 
+- v1.8.0 (2026-06-15): Added a "Design Authority (external grounding)" section naming `harness-upstream/ssot/palantir/` as the runtime-neutral DESIGN-authority (the WHY behind 9-axis/SIC→DTC/OSDK-binding/lineage), explicitly distinct from this doc's SOURCE/WORKFLOW-authority and from the portable research-snapshot. Cross-references the new `designAuthority` field in the sibling `.ssot-authority.json` (which the sibling bumped to its own v1.7.0; doc and JSON versions are decoupled).
 - v1.7.0 (2026-06-15): Runtime-agnostic correction — Claude is an ACTIVE adapter via the directory-source marketplace install (`~/.claude/plugins/cache`), not a removed/contract-only surface. pm is runtime-NEUTRAL: one governed meaning, consumed by each runtime through its own generated binding. Codex + Claude both active; Gemini stays contract-only / `runtime_gap`. Added a `claude-code` row to the Consumer Runtime Map and generalized the consume invariant + install-support statement to both active adapters. (Does not rewrite the v1.6.1 historical entry, which was true on 2026-05-30.)
 - v1.5.0 (2026-05-25): Relocated canonical source authority to the private GitHub marketplace and demoted runtime caches to install payloads.
 - v1.6.1 (2026-05-30): Removed active Claude/Gemini install/package surfaces from this checkout; kept Codex marketplace installation as the only current local install path.
