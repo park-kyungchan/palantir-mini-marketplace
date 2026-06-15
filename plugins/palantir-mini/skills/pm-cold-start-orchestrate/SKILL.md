@@ -119,6 +119,10 @@ mcp__plugin_palantir-mini_palantir-mini__emit_event({
 })
 ```
 
+## Ontology grounding route
+
+For Ontology / Ontology-First work, ground in `~/harness-upstream/ssot/palantir/` (design-authority; BROWSE->INDEX->smallest slice, inject ONLY the slice); if a request conflicts with those design principles, surface it with grounds + a grounded recommendation.
+
 ## MCP calls summary
 
 | Phase | Call | Mode |
