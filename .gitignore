@@ -9,3 +9,10 @@
 /AGENTS.md
 /_workspace/*
 !/_workspace/pm-pending-ledger.md
+
+# --- transient / cruft — never track ---
+*:Zone.Identifier
+.claude/worktrees/
+**/.claude/worktrees/
+_archive/
+*_archive/
