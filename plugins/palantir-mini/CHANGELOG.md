@@ -7,6 +7,13 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.16.0] - 2026-06-15 — docs(cold-start): route Ontology work to the ssot/palantir design-authority (scan-then-inject) + correct-when-wrong-grounded posture
+
+### Changed
+- docs(cold-start): the pm cold-start orchestration now routes Ontology work to the harness-upstream ssot/palantir design-authority (scan-then-inject) + the correct-when-wrong-grounded posture; lean route, no content dump.
+
+Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.15.0 → 7.16.0.
+
 ## [7.15.0] - 2026-06-15 — docs: ground ontology-building skills + agents in ssot/palantir DESIGN-authority + repoint Palantir research-root citations
 
 ### Changed
