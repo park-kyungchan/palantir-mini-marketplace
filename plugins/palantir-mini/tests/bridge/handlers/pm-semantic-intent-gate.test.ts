@@ -200,6 +200,8 @@ describe("pm_semantic_intent_gate", () => {
         "src/lib/jsxGraph3D/scene3DCompiler.ts",
       ],
       complexityHint: "cross-cutting",
+      // P3 — this test deep-reads semanticConversationState; request the full-inline view.
+      responseView: "readiness",
     });
 
     expect(result.status).toBe("contract_required");
@@ -321,6 +323,12 @@ describe("pm_semantic_intent_gate", () => {
     expect(codexResult.workflowContract?.mutationAuthorized).toBe(false);
     expect(codexResult.workflowContract?.turnCards).toEqual(
       claudeResult.workflowContract?.turnCards,
+    );
+    // P4 — turnCards are now id-refs, so the id-equality above no longer guards the
+    // decisionSpec BODY. Assert body-equality across runtimes on the canonical inline home
+    // (turnCardDecisionQueue) so a per-runtime spec divergence is still caught.
+    expect(codexResult.turnCardDecisionQueue?.map((e) => e.decisionSpec)).toEqual(
+      claudeResult.turnCardDecisionQueue?.map((e) => e.decisionSpec),
     );
   });
 
@@ -735,6 +743,8 @@ describe("pm_semantic_intent_gate", () => {
       semanticIntentContract: approvedSemantic(),
       digitalTwinChangeContract: approvedDigitalTwin(),
       semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+      // P3 — this test deep-reads semanticConversationState; full-inline view.
+      responseView: "readiness",
     });
     const saved = await store.readEnvelope(envelope.sessionId, envelope.promptId);
 
@@ -791,6 +801,8 @@ describe("pm_semantic_intent_gate", () => {
         },
       }),
       semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+      // P3 — this test deep-reads ontologyDtcBuildReadinessGate.issues/.checks; full-inline view.
+      responseView: "readiness",
     });
 
     const fields =
@@ -1138,6 +1150,8 @@ describe("pm_semantic_intent_gate", () => {
       userApprovalPromptId: envelope.promptId,
       userApprovalPromptHash: envelope.promptHash,
       userApprovalQuote: "approve the DTC build",
+      // P3 — this test deep-reads ontologyDtcBuildReadinessGate.checks; full-inline view.
+      responseView: "readiness",
     });
 
     expect(result.status).toBe("pass");
@@ -1193,6 +1207,8 @@ describe("pm_semantic_intent_gate", () => {
         semanticIntentContract: approvedSemantic(),
         digitalTwinChangeContract: approvedDigitalTwin(),
         semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+        // P3 — this block deep-reads ontologyDtcBuildReadinessGate.status; full-inline view.
+        responseView: "readiness",
       });
 
       expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
@@ -1240,6 +1256,8 @@ describe("pm_semantic_intent_gate", () => {
         userApprovalPromptId: envelope.promptId,
         userApprovalPromptHash: "stale-hash-does-not-match-captured-envelope",
         userApprovalQuote: "approve the DTC build",
+        // P3 — this block deep-reads ontologyDtcBuildReadinessGate.status; full-inline view.
+        responseView: "readiness",
       });
 
       expect(result.ontologyDtcBuildReadinessGate?.status).toBe("blocked");
@@ -1321,6 +1339,8 @@ describe("pm_semantic_intent_gate", () => {
         userApprovalPromptId: envelope.promptId,
         userApprovalPromptHash: envelope.promptHash,
         userApprovalQuote: "approve the DTC build",
+        // P3 — this block deep-reads ontologyDtcBuildReadinessGate.checks; full-inline view.
+        responseView: "readiness",
       });
 
       // A malformed structured approvalRef (missing userVisibleSummaryHash) is
@@ -1377,6 +1397,8 @@ describe("pm_semantic_intent_gate", () => {
         userApprovalPromptId: envelope.promptId,
         userApprovalPromptHash: envelope.promptHash,
         userApprovalQuote: "approve the DTC build",
+        // P3 — this block deep-reads ontologyDtcBuildReadinessGate.checks/.issues; full-inline view.
+        responseView: "readiness",
       });
 
       // The envelope WAS authorized (granted), but governance evidence is still
@@ -1445,6 +1467,8 @@ describe("pm_semantic_intent_gate semantic consistency projection", () => {
       project,
       rawIntent: "Read-only semantic consistency projection before ontology promotion.",
       semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+      // P3 — this test deep-reads semanticConversationState; full-inline view.
+      responseView: "readiness",
     });
 
     expect(result.semanticConsistencyResult?.deterministic).toBe(true);
@@ -1828,5 +1852,315 @@ describe("pm_semantic_intent_gate — 8-turn fill sequence integration", () => {
     // Existing behavior is unchanged
     expect(result.status).toBeDefined();
     expect(result.gate).toBeDefined();
+  });
+});
+
+describe("response payload shaping (responseView / fullPath / dedup)", () => {
+  const ambiguousIntent =
+    "Implement Scene3D ontology, geometry3D, and renderer support";
+  const ambiguousScope = [
+    "ontology/data/visual3D.ts",
+    "ontology/changeContracts.ts",
+    "src/lib/jsxGraph3D/scene3DCompiler.ts",
+  ];
+
+  // Drive an APPROVED DTC-build flow (mirrors the ":1105" approved fixtures) so the result
+  // carries a DEFINED `ontologyDtcBuildReadinessGate` with full per-check bodies — the
+  // heaviest body P1 relocates. The earlier criteria use the ambiguous mid-fill flow, which
+  // yields NO readiness gate, so they cannot exercise the readiness-gate relocation.
+  async function runApprovedReadiness(responseView: "turn" | "readiness") {
+    const project = makeTmpProject();
+    const rawIntent =
+      "Please approve the DTC build for the prompt-front-door ontology digital twin.";
+    const scopePaths = [
+      "bridge/handlers/pm-semantic-intent-gate.ts",
+      "bridge/handlers/pm-intent-router.ts",
+    ];
+    const { envelope } = await createCapturedPrompt(project, rawIntent);
+    const approvalRef = createUserApprovalRef({
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      userVisibleSummary: "Approve the DTC build dispatch.",
+      userAnswer: "approve the DTC build",
+      approvalSurface: "digital-twin-change",
+      approvedAt: "2026-05-10T04:01:00.000Z",
+    });
+    const result = await semanticIntentGate({
+      project,
+      rawIntent,
+      scopePaths,
+      complexityHint: "multi-file",
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      semanticIntentContract: approvedSemantic({ approvalRef }),
+      digitalTwinChangeContract: approvedDigitalTwin(undefined, { approvalRef }),
+      semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+      userApprovalPromptId: envelope.promptId,
+      userApprovalPromptHash: envelope.promptHash,
+      userApprovalQuote: "approve the DTC build",
+      responseView,
+    });
+    return result;
+  }
+
+  // Acceptance criterion 1 — mid-fill turn is slim in the default ('turn') view: the heavy
+  // invariant bodies are relocated to overflow.fullPath and OMITTED inline.
+  test("(1) turn view OMITS heavy bodies inline and carries overflow{fullPath,bytes,digest}", async () => {
+    const project = makeTmpProject();
+    const result = await semanticIntentGate({
+      project,
+      rawIntent: ambiguousIntent,
+      scopePaths: ambiguousScope,
+      complexityHint: "cross-cutting",
+      fillPolicy: "default-8-turn",
+      turn: 0,
+      // responseView defaults to "turn" — assert the default is the slim shape.
+    });
+
+    expect(result.semanticConversationState).toBeUndefined();
+    expect(result.decisions).toBeUndefined();
+    expect(result.overflow).toBeDefined();
+    expect(typeof result.overflow?.fullPath).toBe("string");
+    expect(result.overflow?.bytes).toBeGreaterThan(0);
+    expect(result.overflow?.digest).toMatch(/^[0-9a-f]{16}$/);
+    expect(result.overflow?.contains).toContain("semanticConversationState");
+    // fillResult (the live per-turn delta) stays inline in turn view.
+    expect(result.fillResult?.appliedTurn).toBe(0);
+  });
+
+  // Acceptance criterion 1 (readiness-gate relocation) — the omission assert above is
+  // tautological on the ambiguous mid-fill flow (it yields NO readiness gate). Run it on a
+  // fixture that produces a DEFINED gate so the inline OMISSION passes because relocation
+  // WORKED, not because no gate exists.
+  test("(1b) turn view OMITS a DEFINED ontologyDtcBuildReadinessGate inline (relocated)", async () => {
+    const result = await runApprovedReadiness("turn");
+    // The gate IS produced for this fixture (readiness view returns it inline — asserted in M3).
+    expect(result.ontologyDtcBuildReadinessGate).toBeUndefined();
+    expect(result.overflow).toBeDefined();
+    expect(result.overflow?.contains).toContain("ontologyDtcBuildReadinessGate");
+  });
+
+  // Acceptance criterion 2 — turn-by-turn fill is byte-identical across views (the live
+  // delta never relocates and never changes shape with the view).
+  test("(2) fillResult is byte-identical across 'turn' and 'readiness' views", async () => {
+    const projectTurn = makeTmpProject();
+    const projectReadiness = makeTmpProject();
+    const common = {
+      rawIntent: ambiguousIntent,
+      scopePaths: ambiguousScope,
+      complexityHint: "cross-cutting" as const,
+      fillPolicy: "default-8-turn" as const,
+      turn: 0,
+    };
+    const turnView = await semanticIntentGate({ project: projectTurn, ...common });
+    const readinessView = await semanticIntentGate({
+      project: projectReadiness,
+      ...common,
+      responseView: "readiness",
+    });
+
+    expect(turnView.fillResult?.appliedTurn).toBe(readinessView.fillResult?.appliedTurn);
+    expect(turnView.fillResult?.fillComplete).toBe(readinessView.fillResult?.fillComplete);
+    expect(turnView.fillResult?.nextQuestion ?? null).toBe(
+      readinessView.fillResult?.nextQuestion ?? null,
+    );
+    // Byte-equivalent modulo wall-clock `filledAt` stamps (a clock artifact, not a view
+    // artifact — the two gate calls run a few ms apart).
+    const stripFilledAt = (c: unknown) =>
+      JSON.stringify(c).replace(/"filledAt":"[^"]*"/g, '"filledAt":"<ts>"');
+    expect(stripFilledAt(turnView.fillResult?.contract)).toBe(
+      stripFilledAt(readinessView.fillResult?.contract),
+    );
+  });
+
+  // Acceptance criterion 3 — the relocated bodies are fully reachable: in the overflow file
+  // (turn view) AND inline (readiness view).
+  test("(3) heavy bodies are reachable via overflow.fullPath AND inline in readiness view", async () => {
+    const projectTurn = makeTmpProject();
+    const turnResult = await semanticIntentGate({
+      project: projectTurn,
+      rawIntent: ambiguousIntent,
+      scopePaths: ambiguousScope,
+      complexityHint: "cross-cutting",
+    });
+    expect(turnResult.overflow?.fullPath).toBeDefined();
+    const fromFile = JSON.parse(
+      fs.readFileSync(turnResult.overflow!.fullPath, "utf8"),
+    ) as {
+      semanticConversationState?: unknown;
+      decisions?: Record<string, unknown>;
+      ontologyDtcBuildReadinessGate?: unknown;
+    };
+    // semanticConversationState is built unconditionally; decisions map is always present.
+    expect(fromFile.semanticConversationState).toBeDefined();
+    expect(fromFile.decisions).toBeDefined();
+
+    const readinessResult = await semanticIntentGate({
+      project: makeTmpProject(),
+      rawIntent: ambiguousIntent,
+      scopePaths: ambiguousScope,
+      complexityHint: "cross-cutting",
+      responseView: "readiness",
+    });
+    expect(readinessResult.overflow).toBeUndefined();
+    expect(readinessResult.semanticConversationState).toBeDefined();
+    expect(readinessResult.decisions).toBeDefined();
+  });
+
+  // Acceptance criterion 3 (readiness-gate body) — the ambiguous fixture above yields NO
+  // readiness gate, so it cannot prove the HEAVIEST body P1 relocates (the 7-check `checks{}`
+  // + per-check issues) actually survives in the overflow FILE. Drive an APPROVED flow that
+  // DOES produce a defined gate and assert: (a) inline OMITTED in turn view, (b) full per-check
+  // bodies present in the overflow file, and (c) full inline in readiness view.
+  test("(3b) a DEFINED ontologyDtcBuildReadinessGate.checks survives in the overflow file", async () => {
+    const turnResult = await runApprovedReadiness("turn");
+    expect(turnResult.ontologyDtcBuildReadinessGate).toBeUndefined();
+    expect(turnResult.overflow?.fullPath).toBeDefined();
+    const fromFile = JSON.parse(
+      fs.readFileSync(turnResult.overflow!.fullPath, "utf8"),
+    ) as {
+      ontologyDtcBuildReadinessGate?: {
+        checks?: Record<string, { valid: boolean; issues: unknown[] }>;
+      };
+    };
+    expect(fromFile.ontologyDtcBuildReadinessGate).toBeDefined();
+    const checks = fromFile.ontologyDtcBuildReadinessGate?.checks;
+    expect(checks).toBeDefined();
+    // The full per-check bodies (with the per-check issues arrays) are present in the file.
+    expect(checks?.["body-dereferenced"]?.valid).toBe(true);
+    expect(checks?.["work-contract-valid"]?.valid).toBe(true);
+    expect(checks?.["router-binding-valid"]?.valid).toBe(true);
+    expect(Array.isArray(checks?.["body-dereferenced"]?.issues)).toBe(true);
+
+    // Readiness view returns the same gate INLINE (not relocated).
+    const readinessResult = await runApprovedReadiness("readiness");
+    expect(readinessResult.overflow).toBeUndefined();
+    expect(readinessResult.ontologyDtcBuildReadinessGate?.checks["body-dereferenced"].valid).toBe(
+      true,
+    );
+  });
+
+  // Acceptance criterion 4 — a decisionSpec body is NOT duplicated: turnCards are id-refs,
+  // the queue keeps the single inline body, and the ref resolves to that body's decisionId.
+  test("(4) workflowContract.turnCards are id-refs; the queue holds the single inline body", async () => {
+    const result = await semanticIntentGate({
+      project: makeTmpProject(),
+      rawIntent: ambiguousIntent,
+      scopePaths: ambiguousScope,
+      complexityHint: "cross-cutting",
+    });
+    const refs = result.workflowContract?.turnCards ?? [];
+    expect(refs.length).toBeGreaterThan(0);
+    // Every turnCard entry is a plain string id (NOT a full {plainKoreanSummary} body).
+    for (const ref of refs) {
+      expect(typeof ref).toBe("string");
+    }
+    expect(typeof result.workflowContract?.activeTurnCard).toBe("string");
+
+    // The queue keeps the FULL body (single inline home); its decisionId matches a ref.
+    const queue = result.turnCardDecisionQueue;
+    expect(queue.length).toBeGreaterThan(0);
+    const firstBody = queue[0]!.decisionSpec;
+    expect(firstBody.plainKoreanSummary.length).toBeGreaterThan(0);
+    expect(refs).toContain(firstBody.decisionId);
+
+    // gate.questions[].decisionSpec is projected to a by-id ref (not the full body).
+    const firstQuestion = result.gate.questions[0];
+    expect(firstQuestion).toBeDefined();
+    expect(firstQuestion?.decisionSpec).toEqual({
+      decisionRef: (firstQuestion?.decisionSpec as { decisionRef: string }).decisionRef,
+    });
+
+    // The ref must RESOLVE to a real `decisions{}` key (not just be shape-valid). In turn view
+    // `decisions` is in the overflow file; re-run in readiness view (decisions inline) and
+    // assert the gate.questions ref dereferences to a real body in that map.
+    const readinessResult = await semanticIntentGate({
+      project: makeTmpProject(),
+      rawIntent: ambiguousIntent,
+      scopePaths: ambiguousScope,
+      complexityHint: "cross-cutting",
+      responseView: "readiness",
+    });
+    const firstRef = (
+      readinessResult.gate.questions[0]?.decisionSpec as { decisionRef: string }
+    ).decisionRef;
+    expect(Object.keys(readinessResult.decisions ?? {})).toContain(firstRef);
+  });
+
+  // Acceptance criterion 5 — gate SEMANTICS are unchanged across views: the verdict scalars,
+  // mutationAuthorized, envelope state, slim readiness summary, and emitted 5-dim events are
+  // identical whether the caller asks for 'turn' or 'readiness'.
+  test("(5) gate semantics (verdict, mutationAuthorized, events) are identical across views", async () => {
+    const rawIntent = "Persist prompt-front-door contracts for the semantic gate";
+    const scopePaths = [
+      "bridge/handlers/pm-semantic-intent-gate.ts",
+      "bridge/handlers/pm-intent-router.ts",
+    ];
+
+    async function runApproved(responseView: "turn" | "readiness") {
+      const project = makeTmpProject();
+      const { envelope } = await createCapturedPrompt(project, rawIntent);
+      const result = await semanticIntentGate({
+        project,
+        rawIntent,
+        scopePaths,
+        complexityHint: "multi-file",
+        promptId: envelope.promptId,
+        promptHash: envelope.promptHash,
+        sessionId: envelope.sessionId,
+        runtime: envelope.runtime,
+        semanticIntentContract: approvedSemantic(),
+        digitalTwinChangeContract: approvedDigitalTwin(),
+        semanticConsistencyResolverInput: crmBillingSupportCustomerFixture(),
+        responseView,
+      });
+      const completed = readEvents(project).find(
+        (e) =>
+          e.type === "validation_phase_completed" &&
+          e.payload?.errorClass === "semantic_intent_gate_completed",
+      );
+      return { result, completed };
+    }
+
+    const turn = await runApproved("turn");
+    const readiness = await runApproved("readiness");
+
+    // Verdict scalars + authorization identical.
+    expect(turn.result.status).toBe(readiness.result.status);
+    expect(turn.result.allowsRouting).toBe(readiness.result.allowsRouting);
+    expect(turn.result.workflowContract?.mutationAuthorized).toBe(
+      readiness.result.workflowContract?.mutationAuthorized,
+    );
+    expect(turn.result.promptEnvelope?.state).toBe(readiness.result.promptEnvelope?.state);
+
+    // The slim readiness summary stays inline in BOTH views (it is the verdict surface).
+    expect(turn.result.workflowContract?.ontologyDtcBuildReadiness?.status).toBe(
+      readiness.result.workflowContract?.ontologyDtcBuildReadiness?.status,
+    );
+    expect(turn.result.workflowContract?.ontologyDtcBuildReadiness?.readyForRouter).toBe(
+      readiness.result.workflowContract?.ontologyDtcBuildReadiness?.readyForRouter,
+    );
+
+    // The emitted 5-dim completion event is identical (same decision, same passed verdict).
+    expect(turn.completed).toBeDefined();
+    expect(readiness.completed).toBeDefined();
+    expect(turn.completed?.payload?.passed).toBe(readiness.completed?.payload?.passed);
+    expect(turn.completed?.payload?.status).toBe(readiness.completed?.payload?.status);
+
+    // Only the payload SHAPE differs: turn view relocated the heavy bodies; readiness inlined them.
+    expect(turn.result.overflow).toBeDefined();
+    expect(turn.result.ontologyDtcBuildReadinessGate).toBeUndefined();
+    expect(readiness.result.overflow).toBeUndefined();
+    expect(readiness.result.ontologyDtcBuildReadinessGate).toBeDefined();
+
+    // Absolute base pin (not just cross-view equality): on a fully-approved fixture (user-approval
+    // envelope flips readiness to ready-for-router with no open decisions) `mutationAuthorized` is
+    // TRUE — so the cross-view equality above guards a real authorized verdict, not false===false.
+    const approvedReadiness = await runApprovedReadiness("readiness");
+    expect(approvedReadiness.workflowContract?.mutationAuthorized).toBe(true);
   });
 });

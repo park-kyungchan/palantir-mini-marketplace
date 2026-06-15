@@ -16,18 +16,16 @@
 // events_log_rotate remains present as the canonical log-rotation control surface.
 
 import * as readline from "readline";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as os from "node:os";
-import { createHash } from "node:crypto";
 import type { EventType } from "../lib/event-log/types";
 import {
   boundedReturn,
   genericResultSummary,
   DEFAULT_BOUNDED_RETURN_MAX_BYTES,
-  type BoundedReturnSink,
-  type BoundedReturnSinkPort,
 } from "../lib/bounded-return";
+import {
+  resolveOverflowRoot,
+  makeOverflowFileSink,
+} from "../lib/bounded-return/overflow-file-sink";
 import {
   DEFAULT_MCP_TOOL_SURFACE_PROFILE,
   MCP_TOOL_SURFACE_PROFILE_ENV,
@@ -422,6 +420,7 @@ const TOOLS: ToolSpec[] = [
         fillPolicy:               { type: "string", enum: ["default-8-turn", "fde-ontology-build", "dtc-turn-fill", "context-engineering-to-sic", "ontology-dtc-build", "nine-axis-sic"], description: "Fill sequence policy. Absent = the 9-axis understand-heart ('nine-axis-sic'), the W3d-2b default; pass 'default-8-turn' for the explicit legacy T0-T7 boundary fill. 'fde-ontology-build' surfaces meaning in the FDE session; 'context-engineering-to-sic' requires DATA/LOGIC/ACTION/GOVERNANCE readiness before SIC; DTC policies require approved SIC + FDE/context plan evidence before DTC approval." },
         semanticConsistencyResolverInput: { type: "object", description: "Optional deterministic semantic consistency resolver input. Resolves source-system terms without LLM promotion and projects resolver evidence into conversation/application state." },
         proposedAxisDraft:        { type: "object", description: "Optional Lead-proposed plain-language draft answer for the current nine-axis turn. Renders fillResult.turnCard's recommended 'confirm proposal' choice first so the user confirms/corrects rather than facing a blank box; recording it as the answer still needs an explicit user-confirmation turn." },
+        responseView:             { type: "string", enum: ["turn", "readiness"], description: "Response shape: 'turn' (default, slim) or 'readiness' (full diagnostics inline)." },
       },
       required: ["project", "rawIntent"],
     },
@@ -966,30 +965,9 @@ async function loadHandler(toolName: string): Promise<(args: unknown) => Promise
 // the ceiling the oversized full result is written to a file under the project's
 // .palantir-mini/ (or a tmp dir) and only a small {summary, fullPath, bytes, digest}
 // crosses the wire. The lib (lib/bounded-return) never touches fs; the concrete fs
-// sink below is the injected wiring boundary.
-
-/** Resolve the directory tree to write an overflow file under. */
-function resolveOverflowRoot(args: Record<string, unknown>): string {
-  const candidate = args.projectRoot ?? args.project;
-  if (typeof candidate === "string" && candidate.length > 0) {
-    return path.join(candidate, ".palantir-mini", "mcp-response-overflow");
-  }
-  return fs.mkdtempSync(path.join(os.tmpdir(), "pm-mcp-overflow-"));
-}
-
-/** Concrete fs sink — writes the serialized oversized full result to a unique file. */
-function makeOverflowFileSink(toolName: string, root: string): BoundedReturnSinkPort {
-  return {
-    write(serialized: string): BoundedReturnSink {
-      fs.mkdirSync(root, { recursive: true });
-      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const shortHash = createHash("sha256").update(serialized).digest("hex").slice(0, 8);
-      const file = path.join(root, `${toolName}-${stamp}-${shortHash}.json`);
-      fs.writeFileSync(file, serialized);
-      return { path: file, bytes: Buffer.byteLength(serialized, "utf8") };
-    },
-  };
-}
+// sink (resolveOverflowRoot + makeOverflowFileSink) is the injected wiring boundary —
+// now lifted to lib/bounded-return/overflow-file-sink.ts so the pm_semantic_intent_gate
+// handler shares ONE implementation with this seam (P1; signatures unchanged).
 
 /**
  * Serialize a tool result for the MCP `text` content field, bounded by a byte ceiling.

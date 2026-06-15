@@ -52,6 +52,7 @@ const SEMANTIC_INTENT_GATE_PUBLIC_FIELDS = [
   "fillPolicy",
   "semanticConsistencyResolverInput",
   "proposedAxisDraft",
+  "responseView",
 ] as const satisfies readonly (keyof SemanticIntentGateInput)[];
 
 const INTENT_ROUTER_PUBLIC_FIELDS = [
@@ -273,6 +274,7 @@ describe("mcp-server prompt identity schemas", () => {
       "ontology-dtc-build",
       "nine-axis-sic", // W3d-2b: the flipped default is now discoverable in the tool schema
     ]);
+    expect(props.responseView?.enum).toEqual(["turn", "readiness"]);
   });
 
   test("pm_intent_router public schema matches handler input fields", () => {
