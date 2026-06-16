@@ -18,19 +18,35 @@
  *   proposal, performs NO write, and never enters the DTC / approval gate. Pillar C's
  *   propose-step is deliberately NOT built here (it is the next increment).
  *
- * OPEN #1 (DESIGN §8.1, CRITIQUE single-most-important-fix): the comparison implemented here
- *   is RAW-SHA (`atopWhich !== headSha`). A raw-SHA flag fires on EVERY commit to a backing
- *   file, including benign commits where the governed STRUCTURE is unchanged — i.e. it is
- *   NOISY by construction. The structural-fingerprint comparator that suppresses benign
- *   noise is NOT in the grounding and is deferred to the proposal-emitting increment. Every
- *   result is tagged `comparator: "raw-sha"` and carries `noiseWarning` so a caller cannot
- *   mistake this for the calibrated, low-noise signal.
+ * PER-FILE CALIBRATION (additive increment): the original raw-SHA comparator
+ *   (`atopWhich !== headSha`) is ALL-OR-NOTHING — when many primitives share ONE committing
+ *   `atopWhich`, the next HEAD commit flags ALL of them at once regardless of which backing
+ *   file actually moved. The pure core now ALSO accepts an optional per-backingRef signal
+ *   (`changedSinceAtop`) and decides staleness PER primitive: stale iff THIS primitive's
+ *   own backing artifact changed in `(atopWhich, HEAD]`. The backing artifact is derived
+ *   READ-SIDE from the committed declaration (explicit `backingSourceRef`, else the first
+ *   real-path `evidenceRefs` entry). The impure sibling `detectOntologyStalenessGit` builds
+ *   that signal from read-only `git log`. When the signal is ABSENT the core falls back to
+ *   the unchanged raw-SHA path (full back-compat).
+ *
+ * OPEN #1 (DESIGN §8.1, CRITIQUE single-most-important-fix): NEITHER comparator closes this.
+ *   raw-SHA fires on EVERY commit to a backing file; per-file-sha narrows the blast radius to
+ *   the ONE primitive whose backing file moved but STILL fires on benign same-file edits
+ *   (formatting, comment-only, an unrelated symbol in the same file). The full
+ *   structural-fingerprint comparator that suppresses benign-structure commits is NOT in the
+ *   grounding and remains OPEN #1, a FURTHER increment. Every result is tagged with the
+ *   `comparator` actually used (`"raw-sha"` | `"per-file-sha"`) and carries the matching
+ *   `noiseWarning` so a caller cannot mistake either for the calibrated, low-noise signal.
  */
 // Domain: LEARN (prim-learn — BackwardProp drift evidence) + LOGIC (read-side fold)
 
 import * as path from "path";
 import { readEvents } from "./read";
 import type { EventEnvelope } from "./types";
+// execFile/promisify are consumed ONLY by the clearly-marked IMPURE section at the bottom
+// of this file (detectOntologyStalenessGit). The pure core above never references them.
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 /** The six registered-primitive kinds, mirroring the fold buckets. */
 export type StalePrimitiveKind =
@@ -71,8 +87,25 @@ export interface DetectOntologyStalenessArgs {
    * the caller (e.g. a health view) is expected to pass the live HEAD; this module does NOT
    * shell out to git, keeping it side-effect free and testable. If absent AND no HEAD is
    * derivable, every primitive is reported as `indeterminate` (NOT stale) — fail-safe.
+   *
+   * IGNORED when `changedSinceAtop` is supplied (the per-file path does not compare a
+   * repo-wide SHA), except that its presence/absence is still echoed on the report's
+   * `comparedAgainst` field for caller display.
    */
   headSha?: string;
+  /**
+   * PER-FILE drift signal, keyed by the COMPOSITE `atopWhich + NUL + backingSourceRef`
+   * (`String.fromCharCode(0)` join): `true` = that primitive's backing file/dir changed in
+   * `(atopWhich, HEAD]`, `false` = unchanged. The composite key is load-bearing — two
+   * primitives that share a backingRef but were elevated atop DIFFERENT `atopWhich` SHAs must
+   * not collide on one entry. When supplied the core uses the PER-FILE comparator
+   * (`comparator: "per-file-sha"`) instead of raw-SHA: a primitive is stale iff its composite
+   * key maps to `true`; a primitive with NO derived backingRef, or whose composite key is
+   * ABSENT from this record (fail-safe — e.g. an absolute / repo-escaping / unresolvable ref
+   * the builder omitted), is `indeterminate`, never stale. When ABSENT the core falls back to
+   * the unchanged raw-SHA path (full back-compat).
+   */
+  changedSinceAtop?: Record<string, boolean>;
 }
 
 export interface OntologyStalenessReport {
@@ -87,15 +120,17 @@ export interface OntologyStalenessReport {
   /** Primitives that could not be compared (no `comparedAgainst` supplied). */
   indeterminate: InspectedPrimitive[];
   /**
-   * HONESTY TAG — the comparison strategy actually used. Always "raw-sha" in this
-   * increment. Surfaced so a consumer cannot mistake a noisy raw-SHA hit for a
-   * structurally-calibrated drift signal.
+   * HONESTY TAG — the comparison strategy actually used. `"raw-sha"` when the legacy
+   * repo-wide `atopWhich !== headSha` path ran (no per-backingRef signal supplied);
+   * `"per-file-sha"` when the per-primitive `changedSinceAtop` signal drove the decision.
+   * Surfaced so a consumer cannot mistake either for a structurally-calibrated drift signal.
    */
-  comparator: "raw-sha";
+  comparator: "raw-sha" | "per-file-sha";
   /**
-   * HONESTY TAG — present whenever `stale` is non-empty. Warns that raw-SHA staleness
-   * fires on benign commits (OPEN #1); a structural fingerprint is required before any
-   * stale entry should drive a re-elevation proposal.
+   * HONESTY TAG — present whenever `stale` is non-empty. Warns that the comparator used
+   * still fires on benign commits (OPEN #1): raw-sha on EVERY backing commit, per-file-sha
+   * on benign same-file edits. A structural fingerprint is required before any stale entry
+   * should drive a re-elevation proposal.
    */
   noiseWarning?: string;
 }
@@ -104,6 +139,41 @@ const NOISE_WARNING =
   "raw-sha comparator: atopWhich!=HEAD fires on EVERY backing commit, including benign " +
   "ones where the governed structure is unchanged (DESIGN OPEN #1). Do NOT treat a stale " +
   "entry as a re-elevation trigger until a structural fingerprint suppresses benign noise.";
+
+const PER_FILE_NOISE_WARNING =
+  "per-file-sha comparator: a primitive is stale iff ITS OWN backing file changed in " +
+  "(atopWhich, HEAD] — narrower than raw-sha, but STILL fires on benign same-file edits " +
+  "(formatting, comment-only, an unrelated symbol in the same file). The full " +
+  "structural-fingerprint comparator that suppresses benign-structure commits remains " +
+  "OPEN #1, a FURTHER increment — this does NOT close it. Do NOT treat a stale entry as a " +
+  "re-elevation trigger until a structural fingerprint suppresses benign noise.";
+
+/**
+ * Derive a primitive's backing artifact ref READ-SIDE from its committed declaration
+ * properties: an explicit `backingSourceRef` wins; otherwise the FIRST `evidenceRefs`
+ * entry that is a real path (skips `data:*` inline literals and any non-path marker).
+ * Returns `undefined` when nothing real-path is present (→ indeterminate under per-file).
+ */
+function deriveBackingRef(props: Record<string, unknown> | undefined): string | undefined {
+  const explicit = props?.backingSourceRef;
+  if (typeof explicit === "string" && explicit.length > 0) return explicit;
+  const evidenceRefs = props?.evidenceRefs;
+  if (!Array.isArray(evidenceRefs)) return undefined;
+  for (const ref of evidenceRefs) {
+    if (typeof ref === "string" && ref.length > 0 && !ref.startsWith("data:")) return ref;
+  }
+  return undefined;
+}
+
+/**
+ * Composite key for the per-file `changedSinceAtop` record: `atopWhich + NUL + backingRef`.
+ * The NUL (`String.fromCharCode(0)`) join is unambiguous (neither a SHA nor a path contains
+ * NUL) and disambiguates two primitives that share a backingRef but were elevated atop
+ * DIFFERENT `atopWhich` SHAs — keying by backingRef alone would collide them onto one entry.
+ */
+function changedSinceAtopKey(atopWhich: string, backingRef: string): string {
+  return atopWhich + String.fromCharCode(0) + backingRef;
+}
 
 interface AppliedEditLike {
   kind?: string;
@@ -156,12 +226,14 @@ export function detectOntologyStaleness(
       if (!rid) continue;
       const kind = editToKind(raw);
       if (!kind) continue;
-      const backingRef = raw.properties?.backingSourceRef;
+      // Backing artifact derived READ-SIDE: explicit backingSourceRef wins, else the first
+      // real-path evidenceRefs entry (skip data:* literals). No re-elevate, no new field.
+      const backingRef = deriveBackingRef(raw.properties);
       byRid.set(rid, {
         rid,
         kind,
         atopWhich,
-        ...(typeof backingRef === "string" ? { backingSourceRef: backingRef } : {}),
+        ...(backingRef !== undefined ? { backingSourceRef: backingRef } : {}),
       });
     }
   }
@@ -170,15 +242,37 @@ export function detectOntologyStaleness(
     ? args.headSha
     : null;
 
+  // Per-file path is selected ONLY when the caller supplies the changedSinceAtop signal;
+  // otherwise the legacy raw-sha path runs UNCHANGED (full back-compat).
+  const perFile = args.changedSinceAtop;
+  const usePerFile = perFile !== undefined && perFile !== null;
+
   const stale: StalePrimitive[] = [];
   const indeterminate: InspectedPrimitive[] = [];
   for (const prim of byRid.values()) {
-    if (comparedAgainst === null) {
+    if (usePerFile) {
+      // PER-FILE: stale iff THIS primitive's own backing file changed in (atopWhich, HEAD].
+      // Keyed by the COMPOSITE (atopWhich, backingRef) so two primitives sharing a backingRef
+      // but elevated atop different SHAs do not collide. No derived backingRef, or a composite
+      // key the builder omitted (fail-safe: absolute / repo-escaping / unresolvable) →
+      // indeterminate, never falsely stale.
+      const ref = prim.backingSourceRef;
+      const changed = ref !== undefined ? perFile[changedSinceAtopKey(prim.atopWhich, ref)] : undefined;
+      if (changed === undefined) {
+        indeterminate.push(prim);
+      } else if (changed === true) {
+        stale.push({ ...prim, comparedAgainst: comparedAgainst ?? "per-file-sha" });
+      }
+      // changed === false → not stale (clean), not pushed anywhere.
+    } else if (comparedAgainst === null) {
       indeterminate.push(prim);
     } else if (prim.atopWhich !== comparedAgainst) {
       stale.push({ ...prim, comparedAgainst });
     }
   }
+
+  const comparator: "raw-sha" | "per-file-sha" = usePerFile ? "per-file-sha" : "raw-sha";
+  const warning = usePerFile ? PER_FILE_NOISE_WARNING : NOISE_WARNING;
 
   return {
     project: args.project,
@@ -186,7 +280,78 @@ export function detectOntologyStaleness(
     inspectedCount: byRid.size,
     stale,
     indeterminate,
-    comparator: "raw-sha",
-    ...(stale.length > 0 ? { noiseWarning: NOISE_WARNING } : {}),
+    comparator,
+    ...(stale.length > 0 ? { noiseWarning: warning } : {}),
   };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// IMPURE SECTION — shells out to read-only `git log`. Everything ABOVE this line
+// is pure + side-effect-free (it only reads events.jsonl). The pure core never
+// references anything below. This wrapper builds the per-backingRef changedSinceAtop
+// signal from git and delegates the decision to the pure core.
+// ════════════════════════════════════════════════════════════════════════════
+
+const execFileAsync = promisify(execFile);
+
+export interface DetectOntologyStalenessGitArgs {
+  /** Absolute project root (read for events.jsonl AND used as the git -C repo). */
+  project: string;
+  /** Repo root for the `git -C <repo>` invocation. Defaults to `project` when omitted. */
+  repo?: string;
+}
+
+/**
+ * IMPURE per-file staleness detector. Runs the pure core once to enumerate primitives and
+ * their derived backing refs, builds a per-backingRef `changedSinceAtop` signal from
+ * read-only `git log <atopWhich>..HEAD --oneline -- <backingRef>` (non-empty output ⇒ the
+ * backing file moved in that range), then re-invokes the pure core WITH the signal so the
+ * decision stays in one place.
+ *
+ * FAIL-SAFE: a backing ref that is absolute, escapes the repo (`..`), or whose git
+ * invocation errors is OMITTED from `changedSinceAtop` — the pure core then marks that
+ * primitive `indeterminate` (NOT stale), matching the module's fail-safe philosophy.
+ *
+ * READ-ONLY: only `git log` is invoked; nothing is written or mutated. NEVER throws on a
+ * per-ref git failure (each ref is probed independently and a failure ⇒ omit).
+ */
+export async function detectOntologyStalenessGit(
+  args: DetectOntologyStalenessGitArgs,
+): Promise<OntologyStalenessReport> {
+  if (!args || typeof args.project !== "string" || args.project.length === 0) {
+    throw new Error("detectOntologyStalenessGit: `project` (absolute project root) is required");
+  }
+  const repo = typeof args.repo === "string" && args.repo.length > 0 ? args.repo : args.project;
+
+  // (a) Enumerate primitives + their derived backing refs via the pure core (no signal yet).
+  const enumerated = detectOntologyStaleness({ project: args.project });
+  const primitives = [...enumerated.stale, ...enumerated.indeterminate];
+
+  // (b) Probe each DISTINCT (atopWhich, backingRef) pair with read-only `git log`.
+  const changedSinceAtop: Record<string, boolean> = {};
+  const probed = new Set<string>();
+  for (const prim of primitives) {
+    const ref = prim.backingSourceRef;
+    if (ref === undefined) continue; // no backing ref → pure core marks indeterminate
+    // Fail-safe: never probe an absolute or repo-escaping ref — omit ⇒ indeterminate.
+    if (path.isAbsolute(ref) || ref.split(/[\\/]/).includes("..")) continue;
+    const pairKey = changedSinceAtopKey(prim.atopWhich, ref);
+    if (probed.has(pairKey)) continue;
+    probed.add(pairKey);
+    try {
+      const { stdout } = await execFileAsync(
+        "git",
+        ["-C", repo, "log", `${prim.atopWhich}..HEAD`, "--oneline", "--", ref],
+        { maxBuffer: 16 * 1024 * 1024, timeout: 30000 },
+      );
+      // Non-empty output ⇒ at least one commit in (atopWhich, HEAD] touched this ref. Keyed by
+      // the COMPOSITE (atopWhich, backingRef) so the pure core's per-primitive lookup matches.
+      changedSinceAtop[changedSinceAtopKey(prim.atopWhich, ref)] = stdout.trim().length > 0;
+    } catch {
+      // git errored (unresolvable ref / not a working tree / bad range) → OMIT ⇒ indeterminate.
+    }
+  }
+
+  // (c) Re-invoke the pure core WITH the signal so the decision lives in ONE place.
+  return detectOntologyStaleness({ project: args.project, changedSinceAtop });
 }

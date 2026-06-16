@@ -128,6 +128,13 @@ export interface ObjectTypeCandidate {
   readonly whyItMayMatter: string;
   readonly evidenceRefs: readonly string[];
   readonly declaredRid?: string;
+  /**
+   * Live-mapped backing artifact ref (per-file staleness calibration). When present the
+   * register seam threads it onto the declaration so the read-side drift detector can key
+   * staleness PER backing file. Absent on legacy candidates — register then derives from
+   * `evidenceRefs[0]` (present-only). Additive + optional (zero behavior change when omitted).
+   */
+  readonly backingSourceRef?: string;
 }
 
 export interface LinkTypeCandidate {
@@ -156,6 +163,8 @@ export interface ActionTypeCandidate {
   readonly submissionCriteria?: readonly string[];
   readonly evidenceRefs: readonly string[];
   readonly declaredRid?: string;
+  /** Live-mapped backing artifact ref (per-file staleness calibration). See {@link ObjectTypeCandidate.backingSourceRef}. */
+  readonly backingSourceRef?: string;
 }
 
 export interface FunctionCandidate {
@@ -180,6 +189,8 @@ export interface FunctionCandidate {
   readonly invokingActorScopeRef?: string;
   readonly evidenceRefs: readonly string[];
   readonly declaredRid?: string;
+  /** Live-mapped backing artifact ref (per-file staleness calibration). See {@link ObjectTypeCandidate.backingSourceRef}. */
+  readonly backingSourceRef?: string;
 }
 
 export interface ChatbotContextCandidate {
@@ -199,6 +210,8 @@ export interface RoleCandidate {
   readonly permissions?: readonly string[];
   readonly whyItMayMatter?: string;
   readonly evidenceRefs?: readonly string[];
+  /** Live-mapped backing artifact ref (per-file staleness calibration). See {@link ObjectTypeCandidate.backingSourceRef}. */
+  readonly backingSourceRef?: string;
 }
 
 export interface PropertyCandidate {
@@ -222,6 +235,8 @@ export interface PropertyCandidate {
   readonly readableBy?: readonly string[];
   readonly evidenceRefs?: readonly string[];
   readonly declaredRid?: string;
+  /** Live-mapped backing artifact ref (per-file staleness calibration). See {@link ObjectTypeCandidate.backingSourceRef}. */
+  readonly backingSourceRef?: string;
 }
 
 export interface LeadClarificationQuestion {
