@@ -58,6 +58,21 @@ export interface RegisterAcceptedResult {
 }
 
 /**
+ * Write-side mirror of the staleness detector's read-side `deriveBackingRef`: pick
+ * the FIRST `evidenceRefs` entry that is a real path (string, non-empty, NOT a
+ * `data:` inline literal). Returns `undefined` when none qualify, so the present-only
+ * `backingSourceRef` is omitted rather than persisting a `data:` literal the
+ * detector would skip anyway.
+ */
+function firstRealPath(evidenceRefs: readonly unknown[] | undefined): string | undefined {
+  if (!Array.isArray(evidenceRefs)) return undefined;
+  for (const ref of evidenceRefs) {
+    if (typeof ref === "string" && ref.length > 0 && !ref.startsWith("data:")) return ref;
+  }
+  return undefined;
+}
+
+/**
  * Register ALL *Candidates present on the session. Approval IS the accept of the
  * contract's candidate set (D1) — the gate that this set is approved lives in the
  * handler (the precondition re-check), not here.
@@ -104,6 +119,18 @@ export async function registerAcceptedCandidates(
           whyItMayMatter: candidate.whyItMayMatter,
           evidenceRefs: candidate.evidenceRefs,
           candidateId: candidate.candidateId,
+          // Live-mapped backing artifact ref (per-file staleness calibration): explicit
+          // backingSourceRef wins, else the first REAL-PATH evidenceRefs entry (skips
+          // `data:` inline literals, mirroring the detector's read-side deriveBackingRef).
+          // Present-only — the field is OMITTED when absent. It is the staleness
+          // detector's raw-sha path that stays back-compatible, not the register edit
+          // shape itself (threading adds backingSourceRef to legacy candidates too).
+          ...((candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)) !== undefined
+            ? {
+                backingSourceRef:
+                  candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)!,
+              }
+            : {}),
         },
       },
     );
@@ -128,6 +155,12 @@ export async function registerAcceptedCandidates(
           submissionCriteria: candidate.submissionCriteria,
           evidenceRefs: candidate.evidenceRefs,
           candidateId: candidate.candidateId,
+          ...((candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)) !== undefined
+            ? {
+                backingSourceRef:
+                  candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)!,
+              }
+            : {}),
         },
       },
     );
@@ -151,6 +184,12 @@ export async function registerAcceptedCandidates(
           deterministic: candidate.deterministic,
           evidenceRefs: candidate.evidenceRefs,
           candidateId: candidate.candidateId,
+          ...((candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)) !== undefined
+            ? {
+                backingSourceRef:
+                  candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)!,
+              }
+            : {}),
         },
       },
     );
@@ -174,6 +213,12 @@ export async function registerAcceptedCandidates(
           permissions: candidate.permissions,
           candidateId: candidate.candidateId,
           evidenceRefs: candidate.evidenceRefs,
+          ...((candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)) !== undefined
+            ? {
+                backingSourceRef:
+                  candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)!,
+              }
+            : {}),
         },
       },
     );
@@ -208,6 +253,12 @@ export async function registerAcceptedCandidates(
           ...(candidate.readableBy !== undefined ? { readableBy: candidate.readableBy } : {}),
           candidateId: candidate.candidateId,
           evidenceRefs: candidate.evidenceRefs,
+          ...((candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)) !== undefined
+            ? {
+                backingSourceRef:
+                  candidate.backingSourceRef ?? firstRealPath(candidate.evidenceRefs)!,
+              }
+            : {}),
         },
       },
     );

@@ -7,6 +7,22 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.20.0] - 2026-06-16 — feat(drift): per-primitive backing-file staleness calibration (READ-SIDE)
+
+### Added
+- feat(drift): per-primitive backing-file staleness calibration in `lib/event-log/ontology-staleness.ts`. The read-side drift detector now derives each registered primitive's backing artifact READ-SIDE (`backingSourceRef`, else the first real-path `evidenceRefs[0]`) and accepts an optional `changedSinceAtop` signal so staleness is decided PER backing file via the per-file `(atopWhich, HEAD]` comparator `detectOntologyStalenessGit` (read-only `git log` per distinct (atopWhich, backingRef) pair). The all-or-nothing raw-sha path (all 26 shared-`atopWhich` primitives flipping stale on the next HEAD commit) is replaced by a narrowed per-file signal. Register threading (`lib/ontology-engineering-workflow/register-accepted.ts`) carries `backingSourceRef = candidate.backingSourceRef ?? candidate.evidenceRefs[0]` into the Object/Action/Function/Role/Property declarations (PRESENT-ONLY; LinkType has no declaration channel and is excluded); the five candidate types gain an optional `backingSourceRef?: string`.
+
+### Fixed
+- fix(drift): the per-file `changedSinceAtop` signal is now keyed by the COMPOSITE `atopWhich + NUL + backingRef` (was keyed by `backingRef` alone, which collided two primitives that share a backing file but were elevated atop different `atopWhich` SHAs). The doc comment, pure-core lookup, and the impure git wrapper all key/write the composite; behavior otherwise identical and the pure core stays side-effect-free.
+
+### Notes
+- Back-compat: when `changedSinceAtop` is ABSENT the pure core falls back to the UNCHANGED raw-sha comparator (byte-identical). Every result keeps the `comparator` (`"raw-sha"` | `"per-file-sha"`) + matching `noiseWarning` honesty tags.
+- This does NOT close OPEN #1 (the structural-fingerprint comparator): per-file-sha STILL fires on benign same-file edits (formatting / comment-only / an unrelated symbol in the same file). OPEN #1 remains a FURTHER increment.
+
+Verification: typecheck clean; `ontology-staleness` 14/0 (incl. composite-key disambiguation + un-skipped register-threading case); register/roundtrip suites 22/0; broader register grep 103/0; zero new suite failures.
+
+Files touched: `lib/event-log/ontology-staleness.ts`, `lib/ontology-engineering-workflow/register-accepted.ts`, `lib/fde-ontology-engineering/types.ts`, `tests/event-log/ontology-staleness.test.ts`, plus version bump (`package.json`, `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`).
+
 ## [7.19.0] - 2026-06-16 — feat(gate): quality-safe decisionSpec dedup + overflow-dir age-out GC (P-followups)
 
 ### Changed
