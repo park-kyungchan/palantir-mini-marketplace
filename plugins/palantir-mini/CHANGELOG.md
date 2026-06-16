@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.21.0] - 2026-06-16 — feat(drift): Pillar C drift-fold — always-on detect lane + gated propose scaffold
+
+### Added
+- feat(drift #3): always-on drift-fold lane — new read-only Stop hook `hooks/ontology-drift-fold.ts` (clones `hooks/bypass-budget-monitor.ts`: async, advisory, never-blocking). Once per session it calls the read-only `detectOntologyStalenessGit` for the current project and, ONLY when `stale.length > 0`, emits ONE `validation_phase_completed` advisory (`errorClass:"ontology_drift_detected"`) surfacing `comparator` + `noiseWarning` VERBATIM + `indeterminate.length`. Silent on a clean fold. DETECTS only — wired to NOTHING that proposes or mutates; never enters elevate/DTC. Bypass: `PALANTIR_MINI_DRIFT_FOLD_BYPASS=1` (audited via a `drift_fold_bypass_invoked` errorClass). Registered in `hooks/hooks.json` Stop array alongside bypass-budget-monitor (type=command, async=true, timeout=40, statusMessage). Closes the CORE.md P4 "every session folds drift back into a sink" loop as a read-only advisory.
+- feat(drift #2): gated propose-step SCAFFOLD — new PURE, read-only `lib/ontology-engineering-workflow/drift-propose.ts`. Takes an `OntologyStalenessReport` and, per `stale[]` entry whose kind maps to a covered `OntologyResourceKind` (object/link/action/function), composes ONE FULL `GlobalBranchingProposal` (`proposalId`, embedded `baseProposal:OntologyProposalDeclaration` with `affectedResources:[{kind,rid}]`, `applicationsAffected:[]`, single-reviewer `approvalPolicy`, `doNotMerge:false`, `lifecycleState:"in-review"`, `resourceCheckResults:[]`) — each satisfies `isGlobalBranchingProposal()===true`. GATE: emits ONLY when `report.comparator==="per-file-sha"`; `report.noiseWarning` is threaded VERBATIM into `validationSummary.notes`. `role` + `property` stale entries (OntologyResourceKind enum gap) are returned in an explicit `skipped[]` ({rid,kind,reason}), NEVER silently dropped. Pure: NO fs/git/IO; never calls elevate's register path or `commit_edits` (emit-only). Thin manual driver SKILL `skills/pm-ontology-drift-propose/SKILL.md` (manually invoked; NOT auto-fired by #3) drives persistence via the existing proposal-create/review + elevate gate.
+
+### Changed
+- docs(drift #1): OPEN #1 provenance note (doc-only, no logic change). The structural-fingerprint comparator is now documented as **PROVENANCE-DEPENDENT** in both the `lib/event-log/ontology-staleness.ts` header (OPEN #1 block) and `harness-upstream/_workspace/2026-06-15-dynamic-ontology-design/DESIGN-dynamic-ontology-operation.md` §2.1: feasible only for MECHANICALLY-EXTRACTED ontologies (structure re-derivable from code, e.g. pm self-ontology) and NOT cheaply feasible for MODEL-REASONED doc-corpus ontologies (harness-upstream), where structural judgment belongs in the gated propose-step (per-file-sha + human/LLM judgment) — a deferred FURTHER increment.
+
+### Notes
+- Two follow-ups HANDED OFF (rule-08, schema owner — NOT done here): (1) additive `OntologyResourceKind` enum widen for `"role"` + `"property"` (schema CHANGELOG + semver bump) so role/property drift becomes proposable; (2) the mechanically-extracted-ontology (pm self-ontology) structural fingerprint comparator. No runtime-overlay/schemas-snapshot, elevate.ts, or src/generated change this pass — `GlobalBranchingProposal` reused unchanged.
+
+Files touched: `hooks/ontology-drift-fold.ts` (new), `hooks/hooks.json`, `lib/ontology-engineering-workflow/drift-propose.ts` (new), `skills/pm-ontology-drift-propose/SKILL.md` (new), `lib/event-log/ontology-staleness.ts` (doc-only), `tests/hooks/ontology-drift-fold.test.ts` (new), `tests/lib/ontology-engineering-workflow/drift-propose.test.ts` (new), `harness-upstream/_workspace/2026-06-15-dynamic-ontology-design/DESIGN-dynamic-ontology-operation.md` (doc-only), plus version bump (`package.json`, `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`).
+
 ## [7.20.0] - 2026-06-16 — feat(drift): per-primitive backing-file staleness calibration (READ-SIDE)
 
 ### Added
