@@ -15,6 +15,7 @@ import type {
   DigitalTwinChangeContract,
   SemanticIntentContract,
 } from "../../../lib/lead-intent/contracts";
+import { createSemanticClarificationQuestions } from "../../../lib/lead-intent/contracts";
 import { SEMANTIC_INTENT_CONTRACT_SCHEMA_VERSION } from "#schemas/ontology/primitives/semantic-intent-contract";
 import {
   EIGHT_TURN_FILL_SEQUENCE,
@@ -1718,7 +1719,11 @@ describe("pm_semantic_intent_gate — 8-turn fill sequence integration", () => {
       fillPolicy: "default-8-turn", // W3d-2b: pin to legacy 8-turn (default flipped to nine-axis)
       turn: 0,
     });
-    const contractAfterT0 = t0.fillResult?.contract ?? t0.draftContracts?.semanticIntent;
+    // QFS — the emitted fillResult.contract is now the union projection (decisionSpec may be a
+    // by-id ref). On this unambiguous fixture clarificationQuestions is empty so the projection is
+    // a no-op and the body is a full SIC; narrow it back to feed it as a contract input.
+    const contractAfterT0 = (t0.fillResult?.contract ??
+      t0.draftContracts?.semanticIntent) as SemanticIntentContract | undefined;
 
     const result = await semanticIntentGate({
       project,
@@ -1969,11 +1974,20 @@ describe("response payload shaping (responseView / fullPath / dedup)", () => {
       readinessView.fillResult?.nextQuestion ?? null,
     );
     // Byte-equivalent modulo wall-clock `filledAt` stamps (a clock artifact, not a view
-    // artifact — the two gate calls run a few ms apart).
+    // artifact — the two gate calls run a few ms apart). QFS: after the decisionSpec dedup,
+    // `clarificationQuestions[].decisionSpec` is a {decisionRef} (resolvable via decisions{}
+    // inline in readiness / inside overflow.fullPath in turn) instead of an inline body; this
+    // cross-view byte-identity still HOLDS because the ref-conversion is computed ONCE,
+    // view-independently — so it doubles as the QFS view-symmetry regression guard.
     const stripFilledAt = (c: unknown) =>
       JSON.stringify(c).replace(/"filledAt":"[^"]*"/g, '"filledAt":"<ts>"');
     expect(stripFilledAt(turnView.fillResult?.contract)).toBe(
       stripFilledAt(readinessView.fillResult?.contract),
+    );
+    // QFS — draftContracts.semanticIntent also carries the same view-independent ref-conversion,
+    // so it is byte-identical across views too (new cross-view invariant for the deduped home #3).
+    expect(stripFilledAt(turnView.draftContracts?.semanticIntent)).toBe(
+      stripFilledAt(readinessView.draftContracts?.semanticIntent),
     );
   });
 
@@ -2089,6 +2103,181 @@ describe("response payload shaping (responseView / fullPath / dedup)", () => {
       readinessResult.gate.questions[0]?.decisionSpec as { decisionRef: string }
     ).decisionRef;
     expect(Object.keys(readinessResult.decisions ?? {})).toContain(firstRef);
+  });
+
+  // QFS (6) — open-decision-inline: every OPEN decision body inline EXACTLY ONCE (the queue),
+  // while the two deduped homes (fillResult.contract = home #2, draftContracts.semanticIntent =
+  // home #3) carry {decisionRef} that resolve to a real decisions{} key. Proves the
+  // single-inline-home invariant survives the dedup and no duplicate body is materialized at
+  // homes #2/#3. The gate is driven with `turn:0` so `fillResult` is actually POPULATED — its
+  // clarificationQuestions[].decisionSpec are the live home-#2 projection target (asserted below).
+  test("(6) open decisions inline once in the queue; fill + draft homes are {decisionRef}s resolving in decisions{}", async () => {
+    const readiness = await semanticIntentGate({
+      project: makeTmpProject(),
+      rawIntent: ambiguousIntent,
+      scopePaths: ambiguousScope,
+      complexityHint: "cross-cutting",
+      fillPolicy: "default-8-turn",
+      turn: 0,
+      responseView: "readiness",
+    });
+
+    const queue = readiness.turnCardDecisionQueue;
+    expect(queue.length).toBeGreaterThan(0);
+    const decisionsMap = readiness.decisions ?? {};
+
+    // (a) every OPEN queue decision: body inline exactly once + a single matching decisions{} key.
+    for (const entry of queue) {
+      const id = entry.decisionSpec.decisionId;
+      expect(entry.decisionSpec.plainKoreanSummary.length).toBeGreaterThan(0);
+      // exactly ONE inline body for this id across the queue.
+      const inlineBodyCount = queue.filter(
+        (q) => q.decisionSpec.decisionId === id && "plainKoreanSummary" in q.decisionSpec,
+      ).length;
+      expect(inlineBodyCount).toBe(1);
+      expect(Object.keys(decisionsMap)).toContain(id);
+    }
+
+    // (b) home #2 (fillResult.contract) carries {decisionRef}s — POSITIVELY asserted, not just
+    //     claimed. `turn:0` above populated fillResult; its clarificationQuestions are the live
+    //     home-#2 projection target. Each ref must resolve to a real decisions{} key.
+    const fillQs = readiness.fillResult?.contract.clarificationQuestions ?? [];
+    expect(fillQs.length).toBeGreaterThan(0);
+    for (const q of fillQs) {
+      expect(q.decisionSpec).toHaveProperty("decisionRef");
+      const ref = (q.decisionSpec as { decisionRef: string }).decisionRef;
+      expect(Object.keys(decisionsMap)).toContain(ref);
+    }
+
+    // (c) home #3 (draftContracts.semanticIntent) carries {decisionRef}s,
+    //     and each ref resolves to a real decisions{} key (no dangle on the common path).
+    const draftQs = readiness.draftContracts?.semanticIntent.clarificationQuestions ?? [];
+    expect(draftQs.length).toBeGreaterThan(0);
+    for (const q of draftQs) {
+      expect(q.decisionSpec).toHaveProperty("decisionRef");
+      const ref = (q.decisionSpec as { decisionRef: string }).decisionRef;
+      expect(Object.keys(decisionsMap)).toContain(ref);
+      // (d) the resolved body matches the queue's inline body (no divergence).
+      const queueBody = queue.find((e) => e.decisionSpec.decisionId === ref)?.decisionSpec;
+      if (queueBody) {
+        expect(decisionsMap[ref]?.plainKoreanSummary).toBe(queueBody.plainKoreanSummary);
+      }
+    }
+  });
+
+  // QFS (6-fde) — the fde-ontology-build projection home (fdeFillResult.contract) is deduped the
+  // SAME way: clarificationQuestions[].decisionSpec become {decisionRef}s that resolve in
+  // decisions{}. The fde projection has its own emit-boundary branch in the handler, so it needs
+  // its own positive guard (the SIC-path fillResult guard in (6) does not cover it).
+  test("(6-fde) fde-ontology-build home (fdeFillResult.contract) is {decisionRef}s resolving in decisions{}", async () => {
+    const readiness = await semanticIntentGate({
+      project: makeTmpProject(),
+      rawIntent: ambiguousIntent,
+      scopePaths: ambiguousScope,
+      complexityHint: "cross-cutting",
+      fillPolicy: "fde-ontology-build",
+      turn: 0,
+      responseView: "readiness",
+    });
+
+    // fde policy populates fdeFillResult (NOT fillResult); its clarificationQuestions are the
+    // live fde projection target.
+    const fdeQs = readiness.fdeFillResult?.contract.clarificationQuestions ?? [];
+    expect(fdeQs.length).toBeGreaterThan(0);
+    const decisionsMap = readiness.decisions ?? {};
+    for (const q of fdeQs) {
+      expect(q.decisionSpec).toHaveProperty("decisionRef");
+      const ref = (q.decisionSpec as { decisionRef: string }).decisionRef;
+      expect(Object.keys(decisionsMap)).toContain(ref);
+    }
+  });
+
+  // QFS (7) — fail-open: a clarificationQuestion whose decisionId is ABSENT from decisions{}
+  // keeps its FULL body inline (never emits a dangling ref). Mirrors the P1 FAIL-SAFE.
+  test("(7) fail-open — an unresolved decisionId keeps the full decisionSpec body (no dangling ref)", async () => {
+    // Build a real clarification question, then stamp it with an id that the unambiguous gate
+    // below will NOT produce (so it is absent from decisions{}).
+    const seed = createSemanticClarificationQuestions({
+      intent: "seed",
+      scopePaths: ["lib/x.ts"],
+    });
+    const seedQuestion = seed[0];
+    expect(seedQuestion).toBeDefined();
+    const unresolvedId = "fail-open:unresolved-decision-id";
+    const customQuestion: SemanticIntentContract["clarificationQuestions"][number] = {
+      ...seedQuestion!,
+      questionId: unresolvedId,
+      decisionSpec: { ...seedQuestion!.decisionSpec, decisionId: unresolvedId },
+    };
+    const callerSic = approvedSemantic({
+      status: "draft",
+      clarificationQuestions: [customQuestion],
+    });
+
+    const result = await semanticIntentGate({
+      project: makeTmpProject(),
+      // Unambiguous read-only-ish intent so the gate produces no matching questions for this id.
+      rawIntent: "Persist prompt-front-door contracts",
+      scopePaths: ["lib/prompt-front-door/store.ts"],
+      complexityHint: "single-file",
+      fillPolicy: "default-8-turn",
+      turn: 0,
+      semanticIntentContract: callerSic,
+      responseView: "readiness",
+    });
+
+    const fillQ = result.fillResult?.contract.clarificationQuestions.find(
+      (q) => (q.decisionSpec as { decisionId?: string }).decisionId === unresolvedId,
+    );
+    expect(fillQ).toBeDefined();
+    // The id is NOT in decisions{} → fail-open keeps the FULL body (has plainKoreanSummary),
+    // never a bare {decisionRef}.
+    expect(Object.keys(result.decisions ?? {})).not.toContain(unresolvedId);
+    expect(fillQ?.decisionSpec).not.toHaveProperty("decisionRef");
+    expect((fillQ?.decisionSpec as { plainKoreanSummary?: string }).plainKoreanSummary?.length).toBeGreaterThan(0);
+  });
+
+  // QFS (8) — quality-bounded byte assert: the dedup REMOVED the duplicate decisionSpec bodies
+  // (turn view drops vs readiness by ~the dedup amount) WITHOUT stripping live substance. NOT a
+  // fixed ~3KB floor — the turn view stays substantial (queue body once + live fill delta).
+  test("(8) dedup drops the duplicate bodies (turn < readiness) while keeping live substance", async () => {
+    const common = {
+      rawIntent: ambiguousIntent,
+      scopePaths: ambiguousScope,
+      complexityHint: "cross-cutting" as const,
+    };
+    const turnView = await semanticIntentGate({ project: makeTmpProject(), ...common });
+    const readinessView = await semanticIntentGate({
+      project: makeTmpProject(),
+      ...common,
+      responseView: "readiness",
+    });
+
+    // The deduped homes carry refs (not bodies) in BOTH views (view-symmetric projection).
+    for (const q of turnView.draftContracts?.semanticIntent.clarificationQuestions ?? []) {
+      expect(q.decisionSpec).toHaveProperty("decisionRef");
+    }
+    for (const q of readinessView.draftContracts?.semanticIntent.clarificationQuestions ?? []) {
+      expect(q.decisionSpec).toHaveProperty("decisionRef");
+    }
+
+    // The single inline body home (queue) still carries the FULL body — live substance kept.
+    const queueBodyMarkers = readinessView.turnCardDecisionQueue.filter(
+      (e) => e.decisionSpec.plainKoreanSummary.length > 0,
+    ).length;
+    expect(queueBodyMarkers).toBeGreaterThan(0);
+
+    // Real delta proof: the turn view is SMALLER than the bodies-inline readiness view — the
+    // dedup + heavy-body relocation actually REMOVED bytes (refs replace inline decisionSpec
+    // bodies; the heavy bundle is relocated to overflow.fullPath). A floor alone passes on the
+    // pre-dedup base, so compare the two views directly.
+    const turnBytes = JSON.stringify(turnView).length;
+    const readinessBytes = JSON.stringify(readinessView).length;
+    expect(turnBytes).toBeLessThan(readinessBytes);
+
+    // Quality-bounded: the turn view stays substantial (NOT a tiny ~3KB floor) — the live fill
+    // delta + verdict surfaces + the single queue body all remain inline.
+    expect(turnBytes).toBeGreaterThan(8000);
   });
 
   // Acceptance criterion 5 — gate SEMANTICS are unchanged across views: the verdict scalars,

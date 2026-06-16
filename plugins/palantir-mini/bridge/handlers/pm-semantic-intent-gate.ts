@@ -426,6 +426,51 @@ export type Layer0IntentBridgeProjection = Omit<Layer0IntentBridge, "materialAmb
   >;
 };
 
+/**
+ * QFS — a clarificationQuestions array whose per-question `decisionSpec` MAY be projected to a
+ * by-id ref (or kept as the full body on the fail-open path). Mirrors the P4 union so the inline
+ * fail-open case still type-checks. Used by the SIC fill contract + draft SIC emit projections.
+ */
+export type ClarificationQuestionsRefProjection = Array<
+  Omit<SemanticClarificationQuestion, "decisionSpec"> & {
+    decisionSpec: TurnCardDecisionSpec | DecisionRef;
+  }
+>;
+
+/** QFS — a SIC whose `clarificationQuestions[].decisionSpec` may be ref-projected at emit. */
+export type SicContractDecisionRefProjection = Omit<SicWithFillFields, "clarificationQuestions"> & {
+  clarificationQuestions: ClarificationQuestionsRefProjection;
+};
+
+/** QFS — the emitted `fillResult` with `contract.clarificationQuestions[].decisionSpec` ref-projected. */
+export type SemanticIntentFillResultProjection = Omit<SemanticIntentFillResult, "contract"> & {
+  contract: SicContractDecisionRefProjection;
+};
+
+/** QFS — the emitted `fdeFillResult` with `contract.clarificationQuestions[].decisionSpec` ref-projected. */
+export type FDESemanticIntentFillResultProjection = Omit<FDESemanticIntentFillResult, "contract"> & {
+  contract: SicContractDecisionRefProjection;
+};
+
+/** QFS — the emitted `draftContracts` with `semanticIntent.clarificationQuestions[].decisionSpec` ref-projected. */
+export type DraftContractsProjection = {
+  semanticIntent: Omit<SemanticIntentContract, "clarificationQuestions"> & {
+    clarificationQuestions: ClarificationQuestionsRefProjection;
+  };
+  digitalTwin: DigitalTwinChangeContract;
+};
+
+/**
+ * QFS — the INTERNAL draftContracts shape (FULL bodies). The handler-local `draftContracts`
+ * and the persistence consumers read this UNPROJECTED form (full `SemanticIntentContract`);
+ * the emit boundary builds a {@link DraftContractsProjection} shallow copy from it. Kept
+ * separate so widening the EMITTED type never widens the persisted/consumed type.
+ */
+type DraftContractsInternal = {
+  semanticIntent: SemanticIntentContract;
+  digitalTwin: DigitalTwinChangeContract;
+};
+
 export interface SemanticIntentGateResult {
   status: ContractGateResult["status"];
   allowsRouting: boolean;
@@ -435,10 +480,8 @@ export interface SemanticIntentGateResult {
   ontologyDtcBuildReadinessGate?: OntologyDtcBuildReadinessGate;
   turnCardDecisionQueue: SemanticIntentTurnCardDecision[];
   workflowContract?: SemanticIntentWorkflowContractProjection;
-  draftContracts?: {
-    semanticIntent: SemanticIntentContract;
-    digitalTwin: DigitalTwinChangeContract;
-  };
+  /** QFS — semanticIntent.clarificationQuestions[].decisionSpec projected to a by-id ref (dereference via `decisions` / queue). */
+  draftContracts?: DraftContractsProjection;
   promptEnvelope?: PromptEnvelope;
   contractRefs?: PromptContractRefs;
   promptContinuity?: ContractValidationResult;
@@ -452,13 +495,14 @@ export interface SemanticIntentGateResult {
     readiness: Layer0ReadinessGrade;
     ontologyActivation?: OntologyActivation;
   };
-  /** Present when `turn` was supplied in the input. Contains fill-sequence progress. */
-  fillResult?: SemanticIntentFillResult;
+  /** Present when `turn` was supplied. QFS — contract.clarificationQuestions[].decisionSpec projected to a by-id ref. */
+  fillResult?: SemanticIntentFillResultProjection;
   /**
    * Present when fillPolicy === "fde-ontology-build" AND turn supplied.
    * Mutually exclusive with fillResult — caller checks both.
+   * QFS — contract.clarificationQuestions[].decisionSpec projected to a by-id ref.
    */
-  fdeFillResult?: FDESemanticIntentFillResult;
+  fdeFillResult?: FDESemanticIntentFillResultProjection;
   /**
    * Present when fillPolicy is "dtc-turn-fill" or "ontology-dtc-build" AND turn supplied.
    * Mutually exclusive with fillResult + fdeFillResult — caller checks all three.
@@ -1635,7 +1679,7 @@ async function persistPromptContracts(
     envelope?: PromptEnvelope;
     continuity?: ContractValidationResult;
   },
-  draftContracts: SemanticIntentGateResult["draftContracts"],
+  draftContracts: DraftContractsInternal | undefined,
   semanticConsistencyResult?: SemanticConsistencyResolverOutput,
 ): Promise<{ envelope?: PromptEnvelope; contractRefs?: PromptContractRefs }> {
   if (input.draftMode === "never" || !prompt.envelope || prompt.continuity?.valid === false) {
@@ -1967,7 +2011,7 @@ export async function semanticIntentGate(
   );
 
   const shouldDraft = shouldIncludeDrafts(input, gate);
-  let draftContracts: SemanticIntentGateResult["draftContracts"];
+  let draftContracts: DraftContractsInternal | undefined;
   if (shouldDraft) {
     const semanticIntent = draftSemanticIntentContract({
       intent: input.rawIntent,
@@ -2826,6 +2870,54 @@ export async function semanticIntentGate(
     }
   }
 
+  // ── QFS — dedup the two remaining inline decisionSpec body homes (fillResult.contract +
+  //    draftContracts.semanticIntent) to by-id refs. Emit-boundary SHALLOW COPIES ONLY: never
+  //    mutate the live `fillResult` / `fdeFillResult` / `draftContracts` (read by persistence +
+  //    baseContract ABOVE). Fail-OPEN: ref only when the id resolves in `decisions{}`; otherwise
+  //    keep the full body inline (mirrors the P1 FAIL-SAFE — no dangling ref on a caller-supplied
+  //    custom SIC or a status:"pass" empty-decisions edge). Computed ONCE, view-independently, so
+  //    BOTH the 'turn' and 'readiness' emit carry the identical refized shape (criterion-2 holds).
+  const refOrBody = (spec: TurnCardDecisionSpec): TurnCardDecisionSpec | DecisionRef =>
+    decisions[spec.decisionId] ? { decisionRef: spec.decisionId } : spec;
+  const refClarificationQuestions = (
+    questions: readonly SemanticClarificationQuestion[] | undefined,
+  ): ClarificationQuestionsRefProjection =>
+    (questions ?? []).map((q) => ({ ...q, decisionSpec: refOrBody(q.decisionSpec) }));
+
+  const fillResultProjected: SemanticIntentFillResultProjection | undefined = fillResult
+    ? {
+        ...fillResult,
+        contract: {
+          ...fillResult.contract,
+          clarificationQuestions: refClarificationQuestions(
+            fillResult.contract.clarificationQuestions,
+          ),
+        },
+      }
+    : undefined;
+  const fdeFillResultProjected: FDESemanticIntentFillResultProjection | undefined = fdeFillResult
+    ? {
+        ...fdeFillResult,
+        contract: {
+          ...fdeFillResult.contract,
+          clarificationQuestions: refClarificationQuestions(
+            fdeFillResult.contract.clarificationQuestions,
+          ),
+        },
+      }
+    : undefined;
+  const draftContractsProjected: DraftContractsProjection | undefined = draftContracts
+    ? {
+        ...draftContracts,
+        semanticIntent: {
+          ...draftContracts.semanticIntent,
+          clarificationQuestions: refClarificationQuestions(
+            draftContracts.semanticIntent.clarificationQuestions,
+          ),
+        },
+      }
+    : undefined;
+
   return {
     status: effectiveGate.status,
     allowsRouting: effectiveGate.allowsRouting,
@@ -2836,7 +2928,9 @@ export async function semanticIntentGate(
     turnCardDecisionQueue,
     workflowContract,
     promptEnvelopeLookup: prompt.lookup,
-    ...(draftContracts && shouldReturnDrafts(input) ? { draftContracts } : {}),
+    ...(draftContractsProjected && shouldReturnDrafts(input)
+      ? { draftContracts: draftContractsProjected }
+      : {}),
     ...(persisted.envelope ? { promptEnvelope: persisted.envelope } : {}),
     ...(persisted.contractRefs ? { contractRefs: persisted.contractRefs } : {}),
     ...(continuity ? { promptContinuity: continuity } : {}),
@@ -2850,8 +2944,8 @@ export async function semanticIntentGate(
       readiness: layer0Readiness,
       ...(ontologyActivation ? { ontologyActivation } : {}),
     },
-    ...(fillResult ? { fillResult } : {}),
-    ...(fdeFillResult ? { fdeFillResult } : {}),
+    ...(fillResultProjected ? { fillResult: fillResultProjected } : {}),
+    ...(fdeFillResultProjected ? { fdeFillResult: fdeFillResultProjected } : {}),
     ...(dtcFillResult ? { dtcFillResult } : {}),
     ...(semanticConsistencyResult ? { semanticConsistencyResult } : {}),
   };

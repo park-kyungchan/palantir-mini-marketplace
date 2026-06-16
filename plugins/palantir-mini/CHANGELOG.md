@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.19.0] - 2026-06-16 — feat(gate): quality-safe decisionSpec dedup + overflow-dir age-out GC (P-followups)
+
+### Changed
+- feat(gate): dedup the 2 remaining byte-identical duplicate `decisionSpec` bodies (`fillResult.contract` and the `draftContracts.semanticIntent` clarificationQuestions copies) to `{decisionRef}`, resolved via the existing `decisions{}` map; the single inline body home (`turnCardDecisionQueue`) is retained. View-symmetric (criterion-2 guards it), fail-open on an unresolved id. This is QUALITY-PRESERVING — it removes ONLY byte-identical duplicates; NO live ontology substance is relocated. The aggressive ~3KB sparse turn view was explicitly NOT pursued: measurement + an `ssot/palantir`-grounded quality classification showed it would strip live Altitude-1 9-axis FDE SIC/DTC build context (degrading ontology quality). Turn view ~35KB → ~27KB; the residual is live substance the adapter reasons over.
+
+### Added
+- feat(overflow): a lazy age-out GC for the `.palantir-mini/mcp-response-overflow/` dir — prunes aged overflow files on write (regex-scoped filename match + `lstat` symlink-skip + throttle + DISABLE switch; never throws from the sink).
+
+Verification: typecheck clean; gate + nine-axis + overflow 82/0; schema + bounded + mutation 57/0; zero new suite failures. Rule-04 adversarial review = PROMOTE, qualityPreserved=true, no blockers.
+
+Files touched: `bridge/handlers/pm-semantic-intent-gate.ts`, `lib/bounded-return/overflow-file-sink.ts`, plus tests (`tests/bridge/handlers/pm-semantic-intent-gate.test.ts`, `tests/lib/bounded-return/overflow-file-sink.test.ts`).
+
+Three-manifest version-lane bump (package.json + .claude-plugin/plugin.json + .codex-plugin/plugin.json) 7.18.0 → 7.19.0.
+
 ## [7.18.0] - 2026-06-16 — feat(gate): slim the pm_semantic_intent_gate per-turn payload (P1+P3+P4)
 
 ### Added
