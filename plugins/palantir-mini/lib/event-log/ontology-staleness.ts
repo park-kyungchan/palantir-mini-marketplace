@@ -37,6 +37,15 @@
  *   grounding and remains OPEN #1, a FURTHER increment. Every result is tagged with the
  *   `comparator` actually used (`"raw-sha"` | `"per-file-sha"`) and carries the matching
  *   `noiseWarning` so a caller cannot mistake either for the calibrated, low-noise signal.
+ *
+ *   PROVENANCE-DEPENDENT (Pillar C #1, 2026-06-16): the structural-fingerprint comparator is
+ *   feasible ONLY for a MECHANICALLY-EXTRACTED ontology — one whose structure is cheaply +
+ *   deterministically re-derivable from code (e.g. pm's self-ontology, structure derivable
+ *   from bridge tool signatures). For a MODEL-REASONED doc-corpus ontology (harness-upstream),
+ *   the forward map artifact→structure was an LLM session, not a code function, so it is NOT
+ *   cheaply feasible and remains a deferred FURTHER increment. There the structural judgment
+ *   belongs in the GATED propose-step (per-file-sha + human/LLM judgment), NOT in this
+ *   always-on pure comparator.
  */
 // Domain: LEARN (prim-learn — BackwardProp drift evidence) + LOGIC (read-side fold)
 

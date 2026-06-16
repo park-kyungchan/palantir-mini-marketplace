@@ -422,6 +422,13 @@
           },
           {
             "type": "command",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/ontology-drift-fold.ts\"",
+            "timeout": 40,
+            "async": true,
+            "statusMessage": "Ontology drift fold \u2014 read-only session drift advisory (Pillar C #3; emit-only, never proposes)\u2026"
+          },
+          {
+            "type": "command",
             "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" stop-validate",
             "timeout": 75
           }
