@@ -5,7 +5,7 @@
  * (<root>/<toolName>-<stamp>-<sha256[:8]>.json) and the {path, bytes} return shape.
  */
 
-import { test, expect, describe, afterEach } from "bun:test";
+import { test, expect, describe, afterEach, spyOn } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -86,6 +86,8 @@ describe("overflow-file-sink — lifted concrete fs sink", () => {
 
 describe("overflow-file-sink — age-out GC (sweepOverflowDir / maybeSweepOverflowDir)", () => {
   const DAY = 24 * 60 * 60 * 1000;
+  // Mirrors the module-private GC_SENTINEL ".last-gc" (not exported by the sink module).
+  const GC_SENTINEL = ".last-gc";
 
   // Make a fresh root dir + a sink, write `count` files, and return their paths.
   // The concrete fs sink writes synchronously; the port type is a union, so narrow it.
@@ -160,14 +162,16 @@ describe("overflow-file-sink — age-out GC (sweepOverflowDir / maybeSweepOverfl
     const linkName = "pm_semantic_intent_gate-2026-06-16T00-00-00-000Z-aaaabbbb.json";
     const link = path.join(root, linkName);
     fs.symlinkSync(real!, link);
-    ageFile(real!, 1 * DAY); // both young (link inherits via lstat? no — assert on the link only)
+    ageFile(real!, 1 * DAY); // age the real target; the assertion is on the LINK, not the target
 
     // Sweep with maxAge so SMALL that everything matching+regular would die — the symlink must
-    // still survive because lstat().isSymbolicLink() short-circuits it.
+    // still survive. RATIONALE: a symlink is filtered by the `!e.isFile()` readdir guard (a
+    // Dirent for a symlink reports isSymbolicLink(), NOT isFile()) BEFORE any lstat runs, so it
+    // never enters the prune set. The later lstat().isSymbolicLink() check is a defence-in-depth
+    // backstop for that same case, not the primary filter.
     sweepOverflowDir(root, { maxAgeMs: 0 });
 
-    // The symlink itself was neither followed nor unlinked by the GC.
-    expect(fs.existsSync(link) || fs.lstatSync(link)).toBeTruthy();
+    // The symlink itself was neither followed nor unlinked by the GC (still a live symlink).
     expect(fs.lstatSync(link).isSymbolicLink()).toBe(true);
   });
 
@@ -235,5 +239,56 @@ describe("overflow-file-sink — age-out GC (sweepOverflowDir / maybeSweepOverfl
     expect(out.bytes).toBe(Buffer.byteLength(serialized, "utf8"));
     expect(out.path.startsWith(root)).toBe(true);
     expect(fs.existsSync(out.path)).toBe(true);
+  });
+
+  test("a DUE maybeSweep fires THROUGH makeOverflowFileSink.write — prunes an old file AND touches .last-gc", () => {
+    // The other GC tests drive sweepOverflowDir directly OR assert the throttle/DISABLE no-op.
+    // This one drives the DUE-path THROUGH the write wrapper: no .last-gc sentinel (GC enabled),
+    // so the post-write maybeSweepOverflowDir is due, scans, prunes the stale file, and writes the
+    // sentinel. Proves the wrapper actually wires the lazy GC, not just the direct sweep.
+    const root = resolveOverflowRoot({ project: makeProject() });
+    fs.mkdirSync(root, { recursive: true });
+    // Pre-seed a stale matching overflow file and ensure NO sentinel exists (→ GC is due).
+    const old = path.join(root, "pm_semantic_intent_gate-2026-06-01T00-00-00-000Z-deadbeef.json");
+    fs.writeFileSync(old, "{}");
+    ageFile(old, 30 * DAY);
+    const sentinel = path.join(root, GC_SENTINEL);
+    expect(fs.existsSync(sentinel)).toBe(false); // GC is due (absent sentinel)
+
+    const sink = makeOverflowFileSink("pm_semantic_intent_gate", root);
+    const serialized = JSON.stringify({ fresh: "z".repeat(50) });
+    const out = sink.write(serialized) as { path: string; bytes: number };
+
+    // The write itself succeeded and the fresh file survives (its mtime is current).
+    expect(fs.existsSync(out.path)).toBe(true);
+    // The DUE GC fired through the wrapper: stale file pruned + sentinel written.
+    expect(fs.existsSync(old)).toBe(false);
+    expect(fs.existsSync(sentinel)).toBe(true);
+  });
+
+  test("a THROWING GC never breaks the sink write — write() STILL returns {path, bytes}", () => {
+    // INVARIANT: 'a GC failure must NEVER break a sink write' (the outer try/catch around
+    // maybeSweepOverflowDir in write()). The internal GC fs calls are all individually guarded,
+    // so to exercise the OUTER catch we force the post-write maybeSweepOverflowDir to throw on its
+    // FIRST (unguarded) statement — `path.join(root, ".last-gc")` — via a narrow spy that throws
+    // ONLY for the sentinel join. write()'s own `path.join(root, <file>)` (a non-sentinel name)
+    // still resolves normally, so the file is written; only the GC step throws.
+    const root = resolveOverflowRoot({ project: makeProject() });
+    const realJoin = path.join.bind(path);
+    const spy = spyOn(path, "join").mockImplementation((...segs: string[]) => {
+      if (segs[segs.length - 1] === GC_SENTINEL) throw new Error("forced GC failure");
+      return realJoin(...segs);
+    });
+    try {
+      const sink = makeOverflowFileSink("pm_semantic_intent_gate", root);
+      const serialized = JSON.stringify({ heavy: "w".repeat(120) });
+      // The GC throws internally; the outer catch swallows it and write() returns normally.
+      const out = sink.write(serialized) as { path: string; bytes: number };
+      expect(out.bytes).toBe(Buffer.byteLength(serialized, "utf8"));
+      expect(out.path.startsWith(root)).toBe(true);
+      expect(fs.existsSync(out.path)).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

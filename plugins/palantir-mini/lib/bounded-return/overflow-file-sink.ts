@@ -33,9 +33,11 @@ const GC_DISABLED = process.env.PALANTIR_MINI_OVERFLOW_GC_DISABLE === "1";
 
 /**
  * Age-out GC for the overflow dir. Best-effort, fail-OPEN, non-recursive, exact-dir only.
- * Deletes ONLY files matching the overflow filename pattern; never the sentinel, subdirs,
- * symlinks, or hand-dropped files. Primary policy = mtime age; backstop = count cap
- * (oldest-by-mtime first). Exported so the unit test can drive it without waiting 7 days.
+ * Deletes ONLY files matching the overflow filename SHAPE; the sentinel, subdirs, and symlinks
+ * are excluded. (The shape filter is not a provenance proof — a hand-dropped file crafted to the
+ * exact <toolName>-<stamp>-<hex8>.json shape could match; see OVERFLOW_NAME_RE — but deletion
+ * still gates on the mtime age / count cap in this single-writer dir.) Primary policy = mtime age;
+ * backstop = count cap (oldest-by-mtime first). Exported so the unit test can drive it without waiting 7 days.
  */
 export function sweepOverflowDir(
   root: string,
@@ -49,7 +51,12 @@ export function sweepOverflowDir(
     const matched: Array<{ name: string; mtimeMs: number }> = [];
     for (const e of entries) {
       if (!e.isFile()) continue; // skips subdirs and symlink-to-dir
-      if (!OVERFLOW_NAME_RE.test(e.name)) continue; // never the sentinel / hand-dropped files
+      // Restricts deletion to the overflow filename shape. NOTE: this is a SHAPE filter, not a
+      // provenance proof — the sha8 group is [0-9a-f]{8} and decimal digits ARE valid hex, so a
+      // hand-dropped file deliberately crafted to this exact shape COULD match. That is acceptable
+      // because deletion still gates on the 7d age / 500-file cap in this single-writer dir; the
+      // pattern's job is to exclude the .last-gc sentinel + ordinary non-overflow names, which it does.
+      if (!OVERFLOW_NAME_RE.test(e.name)) continue;
       const full = path.join(root, e.name);
       try {
         const st = fs.lstatSync(full);
