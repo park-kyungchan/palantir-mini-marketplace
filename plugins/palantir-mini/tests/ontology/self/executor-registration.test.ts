@@ -9,6 +9,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { ACTION_TYPE_REGISTRY } from "#schemas/ontology/primitives/action-type";
 import { OBJECT_TYPE_REGISTRY } from "#schemas/ontology/primitives/object-type";
+import { TOOLS } from "../../../bridge/mcp-server";
+import {
+  compareToolSurface,
+  type FingerprintableTool,
+} from "../../../lib/self-ontology-fingerprint";
 // Importing the barrel executes the instance modules → self-registration side effect.
 import {
   EXECUTOR_ACTION_TYPE,
@@ -57,17 +62,35 @@ test(`McpTool seed has ${EXPECTED_MCP_TOOL_COUNT} unique tool instances`, () => 
   expect(new Set(names).size).toBe(EXPECTED_MCP_TOOL_COUNT); // no duplicates
 });
 
-test("McpTool seed matches the LIVE bridge/mcp-server.ts TOOLS surface (drift guard)", () => {
-  // The snapshot OWNS the seed (no lib import uphill); this guard reads the bridge as
-  // TEXT and asserts the self-model's 23 names equal pm's actual MCP surface, so adding
-  // or removing a bridge tool fails loud until mcp-tool.objecttype.ts is updated.
-  const bridgePath = path.join(import.meta.dir, "../../../bridge/mcp-server.ts");
-  const src = fs.readFileSync(bridgePath, "utf8");
-  // Top-level TOOLS entries declare `name: "..."` at 4-space indent (grounding-verified
-  // method; parameter/schema names are nested deeper). Matches exactly the tool set.
-  const liveNames = [...src.matchAll(/^ {4}name: "([^"]+)"/gm)].map((m) => m[1]!);
-  const liveSet = new Set(liveNames);
-  const seedSet = new Set(MCP_TOOL_INSTANCES.map((i) => i.toolName));
-  expect(liveSet.size).toBe(EXPECTED_MCP_TOOL_COUNT);
-  expect([...seedSet].sort()).toEqual([...liveSet].sort());
+test("McpTool surface matches the LIVE bridge TOOLS structurally (HO-2 fingerprint drift guard)", () => {
+  // GENERALIZES the prior name-only guard to a STRUCTURAL fingerprint. We import the
+  // LIVE `TOOLS` (resolved object, so frozen-const enums like PROMPT_RUNTIMES resolve —
+  // a text scrape would miss them), recompute each tool's {name, inputSchema} fingerprint,
+  // and diff against the checked-in golden baseline. `added`/`removed` strictly SUBSUME
+  // the old 23-name SET check, so the count guarantee is preserved; `structural-drift`
+  // additionally catches an input-contract change a name check would miss (param
+  // add/remove/rename/retype, enum membership, required<->optional, additionalProperties).
+  //
+  // OUTPUT shape is intentionally OUT of scope: the fingerprint hashes only
+  // {name, inputSchema}. The pm 7.13.0 `runtimeIdentity` output-add is NOT in any
+  // inputSchema, so it MUST stay a non-drift "match" — including output would model the
+  // tool above its registered IDENTITY altitude and is WRONG (DESIGN §6). Do NOT add
+  // outputSchema to the fingerprint.
+  const goldenPath = path.join(import.meta.dir, "mcp-tool-fingerprint.golden.json");
+  const golden = JSON.parse(fs.readFileSync(goldenPath, "utf8")) as Record<string, string>;
+  const liveTools = TOOLS as readonly FingerprintableTool[];
+
+  // Count guarantee preserved (the seed + golden + live all agree on 23).
+  expect(liveTools.length).toBe(EXPECTED_MCP_TOOL_COUNT);
+  expect(Object.keys(golden).length).toBe(EXPECTED_MCP_TOOL_COUNT);
+  expect(MCP_TOOL_INSTANCES.length).toBe(EXPECTED_MCP_TOOL_COUNT);
+
+  const cmp = compareToolSurface(liveTools, golden);
+  const offenders = cmp.perTool.filter((t) => t.status !== "match");
+  expect(
+    cmp.drift,
+    `McpTool surface drift vs golden baseline: ${JSON.stringify(offenders)}. ` +
+      `If this change to bridge/mcp-server.ts TOOLS is intentional, regenerate the baseline ` +
+      `per tests/ontology/self/mcp-tool-fingerprint.README.md and review the diff in PR.`,
+  ).toBe(false);
 });
