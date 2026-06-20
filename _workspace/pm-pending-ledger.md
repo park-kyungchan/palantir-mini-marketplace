@@ -89,3 +89,24 @@ quarantine rejects" was mostly a **re-scan illusion** — 6 distinct poison line
 - **OE-2 elevate-readiness dead-gate** — `readyForDigitalTwin` structurally always-false (all profiles `allowsDtcDraft:false`) made `register` unreachable; repaired @ **7.17.0** via `sicBackedDigitalTwinReady` (minted approved-SIC + ingested candidates, OR'd, handler-sourced never MCP-input), anti-fabrication preserved, suite green.
 - **P5 gate token-bloat reduction (P1+P3+P4)** → MERGED **PR #168** (commits 7771693+489a667, squash 7b66e28; plugin **7.18.0**); per-turn ~12KB→~3KB via additive `responseView:"turn"|"readiness"` (default slim) + overflow→fullPath relocation; criterion-4 rescoped to the gate-projection sites (**Option A**, user decision); rule-04 review found no blockers (semantics/mutationAuthorized/continuity/R5 preserved). Follow-ups F-gate-dedup-B (Option B full dedup) + F-gate-overflow-gc (R2 overflow GC) logged under GATED.
 - **F-gate-dedup-B + F-gate-overflow-gc** → MERGED **PR #169** (squash `e7e602a`, plugin **7.19.0**); quality-safe `decisionSpec` dedup (~8KB, turn ~35KB→~27KB, no live substance relocated) + lazy overflow-dir age-out GC. Aggressive ~3KB sparse view rejected on quality grounds (would strip live Altitude-1/2 ontology context).
+
+---
+
+## Per-turn context-decision fixes (from harness-upstream §9 audit) — 2026-06-20
+
+- **STATUS = QUEUED.**
+- **BLOCKED-ON** = the in-progress **harness-upstream self-MetaOptimization session** must complete before any pm CODE work starts. Do not open a pm code lane until that session lands.
+- **Source (pointer, not copy — bind before do-time; do NOT inline the bodies):**
+  - Audit (§6 = the 3 specs): `harness-upstream/_workspace/2026-06-20-pm-frontdoor-design-prior-injection-gap/artifacts/2026-06-20-per-turn-context-decision-audit.md`
+  - Case library: `harness-upstream/reference/harness-bottlenecks/cases/` → **bd-001** (design-prior not surfaced), **bd-002** (footer keyed to prompt text), **bd-003** (protected-surface over-block keyed to vocabulary)
+  - Handoff: `/home/palantirkc/harness-upstream/_workspace/2026-06-20-pm-frontdoor-design-prior-injection-gap/HANDOFF.md`
+
+> **RUNTIME-DRIFT (re-pin before any fix):** running cache **7.21.0 @ 8a58976**; source HEAD is **AHEAD (cc5ff475)**. Any fix here bumps `plugin.json` + syncs the cache + re-confirms what executes via `installed_plugins.json` / `pm_plugin_self_check` (`runtimeIdentity.version`) — never trust source over the running cache copy.
+
+| id | title | readiness | locus (pointer — verify live before edit) | fix direction |
+|----|-------|-----------|--------------------------------------------|---------------|
+| CTX-B | required response footer keyed to prompt **TEXT** not **STATE** | **READY** | `lib/ontology-engineering-response-template.ts:271-277` (+ alias `:712-713`); callers `hooks/stop-validate.ts:52`, `bridge/handlers/pm-workflow-response-validate.ts:40-49`, `hooks/prompt-front-door-capture.ts:224-231` | thread front-door **auth STATE** into the predicate; decide on STATE first, treat text markers as a recall hint only |
+| CTX-iii | protected-surface **over-block** keyed to command/prompt/content **vocabulary** not **write-target** | **READY** | `hooks/ontology-engineering-workflow-enforcement-gate.ts:207-224,226-229,243-267,492-494` | introduce the sibling **write-target resolver** (`write-scope-runtime-enforce.ts:106-125`); drop `String.includes` over command/prompt/intent/content from the block decision |
+| CTX-1 | design-prior **not surfaced** + **single-choice** framing | **NEEDS-DISCOVERY** | fork (a) build per-turn prior-ranking, vs (b) extend `TurnCardDecisionSpec` (`turn-card-decision-spec.ts:31-44`) with relational/cardinality/TYPE-GAP-defer; likely **both** | escalate as a **design decision**. **Schema-versioning rule 08 applies to (b)** (semver bump + CHANGELOG + generated-header gate) |
+
+> CTX-B and CTX-iii are READY (spec-complete, mechanical). CTX-1 is NEEDS-DISCOVERY — do NOT start it as a code edit; resolve the (a)/(b) fork as a design decision first (rule 08 gates path (b)). All three remain BLOCKED-ON the harness-upstream session above.
