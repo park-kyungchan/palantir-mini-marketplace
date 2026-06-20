@@ -29,6 +29,7 @@ import {
   overloadedCustomerFixture,
 } from "../../../lib/semantic-consistency/fixtures";
 import { resolveSemanticConsistency } from "../../../lib/semantic-consistency/resolver";
+import { registrySnapshot } from "../../../lib/semantic-consistency/registry";
 
 const tmpDirs: string[] = [];
 const savedEnv: Record<string, string | undefined> = {};
@@ -41,6 +42,41 @@ function makeTmpProject(): string {
   tmpDirs.push(dir);
   fs.mkdirSync(path.join(dir, ".palantir-mini", "session"), { recursive: true });
   return dir;
+}
+
+// Build a project whose governed snapshot registers exactly `rids` (mirrors the
+// register seam's edit_committed event). Lead-verified to fold into
+// registeredPrimitives so deriveRegisteredOntologyRids returns these rids.
+function makeTmpProjectRegistering(rids: string[]): string {
+  const project = makeTmpProject();
+  const sessionDir = path.join(project, ".palantir-mini", "session");
+  const event = JSON.stringify({
+    eventId: "evt-rebind-1",
+    sequence: 1,
+    type: "edit_committed",
+    when: new Date().toISOString(),
+    timestamp: new Date().toISOString(),
+    atopWhich: { commitSha: "abc" },
+    throughWhich: { sessionId: "s", toolName: "t", cwd: "c" },
+    byWhom: { agentName: "t", identity: "claude-code" },
+    decision: {
+      atopWhich: { commitSha: "abc" },
+      throughWhich: { surface: "t", tool: "t" },
+      byWhom: { agent: "t", identity: "claude-code" },
+      withWhat: { reasoning: "register fixture" },
+    },
+    payload: {
+      actionTypeRid: "pm.self/register",
+      appliedEdits: rids.map((rid) => ({
+        kind: "object",
+        rid,
+        properties: { primitiveKind: "ObjectType", plainName: rid },
+      })),
+      submissionCriteriaPassed: [],
+    },
+  });
+  fs.writeFileSync(path.join(sessionDir, "events.jsonl"), event + "\n");
+  return project;
 }
 
 function readEvents(project: string): Array<{
@@ -772,6 +808,91 @@ describe("pm_semantic_intent_gate", () => {
       digitalTwinChangeContractRef: approved.contractRefs?.digitalTwinChangeContractRef,
       approvalRef: "user:approved:wave3",
     });
+  });
+
+  test("0-new-term re-bind advances the ENVELOPE to digital_twin_approved despite an empty resolver result (seam wiring)", async () => {
+    // Empty deterministic resolver result — mappings/conflicts both 0. In the un-wired
+    // advance seam this re-triggered SEMANTIC_CONSISTENCY_EMPTY_RESULT and the envelope
+    // never reached digital_twin_approved. (Lead-verified empty input ⇒ deterministic,
+    // mappings=0, conflicts=0.)
+    const emptyResolverInput = {
+      sourceTerms: [],
+      registry: registrySnapshot({ sourceSystems: [], canonicalTerms: [] }),
+    };
+    const emptyResult = resolveSemanticConsistency(emptyResolverInput);
+    expect(emptyResult.deterministic).toBe(true);
+    expect(emptyResult.mappings.length).toBe(0);
+    expect(emptyResult.conflicts.length).toBe(0);
+
+    const semantic = approvedSemantic({ semanticConsistencyResultRef: emptyResult.resolverRunId });
+    const digitalTwin = approvedDigitalTwin(undefined, {
+      semanticConsistencyRefs: [emptyResult.resolverRunId],
+    });
+    const touchedRids = (digitalTwin.touchedOntologyRefs ?? []).map((r: { rid: string }) => r.rid);
+
+    // Snapshot registers EVERY touched rid ⇒ structural 0-new-term re-bind.
+    const project = makeTmpProjectRegistering(touchedRids);
+    const { envelope } = await createCapturedPrompt(project, "Re-bind existing prompt-front-door primitives");
+
+    const approved = await semanticIntentGate({
+      project,
+      rawIntent: "Re-bind existing prompt-front-door primitives",
+      scopePaths: [
+        "bridge/handlers/pm-semantic-intent-gate.ts",
+        "ontology/changeContracts.ts",
+      ],
+      complexityHint: "multi-file",
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      semanticIntentContract: semantic,
+      digitalTwinChangeContract: digitalTwin,
+      semanticConsistencyResolverInput: emptyResolverInput,
+      responseView: "readiness",
+    });
+
+    // THE seam assertion: envelope advanced to digital_twin_approved.
+    expect(approved.promptEnvelope?.state).toBe("digital_twin_approved");
+  });
+
+  test("re-bind with a touched rid NOT registered ⇒ envelope does NOT advance (fail-closed legacy)", async () => {
+    const emptyResolverInput = {
+      sourceTerms: [],
+      registry: registrySnapshot({ sourceSystems: [], canonicalTerms: [] }),
+    };
+    const emptyResult = resolveSemanticConsistency(emptyResolverInput);
+
+    const semantic = approvedSemantic({ semanticConsistencyResultRef: emptyResult.resolverRunId });
+    const digitalTwin = approvedDigitalTwin(undefined, {
+      semanticConsistencyRefs: [emptyResult.resolverRunId],
+    });
+    const touchedRids = (digitalTwin.touchedOntologyRefs ?? []).map((r: { rid: string }) => r.rid);
+
+    // Register only a STRICT SUBSET ⇒ at least one touched rid is NEW ⇒ NOT a rebind ⇒
+    // empty-result finding fires again ⇒ legacy: no advance to digital_twin_approved.
+    const project = makeTmpProjectRegistering(touchedRids.slice(0, touchedRids.length - 1));
+    const { envelope } = await createCapturedPrompt(project, "Re-bind with an unregistered touched rid");
+
+    const result = await semanticIntentGate({
+      project,
+      rawIntent: "Re-bind with an unregistered touched rid",
+      scopePaths: [
+        "bridge/handlers/pm-semantic-intent-gate.ts",
+        "ontology/changeContracts.ts",
+      ],
+      complexityHint: "multi-file",
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      semanticIntentContract: semantic,
+      digitalTwinChangeContract: digitalTwin,
+      semanticConsistencyResolverInput: emptyResolverInput,
+      responseView: "readiness",
+    });
+
+    expect(result.promptEnvelope?.state).not.toBe("digital_twin_approved");
   });
 
   test("approved SIC/DTC diagnostics do not treat context or tools as router authority", async () => {

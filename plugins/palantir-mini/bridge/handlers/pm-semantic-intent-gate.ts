@@ -79,6 +79,7 @@ import {
   hasApprovalRef,
   isOntologyAffectingIntent,
   isReadOnlyIntent,
+  isZeroNewTermRebind,
   requiresContractApproval,
   validateDigitalTwinChangeContract,
   validateSemanticIntentContract,
@@ -1601,8 +1602,13 @@ function advanceToApprovedState(
   options: {
     readonly ontologyAffecting: boolean;
     readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+    readonly registeredOntologyRids?: readonly string[];
   } = { ontologyAffecting: false },
 ): PromptEnvelope {
+  const isZeroNewTermRebindValue = isZeroNewTermRebind({
+    digitalTwinChangeContract: digitalTwinContract,
+    registeredOntologyRids: options.registeredOntologyRids,
+  });
   const semanticValid = semanticContract
     ? validateSemanticIntentContract(semanticContract).valid &&
       semanticConsistencyPromotionAllowed({
@@ -1612,6 +1618,7 @@ function advanceToApprovedState(
         attachedResolverRunRefs: semanticContract.semanticConsistencyResultRef
           ? [semanticContract.semanticConsistencyResultRef]
           : [],
+        isZeroNewTermRebind: isZeroNewTermRebindValue,
       })
     : false;
   const digitalTwinValid = digitalTwinContract
@@ -1621,6 +1628,7 @@ function advanceToApprovedState(
         ontologyAffecting: options.ontologyAffecting,
         semanticConsistencyResult: options.semanticConsistencyResult,
         attachedResolverRunRefs: digitalTwinContract.semanticConsistencyRefs,
+        isZeroNewTermRebind: isZeroNewTermRebindValue,
       })
     : false;
   let next = advanceToSemanticDraft(envelope, refs);
@@ -1679,6 +1687,7 @@ function semanticConsistencyPromotionAllowed(input: {
   readonly ontologyAffecting: boolean;
   readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
   readonly attachedResolverRunRefs?: readonly string[];
+  readonly isZeroNewTermRebind?: boolean;
 }): boolean {
   return assessSemanticConsistencyPromotionGate(input).promotionAllowed;
 }
@@ -1692,6 +1701,7 @@ async function persistPromptContracts(
   },
   draftContracts: DraftContractsInternal | undefined,
   semanticConsistencyResult?: SemanticConsistencyResolverOutput,
+  registeredOntologyRids?: readonly string[],
 ): Promise<{ envelope?: PromptEnvelope; contractRefs?: PromptContractRefs }> {
   if (input.draftMode === "never" || !prompt.envelope || prompt.continuity?.valid === false) {
     return { envelope: prompt.envelope };
@@ -1745,6 +1755,7 @@ async function persistPromptContracts(
               complexityHint: input.complexityHint,
             }),
             semanticConsistencyResult,
+            registeredOntologyRids,
           },
         )
       : advanceToSemanticDraft(prompt.envelope, refs, {
@@ -2127,7 +2138,7 @@ export async function semanticIntentGate(
   let persisted =
     continuity && !continuity.valid
       ? { envelope: prompt.envelope }
-      : await persistPromptContracts(input, prompt, draftContracts, semanticConsistencyResult);
+      : await persistPromptContracts(input, prompt, draftContracts, semanticConsistencyResult, registeredOntologyRids);
   let ontologyActivation: OntologyActivation | undefined;
   if (
     isApprovedSemanticIntentContract(input.semanticIntentContract) &&
@@ -2143,6 +2154,10 @@ export async function semanticIntentGate(
       attachedResolverRunRefs: input.semanticIntentContract.semanticConsistencyResultRef
         ? [input.semanticIntentContract.semanticConsistencyResultRef]
         : [],
+      isZeroNewTermRebind: isZeroNewTermRebind({
+        digitalTwinChangeContract: input.digitalTwinChangeContract,
+        registeredOntologyRids,
+      }),
     })
   ) {
     try {

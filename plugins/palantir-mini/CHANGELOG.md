@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.22.1] - 2026-06-20 — fix(gate): complete 0-new-term re-bind wiring at the envelope-advance seam (additive, fail-closed)
+
+### Fixed
+- fix(gate): the 0-new-term re-bind lane (added in 7.22.0) relaxed the build-readiness gate but MISSED the envelope-advance seam in `bridge/handlers/pm-semantic-intent-gate.ts`, so a structurally-verified re-bind never reached `digital_twin_approved`. Inside `advanceToApprovedState` the `semanticConsistencyPromotionAllowed(...)` calls did not receive the `isZeroNewTermRebind` signal, so an empty 0-new-term resolver result re-triggered `SEMANTIC_CONSISTENCY_EMPTY_RESULT` ⇒ `digitalTwinValid=false` ⇒ the envelope stayed at `semantic_intent_drafted`. This completes the wiring so the SAME structural predicate the readiness gate uses also governs the envelope-advance seam.
+
+### Changed
+- `bridge/handlers/pm-semantic-intent-gate.ts`: `advanceToApprovedState` now takes the pre-derived `registeredOntologyRids` (threaded through `persistPromptContracts` from the once-per-handler `deriveRegisteredOntologyRids(input.project)`), computes `isZeroNewTermRebind({ digitalTwinChangeContract, registeredOntologyRids })` ONCE, and passes the DERIVED signal into both internal `semanticConsistencyPromotionAllowed` inputs (`semantic-intent-contract` + `digital-twin-change-contract` subjects) and the main-handler `semantic-intent-contract` promotion-allowed call. The local `semanticConsistencyPromotionAllowed` input type now carries `isZeroNewTermRebind?: boolean` (forwarded straight to `assessSemanticConsistencyPromotionGate`, whose input already accepts it). The signal is always the DERIVED predicate, never a free boolean.
+
+### Notes
+- ADDITIVE ONLY / FAIL-CLOSED: absent `registeredOntologyRids` ⇒ `isZeroNewTermRebind` false ⇒ legacy. Every non-rebind / default path is byte-identical to 7.22.0. No universal invariant relaxed (SIC/DTC ref/body/validity, approval-ref, approver≠author, 5-dim lineage untouched); ONLY the empty-resolver finding for a STRUCTURALLY-verified 0-new-term re-bind is skipped, ONLY in the envelope-advance seam, mirroring the existing readiness-gate / contracts-path wiring. `lib/lead-intent/contracts.ts`, `lib/semantic-consistency/promotion-gate.ts`, and the standalone `bridge/handlers/pm-semantic-consistency-gate.ts` (a non-register-path MCP tool) are UNCHANGED.
+- Added a mandatory END-TO-END test (`tests/bridge/handlers/pm-semantic-intent-gate.test.ts`) that drives the full `semanticIntentGate` handler for a 0-new-term re-bind with an empty resolver result against a real register-shaped registered snapshot and asserts the envelope reaches `digital_twin_approved`; plus the negative (an unregistered touched rid ⇒ no advance). The prior 7.22.0 unit tests passed while this seam was un-wired because they exercised the gate functions in isolation — this integration test reproduces and locks the seam.
+
+Files touched: `bridge/handlers/pm-semantic-intent-gate.ts`, `tests/bridge/handlers/pm-semantic-intent-gate.test.ts`, plus version bump (`package.json`, `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`).
+
 ## [7.22.0] - 2026-06-20 — feat(gate): 0-new-term DYNAMIC re-bind lane (additive, fail-closed)
 
 ### Added
