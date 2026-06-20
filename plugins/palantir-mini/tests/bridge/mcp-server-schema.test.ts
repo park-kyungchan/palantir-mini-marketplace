@@ -131,6 +131,9 @@ const ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS = [
   "approvedSourcePaths",
   "frontDoorSessionId",
   "frontDoorRuntime",
+  // 7.22.2 — rebind_registered (pure-provenance re-elevation) inputs
+  "rebindRids",
+  "rebindProposalRef",
 ] as const satisfies readonly (keyof OntologyEngineeringWorkflowHandlerInput)[];
 
 const EVENTS_LOG_ROTATE_PUBLIC_FIELDS = [

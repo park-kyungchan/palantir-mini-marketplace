@@ -40,6 +40,17 @@ export interface RegisterAcceptedInput {
    * fold (which does not itself dedup). Optional; defaults to empty.
    */
   readonly alreadyRegistered?: ReadonlySet<string>;
+  /**
+   * Re-bind (drift-fold re-elevation) mode. When true, candidates whose rid is in
+   * `alreadyRegistered` are NOT skipped — their EXISTING declaration is RE-EMITTED
+   * as an edit so commitEdits stamps a fresh edit_committed at atopWhich=HEAD
+   * (pure provenance; no grammar change). Genuinely-new rids (rid NOT in
+   * `alreadyRegistered`) follow the existing register path unchanged. Default false.
+   * The CALLER is responsible for proving the supplied candidate set is
+   * all-already-registered before passing true (fail-closed: this flag re-emits, it
+   * does NOT verify).
+   */
+  readonly reElevateAlreadyRegistered?: boolean;
 }
 
 export interface RegisterAcceptedResult {
@@ -82,6 +93,10 @@ export async function registerAcceptedCandidates(
 ): Promise<RegisterAcceptedResult> {
   const { session, projectRoot } = input;
   const alreadyRegistered = input.alreadyRegistered ?? new Set<string>();
+  // Re-bind mode (default false): an already-registered rid is RE-EMITTED instead
+  // of skipped, so its declaration is committed afresh at atopWhich=HEAD. Genuinely-
+  // new rids are unaffected either way. Fail-closed: caller proves all-registered.
+  const reElevate = input.reElevateAlreadyRegistered === true;
   const edits: OntologyEdit[] = [];
   const registered = {
     objectTypes: [] as string[],
@@ -109,7 +124,7 @@ export async function registerAcceptedCandidates(
     // Always record the name→rid binding so links resolve, even when the object
     // is already registered (idempotent re-register).
     nameToRid.set(candidate.plainName, rid);
-    if (alreadyRegistered.has(rid)) continue;
+    if (alreadyRegistered.has(rid) && !reElevate) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterObjectType",
       {
@@ -143,7 +158,7 @@ export async function registerAcceptedCandidates(
     const rid =
       candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "action-type", candidate.plainName);
     nameToRid.set(candidate.plainName, rid);
-    if (alreadyRegistered.has(rid)) continue;
+    if (alreadyRegistered.has(rid) && !reElevate) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterActionType",
       {
@@ -173,7 +188,7 @@ export async function registerAcceptedCandidates(
     const rid =
       candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "function", candidate.plainName);
     nameToRid.set(candidate.plainName, rid);
-    if (alreadyRegistered.has(rid)) continue;
+    if (alreadyRegistered.has(rid) && !reElevate) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterFunction",
       {
@@ -201,7 +216,7 @@ export async function registerAcceptedCandidates(
   for (const candidate of session.roleCandidates ?? []) {
     const rid = projectPrimitiveRid(projectRoot, "role", candidate.plainName);
     nameToRid.set(candidate.plainName, rid);
-    if (alreadyRegistered.has(rid)) continue;
+    if (alreadyRegistered.has(rid) && !reElevate) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterRole",
       {
@@ -231,7 +246,7 @@ export async function registerAcceptedCandidates(
     const rid =
       candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "property", candidate.plainName);
     nameToRid.set(candidate.plainName, rid);
-    if (alreadyRegistered.has(rid)) continue;
+    if (alreadyRegistered.has(rid) && !reElevate) continue;
     // Resolve the owner ObjectType rid via the combined map (objects are registered
     // before this pass). If unresolved, register the property standalone — never skip.
     const ownerRid = candidate.ownerObjectName
@@ -285,7 +300,7 @@ export async function registerAcceptedCandidates(
     }
     const rid =
       candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "link-type", candidate.plainName);
-    if (alreadyRegistered.has(rid)) continue;
+    if (alreadyRegistered.has(rid) && !reElevate) continue;
     const { edits: e } = await applyEditFunction(
       "pm.actions.ontology.applyRegisterLinkType",
       {

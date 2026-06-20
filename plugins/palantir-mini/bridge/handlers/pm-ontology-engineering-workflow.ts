@@ -7,6 +7,12 @@ import {
 } from "../../lib/fde-ontology-engineering/session-store";
 import type {
   FDEOntologyEngineeringSession,
+  ObjectTypeCandidate,
+  ActionTypeCandidate,
+  FunctionCandidate,
+  RoleCandidate,
+  PropertyCandidate,
+  LinkTypeCandidate,
 } from "../../lib/fde-ontology-engineering/types";
 import {
   createSemanticIntentContractDraftFromFDEOntologySession,
@@ -131,6 +137,20 @@ export interface OntologyEngineeringWorkflowHandlerInput
   readonly recordedDecisionNote?: string;
   /** Absolute path to a frozen NC1 SOURCE jsonl, required when action is `ingest`. */
   readonly sourceJsonlPath?: string;
+  // ─── 7.22.2 — rebind_registered inputs (pure-provenance re-elevation) ──────────
+  /**
+   * The VERIFIED already-registered rids to re-elevate (action `rebind_registered`).
+   * Fail-closed: the handler INTERSECTS this set with the live getOntology snapshot
+   * (the unforgeable already-registered proof) — a rid not in the snapshot is REJECTED,
+   * never registered-new. A new rid can never flow through this action.
+   */
+  readonly rebindRids?: readonly string[];
+  /**
+   * OPTIONAL audit link: the approved GlobalBranchingProposal / drift-proposal ref the
+   * `rebindRids` set derives from. Provenance pointer only — authorization comes from the
+   * live-snapshot proof + the SIC/DTC gate, NOT from this ref.
+   */
+  readonly rebindProposalRef?: string;
   readonly createdAt?: string;
   readonly emittedAt?: string;
   // ─── Improvement #2 — approve_source_mutation inputs (verified, never trusted) ──
@@ -297,12 +317,13 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "approve_technology_recommendation" &&
     value.action !== "ingest" &&
     value.action !== "register" &&
+    value.action !== "rebind_registered" &&
     value.action !== "lint" &&
     value.action !== "elevate" &&
     value.action !== "approve_source_mutation" &&
     value.action !== "status"
   ) {
-    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, approve_sic, approve_technology_recommendation, ingest, register, lint, elevate, approve_source_mutation, or status.");
+    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, approve_sic, approve_technology_recommendation, ingest, register, rebind_registered, lint, elevate, approve_source_mutation, or status.");
   }
   if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
     throw new Error(
@@ -1020,6 +1041,293 @@ async function handleRegister(
 }
 
 /**
+ * `rebind_registered` seam (7.22.2) — PURE-PROVENANCE drift-fold re-elevation.
+ *
+ * Re-emits the EXISTING declaration of each verified already-registered rid as an
+ * edit so commitEdits stamps a fresh `edit_committed` at `atopWhich=HEAD`, flipping
+ * the rid from stale to clean WITHOUT any grammar change (no new primitive, no
+ * semantic edit). Modeled on `handleRegister` but kept as a SEPARATE action so the
+ * `register` contract (`edits.length===0 ⇒ committed:false` idempotency) stays
+ * byte-identical.
+ *
+ * FAIL-CLOSED rid resolution (two independent proofs):
+ *   PROOF 1 (unforgeable) — rid ∈ live getOntology snapshot registeredPrimitives.
+ *   PROOF 2 (caller-supplied) — rid ∈ input.rebindRids.
+ * Re-bind set = PROOF1 ∩ PROOF2. A rid NOT in the snapshot is REJECTED (a new rid
+ * can NEVER flow through this action). Empty intersection ⇒ committed:false with a
+ * DISTINCT invalidReason (not the generic register "nothing to register" string).
+ *
+ * Each rid's declaration is SOURCED from the live snapshot (never re-minted), turned
+ * back into an accepted candidate (declaredRid = rid so the rid round-trips
+ * deterministically), and driven through Part-A re-bind mode of
+ * `registerAcceptedCandidates` → the SAME `commitEditsHandler` call `handleRegister`
+ * uses. Reuses `handleRegister`'s `approved && graded` gate (defense-in-depth) so a
+ * minted SIC is still required even on a direct lib-import path that bypassed the hooks.
+ */
+async function handleRegisterRebind(
+  input: OntologyEngineeringWorkflowHandlerInput,
+): Promise<OntologyEngineeringWorkflowHandlerResult> {
+  const root = projectRoot(input);
+  if (root.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow rebind_registered requires a projectRoot.");
+  }
+  const session = readSessionByInput(input);
+  if (session === undefined) {
+    throw new Error("pm_ontology_engineering_workflow rebind_registered requires an existing FDE session.");
+  }
+
+  // ── Defense-in-depth gate (identical to handleRegister) — re-bind is still a
+  //    governed mutation; a minted approved SIC + readiness grade are required even
+  //    on a direct lib-import path that bypassed the PreToolUse hooks. ─────────────
+  const state = deriveStateSnapshot({ handlerInput: input, session, preservePreviousUpdatedAt: true });
+  const phaseApproved =
+    state.phase === "digital-twin-approved" ||
+    state.phase === "mutation-authorized" ||
+    state.phase === "registered";
+  const persistedSnapshot = readPreviousWorkflowState({
+    root,
+    action: input.action,
+    session,
+  })?.approvedSemanticIntentContractSnapshot;
+  const mintedSicReverified = isApprovedSemanticIntentContract(persistedSnapshot);
+  const approved = phaseApproved && mintedSicReverified;
+  const graded =
+    session.readinessProfile?.readyForDigitalTwin === true ||
+    sicBackedDigitalTwinReady(persistedSnapshot, session);
+
+  if (!approved || !graded) {
+    const reasons: string[] = [];
+    if (!approved) {
+      if (!phaseApproved) {
+        reasons.push(
+          `digital-twin contract not approved (workflow phase=${state.phase}; require SIC+DTC approved)`,
+        );
+      }
+      if (!mintedSicReverified) {
+        reasons.push(
+          "no minted approved SemanticIntentContract re-verified (OE-2): the persisted SIC snapshot must pass " +
+            "isApprovedSemanticIntentContract (minted approvalRef) — a caller-supplied status:\"approved\" alone does not authorize",
+        );
+      }
+    }
+    if (!graded) {
+      reasons.push("FDE readiness grade not passed (readinessProfile.readyForDigitalTwin !== true)");
+    }
+    const register: OntologyEngineeringRegisterResult = {
+      committed: false,
+      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [], roles: [], properties: [] },
+      skipped: { links: [] },
+      invalidReason: reasons.join("; "),
+    };
+    return { ...readState({ handlerInput: input, session }), register };
+  }
+
+  // ── Live snapshot = the unforgeable already-registered PROOF set. ───────────────
+  const snapshot = (await getOntology({ project: root })).snapshot.registeredPrimitives;
+  const objectTypes = snapshot?.objectTypes ?? [];
+  const actionTypes = snapshot?.actionTypes ?? [];
+  const functions = snapshot?.functions ?? [];
+  const linkTypes = snapshot?.linkTypes ?? [];
+  const roles = snapshot?.roles ?? [];
+  const properties = snapshot?.properties ?? [];
+  const alreadyRegistered = new Set<string>(
+    [...objectTypes, ...actionTypes, ...functions, ...linkTypes, ...roles, ...properties].map((e) => e.rid),
+  );
+
+  // ── Fail-closed rid resolution: PROOF1 (snapshot) ∩ PROOF2 (rebindRids). A
+  //    supplied rid NOT already-registered is REJECTED into `unverified` and NEVER
+  //    flows to the emit path (a new rid can never be re-bound). ───────────────────
+  const requestedRids = input.rebindRids ?? [];
+  const targetRids = new Set<string>();
+  const unverifiedRids: string[] = [];
+  for (const rid of requestedRids) {
+    if (alreadyRegistered.has(rid)) targetRids.add(rid);
+    else unverifiedRids.push(rid);
+  }
+
+  if (targetRids.size === 0) {
+    const detail =
+      requestedRids.length === 0
+        ? "no rebindRids supplied"
+        : `none of the ${requestedRids.length} supplied rid(s) are already-registered (unverified: ${unverifiedRids.join(", ")})`;
+    const register: OntologyEngineeringRegisterResult = {
+      committed: false,
+      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [], roles: [], properties: [] },
+      skipped: { links: [] },
+      invalidReason: `no verified re-bind rids: ${detail}`,
+    };
+    return { ...readState({ handlerInput: input, session }), register };
+  }
+
+  // ── SOURCE each target rid's EXISTING declaration from the snapshot (never
+  //    re-mint) → reconstruct an accepted candidate (declaredRid = rid so the rid
+  //    round-trips deterministically through Part-A). A rid→plainName index over the
+  //    object buckets lets a re-bound LINK resolve its endpoint NAMES; a link's
+  //    endpoints are re-bound alongside it (a link's HEAD anchoring is meaningless
+  //    without its endpoints at HEAD) — grammar-neutral after Part-B dedup. ─────────
+  const decl = (e: { declaration?: Record<string, unknown> }): Record<string, unknown> => e.declaration ?? {};
+  const ridToPlainName = new Map<string, string>();
+  for (const e of [...objectTypes, ...actionTypes, ...functions, ...roles, ...properties]) {
+    const name = decl(e).plainName;
+    if (typeof name === "string") ridToPlainName.set(e.rid, name);
+  }
+
+  const objectCandidates: ObjectTypeCandidate[] = [];
+  const actionCandidates: ActionTypeCandidate[] = [];
+  const functionCandidates: FunctionCandidate[] = [];
+  const roleCandidates: RoleCandidate[] = [];
+  const propertyCandidates: PropertyCandidate[] = [];
+  const linkCandidates: LinkTypeCandidate[] = [];
+  const endpointObjectRids = new Set<string>();
+
+  const baseCandidate = (rid: string, d: Record<string, unknown>) => ({
+    candidateId: typeof d.candidateId === "string" ? d.candidateId : rid,
+    plainName: typeof d.plainName === "string" ? d.plainName : rid,
+    evidenceRefs: Array.isArray(d.evidenceRefs) ? (d.evidenceRefs as readonly string[]) : [],
+    declaredRid: rid,
+    ...(typeof d.backingSourceRef === "string" ? { backingSourceRef: d.backingSourceRef } : {}),
+  });
+
+  for (const e of objectTypes) {
+    if (!targetRids.has(e.rid)) continue;
+    const d = decl(e);
+    objectCandidates.push({
+      ...baseCandidate(e.rid, d),
+      whyItMayMatter: typeof d.whyItMayMatter === "string" ? d.whyItMayMatter : "",
+    });
+  }
+  for (const e of actionTypes) {
+    if (!targetRids.has(e.rid)) continue;
+    const d = decl(e);
+    actionCandidates.push({
+      ...baseCandidate(e.rid, d),
+      operationalIntent: typeof d.operationalIntent === "string" ? d.operationalIntent : "",
+      writebackRisk:
+        d.writebackRisk === "none" || d.writebackRisk === "low" || d.writebackRisk === "medium" || d.writebackRisk === "high"
+          ? d.writebackRisk
+          : "none",
+      ...(Array.isArray(d.submissionCriteria) ? { submissionCriteria: d.submissionCriteria as readonly string[] } : {}),
+    });
+  }
+  for (const e of functions) {
+    if (!targetRids.has(e.rid)) continue;
+    const d = decl(e);
+    functionCandidates.push({
+      ...baseCandidate(e.rid, d),
+      logicIntent: typeof d.logicIntent === "string" ? d.logicIntent : "",
+      ...(typeof d.deterministic === "boolean" ? { deterministic: d.deterministic } : {}),
+    });
+  }
+  for (const e of roles) {
+    if (!targetRids.has(e.rid)) continue;
+    const d = decl(e);
+    roleCandidates.push({
+      candidateId: typeof d.candidateId === "string" ? d.candidateId : e.rid,
+      plainName: typeof d.plainName === "string" ? d.plainName : e.rid,
+      ...(d.principalKind === "agent" || d.principalKind === "runtime" || d.principalKind === "capability-token"
+        ? { principalKind: d.principalKind }
+        : {}),
+      ...(Array.isArray(d.grantedResourceRefs) ? { grantedResourceRefs: d.grantedResourceRefs as readonly string[] } : {}),
+      ...(Array.isArray(d.permissions) ? { permissions: d.permissions as readonly string[] } : {}),
+      ...(Array.isArray(d.evidenceRefs) ? { evidenceRefs: d.evidenceRefs as readonly string[] } : {}),
+      ...(typeof d.backingSourceRef === "string" ? { backingSourceRef: d.backingSourceRef } : {}),
+    });
+  }
+  for (const e of properties) {
+    if (!targetRids.has(e.rid)) continue;
+    const d = decl(e);
+    propertyCandidates.push({
+      candidateId: typeof d.candidateId === "string" ? d.candidateId : e.rid,
+      plainName: typeof d.plainName === "string" ? d.plainName : e.rid,
+      declaredRid: e.rid,
+      ...(typeof d.ownerObjectName === "string" ? { ownerObjectName: d.ownerObjectName } : {}),
+      ...(typeof d.dataType === "string" ? { dataType: d.dataType } : {}),
+      ...(Array.isArray(d.readableBy) ? { readableBy: d.readableBy as readonly string[] } : {}),
+      ...(Array.isArray(d.evidenceRefs) ? { evidenceRefs: d.evidenceRefs as readonly string[] } : {}),
+      ...(typeof d.backingSourceRef === "string" ? { backingSourceRef: d.backingSourceRef } : {}),
+    });
+  }
+  for (const e of linkTypes) {
+    if (!targetRids.has(e.rid)) continue;
+    const d = decl(e);
+    const srcRid = typeof d.srcRid === "string" ? d.srcRid : undefined;
+    const dstRid = typeof d.dstRid === "string" ? d.dstRid : undefined;
+    const sourceObject = srcRid ? ridToPlainName.get(srcRid) : undefined;
+    const targetObject = dstRid ? ridToPlainName.get(dstRid) : undefined;
+    if (srcRid) endpointObjectRids.add(srcRid);
+    if (dstRid) endpointObjectRids.add(dstRid);
+    linkCandidates.push({
+      candidateId: typeof d.candidateId === "string" ? d.candidateId : e.rid,
+      plainName: typeof d.linkName === "string" ? d.linkName : e.rid,
+      businessMeaning: typeof d.businessMeaning === "string" ? d.businessMeaning : "",
+      evidenceRefs: Array.isArray(d.evidenceRefs) ? (d.evidenceRefs as readonly string[]) : [],
+      declaredRid: e.rid,
+      ...(sourceObject !== undefined ? { sourceObject } : {}),
+      ...(targetObject !== undefined ? { targetObject } : {}),
+      ...(d.srcCardinality === "one" || d.srcCardinality === "many" ? { srcCardinality: d.srcCardinality } : {}),
+      ...(d.dstCardinality === "one" || d.dstCardinality === "many" ? { dstCardinality: d.dstCardinality } : {}),
+    });
+  }
+  // Seed endpoint object NAME bindings for any re-bound link whose endpoint object
+  // is not itself a target — they re-bind alongside the link (grammar-neutral).
+  for (const e of objectTypes) {
+    if (endpointObjectRids.has(e.rid) && !targetRids.has(e.rid)) {
+      const d = decl(e);
+      objectCandidates.push({
+        ...baseCandidate(e.rid, d),
+        whyItMayMatter: typeof d.whyItMayMatter === "string" ? d.whyItMayMatter : "",
+      });
+    }
+  }
+
+  // ── Drive Part-A re-bind mode over EXACTLY the reconstructed candidate set. The
+  //    full snapshot is `alreadyRegistered`; `reElevateAlreadyRegistered:true` makes
+  //    the six skip-guards fall through to re-emit each reconstructed declaration. ──
+  const rebindSession: FDEOntologyEngineeringSession = {
+    ...session,
+    objectCandidates,
+    actionCandidates,
+    functionCandidates,
+    linkCandidates,
+    roleCandidates,
+    propertyCandidates,
+  };
+  const { edits, registered, skipped } = await registerAcceptedCandidates({
+    session: rebindSession,
+    projectRoot: root,
+    alreadyRegistered,
+    reElevateAlreadyRegistered: true,
+  });
+
+  if (edits.length === 0) {
+    const register: OntologyEngineeringRegisterResult = {
+      committed: false,
+      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [], roles: [], properties: [] },
+      skipped,
+      invalidReason: `no verified re-bind rids: reconstruction produced no edits for ${targetRids.size} target rid(s)`,
+    };
+    return { ...readState({ handlerInput: input, session }), register };
+  }
+
+  // Reuse the SAME single-batch commit path handleRegister uses (verbatim).
+  const commitResult = await commitEditsHandler({
+    project: root,
+    actionTypeRid: COMMIT_EDITS_ACTION_TYPE_RID,
+    edits,
+  });
+
+  const register: OntologyEngineeringRegisterResult = {
+    committed: true,
+    registered,
+    skipped,
+    commitResult,
+    lint: lintFindingsForSession(rebindSession),
+  };
+  const registeredAt = input.emittedAt ?? new Date().toISOString();
+  return { ...writeRegisteredState({ handlerInput: input, session, registeredAt }), register };
+}
+
+/**
  * `elevate` seam — the COMPOSED GOVERNED OE-ELEVATION FLOW (the FIRST mutating
  * flow exposed via MCP; the individual mutating actions register/ingest/lint stay
  * direct-caller). Drives the already-built governed steps as ONE flow so a runtime
@@ -1542,6 +1850,9 @@ export async function handleOntologyEngineeringWorkflow(
     }
     case "register": {
       return handleRegister(input);
+    }
+    case "rebind_registered": {
+      return handleRegisterRebind(input);
     }
     case "lint": {
       return handleLint(input);

@@ -7,6 +7,22 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.22.2] - 2026-06-20 — feat(ontology): pure-provenance drift-fold re-bind register (`rebind_registered`) (additive, fail-closed)
+
+### Added
+- feat(ontology): a NEW direct-caller action `rebind_registered` on `pm_ontology_engineering_workflow` that RE-ELEVATES already-registered ontology rids — re-emitting each rid's EXISTING declaration as an edit so `commitEdits` stamps a fresh `edit_committed` at `atopWhich=HEAD`, flipping the rid from stale→clean WITHOUT any grammar change (no new primitive, no semantic edit). Handler `handleRegisterRebind` is modeled on `handleRegister` but kept SEPARATE so `register`'s `edits.length===0 ⇒ committed:false` idempotency invariant stays byte-identical (the negative test depends on it).
+- feat(register-accepted): additive `reElevateAlreadyRegistered?: boolean` (default false) on `RegisterAcceptedInput`. When true, the six `if (alreadyRegistered.has(rid)) continue;` skip-guards fall through to re-emit the IDENTICAL declaration; genuinely-new rids (rid NOT in `alreadyRegistered`) follow the existing path unchanged either way. The flag re-emits; it does NOT verify — the CALLER proves the set is all-already-registered (fail-closed).
+- feat(handler): `rebindRids?: readonly string[]` (verified target rids) + optional `rebindProposalRef?: string` (audit pointer) inputs, wired into the MCP server tool schema. FAIL-CLOSED rid resolution = (rid ∈ live `getOntology` snapshot `registeredPrimitives` — the unforgeable already-registered proof) INTERSECT (rid ∈ `rebindRids`); a rid NOT in the snapshot is REJECTED, never registered-new. Empty intersection ⇒ `committed:false` with a DISTINCT `invalidReason` ("no verified re-bind rids: …"), not the generic register "nothing to register" string, so paths stay distinguishable. Reuses `handleRegister`'s `approved && graded` gate (defense-in-depth: a minted SIC is still required even on a direct lib-import path).
+
+### Changed
+- `lib/event-log/read/fold-snapshot.ts`: `foldToSnapshot` now dedups each of the six `registeredPrimitives` buckets by FULL rid (latest-wins) via a single post-loop pass (`[...new Map(bucket.map(e => [e.rid, e])).values()]`), mirroring `ontology-staleness.ts`'s `byRid` Map. The hot `edit_committed` loop is byte-for-byte UNCHANGED; only the post-pass is new. PROVABLE NO-OP on dup-free data (the live registration is 80 rids / 80 distinct ⇒ Map.size === array.length, identical first-appearance order); it collapses ONLY future re-elevations (which intentionally re-push a duplicate rid) so the published grammar counts stay 26 ObjectType / 36 LinkType / 5 ActionType / 8 Function / 5 Role.
+
+### Notes
+- ADDITIVE ONLY / FAIL-CLOSED. Grammar UNCHANGED (26 ObjectType / 36 LinkType / 5 ActionType / 8 Function / 5 Role) — re-elevation re-emits IDENTICAL `(rid, primitiveKind)` declarations and Part-B dedup keeps the bucket lengths constant. Default behavior (flag absent / normal `register` path) is BYTE-IDENTICAL to 7.22.1: the six skip-guards only differ when `reElevateAlreadyRegistered` is true. 5-dim lineage UNTOUCHED — `atopWhich` is auto-derived from git HEAD by `commit.ts` `baseLineage` (caller cannot set it); the re-bind reuses the SAME `commitEditsHandler` call verbatim. No new edit-function, no commit-path change, no gate bypass, no evidence fabrication.
+- Tests: a register-roundtrip re-bind (N already-registered rids ⇒ N re-elevation `edit_committed` at `atopWhich=HEAD`, get_ontology counts EXACTLY 26/36/5/8/5); staleness un-stale after re-bind; fold dedup no-op on dup-free data + collapses a re-elevation preserving order; negative+adversarial (a genuinely-new rid still registers via `register`; `rebind_registered` can NEVER emit for a non-verified / not-already-registered rid — rejected with the distinct invalidReason); e2e gate reaching `digital_twin_approved` for the re-bind SIC.
+
+Files touched: `lib/ontology-engineering-workflow/register-accepted.ts`, `lib/ontology-engineering-workflow/types.ts`, `lib/event-log/read/fold-snapshot.ts`, `bridge/handlers/pm-ontology-engineering-workflow.ts`, `bridge/mcp-server.ts`, plus new/updated tests, plus version bump (`package.json`, `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`).
+
 ## [7.22.1] - 2026-06-20 — fix(gate): complete 0-new-term re-bind wiring at the envelope-advance seam (additive, fail-closed)
 
 ### Fixed

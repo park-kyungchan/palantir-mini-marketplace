@@ -215,5 +215,22 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
     }
   }
 
+  // 7.22.2 Part B — dedup each registered-primitive bucket by FULL rid (latest-wins),
+  // mirroring ontology-staleness.ts's byRid Map. The fold above pushes one entry per
+  // appliedEdit; a FUTURE drift-fold re-elevation (7.22.2 rebind_registered) re-emits an
+  // already-registered rid, which would otherwise push a SECOND entry and inflate the
+  // grammar count (get_ontology reads .length). `new Map(entries)` keeps the LAST value
+  // for a duplicate key at the FIRST-seen position, so this collapses a re-elevation to
+  // one entry (latest declaration, first-appearance order) and is a PROVABLE NO-OP on
+  // dup-free data (every current rid is distinct ⇒ Map.size === array.length, identical
+  // order). ADDITIVE + grammar-preserving: it only removes future duplicates.
+  const reg = snapshot.registeredPrimitives!;
+  reg.objectTypes = [...new Map(reg.objectTypes.map((e) => [e.rid, e])).values()];
+  reg.linkTypes   = [...new Map(reg.linkTypes.map((e) => [e.rid, e])).values()];
+  reg.actionTypes = [...new Map(reg.actionTypes.map((e) => [e.rid, e])).values()];
+  reg.functions   = [...new Map(reg.functions.map((e) => [e.rid, e])).values()];
+  reg.roles       = [...new Map(reg.roles.map((e) => [e.rid, e])).values()];
+  reg.properties  = [...new Map(reg.properties.map((e) => [e.rid, e])).values()];
+
   return snapshot;
 }
