@@ -831,6 +831,28 @@ async function emitOffBypass(
   }
 }
 
+// ADDITIVE (runtime-neutral) — route the runtime to the ONE Altitude-1 runbook
+// slice that fixes the blocker it just hit, instead of trial-and-error. Maps the
+// gate's errorClass to a slice in docs/altitude1-runtime-guide/ (BROWSE.md is the
+// router; the live slice mapping is verified against disk). The pointer is appended
+// to the blocker text only — it never changes the verdict.
+const RUNBOOK_BROWSE_POINTER =
+  "Runbook: docs/altitude1-runtime-guide/BROWSE.md (match your blocker string -> read ONE slice).";
+
+function runbookPointerForAssessment(assessment: GateAssessment): string {
+  switch (assessment.errorClass) {
+    case "prompt_front_door_missing":
+    case "semantic_contract_required":
+      // no SIC ref yet -> start (00) then fill (02) then approve (03).
+      return `${RUNBOOK_BROWSE_POINTER} For this blocker: Stage 02 (nine-axis-sic-fill) -> Stage 03 (approve-sic).`;
+    case "digital_twin_contract_required":
+      // not digital_twin_approved -> build DTC (05) then advance the envelope (06).
+      return `${RUNBOOK_BROWSE_POINTER} For this blocker: Stage 05 (dtc-fill) -> Stage 06 (envelope-advance).`;
+    default:
+      return RUNBOOK_BROWSE_POINTER;
+  }
+}
+
 function denyResult(reason: string): HookResult {
   return {
     message: "palantir-mini: prompt-DTC gate BLOCKED",
@@ -988,6 +1010,7 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
       "",
       "Allowed while pending: read-only inspection, pm_semantic_intent_gate, contract approval/completion tools, and emit_event.",
       "Pass condition: SemanticIntentContract approved within last 60 min OR current prompt envelope state digital_twin_approved + approved contract refs + promptHash continuity.",
+      runbookPointerForAssessment(assessment),
       "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 bypasses this gate. PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables it entirely.",
     ].join("\n");
     return denyResult(reason);
@@ -1016,6 +1039,7 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
     "",
     "Allowed while pending: read-only inspection, pm_semantic_intent_gate, contract approval/completion tools, and emit_event.",
     "Pass condition: current prompt envelope state digital_twin_approved + approved prompt-local contract refs + promptHash continuity.",
+    runbookPointerForAssessment(assessment),
     "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables only this prompt-DTC gate.",
   ].join("\n");
 

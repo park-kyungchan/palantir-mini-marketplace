@@ -142,6 +142,44 @@ describe("ontology-engineering workflow enforcement hook", () => {
     expect(result.reason).toContain("mutation requires approved SIC and DTC");
   });
 
+  test("provenance deny injects the Altitude-1 runbook BROWSE pointer (Stage 01)", () => {
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "mcp__palantir_mini__pm_semantic_intent_gate",
+      tool_input: {
+        project: projectRoot,
+        rawIntent: "Start Ontology Engineering WorkflowContract SIC and DTC for object types.",
+      },
+    });
+
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.additionalContext).toContain(
+      "Runbook: docs/altitude1-runtime-guide/BROWSE.md",
+    );
+    expect(result.hookSpecificOutput?.additionalContext).toContain("Stage 01 (fde-provenance)");
+  });
+
+  test("mutation-unauthorized deny injects the Altitude-1 runbook BROWSE pointer (Stage 05/06)", () => {
+    writeWorkflowState(false);
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Edit",
+      tool_input: {
+        file_path: path.join(
+          projectRoot,
+          ".claude/plugins/palantir-mini/hooks/hooks.json",
+        ),
+      },
+    });
+
+    expect(result.decision).toBe("block");
+    expect(result.hookSpecificOutput?.additionalContext).toContain(
+      "Runbook: docs/altitude1-runtime-guide/BROWSE.md",
+    );
+    expect(result.hookSpecificOutput?.additionalContext).toContain("Stage 05 (dtc-fill)");
+    expect(result.hookSpecificOutput?.additionalContext).toContain("Stage 06 (envelope-advance)");
+  });
+
   test("allows protected workflow-surface mutation after workflow state is mutation-authorized", () => {
     writeWorkflowState(true);
     const result = assessOntologyEngineeringWorkflowHook({

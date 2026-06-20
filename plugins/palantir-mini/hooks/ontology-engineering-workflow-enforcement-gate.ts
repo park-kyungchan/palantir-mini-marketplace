@@ -508,7 +508,8 @@ export function assessOntologyEngineeringWorkflowHook(
   if ((semanticOrRouterOntologyCall || workflowToolCall || protectedSurfaceMutation) && !probe.hasFdeProvenance) {
     return deny(
       "FDE workflow provenance is required before Ontology Engineering SIC/DTC authoring, routing, or mutation",
-      "Start the plugin-owned Ontology Engineering workflow first, then carry the FDE session reference into SIC/DTC and routing calls. This removes model-specific interpretation before contracts exist.",
+      "Start the plugin-owned Ontology Engineering workflow first, then carry the FDE session reference into SIC/DTC and routing calls. This removes model-specific interpretation before contracts exist.\n" +
+        "Runbook: docs/altitude1-runtime-guide/BROWSE.md (match your blocker string -> read ONE slice). For this blocker: Stage 01 (fde-provenance) + Stage 00 (start).",
       "fde_provenance_required",
       payload,
     );
@@ -534,7 +535,8 @@ export function assessOntologyEngineeringWorkflowHook(
     }
     return deny(
       "Ontology Engineering workflow mutation requires approved SIC and DTC workflow state",
-      "The current workflow state must have mutationAuthorized=true before edits to hooks, gate/router handlers, workflow libraries, skills, or managed-settings surfaces proceed.",
+      "The current workflow state must have mutationAuthorized=true before edits to hooks, gate/router handlers, workflow libraries, skills, or managed-settings surfaces proceed.\n" +
+        "Runbook: docs/altitude1-runtime-guide/BROWSE.md (match your blocker string -> read ONE slice). For this blocker: Stage 05 (dtc-fill) -> Stage 06 (envelope-advance).",
       "oe_workflow_mutation_unauthorized",
       payload,
     );

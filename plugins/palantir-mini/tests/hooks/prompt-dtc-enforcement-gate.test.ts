@@ -354,6 +354,57 @@ describe("prompt-dtc-enforcement-gate", () => {
     );
   });
 
+  test("blocking deny injects the Altitude-1 runbook BROWSE pointer (no-SIC → Stage 02/03)", async () => {
+    const project = makeTmpProject();
+    process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "blocking";
+    await capturedPrompt(project);
+
+    const result = await promptDtcEnforcementGate(payload(project));
+
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("Runbook: docs/altitude1-runtime-guide/BROWSE.md");
+    expect(result.reason).toContain("Stage 02 (nine-axis-sic-fill)");
+    expect(result.reason).toContain("Stage 03 (approve-sic)");
+  });
+
+  test("blocking deny maps not-digital_twin_approved → Stage 05/06 runbook slice", async () => {
+    const project = makeTmpProject();
+    process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "blocking";
+    // Build an envelope that has an approved SIC but is NOT digital_twin_approved,
+    // so assessment.errorClass = digital_twin_contract_required.
+    const { store, envelope } = await capturedPrompt(project);
+    const semanticRecord = await store.writeContractRecord(
+      envelope,
+      "semantic-intent",
+      semanticContract(),
+    );
+    const semanticDrafted = transitionPromptEnvelope(envelope, "semantic_intent_drafted", {
+      semanticIntentContractRef: semanticRecord.ref,
+    });
+    const semanticApproved = transitionPromptEnvelope(semanticDrafted, "semantic_intent_approved", {
+      approvalRef: "user:approved:wave4",
+    });
+    await store.saveEnvelope(semanticApproved);
+
+    const result = await promptDtcEnforcementGate(
+      payload(project, {
+        tool_input: {
+          file_path: "src/example.ts",
+          promptId: semanticApproved.promptId,
+          promptHash: semanticApproved.promptHash,
+          sessionId: semanticApproved.sessionId,
+          runtime: semanticApproved.runtime,
+        },
+      }),
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("not digital_twin_approved");
+    expect(result.reason).toContain("Runbook: docs/altitude1-runtime-guide/BROWSE.md");
+    expect(result.reason).toContain("Stage 05 (dtc-fill)");
+    expect(result.reason).toContain("Stage 06 (envelope-advance)");
+  });
+
   test("blocking mode skips prompt-DTC gate for explicit plugin opt-out", async () => {
     const project = makeTmpProject();
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "blocking";
@@ -851,6 +902,25 @@ describe("prompt-dtc-enforcement-gate", () => {
       );
       expect(result.message).toContain("BLOCKED");
       expect(result.decision).toBe("block");
+    });
+
+    test("selective-blocking deny injects the Altitude-1 runbook BROWSE pointer + no-SIC slice", async () => {
+      const project = makeTmpProject();
+      process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "selective-blocking";
+      // No prompt/envelope → assessment.errorClass = prompt_front_door_missing.
+
+      const result = await promptDtcEnforcementGate(
+        payload(project, {
+          tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+        }),
+      );
+      expect(result.decision).toBe("block");
+      expect(result.reason).toContain(
+        "Runbook: docs/altitude1-runtime-guide/BROWSE.md",
+      );
+      // no-SIC blocker → Stage 02/03 slice.
+      expect(result.reason).toContain("Stage 02 (nine-axis-sic-fill)");
+      expect(result.reason).toContain("Stage 03 (approve-sic)");
     });
 
     test("__test__ helpers: isOntologyAffectingForSelectiveBlocking", () => {
