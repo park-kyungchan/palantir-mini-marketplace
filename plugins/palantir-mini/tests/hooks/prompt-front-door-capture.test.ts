@@ -86,6 +86,26 @@ describe("prompt-front-door-capture", () => {
     expect(events.some((event) => event.type === "user_prompt_submitted")).toBe(true);
   });
 
+  test("injects the Altitude-1 multi-stage runbook pointer for an ontology-affecting prompt", async () => {
+    const root = makeTmpProject("altitude1-pointer");
+    process.env.PALANTIR_MINI_PROJECT = root;
+    process.env.PALANTIR_MINI_EVENTS_FILE = eventsPathFor(root);
+    process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
+
+    const result = await promptFrontDoorCapture({
+      hook_event_name: "UserPromptSubmit",
+      session_id: "session-altitude1",
+      turn_id: "turn-altitude1",
+      cwd: root,
+      prompt: "Start Ontology Engineering: mutate the linear-function ObjectType in the digital twin.",
+    });
+
+    const ctx = result.hookSpecificOutput?.additionalContext ?? "";
+    expect(ctx).toContain("pm Altitude-1 is a multi-stage flow");
+    expect(ctx).toContain("9-axis SIC -> approve_sic -> DTC -> envelope-advance -> dispatch");
+    expect(ctx).toContain("docs/altitude1-runtime-guide/BROWSE.md");
+  });
+
   test("records previousPromptHash when the same runtime/session already has a current pointer", async () => {
     const root = makeTmpProject("previous");
     process.env.PALANTIR_MINI_PROJECT = root;
@@ -132,7 +152,11 @@ describe("prompt-front-door-capture", () => {
     });
 
     const ctx = result.hookSpecificOutput?.additionalContext ?? "";
-    expect(ctx.length).toBeLessThanOrEqual(3200);
+    // Ceiling covers the full assembled injection: base policy + Altitude-1 runbook
+    // pointer + the mandatory ontology-engineering response template. The template
+    // itself stays <=3200 (see ontology-engineering-response-template.test.ts); this
+    // budget is the assembled total, raised for the additive runbook pointer line.
+    expect(ctx.length).toBeLessThanOrEqual(3600);
     expect(ctx).toContain("palantir-mini user requirement prompt response requirements are mandatory");
     expect(ctx).toContain("현재 workflow phase");
     expect(ctx).toContain("선택된 palantir-mini workflow 또는 workflow gap");

@@ -218,6 +218,7 @@ function buildGateContext(envelope: PromptEnvelope, universalOntologyEntryRef?: 
     `  runtime: ${envelope.runtime}`,
     "",
     "Policy: Query ontology context first when available. Request DTC approval only for mutation. UniversalOntologyEntry and OntologyContextSeed are retrieval/warning inputs, not mutation authority. Keep runtime-local files thin. Route with palantir-mini first; use native subagents with plugin recipe authority and state native gaps.",
+    "pm Altitude-1 is a multi-stage flow (9-axis SIC -> approve_sic -> DTC -> envelope-advance -> dispatch); before retrying a blocked call, read ONLY your current stage slice in docs/altitude1-runtime-guide/BROWSE.md.",
   ];
 
   if (isOntologyEngineeringResponseRequired(envelope.promptExcerpt ?? "")) {
