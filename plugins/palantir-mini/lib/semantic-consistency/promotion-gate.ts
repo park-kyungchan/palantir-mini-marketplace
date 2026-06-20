@@ -34,6 +34,19 @@ export interface SemanticConsistencyPromotionGateInput {
   readonly ontologyAffecting: boolean;
   readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
   readonly attachedResolverRunRefs?: readonly string[];
+  /**
+   * Improvement #4 (ADDITIVE) — a PRE-VERIFIED structural 0-new-term re-bind signal
+   * (the result of `isZeroNewTermRebind` in `lib/lead-intent/contracts.ts`, which
+   * proves every touched rid is ALREADY registered and zero new rid is introduced).
+   * A 0-new-term change has no terms to resolve, so semantic consistency is
+   * vacuously satisfied: the three resolver-evidence blocking findings
+   * (`SEMANTIC_CONSISTENCY_RESULT_MISSING`, `_EMPTY_RESULT`,
+   * `_RESOLVER_RUN_REF_MISMATCH`) are skipped. It NEVER relaxes the
+   * non-deterministic / LLM-promotion-used / unresolved-blocking-conflict findings.
+   * This is a PRE-VERIFIED boolean only; the caller MUST gate it on the SAME
+   * structural predicate. Default-absent/false ⇒ byte-identical legacy behavior.
+   */
+  readonly isZeroNewTermRebind?: boolean;
 }
 
 export interface SemanticConsistencyPromotionGateResult {
@@ -61,9 +74,28 @@ export function assessSemanticConsistencyPromotionGate(
     });
   }
 
+  // Improvement #4 (ADDITIVE) — a PRE-VERIFIED structural 0-new-term re-bind. Such a
+  // change touches only already-registered rids and introduces NO new term, so there
+  // is nothing for the resolver to resolve: semantic consistency is vacuously
+  // satisfied and the three resolver-evidence blocking findings named below are
+  // skipped. The relaxation is gated on the SAME structural predicate the readiness
+  // gate uses, so it is UNREACHABLE for any change adding a rid. Default false ⇒
+  // byte-identical legacy behavior.
+  const isRebind = input.isZeroNewTermRebind === true;
+
   const findings: SemanticConsistencyPromotionFinding[] = [];
   const resolverOutput = input.semanticConsistencyResult;
   if (!resolverOutput) {
+    // SEMANTIC_CONSISTENCY_RESULT_MISSING is skipped for a verified rebind: a
+    // 0-new-term change has no terms to resolve, so an absent resolver run is
+    // vacuously acceptable and the gate is ready.
+    if (isRebind) {
+      return result(input, {
+        required: true,
+        findings: [],
+        reasonCodes: ["SEMANTIC_CONSISTENCY_READY"],
+      });
+    }
     findings.push(finding(
       "SEMANTIC_CONSISTENCY_RESULT_MISSING",
       "semanticConsistencyResult",
@@ -90,7 +122,13 @@ export function assessSemanticConsistencyPromotionGate(
     ));
   }
 
-  if (resolverOutput.mappings.length === 0 && resolverOutput.conflicts.length === 0) {
+  if (
+    !isRebind &&
+    resolverOutput.mappings.length === 0 &&
+    resolverOutput.conflicts.length === 0
+  ) {
+    // Skipped for a verified rebind: a 0-new-term change legitimately resolves to an
+    // empty mapping/conflict set (no new term to map).
     findings.push(finding(
       "SEMANTIC_CONSISTENCY_EMPTY_RESULT",
       "semanticConsistencyResult.mappings",
@@ -116,7 +154,10 @@ export function assessSemanticConsistencyPromotionGate(
       "approved contracts must attach the deterministic resolver run ref before promotion",
       [resolverOutput.resolverRunId],
     ));
-  } else if (!attachedRefs.includes(resolverOutput.resolverRunId)) {
+  } else if (!isRebind && !attachedRefs.includes(resolverOutput.resolverRunId)) {
+    // SEMANTIC_CONSISTENCY_RESOLVER_RUN_REF_MISMATCH is skipped for a verified
+    // rebind: when a resolver run IS attached but does not match, a 0-new-term change
+    // has no term whose evidence the run needed to produce.
     findings.push(finding(
       "SEMANTIC_CONSISTENCY_RESOLVER_RUN_REF_MISMATCH",
       "attachedResolverRunRefs",

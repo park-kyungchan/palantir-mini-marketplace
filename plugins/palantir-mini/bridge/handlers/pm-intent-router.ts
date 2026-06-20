@@ -61,6 +61,7 @@ import {
   validateRouterBinding,
   validateWorkContract,
 } from "../../lib/lead-intent/contracts";
+import { deriveRegisteredOntologyRids } from "../../lib/lead-intent/registered-ontology-rids";
 import type {
   ContractGateResult,
   ContractRoutingProjection,
@@ -775,6 +776,13 @@ function assessRouterOntologyDtcBuildReadiness(input: {
   effectiveInput: EffectiveIntentRouterInput;
   routingProjection: ContractRoutingProjection;
   workBindingState: WorkBindingState;
+  /**
+   * Improvement #4 (ADDITIVE) — the LIVE registered-ontology rid set, pre-derived by
+   * the async caller via `deriveRegisteredOntologyRids` (fail-closed; absent ⇒
+   * byte-identical legacy). The gate proves a 0-new-term re-bind structurally from
+   * this set; this sync function only forwards it.
+   */
+  registeredOntologyRids?: readonly string[];
 }): OntologyDtcBuildReadinessGate | undefined {
   if (
     !shouldAssessOntologyDtcBuildReadiness(
@@ -809,6 +817,9 @@ function assessRouterOntologyDtcBuildReadiness(input: {
     semanticConsistencyResult: input.effectiveInput.semanticConsistencyResult,
     workContract: input.workBindingState.workContract,
     routerBinding,
+    ...(input.registeredOntologyRids
+      ? { registeredOntologyRids: input.registeredOntologyRids }
+      : {}),
   });
 }
 
@@ -1036,6 +1047,13 @@ export async function routeIntent(
     effectiveInput,
   );
 
+  // Improvement #4 (ADDITIVE) — derive the LIVE registered-ontology rid set ONCE for
+  // this route from the genuine governed snapshot (fail-closed: undefined when
+  // unavailable ⇒ legacy). Reused by the contract gate (semantic-consistency promotion
+  // relaxation) and both ontology-DTC build-readiness assessments. Never sourced from
+  // a request field.
+  const registeredOntologyRids = await deriveRegisteredOntologyRids(input.project);
+
   // a. Semantic Intent / Digital Twin hard stop.
   const contractGate = assessContractGate({
     intent: effectiveInput.intent,
@@ -1050,6 +1068,7 @@ export async function routeIntent(
     semanticIntentContract: effectiveInput.semanticIntentContract,
     digitalTwinChangeContract: effectiveInput.digitalTwinChangeContract,
     semanticConsistencyResult: effectiveInput.semanticConsistencyResult,
+    registeredOntologyRids,
   });
   const continuityFailureToApply =
     promptRouting.continuity &&
@@ -1086,6 +1105,7 @@ export async function routeIntent(
     semanticIntentContract: effectiveInput.semanticIntentContract,
     digitalTwinChangeContract: effectiveInput.digitalTwinChangeContract,
     semanticConsistencyResult: effectiveInput.semanticConsistencyResult,
+    registeredOntologyRids,
   });
 
   // FAIL-CLOSED: if the routing basis is raw-intent and the intent is ontology-affecting
@@ -1147,6 +1167,7 @@ export async function routeIntent(
     effectiveInput,
     routingProjection,
     workBindingState,
+    registeredOntologyRids,
   });
 
   const routingScopePaths = routingProjection.scopePaths;
@@ -1347,6 +1368,7 @@ export async function routeIntent(
     effectiveInput,
     routingProjection,
     workBindingState,
+    registeredOntologyRids,
   });
 
   if (

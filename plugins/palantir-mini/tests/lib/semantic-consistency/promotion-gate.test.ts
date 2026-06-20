@@ -81,4 +81,59 @@ describe("semantic consistency promotion gate", () => {
     expect(result.promotionAllowed).toBe(true);
     expect(result.reasonCodes).toEqual(["SEMANTIC_CONSISTENCY_NOT_REQUIRED"]);
   });
+
+  // Improvement #4 — 0-new-term DYNAMIC re-bind: when the PRE-VERIFIED structural
+  // predicate is true, semantic consistency is vacuously satisfied (no term to
+  // resolve), so the three resolver-evidence blocking findings are skipped.
+  describe("0-new-term re-bind relaxation", () => {
+    test("verified rebind with NO resolver output ⇒ RESULT_MISSING skipped ⇒ promotion allowed", () => {
+      const result = assessSemanticConsistencyPromotionGate({
+        subject: "sic-dtc-pair",
+        ontologyAffecting: true,
+        isZeroNewTermRebind: true,
+      });
+
+      expect(result.required).toBe(true);
+      expect(result.promotionAllowed).toBe(true);
+      expect(result.reasonCodes).toEqual(["SEMANTIC_CONSISTENCY_READY"]);
+    });
+
+    test("verified rebind ⇒ RESOLVER_RUN_REF_MISMATCH skipped (mismatched attached ref)", () => {
+      const resolverOutput = resolveSemanticConsistency(crmBillingSupportCustomerFixture());
+      const result = assessSemanticConsistencyPromotionGate({
+        subject: "digital-twin-change-contract",
+        ontologyAffecting: true,
+        semanticConsistencyResult: resolverOutput,
+        attachedResolverRunRefs: ["semantic-resolver-run:other"],
+        isZeroNewTermRebind: true,
+      });
+
+      expect(result.promotionAllowed).toBe(true);
+      expect(result.reasonCodes).not.toContain("SEMANTIC_CONSISTENCY_RESOLVER_RUN_REF_MISMATCH");
+    });
+
+    test("rebind does NOT relax unresolved blocking conflicts (only the three named evidence findings)", () => {
+      const resolverOutput = resolveSemanticConsistency(overloadedCustomerFixture());
+      const result = assessSemanticConsistencyPromotionGate({
+        subject: "sic-dtc-pair",
+        ontologyAffecting: true,
+        semanticConsistencyResult: resolverOutput,
+        attachedResolverRunRefs: [resolverOutput.resolverRunId],
+        isZeroNewTermRebind: true,
+      });
+
+      expect(result.promotionAllowed).toBe(false);
+      expect(result.reasonCodes).toContain("SEMANTIC_CONSISTENCY_UNRESOLVED_BLOCKING_CONFLICT");
+    });
+
+    test("default (no rebind flag) is byte-identical: missing resolver output still blocks", () => {
+      const result = assessSemanticConsistencyPromotionGate({
+        subject: "semantic-intent-contract",
+        ontologyAffecting: true,
+      });
+
+      expect(result.promotionAllowed).toBe(false);
+      expect(result.reasonCodes).toEqual(["SEMANTIC_CONSISTENCY_RESULT_MISSING"]);
+    });
+  });
 });

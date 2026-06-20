@@ -3,6 +3,7 @@ import {
   assessOntologyDtcBuildReadinessGate,
   assessContractGate,
   createUserApprovalRef,
+  isZeroNewTermRebind,
   deriveWorkContractFromContracts,
   draftDigitalTwinChangeContract,
   draftSemanticIntentContract,
@@ -1029,6 +1030,152 @@ describe("Lead Intent -> Digital Twin contracts", () => {
       expect(gate.routerBinding.issues.map((issue) => issue.field)).toContain(
         "attachedOutputRefs",
       );
+    });
+
+    // -------------------------------------------------------------------------
+    // Improvement #4 — 0-new-term DYNAMIC re-bind lane (additive). Truth table:
+    // the construction-only checks relax ONLY when every touched rid is already
+    // registered AND no new rid is introduced; otherwise the FULL gate applies.
+    // -------------------------------------------------------------------------
+    describe("0-new-term DYNAMIC re-bind lane", () => {
+      // A DTC that touches only ALREADY-registered rids. The DTC BODY stays
+      // SIC/DTC-valid (body validity is a UNIVERSAL check — `requiredEvaluationRefs`
+      // is a body-validity field and is kept), while the GATE-LEVEL construction-
+      // build governance evidence (branch-policy + permission-policy refs) and the
+      // WorkContract + RouterBinding are intentionally ABSENT to prove the gate
+      // relaxes exactly those construction-only checks for a rebind.
+      function rebindDtc(): DigitalTwinChangeContract {
+        const dtc = approvedDigitalTwin();
+        return {
+          ...dtc,
+          requiredBranchPolicyRef: undefined,
+          requiredPermissionPolicyRef: undefined,
+        };
+      }
+      function touchedRids(dtc: DigitalTwinChangeContract): string[] {
+        return (dtc.touchedOntologyRefs ?? []).map((ref) => ref.rid);
+      }
+
+      test("pure re-bind: every touched rid already registered, zero new ⇒ predicate true ⇒ construction checks relaxed ⇒ readiness reachable", () => {
+        const semantic = approvedSemantic();
+        const digitalTwin = rebindDtc();
+        const registeredOntologyRids = touchedRids(digitalTwin);
+
+        expect(
+          isZeroNewTermRebind({ digitalTwinChangeContract: digitalTwin, registeredOntologyRids }),
+        ).toBe(true);
+
+        const gate = assessOntologyDtcBuildReadinessGate({
+          semanticIntentContractRef: semantic.contractId,
+          digitalTwinChangeContractRef: digitalTwin.contractId,
+          semanticIntentContract: semantic,
+          digitalTwinChangeContract: digitalTwin,
+          // No workContract / routerBinding / eval-branch-permission evidence.
+          registeredOntologyRids,
+        });
+
+        expect(gate.readyForRouter).toBe(true);
+        expect(gate.status).toBe("ready-for-router");
+        // Universal checks still passed on their own merits.
+        expect(gate.checks["ref-present"].valid).toBe(true);
+        expect(gate.checks["body-dereferenced"].valid).toBe(true);
+        expect(gate.checks["body-validated"].valid).toBe(true);
+        expect(gate.checks["approval-ref-present"].valid).toBe(true);
+        // Construction-only checks relaxed by the rebind.
+        expect(gate.checks["work-contract-valid"].valid).toBe(true);
+        expect(gate.checks["router-binding-valid"].valid).toBe(true);
+      });
+
+      test("new rid introduced (touched rid absent from registry) ⇒ predicate FALSE ⇒ full construction gate applies unchanged", () => {
+        const semantic = approvedSemantic();
+        const digitalTwin = rebindDtc();
+        // Drop ONE touched rid from the registered set ⇒ a NEW term is present.
+        const registeredOntologyRids = touchedRids(digitalTwin).slice(1);
+
+        expect(
+          isZeroNewTermRebind({ digitalTwinChangeContract: digitalTwin, registeredOntologyRids }),
+        ).toBe(false);
+
+        const gate = assessOntologyDtcBuildReadinessGate({
+          semanticIntentContractRef: semantic.contractId,
+          digitalTwinChangeContractRef: digitalTwin.contractId,
+          semanticIntentContract: semantic,
+          digitalTwinChangeContract: digitalTwin,
+          registeredOntologyRids,
+        });
+
+        expect(gate.readyForRouter).toBe(false);
+        // Construction-only blockers still fire UNCHANGED (branch + permission
+        // policy refs absent; WorkContract + RouterBinding bodies absent).
+        const fields = gate.issues.map((issue) => issue.field);
+        expect(fields).toContain("digitalTwinChangeContract.requiredBranchPolicyRef");
+        expect(fields).toContain("digitalTwinChangeContract.requiredPermissionPolicyRef");
+        expect(gate.checks["body-dereferenced"].valid).toBe(false);
+        expect(gate.checks["body-validated"].valid).toBe(false);
+      });
+
+      test("missing structural proof (registeredOntologyRids absent) ⇒ predicate FALSE (fail-closed) ⇒ full gate applies", () => {
+        const semantic = approvedSemantic();
+        const digitalTwin = rebindDtc();
+
+        expect(
+          isZeroNewTermRebind({ digitalTwinChangeContract: digitalTwin }),
+        ).toBe(false);
+
+        const gate = assessOntologyDtcBuildReadinessGate({
+          semanticIntentContractRef: semantic.contractId,
+          digitalTwinChangeContractRef: digitalTwin.contractId,
+          semanticIntentContract: semantic,
+          digitalTwinChangeContract: digitalTwin,
+          // registeredOntologyRids OMITTED ⇒ cannot prove ⇒ not a rebind.
+        });
+
+        expect(gate.readyForRouter).toBe(false);
+        const fields = gate.issues.map((issue) => issue.field);
+        expect(fields).toContain("digitalTwinChangeContract.requiredBranchPolicyRef");
+        expect(fields).toContain("digitalTwinChangeContract.requiredPermissionPolicyRef");
+      });
+
+      test("empty touchedOntologyRefs ⇒ predicate FALSE (nothing to prove a re-bind over)", () => {
+        const dtc: DigitalTwinChangeContract = {
+          ...approvedDigitalTwin(),
+          touchedOntologyRefs: [],
+        };
+        expect(
+          isZeroNewTermRebind({
+            digitalTwinChangeContract: dtc,
+            registeredOntologyRids: ["ri.ontology.main.object-type.scene3d"],
+          }),
+        ).toBe(false);
+      });
+
+      test("regression: a verified rebind does NOT relax the universal SIC/DTC body validity or approval-ref checks (draft contracts still blocked)", () => {
+        const semantic = draftSemanticIntentContract({
+          intent: "re-bind Scene3D",
+          scopePaths: ["ontology/data/visual3D.ts"],
+          complexityHint: "single-file",
+        });
+        const digitalTwin = draftDigitalTwinChangeContract(
+          {
+            intent: "re-bind Scene3D",
+            scopePaths: ["ontology/data/visual3D.ts"],
+            complexityHint: "single-file",
+          },
+          semantic.contractId,
+        );
+        // Even if a caller (wrongly) supplies a registry, a draft body cannot pass:
+        // touchedOntologyRefs is absent on a draft ⇒ predicate FALSE anyway, and the
+        // universal body-validated / approval-ref checks stay mandatory regardless.
+        const gate = assessOntologyDtcBuildReadinessGate({
+          semanticIntentContract: semantic,
+          digitalTwinChangeContract: digitalTwin,
+          registeredOntologyRids: ["ri.ontology.main.object-type.scene3d"],
+        });
+
+        expect(gate.readyForRouter).toBe(false);
+        expect(gate.checks["body-validated"].valid).toBe(false);
+        expect(gate.checks["approval-ref-present"].valid).toBe(false);
+      });
     });
   });
 

@@ -433,6 +433,13 @@ export interface LeadIntentGateInput {
   semanticIntentContract?: SemanticIntentContract;
   digitalTwinChangeContract?: DigitalTwinChangeContract;
   semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+  /**
+   * Improvement #4 (ADDITIVE) — the LIVE registered-ontology rid set, pre-derived by
+   * the async caller via `deriveRegisteredOntologyRids` (fail-closed; absent ⇒
+   * byte-identical legacy). Lets the semantic-consistency promotion relaxation be
+   * gated on the SAME structural 0-new-term re-bind predicate the readiness gate uses.
+   */
+  registeredOntologyRids?: readonly string[];
 }
 
 export interface ContractValidationIssue {
@@ -495,6 +502,17 @@ export interface OntologyDtcBuildReadinessGateInput extends ContractBindingRefCo
    * lib never reads fs / the envelope store itself.
    */
   userApprovalAuthorizesDispatch?: boolean;
+  /**
+   * Improvement #4 (ADDITIVE) — the set of ontology rids ALREADY registered in the
+   * governed ontology snapshot (the fs-bound caller pre-derives this by folding
+   * `snapshot.registeredPrimitives` to bare rids, exactly as `elevate.ts`'s register
+   * seam does). It is the STRUCTURAL ground truth for `isZeroNewTermRebind`: a change
+   * is a 0-new-term re-bind ONLY when every rid the DTC structurally touches already
+   * appears here. This pure lib never reads fs; absence ⇒ the predicate fails closed
+   * (the change is treated as NOT a rebind, so the full construction gate applies).
+   * Default-absent ⇒ byte-identical legacy behavior.
+   */
+  registeredOntologyRids?: readonly string[];
 }
 
 export interface OntologyDtcBuildReadinessGate {
@@ -799,12 +817,22 @@ function semanticConsistencyPromotionIssuesForContracts(input: {
   readonly digitalTwinChangeContract?: DigitalTwinChangeContract;
   readonly semanticConsistencyResultRef?: string;
   readonly semanticConsistencyResult?: SemanticConsistencyResolverOutput;
+  // Improvement #4 (ADDITIVE) — LIVE registered-ontology rids (fail-closed; absent ⇒
+  // not a rebind ⇒ legacy). The promotion-gate relaxation is gated on the DERIVED
+  // predicate computed here from the SAME structural truth the readiness gate uses,
+  // never an independent/free boolean.
+  readonly registeredOntologyRids?: readonly string[];
 }): ContractValidationIssue[] {
+  const isRebind = isZeroNewTermRebind({
+    digitalTwinChangeContract: input.digitalTwinChangeContract,
+    registeredOntologyRids: input.registeredOntologyRids,
+  });
   const gate = assessSemanticConsistencyPromotionGate({
     subject: "sic-dtc-pair",
     ontologyAffecting: input.ontologyAffecting,
     semanticConsistencyResult: input.semanticConsistencyResult,
     attachedResolverRunRefs: semanticConsistencyRefsForContracts(input),
+    isZeroNewTermRebind: isRebind,
   });
   return gate.findings
     .filter((issue) => issue.blocking)
@@ -1706,6 +1734,35 @@ function ontologyDtcGateValidationResult(
   return contractValidationResult(mergeValidationIssues(issues));
 }
 
+// Improvement #4 (ADDITIVE) — STRUCTURAL "0-new-term DYNAMIC re-bind" predicate.
+//
+// Contract: returns `true` ONLY when the change provably introduces ZERO new
+// ontology rids — i.e. it merely RE-BINDS / re-elevates primitives that already
+// exist in the governed ontology snapshot. This is a STRUCTURAL proof derived from
+// the DTC's own typed-ref graph, NEVER a trusted caller flag:
+//   1. Affected-rid set = every `rid` the DTC structurally exposes via
+//      `touchedOntologyRefs` (the typed-ref graph the build sequence fills). Empty /
+//      absent ⇒ there is nothing to prove a re-bind over ⇒ FALSE.
+//   2. Registered-rid set = `input.registeredOntologyRids`, the rids the fs-bound
+//      caller folded out of `snapshot.registeredPrimitives`. Absent ⇒ the structural
+//      input needed to prove "already exists" is missing ⇒ FALSE (fail-closed).
+//   3. EVERY affected rid must already be in the registered set (re-elevation of
+//      existing primitives) AND zero affected rid may be absent from it (no NEW rid).
+//      A single rid not in the registry (a new term, or an unprovable one) ⇒ FALSE.
+// FAIL-CLOSED is the core safety property: when in doubt it is NOT a rebind, so the
+// full construction gate applies. The relaxation is therefore UNREACHABLE for any
+// change that adds a rid. Default (no `registeredOntologyRids`) ⇒ FALSE ⇒
+// byte-identical legacy behavior.
+export function isZeroNewTermRebind(input: OntologyDtcBuildReadinessGateInput): boolean {
+  const registered = input.registeredOntologyRids;
+  if (!registered) return false;
+  const touched = input.digitalTwinChangeContract?.touchedOntologyRefs ?? [];
+  const affectedRids = uniqueNonEmpty(touched.map((ref) => ref.rid));
+  if (affectedRids.length === 0) return false;
+  const registeredSet = new Set(registered.map((rid) => rid.trim()).filter(Boolean));
+  return affectedRids.every((rid) => registeredSet.has(rid));
+}
+
 export function assessOntologyDtcBuildReadinessGate(
   input: OntologyDtcBuildReadinessGateInput,
 ): OntologyDtcBuildReadinessGate {
@@ -1737,6 +1794,15 @@ export function assessOntologyDtcBuildReadinessGate(
   // body validity, governance evidence, or approval-ref presence.
   const userApprovalAuthorizesDispatch = input.userApprovalAuthorizesDispatch === true;
 
+  // Improvement #4 (ADDITIVE) — STRUCTURAL 0-new-term re-bind. When `true`, the
+  // change re-binds only ALREADY-registered rids (proven via `isZeroNewTermRebind`,
+  // never a trusted flag), so the construction-only artifacts (WorkContract +
+  // RouterBinding + their refs, plus the eval/branch-policy/permission-policy build
+  // evidence) are meaningless and treated as satisfied. It NEVER relaxes SIC/DTC ref
+  // presence, SIC/DTC body dereference/validity, or `approval-ref-present`. Computed
+  // ONCE; default (no registeredOntologyRids) ⇒ false ⇒ byte-identical legacy.
+  const isRebind = isZeroNewTermRebind(input);
+
   const refPresentIssues: ContractValidationIssue[] = [];
   for (const [field, value] of [
     ["semanticIntentContractRef", semanticIntentContractRef],
@@ -1744,10 +1810,11 @@ export function assessOntologyDtcBuildReadinessGate(
     ["workContractRef", workContractRef],
     ["routerBindingRef", routerBindingRef],
   ] as const) {
-    // The envelope is an alternative satisfier for ONLY the WorkContract +
-    // RouterBinding ref-presence requirements; SIC/DTC refs stay mandatory.
+    // The envelope OR a structural 0-new-term re-bind is an alternative satisfier
+    // for ONLY the WorkContract + RouterBinding ref-presence requirements; SIC/DTC
+    // refs stay mandatory for every change.
     const satisfiedByEnvelope =
-      userApprovalAuthorizesDispatch &&
+      (userApprovalAuthorizesDispatch || isRebind) &&
       (field === "workContractRef" || field === "routerBindingRef");
     if (!hasGateRef(value) && !satisfiedByEnvelope) {
       refPresentIssues.push({
@@ -1804,14 +1871,14 @@ export function assessOntologyDtcBuildReadinessGate(
         "DigitalTwinChangeContract body must be dereferenced; ref strings alone are not execution authority.",
     });
   }
-  if (!workContract && !userApprovalAuthorizesDispatch) {
+  if (!workContract && !userApprovalAuthorizesDispatch && !isRebind) {
     bodyDereferencedIssues.push({
       field: "workContract",
       message:
         "WorkContract body must be dereferenced before router dispatch can be authorized.",
     });
   }
-  if (!routerBinding && !userApprovalAuthorizesDispatch) {
+  if (!routerBinding && !userApprovalAuthorizesDispatch && !isRebind) {
     bodyDereferencedIssues.push({
       field: "routerBinding",
       message:
@@ -1840,21 +1907,26 @@ export function assessOntologyDtcBuildReadinessGate(
     })),
   ]);
 
-  if (!hasEvaluationEvidence(digitalTwinChangeContract)) {
+  // Improvement #4 — eval / branch-policy / permission-policy refs are CONSTRUCTION
+  // build evidence (proof produced while BUILDING new primitives). A 0-new-term
+  // re-bind elevates only already-registered primitives, which already carried this
+  // evidence at their original build, so these three checks are satisfied-when-
+  // `isRebind`. The SIC/DTC body VALIDITY checks merged above stay mandatory.
+  if (!isRebind && !hasEvaluationEvidence(digitalTwinChangeContract)) {
     bodyValidatedIssues.push({
       field: "digitalTwinChangeContract.requiredEvaluationRefs",
       message:
         "AIP Eval evidence must be present before ontology-DTC router dispatch.",
     });
   }
-  if (!hasBranchPolicyEvidence(digitalTwinChangeContract)) {
+  if (!isRebind && !hasBranchPolicyEvidence(digitalTwinChangeContract)) {
     bodyValidatedIssues.push({
       field: "digitalTwinChangeContract.requiredBranchPolicyRef",
       message:
         "Global Branching policy evidence must be present before ontology-DTC router dispatch.",
     });
   }
-  if (!hasPermissionPolicyEvidence(digitalTwinChangeContract)) {
+  if (!isRebind && !hasPermissionPolicyEvidence(digitalTwinChangeContract)) {
     bodyValidatedIssues.push({
       field: "digitalTwinChangeContract.requiredPermissionPolicyRef",
       message:
@@ -1898,11 +1970,20 @@ export function assessOntologyDtcBuildReadinessGate(
   // exactly as computed above, so DTC validity and governance evidence stay
   // mandatory. When a WorkContract/RouterBinding body IS supplied, its own
   // validation result is preserved (the envelope does not mask a malformed body).
+  // Improvement #4 extends this same substitution to a structural 0-new-term
+  // re-bind: when no WorkContract/RouterBinding body is supplied, the (meaningless-
+  // for-a-rebind) validity check is satisfied. When a body IS supplied, its own
+  // validation result is preserved (neither the envelope nor a rebind masks a
+  // malformed body).
   const envelopeSatisfied: ContractValidationResult = { valid: true, issues: [] };
   const workContractCheck =
-    userApprovalAuthorizesDispatch && !workContract ? envelopeSatisfied : workContractResult;
+    (userApprovalAuthorizesDispatch || isRebind) && !workContract
+      ? envelopeSatisfied
+      : workContractResult;
   const routerBindingCheck =
-    userApprovalAuthorizesDispatch && !routerBinding ? envelopeSatisfied : routerBindingResult;
+    (userApprovalAuthorizesDispatch || isRebind) && !routerBinding
+      ? envelopeSatisfied
+      : routerBindingResult;
 
   const checks: Record<OntologyDtcBuildReadinessGateCheck, ContractValidationResult> = {
     "ref-present": ontologyDtcGateValidationResult(refPresentIssues),
@@ -2004,6 +2085,7 @@ export function projectRoutingFromContracts(
       digitalTwinChangeContract: digitalTwin,
       semanticConsistencyResultRef: input.semanticConsistencyResultRef,
       semanticConsistencyResult: input.semanticConsistencyResult,
+      registeredOntologyRids: input.registeredOntologyRids,
     });
     if (semanticResult.valid && digitalTwinResult.valid && promotionIssues.length === 0) {
       const typedRefResolution = resolveOntologyRefs({
@@ -2115,6 +2197,7 @@ export function assessContractGate(input: LeadIntentGateInput): ContractGateResu
       digitalTwinChangeContract: input.digitalTwinChangeContract,
       semanticConsistencyResultRef: input.semanticConsistencyResultRef,
       semanticConsistencyResult: input.semanticConsistencyResult,
+      registeredOntologyRids: input.registeredOntologyRids,
     });
     if (promotionIssues.length > 0) {
       semanticIntent = contractValidationResult([

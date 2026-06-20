@@ -97,6 +97,7 @@ import {
   verifyDtcBuildApprovalAgainstEnvelope,
   type VerifyDtcBuildApprovalResult,
 } from "../../lib/lead-intent/dtc-build-approval";
+import { deriveRegisteredOntologyRids } from "../../lib/lead-intent/registered-ontology-rids";
 import type { BuildRecipeInput } from "../../lib/delegation-recipe/recipe-builder";
 import {
   PromptFrontDoorStore,
@@ -941,6 +942,13 @@ function assessSemanticGateOntologyDtcBuildReadiness(input: {
    * `verifyDtcBuildApprovalAgainstEnvelope` (fs-bound, fail-closed). Default false.
    */
   userApprovalAuthorizesDispatch?: boolean;
+  /**
+   * Improvement #4 (ADDITIVE) — the LIVE registered-ontology rid set, pre-derived by
+   * the async caller via `deriveRegisteredOntologyRids` (fail-closed; absent ⇒
+   * byte-identical legacy). The gate proves a 0-new-term re-bind structurally from
+   * this set; this sync function only forwards it.
+   */
+  registeredOntologyRids?: readonly string[];
 }): OntologyDtcBuildReadinessGate | undefined {
   if (!shouldAssessOntologyDtcBuildReadiness(input.gateInput, input.gate)) {
     return undefined;
@@ -961,6 +969,9 @@ function assessSemanticGateOntologyDtcBuildReadiness(input: {
     semanticConsistencyResult: input.semanticConsistencyResult,
     semanticConsistencyResultRef: input.semanticConsistencyResult?.resolverRunId,
     userApprovalAuthorizesDispatch: input.userApprovalAuthorizesDispatch === true,
+    ...(input.registeredOntologyRids
+      ? { registeredOntologyRids: input.registeredOntologyRids }
+      : {}),
   });
 }
 
@@ -1976,6 +1987,12 @@ export async function semanticIntentGate(
   const semanticConsistencyResult = input.semanticConsistencyResolverInput
     ? resolveSemanticConsistency(input.semanticConsistencyResolverInput)
     : undefined;
+  // Improvement #4 (ADDITIVE) — derive the LIVE registered-ontology rid set ONCE for
+  // this gate invocation from the genuine governed snapshot (fail-closed: undefined
+  // when unavailable ⇒ legacy). Reused by both the contract gate (semantic-consistency
+  // promotion relaxation) and the ontology-DTC build-readiness gate below. Never
+  // sourced from a request field.
+  const registeredOntologyRids = await deriveRegisteredOntologyRids(input.project);
   const gate = assessContractGate({
     intent: input.rawIntent,
     scopePaths: Array.isArray(input.scopePaths) ? input.scopePaths : [],
@@ -1985,6 +2002,7 @@ export async function semanticIntentGate(
     semanticIntentContract: input.semanticIntentContract,
     digitalTwinChangeContract: input.digitalTwinChangeContract,
     semanticConsistencyResult,
+    registeredOntologyRids,
   });
   // PR-13 reservation: pin application state at Layer0IntentBridge build start so that
   // downstream tool calls read loop-start values, not in-flight updates. Full integration
@@ -2096,11 +2114,15 @@ export async function semanticIntentGate(
   if (dtcBuildApproval !== undefined) {
     await emitDtcBuildApprovalAuditEvent(input, dtcBuildApproval);
   }
+  // Improvement #4 (ADDITIVE) — reuse the LIVE registered-ontology rid set derived
+  // once above (fail-closed). The gate proves a 0-new-term re-bind structurally from
+  // this set; never sourced from a request field.
   const ontologyDtcBuildReadinessGate = assessSemanticGateOntologyDtcBuildReadiness({
     gateInput: input,
     gate: effectiveGate,
     semanticConsistencyResult,
     userApprovalAuthorizesDispatch: envelopeAuthorized,
+    registeredOntologyRids,
   });
   let persisted =
     continuity && !continuity.valid
