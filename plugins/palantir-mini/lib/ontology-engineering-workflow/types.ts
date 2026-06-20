@@ -73,6 +73,7 @@ export type OntologyEngineeringWorkflowAction =
   | "approve_technology_recommendation"
   | "ingest"
   | "register"
+  | "rebind_registered"
   | "lint"
   | "elevate"
   | "approve_source_mutation"

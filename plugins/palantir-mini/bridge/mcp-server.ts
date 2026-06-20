@@ -283,6 +283,8 @@ const TOOLS: ToolSpec[] = [
         approvedSourcePaths: { type: "array", items: { type: "string" }, description: "Improvement #2: SCOPE — protected source paths/globs the user named; never empty / never wildcard-only." },
         frontDoorSessionId: { type: "string", description: "Improvement #2: front-door session id used to locate the captured envelope." },
         frontDoorRuntime: { type: "string", enum: ["claude", "codex", "cursor", "gemini", "unknown"], description: "Improvement #2: front-door runtime for the pointer freshness re-check." },
+        rebindRids: { type: "array", items: { type: "string" }, description: "7.22.2: VERIFIED already-registered rids to re-elevate (direct-caller action `rebind_registered`). Fail-closed: intersected with the live getOntology snapshot; a rid not already-registered is rejected, never registered-new." },
+        rebindProposalRef: { type: "string", description: "7.22.2: OPTIONAL audit pointer to the approved drift-proposal the rebindRids derive from. Provenance link only; authorization comes from the live-snapshot proof + the SIC/DTC gate." },
       },
       additionalProperties: false,
     },

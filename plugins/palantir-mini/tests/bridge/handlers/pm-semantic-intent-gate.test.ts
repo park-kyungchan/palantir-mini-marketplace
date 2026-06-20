@@ -856,6 +856,49 @@ describe("pm_semantic_intent_gate", () => {
     expect(approved.promptEnvelope?.state).toBe("digital_twin_approved");
   });
 
+  test("7.22.2: a pure-provenance re-bind SIC (0-new-term, all touched rids registered) reaches digital_twin_approved — the gate precondition rebind_registered relies on", async () => {
+    // The `rebind_registered` action (7.22.2) re-elevates ALREADY-registered rids only.
+    // Its governed entry requires the prompt envelope to reach digital_twin_approved for a
+    // 0-new-term re-bind SIC. This locks that the gate admits exactly such a SIC.
+    const emptyResolverInput = {
+      sourceTerms: [],
+      registry: registrySnapshot({ sourceSystems: [], canonicalTerms: [] }),
+    };
+    const emptyResult = resolveSemanticConsistency(emptyResolverInput);
+    expect(emptyResult.deterministic).toBe(true);
+    expect(emptyResult.mappings.length).toBe(0);
+
+    const semantic = approvedSemantic({ semanticConsistencyResultRef: emptyResult.resolverRunId });
+    const digitalTwin = approvedDigitalTwin(undefined, {
+      semanticConsistencyRefs: [emptyResult.resolverRunId],
+    });
+    const touchedRids = (digitalTwin.touchedOntologyRefs ?? []).map((r: { rid: string }) => r.rid);
+
+    // Every touched rid is already-registered ⇒ a structural pure-provenance re-bind.
+    const project = makeTmpProjectRegistering(touchedRids);
+    const { envelope } = await createCapturedPrompt(project, "Re-bind (re-elevate) existing registered primitives at HEAD");
+
+    const approved = await semanticIntentGate({
+      project,
+      rawIntent: "Re-bind (re-elevate) existing registered primitives at HEAD",
+      scopePaths: [
+        "bridge/handlers/pm-ontology-engineering-workflow.ts",
+        "lib/event-log/read/fold-snapshot.ts",
+      ],
+      complexityHint: "multi-file",
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      sessionId: envelope.sessionId,
+      runtime: envelope.runtime,
+      semanticIntentContract: semantic,
+      digitalTwinChangeContract: digitalTwin,
+      semanticConsistencyResolverInput: emptyResolverInput,
+      responseView: "readiness",
+    });
+
+    expect(approved.promptEnvelope?.state).toBe("digital_twin_approved");
+  });
+
   test("re-bind with a touched rid NOT registered ⇒ envelope does NOT advance (fail-closed legacy)", async () => {
     const emptyResolverInput = {
       sourceTerms: [],
