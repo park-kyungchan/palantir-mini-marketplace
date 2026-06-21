@@ -12,6 +12,7 @@
 
 # --- transient / cruft — never track ---
 *:Zone.Identifier
+.claude/
 .claude/worktrees/
 **/.claude/worktrees/
 _archive/

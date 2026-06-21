@@ -8,6 +8,7 @@ import { appendEventAtomic } from "../../event-log/append";
 import type { EventEnvelope, EventId, SessionId, CommitSha } from "../../event-log/types";
 import { resolvePalantirMiniRoot } from "../../config/root";
 import { resolveHostRuntimeIdentity } from "../../runtime/identity";
+import { gitHeadSha as resolveGitHeadSha } from "../../git/head-sha";
 
 export function defaultSchemaRoot(): string {
   return path.join(resolvePalantirMiniRoot(), "runtime-overlay", "schemas-snapshot", "ontology");
@@ -35,20 +36,10 @@ export function uniqueEventId(): string {
   return `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+// Re-exported wrapper: delegates to the shared per-project resolver. Kept
+// EXPORTED for codegen callers; the shared resolver is the single source of truth.
 export function gitHeadSha(project: string): string {
-  const gitHead = path.join(project, ".git", "HEAD");
-  if (!fs.existsSync(gitHead)) return "no-git";
-  try {
-    const head = fs.readFileSync(gitHead, "utf8").trim();
-    if (head.startsWith("ref: ")) {
-      const refPath = path.join(project, ".git", head.slice(5));
-      if (fs.existsSync(refPath)) return fs.readFileSync(refPath, "utf8").trim();
-      return head.slice(5);
-    }
-    return head;
-  } catch {
-    return "no-git";
-  }
+  return resolveGitHeadSha(project);
 }
 
 export async function emitCodegenEvent(

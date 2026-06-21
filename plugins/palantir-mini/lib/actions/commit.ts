@@ -15,11 +15,11 @@
 // Atomic mutex is handled by lib/event-log/append.ts (fs.mkdir lock).
 
 import * as path from "path";
-import * as fs from "fs";
 import type { OntologyEdit } from "../event-log/types";
 import type { EventEnvelope, EventId, SessionId, CommitSha } from "../event-log/types";
 import { appendEventAtomic } from "../event-log/append";
 import { evaluateCriteria, type SubmissionCriterion, type CriterionResult } from "./submission-criteria";
+import { gitHeadSha } from "../git/head-sha";
 
 export interface CommitRequest {
   project:             string;  // absolute project root path
@@ -71,22 +71,6 @@ function eventsPathFor(project: string): string {
 
 function uniqueEventId(): string {
   return `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function gitHeadSha(project: string): string {
-  const gitHead = path.join(project, ".git", "HEAD");
-  if (!fs.existsSync(gitHead)) return "no-git";
-  try {
-    const head = fs.readFileSync(gitHead, "utf8").trim();
-    if (head.startsWith("ref: ")) {
-      const refPath = path.join(project, ".git", head.slice(5));
-      if (fs.existsSync(refPath)) return fs.readFileSync(refPath, "utf8").trim();
-      return head.slice(5);
-    }
-    return head;
-  } catch {
-    return "no-git";
-  }
 }
 
 function baseLineage(req: CommitRequest) {

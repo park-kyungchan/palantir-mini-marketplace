@@ -14,6 +14,7 @@
 //      NO prompt_dtc_gate_off_bypass event was emitted (the gate was never disabled).
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -61,20 +62,37 @@ function setupRoot(): string {
   return root;
 }
 
-/** Create a minimal real `.git` HEAD->ref so commit's gitHeadSha reads a real SHA. */
-function initGitHead(root: string, sha: string): void {
-  fs.mkdirSync(path.join(root, ".git", "refs", "heads"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".git", "HEAD"), "ref: refs/heads/main\n");
-  fs.writeFileSync(path.join(root, ".git", "refs", "heads", "main"), `${sha}\n`);
+function git(root: string, ...args: string[]): string {
+  return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 }
 
-/** Rewrite the branch ref to simulate HEAD advancing to a new commit. */
-function advanceGitHead(root: string, sha: string): void {
-  fs.writeFileSync(path.join(root, ".git", "refs", "heads", "main"), `${sha}\n`);
+/**
+ * Initialize a REAL throwaway git repo in `root` with one commit, and return its
+ * HEAD SHA. The code under test resolves `atopWhich` via the shared `gitHeadSha`
+ * (`git rev-parse HEAD`), which consults packed-refs and rejects a fabricated
+ * `.git` with no objects — so the fixture must be a real repo. (Replaces the old
+ * fs-fabricated `.git/HEAD` + loose ref, which `git rev-parse` returned "no-git" for.)
+ */
+function initGitHead(root: string): string {
+  git(root, "init", "-q");
+  git(root, "config", "user.email", "t@t.test");
+  git(root, "config", "user.name", "test");
+  fs.writeFileSync(path.join(root, "anchor.txt"), "v1\n");
+  git(root, "add", "anchor.txt");
+  git(root, "commit", "-q", "-m", "base");
+  return git(root, "rev-parse", "HEAD");
+}
+
+/** Make a fresh real commit to advance HEAD (new commits landing after approval); return the new SHA. */
+function advanceGitHead(root: string): string {
+  fs.writeFileSync(path.join(root, "anchor.txt"), "v2\n");
+  git(root, "add", "anchor.txt");
+  git(root, "commit", "-q", "-m", "advance");
+  return git(root, "rev-parse", "HEAD");
 }
 
 function gitHead(root: string): string {
-  return fs.readFileSync(path.join(root, ".git", "refs", "heads", "main"), "utf8").trim();
+  return git(root, "rev-parse", "HEAD");
 }
 
 beforeEach(() => {
@@ -346,9 +364,10 @@ function mutatingGatePayload(root: string, envelope: PromptEnvelope) {
 describe("drift_rebind whole-Altitude replay e2e (7.23.0)", () => {
   test("BLOCK before re-bind → drift_rebind commits at NEW HEAD (grammar unchanged) → PASS after, no off-bypass", async () => {
     const root = setupRoot();
-    const SHA_OLD = "1111111111111111111111111111111111111111";
-    const SHA_NEW = "2222222222222222222222222222222222222222";
-    initGitHead(root, SHA_OLD);
+    // Real throwaway git repo: SHA_OLD is the genuine HEAD commit (a 40-hex SHA),
+    // not a fabricated ref. SHA_NEW is captured later when we advance HEAD.
+    const SHA_OLD = initGitHead(root);
+    expect(SHA_OLD).toMatch(/^[0-9a-f]{40}$/);
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "blocking";
     process.env.PALANTIR_MINI_HOST_RUNTIME = "claude";
 
@@ -379,9 +398,10 @@ describe("drift_rebind whole-Altitude replay e2e (7.23.0)", () => {
     ].map((e) => e.rid);
     expect(beforeRids.length).toBeGreaterThan(0);
 
-    // The first commit stamped atopWhich = SHA_OLD.
+    // The first commit stamped atopWhich = SHA_OLD (a real 40-hex commit SHA, not a ref name).
     const firstCommit = allEvents(root).filter((e) => e.type === "edit_committed").at(-1) as unknown as { atopWhich?: string };
     expect(firstCommit.atopWhich).toBe(SHA_OLD);
+    expect(firstCommit.atopWhich).toMatch(/^[0-9a-f]{40}$/);
 
     // (2) persist the genuine prior approval (DTC record bound to the SIC, on a PRIOR prompt).
     const store = new PromptFrontDoorStore({ projectRoot: root });
@@ -389,7 +409,9 @@ describe("drift_rebind whole-Altitude replay e2e (7.23.0)", () => {
     const priorDtcRef = await seedPriorApproval(store, root, session.sessionId, dtc);
 
     // (3) ADVANCE git HEAD — new commits landed after the prior approval (drift).
-    advanceGitHead(root, SHA_NEW);
+    const SHA_NEW = advanceGitHead(root);
+    expect(SHA_NEW).toMatch(/^[0-9a-f]{40}$/);
+    expect(SHA_NEW).not.toBe(SHA_OLD);
     expect(gitHead(root)).toBe(SHA_NEW);
 
     // (4) write a FRESH captured envelope (no contract refs yet).
@@ -425,6 +447,7 @@ describe("drift_rebind whole-Altitude replay e2e (7.23.0)", () => {
     expect(events.length).toBe(commitsBeforeRebind + 1); // single commit boundary
     const reElevation = events.at(-1) as unknown as { atopWhich?: string; payload?: { appliedEdits?: Array<{ rid: string }> } };
     expect(reElevation.atopWhich).toBe(SHA_NEW);
+    expect(reElevation.atopWhich).toMatch(/^[0-9a-f]{40}$/);
     const reEmitted = (reElevation.payload?.appliedEdits ?? []).map((e) => e.rid).sort();
     expect(reEmitted).toEqual([...beforeRids].sort());
 

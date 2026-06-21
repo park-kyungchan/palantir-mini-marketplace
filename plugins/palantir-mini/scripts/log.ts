@@ -7,9 +7,9 @@
 // Per-project session dir lookup: <project>/.palantir-mini/session/events.jsonl
 // Project root is determined by PALANTIR_MINI_PROJECT env var if set, else cwd.
 
-import * as fs from "fs";
 import * as path from "path";
 import { appendEventAtomic } from "../lib/event-log/append";
+import { gitHeadSha } from "../lib/git/head-sha";
 import type { EventEnvelope, EventId, CommitSha, SessionId } from "../lib/event-log/types";
 import type { AgenticMemoryLayer } from "#schemas/ontology/primitives/agentic-memory-layer";
 import type { RefinementTarget } from "#schemas/ontology/primitives/refinement-target";
@@ -111,23 +111,6 @@ export function eventsPathFor(root: string): string {
     if (overrideInsideRoot) return override;
   }
   return path.join(root, ".palantir-mini", "session", "events.jsonl");
-}
-
-/** Best-effort git HEAD SHA. Empty string if not in a git repo. */
-function gitHeadSha(root: string): string {
-  const gitHead = path.join(root, ".git", "HEAD");
-  if (!fs.existsSync(gitHead)) return "no-git";
-  try {
-    const head = fs.readFileSync(gitHead, "utf8").trim();
-    if (head.startsWith("ref: ")) {
-      const refPath = path.join(root, ".git", head.slice(5));
-      if (fs.existsSync(refPath)) return fs.readFileSync(refPath, "utf8").trim();
-      return head.slice(5);
-    }
-    return head;
-  } catch {
-    return "no-git";
-  }
 }
 
 function uniqueEventId(): string {

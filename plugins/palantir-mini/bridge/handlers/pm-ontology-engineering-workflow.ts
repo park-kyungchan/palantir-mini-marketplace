@@ -84,8 +84,8 @@ import { rebindPersistedApprovalToCurrentEnvelope } from "../../lib/prompt-front
 import type { ApprovedSemanticIntentContract } from "../../lib/semantic-intent/approved-contract";
 import type { DigitalTwinChangeContract } from "../../lib/lead-intent/contracts";
 import { createHash } from "node:crypto";
-import * as fs from "node:fs";
 import * as path from "node:path";
+import { gitHeadSha as gitHeadShaFor } from "../../lib/git/head-sha";
 import type { EventEnvelope, EventId, SessionId, CommitSha } from "../../lib/event-log/types";
 import { lintConstructionCandidates } from "../../lib/construction-lint/lint-candidates";
 import { ingestJsonlSourceToCandidates } from "../../lib/fde-ontology-engineering/source-ingest";
@@ -1603,22 +1603,6 @@ async function handleElevate(
 }
 
 // ─── Improvement #2 — approve_source_mutation ─────────────────────────────
-
-function gitHeadShaFor(project: string): string {
-  const gitHead = path.join(project, ".git", "HEAD");
-  if (!fs.existsSync(gitHead)) return "no-git";
-  try {
-    const head = fs.readFileSync(gitHead, "utf8").trim();
-    if (head.startsWith("ref: ")) {
-      const refPath = path.join(project, ".git", head.slice(5));
-      if (fs.existsSync(refPath)) return fs.readFileSync(refPath, "utf8").trim();
-      return head.slice(5);
-    }
-    return head;
-  } catch {
-    return "no-git";
-  }
-}
 
 function sha256(value: string): string {
   return `sha256:${createHash("sha256").update(value, "utf8").digest("hex")}`;
