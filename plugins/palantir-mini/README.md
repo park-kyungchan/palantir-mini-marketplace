@@ -1,7 +1,7 @@
 # palantir-mini
 
 > Cross-project Ontology-First control-plane plugin — runtime-neutral, packaged for native LLM runtimes (Codex and Claude are active adapters; Gemini contract-only). One governed pm meaning; each runtime is a swappable adapter over a generated, governed binding.
-> Current release: **v6.79.0** — FDE turn quality, structured DTC surfaces, and image-teacher-qa retirement. The control plane now documents the PR-B through PR-J closeout surface: Lead orchestration, ContextEngineeringPlanV3 advisory lanes, MCP capability metadata, DTC surface pre-mutation checks, WorkContract router bindings, agent output contracts, harness ratchet release gates, Codex runtime-gap docs, and BackPropagation ratchet proposals.
+> Current release and per-release surface notes: see [CHANGELOG.md](./CHANGELOG.md) (single source of truth — never pin a version in this header).
 > Release inventory is checked by `pm_plugin_self_check mode=release`; do not copy volatile MCP/hook/skill/agent counts into this header.
 
 ## What this is
