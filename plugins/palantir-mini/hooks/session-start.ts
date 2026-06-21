@@ -70,7 +70,7 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
     await emit({
       type: "session_started",
       payload: {
-        model:  p.model  ?? "claude-opus-4-6",
+        model:  p.model,
         effort: p.effort ?? "max",
       },
       toolName:  "SessionStart",

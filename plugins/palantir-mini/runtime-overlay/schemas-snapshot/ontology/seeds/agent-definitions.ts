@@ -46,12 +46,12 @@ const PLUGIN_AGENTS: ReadonlyArray<{
   // 9 live plugin agents — surface-trim roster + project-implementer (W3 project-onboard definition)
   { slug: "researcher",            description: "Deep research specialist for multi-angle information gathering", model: "opus",   maxTurns: 30 },
   { slug: "docs-researcher",       description: "Opus-powered research + synthesis + write specialist", model: "opus",   maxTurns: 40 },
-  { slug: "implementer",           description: "Focused execution specialist for coding/refactoring/file modifications", model: "sonnet", maxTurns: 30 },
-  { slug: "project-implementer",   description: "Project-scoped execution specialist — implements inside a registered consumer project's writableRoot, respects its .palantir-mini substrate, never edits plugin source", model: "sonnet", maxTurns: 30 },
+  { slug: "implementer",           description: "Focused execution specialist for coding/refactoring/file modifications", model: "opus",   maxTurns: 30 },
+  { slug: "project-implementer",   description: "Project-scoped execution specialist — implements inside a registered consumer project's writableRoot, respects its .palantir-mini substrate, never edits plugin source", model: "opus",   maxTurns: 30 },
   { slug: "verifier",              description: "Verification specialist for correctness/completeness/consistency + adversarial red-team lens", model: "opus",   maxTurns: 30 },
-  { slug: "protocol-designer",     description: "Claude-local rule authoring specialist", model: "sonnet", maxTurns: 25 },
-  { slug: "hook-builder",          description: "palantir-mini plugin hook + monitor + script specialist", model: "sonnet", maxTurns: 35 },
-  { slug: "plugin-maintainer",     description: "palantir-mini plugin maintenance specialist (version sync + RBAC fragments)", model: "sonnet", maxTurns: 30 },
+  { slug: "protocol-designer",     description: "Claude-local rule authoring specialist", model: "opus",   maxTurns: 25 },
+  { slug: "hook-builder",          description: "palantir-mini plugin hook + monitor + script specialist", model: "opus",   maxTurns: 35 },
+  { slug: "plugin-maintainer",     description: "palantir-mini plugin maintenance specialist (version sync + RBAC fragments)", model: "opus",   maxTurns: 30 },
   { slug: "ontology-steward",      description: "Shared-schema + shared-core ontology steward", model: "opus",   maxTurns: 40 },
 
   // (Deprecated documentation-writer agent entry removed 2026-05-04 in

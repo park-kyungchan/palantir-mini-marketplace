@@ -7,6 +7,20 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.22.4] - 2026-06-21 — fix(harness): bottleneck-cluster bundle (D/A/H) — degenerate outcome-pair skip, tool-classifier write-verb denylist widening, session-start model label, opus seed flip
+
+### Fixed
+- **D — degenerate outcome-pair skip**: a standalone close-without-open marker was being written even when the computed snapshot was degenerate (`score < 0` AND `verdict === "unknown"`), polluting the outcome-pairing record with ungraded noise. Added a guard to BOTH duplicated live paths — `lib/outcome-pairing/track.ts` `writeClosedMarker` (path B, `scripts/log.ts` in-band) and `hooks/outcome-pair-tracker.ts` inline close-without-open (path A, MCP PostToolUse) — that skips the degenerate close-without-open. Append-only safe; `closeOpenMarker` untouched. A graded close-without-open still writes.
+- **A — tool-classifier write-verb denylist widening**: `isReadOnlyBashCommand` mis-classified several mutating verbs as read-only. Extended the denylist with `sponge`, `curl -o/-O/--output/--remote-name`, `wget`, `gh api -X POST/PUT/PATCH/DELETE`, `gh release create/delete/upload`, `gh repo create/delete/clone`, `git worktree/config/update-ref`, `tar x`, `unzip`, `kubectl apply/create/delete/patch/replace/edit`, and `docker run/rm/rmi/build/push/create`. Deliberately NO blanket `python -c` / `node -e` block (avoids re-introducing the bd-003 over-block) — read-only interpreter one-liners stay read-only.
+- **H — session-start model label**: `hooks/session-start.ts` emitted a stale `"claude-opus-4-6"` literal fallback that mislabeled sessions. Now emits `model: p.model`; `SessionStartedEnvelope.payload.model` relaxed to optional (no readers of that field; required only for type-safety) in `lib/event-log/types.ts`.
+- **H — opus seed flip**: flipped `implementer`, `project-implementer`, `protocol-designer`, `hook-builder`, and `plugin-maintainer` from `sonnet` to `opus` in `runtime-overlay/schemas-snapshot/ontology/seeds/agent-definitions.ts` (per the opus-only subagent policy). No test pins a model value for these slugs; seed-regression check confirmed clean.
+
+### Notes
+- Four disjoint bottleneck fixes; no behavior beyond these items. Each is independently revertable.
+- Tests: outcome-pair existing hook test inverted to assert the ungraded skip + new test asserts a graded close-without-open still writes; tool-classifier asserts the new verbs are NOT read-only and read-only interpreter one-liners stay read-only. `tsc --noEmit` 0 errors; 4 target suites green.
+
+Files touched (code): `hooks/outcome-pair-tracker.ts`, `hooks/session-start.ts`, `lib/event-log/types.ts`, `lib/hooks/tool-classifier.ts`, `lib/outcome-pairing/track.ts`, `runtime-overlay/schemas-snapshot/ontology/seeds/agent-definitions.ts`, plus their tests (committed in `cd3cd9f`), plus this version bump (`package.json`, `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, root + plugin `.claude-plugin/marketplace.json`).
+
 ## [7.22.3] - 2026-06-21 — fix(gates): surface-text-vs-state — decide on the RESOLVED target/live STATE, demote vocabulary to a recall hint (relaxes over-block; under-block-safe)
 
 ### Fixed

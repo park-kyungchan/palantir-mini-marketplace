@@ -183,6 +183,61 @@ describe("classifyHookTool", () => {
     expect(isReadOnlyBashCommand("cmd >| f")).toBe(false);
   });
 
+  test("UNDER-BLOCK guard: newly-denylisted write verbs classify as NOT read-only", () => {
+    // sponge (moreutils) writes stdin back to a file.
+    expect(isReadOnlyBashCommand("jq . f.json | sponge f.json")).toBe(false);
+    // network downloaders that write to disk.
+    expect(isReadOnlyBashCommand("curl -o out.json https://x")).toBe(false);
+    expect(isReadOnlyBashCommand("curl -O https://x/file")).toBe(false);
+    expect(isReadOnlyBashCommand("curl --output out https://x")).toBe(false);
+    expect(isReadOnlyBashCommand("wget https://x/file")).toBe(false);
+    // gh api mutating method + gh release/repo writes.
+    expect(isReadOnlyBashCommand("gh api -X POST /repos/o/r/issues")).toBe(false);
+    expect(isReadOnlyBashCommand("gh api repos/o/r --method DELETE -X DELETE")).toBe(false);
+    expect(isReadOnlyBashCommand("gh release create v1.0.0")).toBe(false);
+    expect(isReadOnlyBashCommand("gh release delete v1.0.0")).toBe(false);
+    expect(isReadOnlyBashCommand("gh release upload v1 dist.zip")).toBe(false);
+    expect(isReadOnlyBashCommand("gh repo create my/repo")).toBe(false);
+    expect(isReadOnlyBashCommand("gh repo delete my/repo")).toBe(false);
+    expect(isReadOnlyBashCommand("gh repo clone my/repo")).toBe(false);
+    // extended git write subcommands.
+    expect(isReadOnlyBashCommand("git worktree add ../wt main")).toBe(false);
+    expect(isReadOnlyBashCommand("git config user.name x")).toBe(false);
+    expect(isReadOnlyBashCommand("git update-ref refs/heads/x HEAD")).toBe(false);
+    // archive extraction / creation.
+    expect(isReadOnlyBashCommand("tar xzf bundle.tgz")).toBe(false);
+    expect(isReadOnlyBashCommand("tar -xvf bundle.tar")).toBe(false);
+    expect(isReadOnlyBashCommand("unzip bundle.zip")).toBe(false);
+    // cluster / container mutation.
+    expect(isReadOnlyBashCommand("kubectl apply -f manifest.yaml")).toBe(false);
+    expect(isReadOnlyBashCommand("kubectl create ns x")).toBe(false);
+    expect(isReadOnlyBashCommand("kubectl delete pod x")).toBe(false);
+    expect(isReadOnlyBashCommand("kubectl patch deploy x -p {}")).toBe(false);
+    expect(isReadOnlyBashCommand("kubectl replace -f x.yaml")).toBe(false);
+    expect(isReadOnlyBashCommand("docker run img")).toBe(false);
+    expect(isReadOnlyBashCommand("docker rm c")).toBe(false);
+    expect(isReadOnlyBashCommand("docker rmi img")).toBe(false);
+    expect(isReadOnlyBashCommand("docker build -t x .")).toBe(false);
+    expect(isReadOnlyBashCommand("docker push img")).toBe(false);
+    expect(isReadOnlyBashCommand("docker create img")).toBe(false);
+  });
+
+  test("NON-OVER-BLOCK guard: read-only interpreter one-liners + read network/container verbs stay read-only", () => {
+    // CRITICAL (bd-003): no blanket `python -c` / `node -e` denylist — these run
+    // read-only one-liners far more often than writes. Locks the guarantee.
+    expect(isReadOnlyBashCommand("python -c 'print(1+1)'")).toBe(true);
+    expect(isReadOnlyBashCommand('python3 -c "import sys; print(sys.version)"')).toBe(true);
+    expect(isReadOnlyBashCommand("node -e 'console.log(process.version)'")).toBe(true);
+    // bare curl (no output flag) reads; git read subcommands; read kubectl/docker.
+    expect(isReadOnlyBashCommand("curl -s https://x")).toBe(true);
+    expect(isReadOnlyBashCommand("git config --get user.name")).toBe(false); // config is a write-subcommand match (intentional)
+    expect(isReadOnlyBashCommand("git worktree list")).toBe(false); // worktree is a write-subcommand match (intentional)
+    expect(isReadOnlyBashCommand("kubectl get pods")).toBe(true);
+    expect(isReadOnlyBashCommand("docker ps")).toBe(true);
+    expect(isReadOnlyBashCommand("gh api /repos/o/r")).toBe(true); // GET (no -X mutating method)
+    expect(isReadOnlyBashCommand("tar tzf bundle.tgz")).toBe(true); // list, not extract
+  });
+
   test("read-only-classified Bash drops protected-mutation + regains bypass eligibility", () => {
     const ro = classifyHookTool({ tool_name: "Bash", tool_input: { command: "du -sh *" } });
     expect(ro.isReadOnly).toBe(true);

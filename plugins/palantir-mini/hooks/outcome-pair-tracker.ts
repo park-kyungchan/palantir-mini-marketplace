@@ -324,6 +324,19 @@ export default async function outcomePairTracker(
   // role === "close"
   const openMarker = findOpenMarker(pairsDir, actionRid);
   if (openMarker === null) {
+    // Degenerate-snapshot skip: an ungraded close-without-open would write a
+    // standalone marker whose baselineOutcome === refinedOutcome with score -1 /
+    // verdict "unknown" — zero analytical signal, only drift. Skip before any
+    // write so the substrate accumulates only graded close-without-open markers.
+    // Mirrors lib/outcome-pairing/track.ts:writeClosedMarker (path B); this is
+    // path A (MCP-routed PostToolUse). Append-only safe: no existing pair file
+    // is read or mutated.
+    if (score < 0 && verdict === "unknown") {
+      return {
+        message: `palantir-mini: outcome-pair-tracker close-without-open skipped (degenerate ungraded snapshot, actionRid=${actionRid})`,
+        decision: "continue",
+      };
+    }
     // Close-without-open: write standalone closed marker (snapshot only)
     const pairRid = computePairRid(actionRid, whenIso);
     const closedAt = whenIso;

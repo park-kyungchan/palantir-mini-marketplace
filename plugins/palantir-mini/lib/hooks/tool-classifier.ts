@@ -254,15 +254,39 @@ export function isReadOnlyBashCommand(command: string): boolean {
   if (/\b(pip|pip3|pipx)\s+(install|uninstall)\b/.test(trimmed)) return false;
 
   // git WRITE subcommands (read subcommands status/diff/show/log/... fall through to allow).
-  if (/\bgit\s+(add|commit|push|stash|merge|rebase|checkout|switch|reset|clean|pull|restore|tag|am|apply|cherry-pick|revert|mv|rm|fetch|init|clone)\b/.test(trimmed)) {
+  if (/\bgit\s+(add|commit|push|stash|merge|rebase|checkout|switch|reset|clean|pull|restore|tag|am|apply|cherry-pick|revert|mv|rm|fetch|init|clone|worktree|config|update-ref)\b/.test(trimmed)) {
     return false;
   }
 
   // gh / deploy write surfaces.
   if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(trimmed)) return false;
+  // gh api with a mutating HTTP method, and gh release/repo write subcommands.
+  if (/\bgh\s+api\b[^\n]*\s-X\s*(POST|PUT|PATCH|DELETE)\b/i.test(trimmed)) return false;
+  if (/\bgh\s+release\s+(create|delete|upload)\b/.test(trimmed)) return false;
+  if (/\bgh\s+repo\s+(create|delete|clone)\b/.test(trimmed)) return false;
   if (/\b(vercel|wrangler)\s+(deploy|env|project|link|publish)\b/.test(trimmed)) return false;
 
+  // sponge (moreutils): consumes stdin then writes it back to a file.
+  if (/\bsponge\b/.test(trimmed)) return false;
+
+  // Network downloaders that write to disk.
+  // curl only when an output flag (-o/-O, long forms) is present; bare curl reads.
+  if (/\bcurl\b[^\n]*\s(-o|-O|--output|--remote-name)\b/.test(trimmed)) return false;
+  if (/\bwget\b/.test(trimmed)) return false;
+
+  // Archive extraction / creation verbs.
+  if (/\btar\b[^\n]*\bx/.test(trimmed)) return false; // tar x... (extract)
+  if (/\bunzip\b/.test(trimmed)) return false;
+
+  // Cluster / container mutation surfaces.
+  if (/\bkubectl\s+(apply|create|delete|patch|replace|edit)\b/.test(trimmed)) return false;
+  if (/\bdocker\s+(run|rm|rmi|build|push|create)\b/.test(trimmed)) return false;
+
   // --- DEFAULT-ALLOW: nothing above matched => treat as read-only. ---
+  // NOTE: deliberately NO blanket `python -c` / `node -e` denylist — those
+  // run read-only one-liners far more often than writes, and a blanket block
+  // re-introduces the over-block pathology (bd-003). Resolved redirects/verbs
+  // inside such one-liners are already caught by the structural checks above.
   return true;
 }
 
