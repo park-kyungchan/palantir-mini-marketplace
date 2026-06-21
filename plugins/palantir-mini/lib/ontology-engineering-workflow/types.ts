@@ -74,6 +74,7 @@ export type OntologyEngineeringWorkflowAction =
   | "ingest"
   | "register"
   | "rebind_registered"
+  | "drift_rebind"
   | "lint"
   | "elevate"
   | "approve_source_mutation"

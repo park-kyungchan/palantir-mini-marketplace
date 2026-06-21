@@ -7,6 +7,23 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.23.0] - 2026-06-21 — feat(pm): composed governed `drift_rebind` RESUME action
+
+### Added
+- **`drift_rebind` composed governed action** on `pm_ontology_engineering_workflow`: a single-call RESUME that re-binds a PERSISTED, already-MINTED approved SIC + DTC to the CURRENT prompt envelope and then drives the unchanged fail-closed `rebind_registered` re-elevation. It is a legitimate resume of prior governed work, NOT a new approval path: the persisted minted `approvalRef`s are carried forward VERBATIM — **no new `approvalRef` is minted, no gate is bypassed, and no new `rid` is registered**. The whole operation has a SINGLE commit boundary, delegated to the unchanged `handleRegisterRebind`.
+  - `bridge/mcp-server.ts`: add `drift_rebind` to the action enum, add `promptId`/`promptHash` to the input schema, and mention `drift_rebind` in the tool description.
+  - NEW pure module `lib/prompt-front-door/rebind-persisted-approval.ts` (`rebindPersistedApprovalToCurrentEnvelope`): re-keys the SIC + DTC bodies into NEW front-door records under the CURRENT envelope's `promptId` (carrying the minted `approvalRef`s verbatim) and advances the envelope along the legal FSM to `digital_twin_approved`. Fail-closed on missing envelope, non-approved DTC, wrong-scope DTC, or any unminted `approvalRef`.
+  - handler `handleDriftRebind`: STEP 1 gate-advance (predicate A = persisted minted approved-SIC snapshot read FROM STORE; predicate B = persisted DTC record resolved + approved + minted + binds to A) loads the current captured envelope, re-keys + advances it, and emits a DISTINCT `drift_rebind_envelope_advanced` 5-dim audit event; STEP 2–4 DELEGATE `rid` resolution + the SINGLE commit to the unchanged `handleRegisterRebind`.
+  - event-log: add the `drift_rebind_envelope_advanced` typed envelope variant + `EventEnvelope` union member + fold-snapshot case + snapshot counter (OCP, mirrors the `source_mutation` precedent) in `lib/event-log/types.ts` and `lib/event-log/read/fold-snapshot.ts`.
+
+### Notes
+- **Guardrails held**: single commit boundary (delegated to `handleRegisterRebind`), gate mode never set to `off`, no new `approvalRef` minted, no new `rid` registered. Passed adversarial governance + correctness review before merge.
+- **Whole-Altitude e2e** (`tests/e2e/drift-rebind-altitude-replay.test.ts`) proves the lifecycle: a drift BLOCKS before the rebind, then COMMITS at the new HEAD with the grammar unchanged, then PASSES after — with no off-bypass.
+- The regenerated `tests/ontology/self/mcp-tool-fingerprint.golden.json` also clears a pre-existing `pm_ontology_engineering_workflow` fingerprint drift that was failing `tests/ontology/self/executor-registration.test.ts` on `main`.
+- Tests: unit (pure module), handler (mirrors `rebind-registered`), the mandatory whole-Altitude e2e, and `mcp-server-schema` updated for the new enum member + `promptId`/`promptHash`. `tsc --noEmit` 0 errors; target suites green.
+
+Files touched (code, committed in the feature commit): `bridge/handlers/pm-ontology-engineering-workflow.ts`, `bridge/mcp-server.ts`, `lib/event-log/read/fold-snapshot.ts`, `lib/event-log/types.ts`, `lib/ontology-engineering-workflow/types.ts`, `lib/prompt-front-door/index.ts`, `lib/prompt-front-door/rebind-persisted-approval.ts`, their tests, and the regenerated fingerprint golden; plus this version bump (`package.json`, `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, root + plugin `.claude-plugin/marketplace.json`).
+
 ## [7.22.4] - 2026-06-21 — fix(harness): bottleneck-cluster bundle (D/A/H) — degenerate outcome-pair skip, tool-classifier write-verb denylist widening, session-start model label, opus seed flip
 
 ### Fixed

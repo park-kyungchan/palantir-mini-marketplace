@@ -1102,6 +1102,36 @@ export type SourceMutationApprovalDeniedEnvelope = EventEnvelopeBase & {
   payload: SourceMutationApprovalDeniedPayload;
 };
 
+// ─── 7.23.0 — drift_rebind composed RESUME audit event ─────────────────────
+//
+// Emitted by the `drift_rebind` handler's STEP 1 (gate-advance) when a PERSISTED
+// minted approved SIC + DTC are RE-BOUND to the CURRENT prompt envelope and the
+// envelope is advanced to digital_twin_approved — a legitimate RESUME that copies
+// the minted approvalRefs forward (NEVER mints, NEVER bypasses). DISTINCT from the
+// `rebind_registered` re-elevation's `edit_committed` and from any gate
+// off/bypass event: it records ONLY the approval RE-BIND to the current prompt.
+
+/** Payload for `drift_rebind_envelope_advanced` (the approval re-bind step). */
+export interface DriftRebindEnvelopeAdvancedPayload {
+  /** The current prompt envelope the persisted approval was re-bound to. */
+  promptId: string;
+  /** sha256 of the current captured prompt. */
+  promptHash: string;
+  /** The NEW re-keyed front-door SIC record ref under the current promptId. */
+  semanticIntentContractRef: string;
+  /** The NEW re-keyed front-door DTC record ref under the current promptId. */
+  digitalTwinChangeContractRef: string;
+  /** The persisted approved SIC contractId the minted approval was carried forward from. */
+  approvedSicContractId: string;
+  /** Front-door runtime of the current envelope. */
+  runtime?: string;
+}
+
+export type DriftRebindEnvelopeAdvancedEnvelope = EventEnvelopeBase & {
+  type: "drift_rebind_envelope_advanced";
+  payload: DriftRebindEnvelopeAdvancedPayload;
+};
+
 /**
  * OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage.
  * A UniversalOntologyEntry advanced its lifecycle status (e.g. context-retrieved
@@ -1207,6 +1237,8 @@ export type EventEnvelope =
   // Improvement #2 — developer/source-mutation fast-path audit events
   | SourceMutationApprovalGrantedEnvelope
   | SourceMutationApprovalDeniedEnvelope
+  // 7.23.0 — drift_rebind composed RESUME audit event
+  | DriftRebindEnvelopeAdvancedEnvelope
   // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
   | UniversalOntologyEntryTransitionedEnvelope;
 
@@ -1350,6 +1382,8 @@ export interface EventSnapshot {
   // Improvement #2 — developer/source-mutation fast-path audit events
   source_mutation_approval_granted?:  number;
   source_mutation_approval_denied?:   number;
+  // 7.23.0 — drift_rebind composed RESUME audit event
+  drift_rebind_envelope_advanced?:    number;
   // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
   universal_ontology_entry_transitioned?: number;
   // O-2 — register→commit→materialize→read loop closure. Projection of committed

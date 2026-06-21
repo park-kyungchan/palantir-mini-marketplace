@@ -75,7 +75,14 @@ import { verifyAndMintSourceMutationApproval } from "../../lib/ontology-engineer
 import type { SourceMutationApprovalRecord } from "../../lib/ontology-engineering-workflow";
 import { appendEventAtomic } from "../../lib/event-log/append";
 import { resolveHostRuntimeIdentity } from "../../lib/runtime/identity";
-import { approvalRefToString } from "../../lib/prompt-front-door/approval-ref";
+import { approvalRefToString, validateApprovalRefValue } from "../../lib/prompt-front-door/approval-ref";
+import { PromptFrontDoorStore } from "../../lib/prompt-front-door/store";
+import type { PromptContractRecord } from "../../lib/prompt-front-door/store";
+import type { PromptEnvelope, PromptRuntime } from "../../lib/prompt-front-door/envelope";
+import { PROMPT_RUNTIMES, isPromptRuntime } from "../../lib/prompt-front-door/envelope";
+import { rebindPersistedApprovalToCurrentEnvelope } from "../../lib/prompt-front-door/rebind-persisted-approval";
+import type { ApprovedSemanticIntentContract } from "../../lib/semantic-intent/approved-contract";
+import type { DigitalTwinChangeContract } from "../../lib/lead-intent/contracts";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -151,6 +158,21 @@ export interface OntologyEngineeringWorkflowHandlerInput
    * live-snapshot proof + the SIC/DTC gate, NOT from this ref.
    */
   readonly rebindProposalRef?: string;
+  // ─── 7.23.0 — drift_rebind inputs (composed governed RESUME) ─────────────────
+  /**
+   * Prompt-front-door promptId of the CURRENT captured envelope the persisted minted
+   * approved SIC + DTC are re-bound to (action `drift_rebind`). Used to locate the
+   * current envelope (mirrors the hook's readCurrentEnvelope: readEnvelope(sessionId,
+   * promptId) else the current pointer). NOT an authorization input — the minted
+   * approvalRefs are re-verified from the STORE, never from this field.
+   */
+  readonly promptId?: string;
+  /**
+   * sha256 of the current captured prompt (action `drift_rebind`). Continuity anchor
+   * the re-keyed contract records carry so the PreToolUse gate's
+   * contractContinuityMatches passes for the current prompt.
+   */
+  readonly promptHash?: string;
   readonly createdAt?: string;
   readonly emittedAt?: string;
   // ─── Improvement #2 — approve_source_mutation inputs (verified, never trusted) ──
@@ -318,12 +340,13 @@ function assertInput(value: unknown): asserts value is OntologyEngineeringWorkfl
     value.action !== "ingest" &&
     value.action !== "register" &&
     value.action !== "rebind_registered" &&
+    value.action !== "drift_rebind" &&
     value.action !== "lint" &&
     value.action !== "elevate" &&
     value.action !== "approve_source_mutation" &&
     value.action !== "status"
   ) {
-    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, approve_sic, approve_technology_recommendation, ingest, register, rebind_registered, lint, elevate, approve_source_mutation, or status.");
+    throw new Error("pm_ontology_engineering_workflow action must be start, turn, draft_sic, approve_sic, approve_technology_recommendation, ingest, register, rebind_registered, drift_rebind, lint, elevate, approve_source_mutation, or status.");
   }
   if (!hasNonEmptyString(value, "project") && !hasNonEmptyString(value, "projectRoot")) {
     throw new Error(
@@ -1328,6 +1351,202 @@ async function handleRegisterRebind(
 }
 
 /**
+ * 7.23.0 `drift_rebind` — load the CURRENT captured prompt envelope for the call,
+ * mirroring the PreToolUse gate's `readCurrentEnvelope` resolution exactly: prefer the
+ * explicit (sessionId, promptId) pair; otherwise walk the current pointer per runtime.
+ * Returns null when none resolves (the handler fails closed).
+ */
+async function readCurrentDriftRebindEnvelope(
+  store: PromptFrontDoorStore,
+  input: OntologyEngineeringWorkflowHandlerInput,
+): Promise<PromptEnvelope | null> {
+  const sessionId = input.frontDoorSessionId ?? input.sessionId;
+  const promptId = input.promptId;
+  if (typeof promptId === "string" && promptId.length > 0 && typeof sessionId === "string" && sessionId.length > 0) {
+    return store.readEnvelope(sessionId, promptId);
+  }
+  if (typeof sessionId !== "string" || sessionId.length === 0) return null;
+
+  const preferred: PromptRuntime | undefined = isPromptRuntime(input.frontDoorRuntime)
+    ? input.frontDoorRuntime
+    : undefined;
+  const runtimes = preferred
+    ? [preferred, ...PROMPT_RUNTIMES.filter((runtime) => runtime !== preferred)]
+    : PROMPT_RUNTIMES;
+  for (const runtime of runtimes) {
+    const pointer = await store.readCurrentPointer(runtime, sessionId);
+    if (!pointer) continue;
+    const envelope = await store.readEnvelope(pointer.sessionId, pointer.promptId);
+    if (envelope) return envelope;
+  }
+  return null;
+}
+
+/**
+ * `drift_rebind` seam (7.23.0) — the COMPOSED GOVERNED RESUME flow.
+ *
+ * Re-binds a PERSISTED minted approved SIC + DTC to the CURRENT prompt envelope and
+ * then drives the existing fail-closed `rebind_registered` re-elevation, in ONE call.
+ * This is a LEGITIMATE RESUME: it copies the persisted MINTED approvalRefs forward
+ * verbatim — it NEVER mints a new approvalRef and NEVER bypasses a gate.
+ *
+ * STEP 1 (gate-advance, BEFORE any snapshot/commit):
+ *   PREDICATE A — the persisted MINTED approved SIC, read FROM THE STORE (never from
+ *     input): `isApprovedSemanticIntentContract(readPreviousWorkflowState(...).
+ *     approvedSemanticIntentContractSnapshot)` (unforgeable minted approvalRef).
+ *   PREDICATE B — the persisted DTC record resolved by `input.digitalTwinChangeContractRef`
+ *     is non-null AND status:"approved" AND carries a minted approvalRef AND its
+ *     `contract.semanticIntentContractRef === A.contractId` (binds to THIS SIC).
+ *   Then load the CURRENT captured envelope (fail-closed if none), re-key both bodies
+ *   into NEW front-door records under the current promptId and advance the envelope to
+ *   `digital_twin_approved` (carrying the minted refs), persisted via saveEnvelope; and
+ *   emit a DISTINCT `drift_rebind_envelope_advanced` 5-dim event.
+ *
+ * STEP 2–4: DELEGATE the rid resolution + the single commit to the UNCHANGED
+ *   `handleRegisterRebind` — build `derivedInput = { ...input, digitalTwinChangeContractRef:
+ *   <re-keyed DTC ref>, digitalTwinChangeContractStatus: "approved" }` and return its
+ *   result. The fail-closed PROOF1∩PROOF2, the zero-new-term reconstruction, and the
+ *   single commit boundary stay centralized there (NO second write boundary here).
+ *
+ * Refusal is a compute-only no-op naming the failing predicate (mirrors the register
+ * invalidReason style); nothing is written, the envelope is NOT advanced.
+ */
+async function handleDriftRebind(
+  input: OntologyEngineeringWorkflowHandlerInput,
+): Promise<OntologyEngineeringWorkflowHandlerResult> {
+  const root = projectRoot(input);
+  if (root.length === 0) {
+    throw new Error("pm_ontology_engineering_workflow drift_rebind requires a projectRoot.");
+  }
+  const session = readSessionByInput(input);
+  if (session === undefined) {
+    throw new Error("pm_ontology_engineering_workflow drift_rebind requires an existing FDE session.");
+  }
+
+  const driftRebindFailure = (invalidReason: string): OntologyEngineeringWorkflowHandlerResult => {
+    const register: OntologyEngineeringRegisterResult = {
+      committed: false,
+      registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [], roles: [], properties: [] },
+      skipped: { links: [] },
+      invalidReason,
+    };
+    return { ...readState({ handlerInput: input, session }), register };
+  };
+
+  // ── PREDICATE A — persisted MINTED approved SIC, read FROM THE STORE. ────────
+  const persistedSnapshot = readPreviousWorkflowState({
+    root,
+    action: input.action,
+    session,
+  })?.approvedSemanticIntentContractSnapshot;
+  if (!isApprovedSemanticIntentContract(persistedSnapshot)) {
+    return driftRebindFailure(
+      "drift_rebind predicate A failed (OE-2): no persisted MINTED approved SemanticIntentContract " +
+        "snapshot in the workflow store (must pass isApprovedSemanticIntentContract). Run approve_sic first.",
+    );
+  }
+  const approvedSic: ApprovedSemanticIntentContract = persistedSnapshot;
+
+  // ── PREDICATE B — persisted DTC record resolves, approved, minted, binds to A. ─
+  const dtcRef = input.digitalTwinChangeContractRef;
+  if (typeof dtcRef !== "string" || dtcRef.trim().length === 0) {
+    return driftRebindFailure(
+      "drift_rebind predicate B failed: digitalTwinChangeContractRef is required to resolve the persisted approved DTC record.",
+    );
+  }
+  const store = new PromptFrontDoorStore({ projectRoot: root });
+  const dtcRecord = await store.readContractRecordByRef<DigitalTwinChangeContract>(dtcRef);
+  if (dtcRecord === null) {
+    return driftRebindFailure(
+      `drift_rebind predicate B failed: no prompt-front-door DTC record resolves for digitalTwinChangeContractRef=${dtcRef}.`,
+    );
+  }
+  if (dtcRecord.status !== "approved") {
+    return driftRebindFailure(
+      `drift_rebind predicate B failed: persisted DTC record is not approved (status=${dtcRecord.status}).`,
+    );
+  }
+  if (validateApprovalRefValue("dtcRecord.approvalRef", dtcRecord.approvalRef).length > 0) {
+    return driftRebindFailure(
+      "drift_rebind predicate B failed: persisted DTC record carries no minted approvalRef.",
+    );
+  }
+  if (dtcRecord.contract.semanticIntentContractRef !== approvedSic.contractId) {
+    return driftRebindFailure(
+      "drift_rebind predicate B failed: persisted DTC does not bind to the approved SIC " +
+        `(dtc.semanticIntentContractRef=${String(dtcRecord.contract.semanticIntentContractRef)} !== ` +
+        `approvedSic.contractId=${approvedSic.contractId}).`,
+    );
+  }
+
+  // ── Load the CURRENT captured envelope (fail-closed if none). ────────────────
+  const currentEnvelope = await readCurrentDriftRebindEnvelope(store, input);
+  if (currentEnvelope === null) {
+    return driftRebindFailure(
+      "drift_rebind failed: no current captured prompt-front-door envelope to re-bind the persisted approval to " +
+        "(supply promptId+sessionId, or ensure a current pointer exists).",
+    );
+  }
+
+  // ── Re-key both bodies under the current promptId + advance to digital_twin_approved. ─
+  // The pure module carries the minted approvalRefs forward verbatim (never mints) and
+  // persists the advanced envelope via saveEnvelope. Fail-closed inside on any unmet
+  // precondition (already pre-checked above; the throw is defense-in-depth).
+  const rebound = await rebindPersistedApprovalToCurrentEnvelope({
+    store,
+    currentEnvelope,
+    approvedSic,
+    dtcRecord,
+  });
+
+  // ── DISTINCT 5-dim audit event for the approval RE-BIND step (rule 10). ──────
+  try {
+    const eventsPath = path.join(root, ".palantir-mini", "session", "events.jsonl");
+    const advancedRuntime: PromptRuntime = rebound.advancedEnvelope.runtime;
+    await appendEventAtomic(eventsPath, {
+      type: "drift_rebind_envelope_advanced",
+      eventId: `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}` as unknown as EventId,
+      when: input.emittedAt ?? new Date().toISOString(),
+      atopWhich: gitHeadShaFor(root) as unknown as CommitSha,
+      throughWhich: {
+        sessionId: (input.frontDoorSessionId ?? input.sessionId ?? "mcp") as unknown as SessionId,
+        toolName: "pm_ontology_engineering_workflow:drift_rebind",
+        cwd: root,
+      },
+      // The carried-forward approval originates from the user's prior approval turn.
+      byWhom: { identity: "user" },
+      withWhat: {
+        reasoning:
+          `drift_rebind re-bound persisted minted approved SIC+DTC to current prompt ` +
+          `${rebound.advancedEnvelope.promptId} (no new approvalRef minted); ` +
+          `sic=${approvedSic.contractId}`,
+        memoryLayers: ["working", "episodic"],
+      },
+      payload: {
+        promptId: rebound.advancedEnvelope.promptId,
+        promptHash: rebound.advancedEnvelope.promptHash,
+        semanticIntentContractRef: rebound.semanticIntentContractRef,
+        digitalTwinChangeContractRef: rebound.digitalTwinChangeContractRef,
+        approvedSicContractId: approvedSic.contractId,
+        runtime: advancedRuntime,
+      },
+    });
+  } catch {
+    // best-effort audit; never let an audit-write failure block the re-bind result.
+  }
+
+  // ── STEP 2–4: DELEGATE rid resolution + the SINGLE commit to handleRegisterRebind. ─
+  // derivedInput threads the RE-KEYED DTC ref so any downstream derivation sees the
+  // current-prompt record; status pinned approved. NO second write boundary here.
+  const derivedInput: OntologyEngineeringWorkflowHandlerInput = {
+    ...input,
+    digitalTwinChangeContractRef: rebound.digitalTwinChangeContractRef,
+    digitalTwinChangeContractStatus: "approved",
+  };
+  return handleRegisterRebind(derivedInput);
+}
+
+/**
  * `elevate` seam — the COMPOSED GOVERNED OE-ELEVATION FLOW (the FIRST mutating
  * flow exposed via MCP; the individual mutating actions register/ingest/lint stay
  * direct-caller). Drives the already-built governed steps as ONE flow so a runtime
@@ -1853,6 +2072,9 @@ export async function handleOntologyEngineeringWorkflow(
     }
     case "rebind_registered": {
       return handleRegisterRebind(input);
+    }
+    case "drift_rebind": {
+      return handleDriftRebind(input);
     }
     case "lint": {
       return handleLint(input);
