@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -972,5 +973,203 @@ describe("prompt-dtc-enforcement-gate", () => {
         }),
       ).toBe(true);
     });
+  });
+});
+
+// D-i (second-brain P0) — path-aware commit floor. A `git commit` / `commit_edits`
+// whose ENTIRE resolved file set is non-ontology drops from the `commit` floor
+// (blocking) to `generic-mutation` (scoped floor); any ontology surface (or an
+// empty / unresolvable set) stays `commit` (BLOCKING, conservative).
+describe("D-i path-aware commit floor (mutationClass)", () => {
+  const repoRoots: string[] = [];
+
+  afterEach(() => {
+    for (const r of repoRoots.splice(0)) fs.rmSync(r, { recursive: true, force: true });
+  });
+
+  function git(root: string, ...args: string[]): string {
+    return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  }
+
+  /** A real throwaway git repo with one base commit; returns its root dir. */
+  function initGitRepo(): string {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-gate-commit-repo-"));
+    repoRoots.push(root);
+    git(root, "init", "-q");
+    git(root, "config", "user.email", "t@t.test");
+    git(root, "config", "user.name", "test");
+    fs.writeFileSync(path.join(root, "anchor.txt"), "v1\n");
+    git(root, "add", "anchor.txt");
+    git(root, "commit", "-q", "-m", "base");
+    return root;
+  }
+
+  /** Write `relPath` (creating dirs) and `git add` it so it appears in --cached. */
+  function stage(root: string, relPath: string, content = "x\n"): void {
+    const abs = path.join(root, relPath);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, content);
+    git(root, "add", "--", relPath);
+  }
+
+  function gitCommitPayload(root: string) {
+    return {
+      cwd: root,
+      tool_name: "Bash",
+      tool_input: { command: "git commit -m wip" },
+    };
+  }
+
+  test("git commit + ALL-non-ontology staged set → generic-mutation (not commit)", () => {
+    const root = initGitRepo();
+    stage(root, "second-brain/x.md");
+    stage(root, "_workspace/y.md");
+    const cls = __test__.protectedMutationClassForPromptGate(
+      gitCommitPayload(root),
+      true,
+      root,
+    );
+    expect(cls).toBe("generic-mutation");
+    expect(cls).not.toBe("commit");
+  });
+
+  test("git commit + MIXED staged set (ontology + non-ontology) → commit (blocking)", () => {
+    const root = initGitRepo();
+    stage(root, "schemas/ontology/primitives/foo.ts", "export const FOO = 1;\n");
+    stage(root, "second-brain/x.md");
+    const cls = __test__.protectedMutationClassForPromptGate(
+      gitCommitPayload(root),
+      true,
+      root,
+    );
+    expect(cls).toBe("commit");
+  });
+
+  test("git commit + ALL-ontology staged set → commit (blocking)", () => {
+    const root = initGitRepo();
+    stage(root, "schemas/ontology/primitives/foo.ts", "export const FOO = 1;\n");
+    const cls = __test__.protectedMutationClassForPromptGate(
+      gitCommitPayload(root),
+      true,
+      root,
+    );
+    expect(cls).toBe("commit");
+  });
+
+  test("git commit + EMPTY staged set → commit (conservative, blocking)", () => {
+    const root = initGitRepo();
+    // nothing staged beyond the base commit
+    const cls = __test__.protectedMutationClassForPromptGate(
+      gitCommitPayload(root),
+      true,
+      root,
+    );
+    expect(cls).toBe("commit");
+  });
+
+  test("git commit in a non-git dir → commit (execSync throws → conservative)", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-gate-nogit-"));
+    repoRoots.push(dir);
+    const cls = __test__.protectedMutationClassForPromptGate(
+      gitCommitPayload(dir),
+      true,
+      dir,
+    );
+    expect(cls).toBe("commit");
+  });
+
+  test("allStagedPathsNonOntology: .palantir-mini/ staged path is NOT exempt", () => {
+    const root = initGitRepo();
+    stage(root, ".palantir-mini/ontology/objects/foo.json", "{}\n");
+    expect(__test__.allStagedPathsNonOntology(root)).toBe(false);
+  });
+
+  test("allStagedPathsNonOntology: all-clean staged set is exempt", () => {
+    const root = initGitRepo();
+    stage(root, "second-brain/a.md");
+    stage(root, "docs/b.md");
+    expect(__test__.allStagedPathsNonOntology(root)).toBe(true);
+  });
+
+  test("isNonOntologyPath guards .palantir-mini/ and schemas/ontology/", () => {
+    const root = "/tmp/proj";
+    expect(__test__.isNonOntologyPath(".palantir-mini/x.json", root)).toBe(false);
+    expect(__test__.isNonOntologyPath("a/schemas/ontology/x.ts", root)).toBe(false);
+    expect(__test__.isNonOntologyPath("second-brain/x.md", root)).toBe(true);
+    expect(__test__.isNonOntologyPath("_workspace/y.md", root)).toBe(true);
+  });
+
+  // REGRESSION — non-commit git/gh/external lanes are unchanged by the D-i fix.
+  test("REGRESSION: git push → release", () => {
+    const root = initGitRepo();
+    const cls = __test__.protectedMutationClassForPromptGate(
+      { cwd: root, tool_name: "Bash", tool_input: { command: "git push origin main" } },
+      true,
+      root,
+    );
+    expect(cls).toBe("release");
+  });
+
+  test("REGRESSION: gh pr create → pull-request", () => {
+    const root = initGitRepo();
+    const cls = __test__.protectedMutationClassForPromptGate(
+      { cwd: root, tool_name: "Bash", tool_input: { command: "gh pr create --fill" } },
+      true,
+      root,
+    );
+    expect(cls).toBe("pull-request");
+  });
+
+  test("REGRESSION: mutating non-git bash → external-command", () => {
+    const root = initGitRepo();
+    const cls = __test__.protectedMutationClassForPromptGate(
+      { cwd: root, tool_name: "Bash", tool_input: { command: "rm -rf build" } },
+      true,
+      root,
+    );
+    expect(cls).toBe("external-command");
+  });
+
+  // commit_edits lane: resolved target set drives the floor.
+  test("commit_edits + ALL-non-ontology resolved targets → generic-mutation", () => {
+    const root = initGitRepo();
+    const cls = __test__.protectedMutationClassForPromptGate(
+      {
+        cwd: root,
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+        tool_input: { file_path: "second-brain/note.md" },
+      },
+      true,
+      root,
+    );
+    expect(cls).toBe("generic-mutation");
+  });
+
+  test("commit_edits + an ontology resolved target → commit (blocking)", () => {
+    const root = initGitRepo();
+    const cls = __test__.protectedMutationClassForPromptGate(
+      {
+        cwd: root,
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+        tool_input: { file_path: "schemas/ontology/primitives/foo.ts" },
+      },
+      true,
+      root,
+    );
+    expect(cls).toBe("commit");
+  });
+
+  test("commit_edits + unresolvable target set (empty) → commit (conservative)", () => {
+    const root = initGitRepo();
+    const cls = __test__.protectedMutationClassForPromptGate(
+      {
+        cwd: root,
+        tool_name: "mcp__plugin_palantir-mini_palantir-mini__commit_edits",
+        tool_input: {},
+      },
+      true,
+      root,
+    );
+    expect(cls).toBe("commit");
   });
 });
