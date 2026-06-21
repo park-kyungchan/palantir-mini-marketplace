@@ -197,7 +197,9 @@ export type DriftDetectedEnvelope = EventEnvelopeBase & {
 export type SessionStartedEnvelope = EventEnvelopeBase & {
   type: "session_started";
   payload: {
-    model:  string;
+    // Optional: SessionStart emits the live `payload.model` it receives; when the
+    // host does not supply one we omit it rather than fabricate a (stale) literal.
+    model?: string;
     effort: string;
   };
 };

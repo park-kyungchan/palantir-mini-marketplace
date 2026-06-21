@@ -173,7 +173,11 @@ describe("outcomePairTracker", () => {
     expect(listMarkers().length).toBe(1);
   });
 
-  test("CLOSE without prior OPEN writes standalone closed marker", async () => {
+  test("CLOSE without prior OPEN, ungraded degenerate snapshot, is SKIPPED (no marker)", async () => {
+    // Degenerate guard (D bottleneck): an ungraded close-without-open would
+    // produce baselineOutcome === refinedOutcome with score -1 / verdict
+    // "unknown" — zero analytical signal. The hook must skip it, writing no
+    // marker, instead of accumulating drift.
     const result = await outcomePairTracker({
       tool_name: EMIT_EVENT_TOOL,
       cwd: TMP,
@@ -184,13 +188,40 @@ describe("outcomePairTracker", () => {
           eventId: "evt-1",
           when: "2026-05-03T19:00:00.000Z",
           lineageRefs: { actionRid: "act-004" },
-          payload: { verdict: "passed" },
+          payload: {}, // no verdict, no overallScore → degenerate snapshot
+        },
+      },
+    });
+    expect(result.decision).toBe("continue");
+    expect(result.message).toContain("skipped");
+    expect(result.message).toContain("degenerate");
+    expect(listMarkers().length).toBe(0);
+  });
+
+  test("CLOSE without prior OPEN, WITH a real grade, still writes standalone closed marker", async () => {
+    // Non-degenerate close-without-open (graded: score >= 0) must still write —
+    // the guard only suppresses the zero-signal ungraded case.
+    const result = await outcomePairTracker({
+      tool_name: EMIT_EVENT_TOOL,
+      cwd: TMP,
+      tool_input: {
+        project: TMP,
+        envelope: {
+          type: "sprint_completed",
+          eventId: "evt-1",
+          when: "2026-05-03T19:00:00.000Z",
+          lineageRefs: { actionRid: "act-004b" },
+          payload: { verdict: "passed", overallScore: 0.92 },
         },
       },
     });
     expect(result.decision).toBe("continue");
     expect(result.message).toContain("close-without-open");
     expect(listMarkers().length).toBe(1);
+    const decl = JSON.parse(fs.readFileSync(path.join(pairsDir(), listMarkers()[0]!), "utf8"));
+    expect(decl.actionRid).toBe("act-004b");
+    expect(decl.refinedOutcome?.score).toBe(0.92);
+    expect(decl.refinedOutcome?.verdict).toBe("pass");
   });
 
   test("scanOrphans returns markers older than threshold", () => {

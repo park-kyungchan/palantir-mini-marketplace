@@ -226,13 +226,19 @@ export function writeClosedMarker(
 ): string | null {
   const actionRid = deriveActionRid(envelope);
   const whenIso = envelope.when ?? new Date().toISOString();
+  const refined = snapshotFromPayload(envelope.payload, whenIso);
+  // Degenerate-snapshot skip: an ungraded close-without-open would write a
+  // standalone marker whose baselineOutcome === refinedOutcome with score -1 /
+  // verdict "unknown" — zero analytical signal, only drift. Skip before any
+  // mkdir/write so the substrate accumulates only graded close-without-open
+  // markers. Append-only safe: existing pair files are never read or mutated.
+  if (refined.score < 0 && refined.verdict === "unknown") return null;
   try {
     fs.mkdirSync(pairsDir, { recursive: true });
   } catch {
     return null;
   }
   const pairRid = computePairRid(actionRid, whenIso);
-  const refined = snapshotFromPayload(envelope.payload, whenIso);
   const decl: OutcomePairingDeclaration & { actionRid?: string } = {
     pairingId: pairRid,
     actionRid,
