@@ -206,6 +206,9 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
       case "drift_rebind_envelope_advanced":    snapshot.drift_rebind_envelope_advanced = (snapshot.drift_rebind_envelope_advanced ?? 0) + 1; break;
       // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
       case "universal_ontology_entry_transitioned": snapshot.universal_ontology_entry_transitioned = (snapshot.universal_ontology_entry_transitioned ?? 0) + 1; break;
+      // v1.92 — second-brain memory-fold governed events (P0.4r)
+      case "resolution_verdict":                snapshot.resolution_verdict = (snapshot.resolution_verdict ?? 0) + 1; break;
+      case "memory_fold_committed":             snapshot.memory_fold_committed = (snapshot.memory_fold_committed ?? 0) + 1; break;
       default: {
         const _exhaustive: never = ev;
         void _exhaustive;

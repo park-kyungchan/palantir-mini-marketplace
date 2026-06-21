@@ -104,6 +104,9 @@ export const EVENT_TYPE_NAMES = [
   // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
   // (was piggybacked on phase_completed; now a typed discriminator).
   "universal_ontology_entry_transitioned",
+  // v1.92 — second-brain memory-fold governed event types (P0.4r)
+  "resolution_verdict",
+  "memory_fold_committed",
 ] as const;
 
 export type EventTypeName = typeof EVENT_TYPE_NAMES[number];
@@ -543,6 +546,17 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
   universal_ontology_entry_transitioned: {
     name: "universal_ontology_entry_transitioned",
     description: "A UniversalOntologyEntry advanced its lifecycle status (e.g. context-retrieved → semantic-approved → registered). First-class typed lineage (OE-14 / D5-7) replacing the prior phase_completed piggyback. Payload: { entryRef, fromStatus, toStatus, isNoOp }.",
+    primaryDomain: "learn",
+  },
+  // v1.92 — second-brain memory-fold governed event types (P0.4r)
+  resolution_verdict: {
+    name: "resolution_verdict",
+    description: "The session-end memory fold recorded an entity-resolution verdict (ADD/UPDATE/DELETE/NONE) for a Layer-2 graph mutation as an immutable Layer-1 audit event. Emitted via the gated emit_event MCP path (rule 27). Payload: { verdict, targetId?, derivedFrom? }.",
+    primaryDomain: "learn",
+  },
+  memory_fold_committed: {
+    name: "memory_fold_committed",
+    description: "The session-end memory fold committed a derived Layer-2 graph.json projection (node/edge counts) for a session. Advisory, non-gating; emitted via the gated emit_event MCP path (rule 27). Payload: { graphPath, nodeCount, edgeCount, sessionId }.",
     primaryDomain: "learn",
   },
 });

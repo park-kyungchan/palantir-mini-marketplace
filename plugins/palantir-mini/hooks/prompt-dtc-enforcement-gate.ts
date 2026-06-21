@@ -16,6 +16,7 @@
 // FDE ontology-engineering session lookup, not raw payload.prompt text.
 
 import * as path from "node:path";
+import { execSync } from "node:child_process";
 import { emit } from "../scripts/log";
 import { findProjectRoot } from "../lib/project/find-root";
 import { readCurrentFDEOntologyEngineeringSession } from "../lib/fde-ontology-engineering/session-store";
@@ -197,9 +198,17 @@ function isMutatingCandidate(payload: HookPayload): boolean {
 function protectedMutationClassForPromptGate(
   payload: HookPayload,
   mutating: boolean,
+  projectRoot: string,
 ): ProtectedMutationClass | undefined {
   const classification = classifyHookTool(payload);
-  if (classification.operation === "commit_edits") return "commit";
+  if (classification.operation === "commit_edits") {
+    // D-i: a commit_edits whose ENTIRE resolved target set is non-ontology drops
+    // from the `commit` floor (blocking) to `generic-mutation` (scoped floor).
+    // Unresolvable / any-ontology target set stays `commit` (conservative).
+    return allCommitEditsTargetsNonOntology(payload, projectRoot)
+      ? "generic-mutation"
+      : "commit";
+  }
   if (
     classification.operation === "apply_edit_function" ||
     classification.operation === "ontology_context_query" ||
@@ -214,7 +223,12 @@ function protectedMutationClassForPromptGate(
     if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(command)) {
       return "pull-request";
     }
-    if (/\bgit\s+commit\b/.test(command)) return "commit";
+    if (/\bgit\s+commit\b/.test(command)) {
+      // D-i: a `git commit` whose ENTIRE staged set is non-ontology drops from the
+      // `commit` floor (blocking) to `generic-mutation` (scoped floor). An empty /
+      // unresolvable / MIXED staged set stays `commit` (conservative, BLOCKING).
+      return allStagedPathsNonOntology(projectRoot) ? "generic-mutation" : "commit";
+    }
     if (/\b(git\s+push|npm\s+publish|bun\s+publish|release|deploy)\b/.test(command)) {
       return "release";
     }
@@ -348,6 +362,76 @@ function scopedBlockingFileReason(filePath: string, projectRoot: string): string
     return `generated project surface: ${rel}`;
   }
   return undefined;
+}
+
+/**
+ * D-i (second-brain P0) — a single path is exempt from the commit floor ONLY when
+ * it is NOT a protected ontology/contract surface AND NOT under an ontology-state
+ * dir. The guard is conservative: any `.palantir-mini/` path (live ontology state)
+ * or any path containing `schemas/ontology/` (ontology schema surface) counts as
+ * ontology regardless of `scopedBlockingFileReason`.
+ */
+function isNonOntologyPath(filePath: string, projectRoot: string): boolean {
+  const rel = normalizeSurfacePath(filePath, projectRoot);
+  if (rel.startsWith(".palantir-mini/") || rel === ".palantir-mini") return false;
+  if (rel.includes("schemas/ontology/")) return false;
+  return scopedBlockingFileReason(filePath, projectRoot) === undefined;
+}
+
+/**
+ * D-i (second-brain P0) — true IFF EVERY git-staged path is non-ontology, so a
+ * path-clean `git commit` may drop from the `commit` floor (blocking) to
+ * `generic-mutation` (scoped-blocking floor only). CONSERVATIVE on every failure
+ * path: a throw OR an empty staged set returns `false` (do NOT exempt). A MIXED
+ * staged set (any ontology surface) returns `false`, keeping the commit blocking.
+ */
+function allStagedPathsNonOntology(projectRoot: string): boolean {
+  let raw: string;
+  try {
+    raw = execSync("git diff --cached --name-only", {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return false;
+  }
+  const staged = raw.split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+  if (staged.length === 0) return false;
+  return staged.every((p) => isNonOntologyPath(p, projectRoot));
+}
+
+/**
+ * D-i (second-brain P0) — the commit_edits analogue of allStagedPathsNonOntology
+ * over a RESOLVED target set (collectTargetFiles + the git-staged set). CONSERVATIVE:
+ * if the union target set is empty (target set unresolvable) return `false` so the
+ * commit_edits lane stays at the `commit` floor; otherwise true IFF EVERY resolved
+ * target is non-ontology.
+ */
+function allCommitEditsTargetsNonOntology(
+  payload: HookPayload,
+  projectRoot: string,
+): boolean {
+  const targets = new Set<string>(collectTargetFiles(payload));
+  let raw = "";
+  try {
+    raw = execSync("git diff --cached --name-only", {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    raw = "";
+  }
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.length > 0) targets.add(trimmed);
+  }
+  if (targets.size === 0) return false;
+  for (const p of targets) {
+    if (!isNonOntologyPath(p, projectRoot)) return false;
+  }
+  return true;
 }
 
 function looksOntologyAffecting(value: unknown): boolean {
@@ -871,13 +955,13 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
   const p = (payload ?? {}) as HookPayload;
   const requestedMode = gateMode();
   const mutating = isMutatingCandidate(p);
-  const mutationClass = protectedMutationClassForPromptGate(p, mutating);
+  const projectRoot = resolveProjectRoot(p);
+  const mutationClass = protectedMutationClassForPromptGate(p, mutating, projectRoot);
   const effectiveGateMode = resolveEffectiveGateMode({
     requestedMode,
     mutationClass,
   });
   const mode = effectiveGateMode.effectiveMode;
-  const projectRoot = resolveProjectRoot(p);
   const explicitMode = hasExplicitGateMode();
   const cwdProjectRoot = findProjectRoot(p.cwd ?? process.cwd());
   const tmpRoot = path.resolve(process.env.TMPDIR ?? "/tmp");
@@ -1081,6 +1165,9 @@ export const __test__ = {
   isOntologyContextQueryMutation,
   assessFDEEngineeringReadOnlySkip,
   evaluatePreMutationImpactGate,
+  protectedMutationClassForPromptGate,
+  allStagedPathsNonOntology,
+  isNonOntologyPath,
 };
 
 // OE-1 (T3): CLI entry — makes this gate runnable as a live hooks.json PreToolUse

@@ -156,6 +156,15 @@ export interface EventEnvelopeBase {
    * Present only when `propagationDepth` is set.
    */
   readonly propagationDepthSource?: "auto" | "explicit";
+  /**
+   * ENVELOPE REVISION — additive per-row schema revision tag for the on-read
+   * upcaster path (lib/event-log/upcasters). Distinct from the MODULE-level
+   * string const EVENT_ENVELOPE_SCHEMA_VERSION (which versions the whole
+   * envelope schema, not a row). Absent ⇒ rev 0 / current (identity transform).
+   * Additive + backward-compatible: every legacy row omits it. NOT named
+   * `schemaVersion` to avoid colliding with EVENT_ENVELOPE_SCHEMA_VERSION.
+   */
+  readonly envelopeRev?: number;
 }
 
 // ─── Representative variant subset ───────────────────────────────────────────
