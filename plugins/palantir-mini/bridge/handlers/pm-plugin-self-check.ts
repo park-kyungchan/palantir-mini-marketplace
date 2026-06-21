@@ -14,8 +14,6 @@
 //   - rules/07-plugins-and-mcp.md (file-ownership: hook-builder writes handlers/)
 //   - rules/10-events-jsonl.md (5-dim envelope via emit())
 
-import * as fs from "fs";
-import * as path from "path";
 import pkg from "../../package.json";
 import { emit, projectRoot as resolveProjectRoot } from "../../scripts/log";
 import { checkSchemaPin } from "./pm-plugin-self-check/check-schema-pin";
@@ -31,6 +29,7 @@ import { checkProjectSkillOntology } from "./pm-plugin-self-check/check-project-
 import { checkWorkflowResponseTemplate } from "./pm-plugin-self-check/check-workflow-response-template";
 import { checkDeletionReadiness } from "./pm-plugin-self-check/check-deletion-readiness";
 import { DEPRECATION_MAP } from "./_deprecation-map";
+import { gitHeadSha as resolveGitHeadSha } from "../../lib/git/head-sha";
 import { auditSurfaceContracts } from "../../lib/surface/audit";
 import { evaluateWorkflowFamilyReleaseGate } from "../../lib/release/workflow-family-release-gate";
 import {
@@ -45,24 +44,14 @@ import {
 export type { PmPluginSelfCheckArgs, PmPluginSelfCheckResult } from "./pm-plugin-self-check/types";
 
 /**
- * fs-only best-effort git HEAD of a checkout (mirrors gitHeadSha in
- * session_resume.ts). Returns null — never throws — when the path is not a git
- * checkout (e.g. an installed cache copy of the plugin).
+ * Best-effort git HEAD commit SHA of a checkout. Returns null — never throws —
+ * when the path is not a git checkout (e.g. an installed cache copy of the
+ * plugin). Preserves this site's string|null contract by mapping the shared
+ * resolver's "no-git" sentinel to null.
  */
 function gitHeadSha(root: string): string | null {
-  const gitHead = path.join(root, ".git", "HEAD");
-  if (!fs.existsSync(gitHead)) return null;
-  try {
-    const head = fs.readFileSync(gitHead, "utf8").trim();
-    if (head.startsWith("ref: ")) {
-      const refPath = path.join(root, ".git", head.slice(5));
-      if (fs.existsSync(refPath)) return fs.readFileSync(refPath, "utf8").trim();
-      return head.slice(5);
-    }
-    return head;
-  } catch {
-    return null;
-  }
+  const sha = resolveGitHeadSha(root);
+  return sha === "no-git" ? null : sha;
 }
 
 const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {

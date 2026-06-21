@@ -15,7 +15,7 @@ import "../../lib/actions/ontology-register";
 import "../../lib/structured-output";
 import { appendEventAtomic } from "../../lib/event-log/append";
 import { resolveHostRuntimeIdentity } from "../../lib/runtime/identity";
-import * as fs from "fs";
+import { gitHeadSha } from "../../lib/git/head-sha";
 import type { EventEnvelope, EventId, SessionId, CommitSha, OntologyEdit } from "../../lib/event-log/types";
 
 interface ApplyEditFunctionArgs {
@@ -28,22 +28,6 @@ interface ApplyEditFunctionResult {
   functionName:  string;
   edits:         OntologyEdit[];
   editProposedSequence: number;
-}
-
-function gitHeadSha(project: string): string {
-  const gitHead = path.join(project, ".git", "HEAD");
-  if (!fs.existsSync(gitHead)) return "no-git";
-  try {
-    const head = fs.readFileSync(gitHead, "utf8").trim();
-    if (head.startsWith("ref: ")) {
-      const refPath = path.join(project, ".git", head.slice(5));
-      if (fs.existsSync(refPath)) return fs.readFileSync(refPath, "utf8").trim();
-      return head.slice(5);
-    }
-    return head;
-  } catch {
-    return "no-git";
-  }
 }
 
 export default async function applyEditFunctionHandler(rawArgs: unknown): Promise<ApplyEditFunctionResult> {
