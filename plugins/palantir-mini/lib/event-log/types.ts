@@ -91,6 +91,13 @@ export interface EventEnvelopeBase
    * window; mandatory once value-grade-assigner is live.
    */
   valueGrade?: ValueGrade;
+  /**
+   * ENVELOPE REVISION — additive per-row schema revision tag (lockstep mirror
+   * of the primitive `EventEnvelopeBase.envelopeRev`). Keyed on by the on-read
+   * upcaster (`lib/event-log/upcasters`). Absent ⇒ rev 0 / current. NOT named
+   * `schemaVersion` (collides with the module const EVENT_ENVELOPE_SCHEMA_VERSION).
+   */
+  envelopeRev?: number;
 }
 
 // ─── Ontology edit payload (placeholder until lib/actions defines it) ───────
@@ -1152,6 +1159,37 @@ export type UniversalOntologyEntryTransitionedEnvelope = EventEnvelopeBase & {
   };
 };
 
+// ─── v1.92 — second-brain memory-fold governed events (P0.4r) ──────────────
+//
+// Two governed Layer-1 events emitted (via the gated emit_event MCP path,
+// rule 27) by the session-end memory fold. resolution_verdict records the
+// ADD/UPDATE/DELETE/NONE entity-resolution verdict per graph mutation (the
+// log = audit trail of every Layer-2 graph mutation). memory_fold_committed
+// records the committed graph.json projection (node/edge counts) for a session.
+
+export type ResolutionVerdictEnvelope = EventEnvelopeBase & {
+  type: "resolution_verdict";
+  payload: {
+    verdict:      "ADD" | "UPDATE" | "DELETE" | "NONE";
+    /** The Layer-2 node/edge id the verdict resolves to (absent on NONE). */
+    targetId?:    string;
+    /** Source event/turn ids this verdict was derived from (provenance). */
+    derivedFrom?: string[];
+  };
+};
+
+export type MemoryFoldCommittedEnvelope = EventEnvelopeBase & {
+  type: "memory_fold_committed";
+  payload: {
+    /** Path of the committed Layer-2 graph.json projection. */
+    graphPath:  string;
+    nodeCount:  number;
+    edgeCount:  number;
+    /** Session whose transcript was folded. */
+    sessionId:  string;
+  };
+};
+
 // ─── The discriminated union ───────────────────────────────────────────────
 export type EventEnvelope =
   | EditProposedEnvelope
@@ -1240,7 +1278,10 @@ export type EventEnvelope =
   // 7.23.0 — drift_rebind composed RESUME audit event
   | DriftRebindEnvelopeAdvancedEnvelope
   // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
-  | UniversalOntologyEntryTransitionedEnvelope;
+  | UniversalOntologyEntryTransitionedEnvelope
+  // v1.92 — second-brain memory-fold governed events (P0.4r)
+  | ResolutionVerdictEnvelope
+  | MemoryFoldCommittedEnvelope;
 
 export type EventType = EventEnvelope["type"];
 
@@ -1271,6 +1312,10 @@ export const isDtcEvalRefsBypassInvoked       = (e: EventEnvelope): e is DtcEval
 
 // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
 export const isUniversalOntologyEntryTransitioned = (e: EventEnvelope): e is UniversalOntologyEntryTransitionedEnvelope => e.type === "universal_ontology_entry_transitioned";
+
+// v1.92 — second-brain memory-fold governed events (P0.4r)
+export const isResolutionVerdict    = (e: EventEnvelope): e is ResolutionVerdictEnvelope    => e.type === "resolution_verdict";
+export const isMemoryFoldCommitted  = (e: EventEnvelope): e is MemoryFoldCommittedEnvelope  => e.type === "memory_fold_committed";
 
 // ─── Snapshot type produced by foldToSnapshot (prim-data-04 SnapshotManifest) ─
 
@@ -1386,6 +1431,9 @@ export interface EventSnapshot {
   drift_rebind_envelope_advanced?:    number;
   // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
   universal_ontology_entry_transitioned?: number;
+  // v1.92 — second-brain memory-fold governed events (P0.4r)
+  resolution_verdict?:                number;
+  memory_fold_committed?:             number;
   // O-2 — register→commit→materialize→read loop closure. Projection of committed
   // applyRegister* edits into a readable typed-primitive collection (fold-snapshot.ts).
   // FOLD-1 — each bucket entry carries the registered rid PLUS the committed

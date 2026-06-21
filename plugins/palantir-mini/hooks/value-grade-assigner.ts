@@ -390,6 +390,12 @@ function computeAxes14(
   const learnTypes = new Set([
     "refinement_applied", "validation_phase_completed", "grading_completed",
     "edit_committed", "sprint_contract_bound", "agent_decision_logged",
+    // v1.92 — second-brain memory-fold governed events (P0.4r): C1 LEARN-mapped (diagnostic axis only).
+    // NOTE: C1 feeds computeAxes14's axesScored (instrumentation meta-event) ONLY; it does NOT set the
+    // tier. The authoritative grader is autoGradeEnvelope (bridge/handlers/emit-event.ts), which grades on
+    // FIELD PRESENCE: a complete envelope of these types grades T1 (emittable), reaching T3 only when the
+    // emitter supplies the memory/lineage + refinement axis fields. LEARN-mapping here does not force T3.
+    "resolution_verdict", "memory_fold_committed",
   ]);
   const C1 = learnTypes.has((raw.type ?? "") as string);
   // C2: refinement target typed (withWhat.refinementTarget present)
