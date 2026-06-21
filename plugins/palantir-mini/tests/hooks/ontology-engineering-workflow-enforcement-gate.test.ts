@@ -316,4 +316,117 @@ describe("ontology-engineering workflow enforcement hook", () => {
     expect(result.decision).toBe("block");
     expect(result.reason).toContain("mutation requires approved SIC and DTC");
   });
+
+  // --- 7.22.3 follow-up: resolved Bash write-target (close the protected-surface
+  // Bash write vector; keep the over-block relaxation). ---
+
+  test("UNDER-BLOCK: Bash redirect write into protected hooks/ (no provenance) hits provenance deny", () => {
+    const target = path.join(projectRoot, ".claude/plugins/palantir-mini/hooks/foo.ts");
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: `echo x > ${target}` },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("FDE workflow provenance");
+  });
+
+  test("UNDER-BLOCK: Bash `sed -i` on a protected skill still blocks (mutation-unauthorized)", () => {
+    writeWorkflowState(false);
+    const target = path.join(projectRoot, ".claude/plugins/palantir-mini/skills/foo/SKILL.md");
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: `sed -i 's/a/b/g' ${target}` },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("UNDER-BLOCK: Bash `tee` into protected lib/lead-intent still blocks", () => {
+    writeWorkflowState(false);
+    const target = path.join(projectRoot, ".claude/plugins/palantir-mini/lib/lead-intent/x.ts");
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: `echo x | tee ${target}` },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("UNDER-BLOCK: Bash `mv` destination into protected hooks/ still blocks", () => {
+    writeWorkflowState(false);
+    const target = path.join(projectRoot, ".claude/plugins/palantir-mini/hooks/x.ts");
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: `mv /tmp/tmpfile ${target}` },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("UNDER-BLOCK: Bash `cp` destination into protected hooks/ still blocks", () => {
+    writeWorkflowState(false);
+    const target = path.join(projectRoot, ".claude/plugins/palantir-mini/hooks/x.ts");
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: `cp /tmp/a ${target}` },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("UNDER-BLOCK: Bash `dd of=` into protected hooks/ still blocks", () => {
+    writeWorkflowState(false);
+    const target = path.join(projectRoot, ".claude/plugins/palantir-mini/hooks/x.ts");
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: `dd if=/dev/zero of=${target}` },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("RELAXATION: read-only Bash `grep` mentioning a protected path PASSES (over-block stays gone)", () => {
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: "grep -rn palantir-mini/hooks ." },
+    });
+    expect(result.decision).toBe("continue");
+  });
+
+  test("RELAXATION: read-only Bash `cat` of a protected path PASSES", () => {
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: "cat palantir-mini/hooks/foo.ts" },
+    });
+    expect(result.decision).toBe("continue");
+  });
+
+  test("RELAXATION: Bash write whose target is NOT protected (mention in source) PASSES", () => {
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: `echo "see palantir-mini/hooks" > /tmp/note.txt` },
+    });
+    expect(result.decision).toBe("continue");
+  });
+
+  test("UNDER-BLOCK: project /object-type/ path-class via Bash redirect (no marker) still blocks", () => {
+    writeWorkflowState(false);
+    const target = path.join(projectRoot, "projects/foo/ontology/object-type/bar.ts");
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: `echo x > ${target}` },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
 });

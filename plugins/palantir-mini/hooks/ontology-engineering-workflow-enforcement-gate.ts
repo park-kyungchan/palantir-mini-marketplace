@@ -230,9 +230,98 @@ function resolveWriteTargetPaths(payload: HookPayload): string[] {
     }
   }
 
+  // Bash MUTATING-write target. A Bash `command` is NOT a free-text adapter field
+  // here: we extract ONLY the RESOLVED write-target token(s) (redirect destination,
+  // tee FILE, sed/perl -i FILE, mv/cp/install DEST, dd of=FILE, truncate FILE) —
+  // never the whole command string. A read-only Bash (no write operator) yields no
+  // token ⇒ empty set ⇒ the over-block relaxation is preserved; a write whose target
+  // is OUTSIDE the protected tree resolves to that out-of-tree path and PASSES.
+  if (normalize(payload.tool_name ?? "") === "bash" || typeof input.command === "string") {
+    const command = typeof input.command === "string" ? input.command : "";
+    for (const token of extractBashWriteTargets(command)) raw.add(token);
+  }
+
   // Resolve abs under the live cwd / project root so relative + ~ forms still match.
   const cwd = payload.cwd ?? process.cwd();
   return [...raw].map((p) => resolveWriteTargetAbs(p, cwd));
+}
+
+// Parse the RESOLVED write-target token(s) from a Bash command. Mirrors the
+// write-operator denylist shapes in lib/hooks/tool-classifier.ts#isReadOnlyBashCommand
+// (the authoritative "does-this-write" signal) but, instead of a boolean, returns the
+// actual destination filename(s) so the gate can resolve+match them. Read-only
+// commands (no write operator) return []. A path MENTIONED but not written (e.g. a
+// grep pattern, or the source of `echo "palantir-mini/hooks" > /tmp/note`) is NOT a
+// write target and is never returned.
+function extractBashWriteTargets(command: string): string[] {
+  const targets: string[] = [];
+  const trimmed = command.trim();
+  if (trimmed.length === 0) return targets;
+
+  const addToken = (raw: string | undefined): void => {
+    if (raw === undefined) return;
+    // Strip surrounding quotes and any trailing shell punctuation.
+    let token = raw.trim().replace(/^['"]|['"]$/g, "");
+    token = token.replace(/[;&|)]+$/g, "");
+    if (token.length === 0 || token === "-") return;
+    // A redirect to a fd (e.g. `2>&1`) or a `/dev/*` sink is not a file write-target.
+    if (token.startsWith("&")) return;
+    targets.push(token);
+  };
+
+  // Output redirect destinations: > , >> , &> , >| , 1> , 2> (with or without space,
+  // and `>|file`). The destination is the first whitespace-delimited token after the
+  // operator. `[^<]` before guards against `<(...)`/`<<` heredoc reads.
+  const redirectRe = /(?:^|[^<>&0-9])(?:&|[0-9])?>{1,2}\|?\s*(['"]?)([^\s'"|&;()<>]+)\1/g;
+  for (let m = redirectRe.exec(trimmed); m !== null; m = redirectRe.exec(trimmed)) {
+    addToken(m[2]);
+  }
+
+  // tee [-a] FILE...  (every non-flag arg until a pipe/terminator is a write-target).
+  const teeRe = /\btee\b((?:\s+-{1,2}[A-Za-z-]+)*)\s+([^|&;<>\n]+)/g;
+  for (let m = teeRe.exec(trimmed); m !== null; m = teeRe.exec(trimmed)) {
+    for (const arg of (m[2] ?? "").trim().split(/\s+/)) {
+      if (!arg.startsWith("-")) addToken(arg);
+    }
+  }
+
+  // sed -i[suffix] ... FILE   and   perl -i... FILE  (trailing positional file arg(s)).
+  const inplaceRe = /\b(?:sed|perl)\b\s+(-[A-Za-z]*i[A-Za-z0-9.]*\b[^|&;<>\n]*)/g;
+  for (let m = inplaceRe.exec(trimmed); m !== null; m = inplaceRe.exec(trimmed)) {
+    const rest = (m[1] ?? "").trim().split(/\s+/);
+    // The trailing arg(s) after the script are files; take every non-flag, non-script
+    // trailing token (a sed script is typically quoted or starts with a command letter).
+    for (let i = rest.length - 1; i >= 1; i -= 1) {
+      const arg = rest[i];
+      if (arg === undefined || arg.startsWith("-")) break;
+      // Stop at the script token (quoted, or an -e expression value).
+      if (/^['"]/.test(arg) || /[*{}]/.test(arg)) break;
+      addToken(arg);
+    }
+  }
+
+  // mv / cp / install  ... DEST  (the LAST positional arg is the destination).
+  const moveRe = /\b(?:mv|cp|install)\b\s+([^|&;<>\n]+)/g;
+  for (let m = moveRe.exec(trimmed); m !== null; m = moveRe.exec(trimmed)) {
+    const args = (m[1] ?? "").trim().split(/\s+/).filter((a) => !a.startsWith("-"));
+    if (args.length >= 1) addToken(args[args.length - 1]);
+  }
+
+  // dd of=FILE
+  const ddRe = /\bdd\b[^|&;<>\n]*\bof=(['"]?)([^\s'"|&;()<>]+)\1/g;
+  for (let m = ddRe.exec(trimmed); m !== null; m = ddRe.exec(trimmed)) {
+    addToken(m[2]);
+  }
+
+  // truncate ... FILE   and   touch/ln FILE  (trailing positional file arg(s)).
+  const trailingFileRe = /\b(?:truncate|touch|ln)\b\s+([^|&;<>\n]+)/g;
+  for (let m = trailingFileRe.exec(trimmed); m !== null; m = trailingFileRe.exec(trimmed)) {
+    for (const arg of (m[1] ?? "").trim().split(/\s+/)) {
+      if (!arg.startsWith("-")) addToken(arg);
+    }
+  }
+
+  return targets;
 }
 
 function resolveWriteTargetAbs(filePath: string, cwd: string): string {
