@@ -6,6 +6,12 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import stopValidate from "../../hooks/stop-validate";
+import { PromptFrontDoorStore } from "../../lib/prompt-front-door/store";
+import {
+  createPromptEnvelope,
+  withPromptState,
+  type PromptFrontDoorState,
+} from "../../lib/prompt-front-door/envelope";
 
 function makeTmpDir(label: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), `pm-sv-${label}-`));
@@ -86,5 +92,54 @@ describe("stopValidate hook", () => {
     expect(
       event.payload?.workflowResponseValidation?.validation?.forbiddenRuntimeUiMarkers?.length,
     ).toBeGreaterThan(0);
+  });
+
+  // --- CTX-B: STATE-first footer requirement at Stop ---
+
+  async function seedEnvelope(sessionId: string, state: PromptFrontDoorState): Promise<void> {
+    const store = new PromptFrontDoorStore({ projectRoot: tmp });
+    const base = createPromptEnvelope({
+      rawPrompt: "Plain note that mentions ontology and objecttype.",
+      sessionId,
+      runtime: "claude",
+      projectRoot: tmp,
+    });
+    await store.saveEnvelope(withPromptState(base, state));
+  }
+
+  function readLastValidation(): { status?: string; required?: boolean } {
+    const raw = fs.readFileSync(eventsPath(tmp), "utf8").trim().split("\n");
+    const event = JSON.parse(raw.at(-1)!) as {
+      payload?: { workflowResponseValidation?: { status?: string; required?: boolean } };
+    };
+    return event.payload?.workflowResponseValidation ?? {};
+  }
+
+  const incompleteMarkerResponse = [
+    "palantir-mini workflow",
+    "현재 workflow phase: draft",
+  ].join("\n");
+
+  test("STATE-first: governed-active envelope + incomplete response => required+fail", async () => {
+    await seedEnvelope("session/gov", "digital_twin_approved");
+    await stopValidate({ session_id: "session/gov", response: incompleteMarkerResponse });
+    const v = readLastValidation();
+    expect(v.required).toBe(true);
+    expect(v.status).toBe("fail");
+  });
+
+  test("STATE-first RELAXATION: captured envelope + same incomplete response => pass (no over-block)", async () => {
+    await seedEnvelope("session/cap", "captured");
+    await stopValidate({ session_id: "session/cap", response: incompleteMarkerResponse });
+    const v = readLastValidation();
+    expect(v.required).toBe(false);
+    expect(v.status).toBe("pass");
+  });
+
+  test("FALLBACK: no envelope for session_id + marker response => recall hint keeps coverage", async () => {
+    await stopValidate({ session_id: "session/missing", response: incompleteMarkerResponse });
+    const v = readLastValidation();
+    expect(v.required).toBe(true);
+    expect(v.status).toBe("fail");
   });
 });

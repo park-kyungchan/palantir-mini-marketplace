@@ -204,28 +204,48 @@ function containsOntologyEngineeringMarker(payload: HookPayload): boolean {
   return ONTOLOGY_ENGINEERING_MARKERS.some((marker) => haystack.includes(marker));
 }
 
-function collectPathLikeValues(input: unknown, values: string[] = []): string[] {
-  if (typeof input === "string") {
-    values.push(input);
-    return values;
+// Resolve the ACTUAL write-target path set for this tool call. Keys are restricted
+// to host write-tool target fields (NEVER free-text command/prompt/content/intent
+// bodies). Mirrors write-scope-runtime-enforce#extractTargetPaths and
+// prompt-dtc#collectTargetFiles. Returns ABSOLUTE, normalized paths so a relative
+// or ~-prefixed target still matches PROTECTED_SURFACE_MARKERS / path-class segments.
+//
+// This is the load-bearing surface-text-vs-state fix: the block decision is made on
+// the RESOLVED write target, not on the VOCABULARY of free-text adapter fields.
+function resolveWriteTargetPaths(payload: HookPayload): string[] {
+  const input = payload.tool_input ?? {};
+  const raw = new Set<string>();
+
+  // Write / Edit single-target file_path + NotebookEdit notebook_path.
+  for (const key of ["file_path", "notebook_path"] as const) {
+    const value = input[key];
+    if (typeof value === "string" && value.length > 0) raw.add(value);
   }
-  if (Array.isArray(input)) {
-    for (const item of input) collectPathLikeValues(item, values);
-    return values;
-  }
-  if (input !== null && typeof input === "object") {
-    for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
-      if (/path|file|surface|scope|target|command|prompt|intent|content/i.test(key)) {
-        collectPathLikeValues(value, values);
-      }
+
+  // MultiEdit.edits[].file_path
+  if (Array.isArray(input.edits)) {
+    for (const edit of input.edits) {
+      const fp = (edit as { file_path?: unknown } | null)?.file_path;
+      if (typeof fp === "string" && fp.length > 0) raw.add(fp);
     }
   }
-  return values;
+
+  // Resolve abs under the live cwd / project root so relative + ~ forms still match.
+  const cwd = payload.cwd ?? process.cwd();
+  return [...raw].map((p) => resolveWriteTargetAbs(p, cwd));
+}
+
+function resolveWriteTargetAbs(filePath: string, cwd: string): string {
+  const home = process.env.HOME ?? "/home/palantirkc";
+  let abs = filePath;
+  if (filePath.startsWith("~/")) abs = path.resolve(home, filePath.slice(2));
+  else if (!path.isAbsolute(filePath)) abs = path.resolve(cwd, filePath);
+  return normalize(abs); // existing normalize(): backslash->slash + lowercase
 }
 
 function targetsProtectedSurface(payload: HookPayload): boolean {
-  const haystack = normalize(collectPathLikeValues(payload.tool_input).join("\n"));
-  return PROTECTED_SURFACE_MARKERS.some((marker) => haystack.includes(marker));
+  const targets = resolveWriteTargetPaths(payload);
+  return targets.some((t) => PROTECTED_SURFACE_MARKERS.some((marker) => t.includes(marker)));
 }
 
 // OE-3 — project-ontology path-CLASS markers. Unlike PROTECTED_SURFACE_MARKERS
@@ -261,8 +281,7 @@ function pathSegmentMatchesOntologyClass(candidate: string): boolean {
 }
 
 function targetsProjectOntologyPathClass(payload: HookPayload): boolean {
-  return collectPathLikeValues(payload.tool_input)
-    .map((value) => normalize(value))
+  return resolveWriteTargetPaths(payload) // already normalized abs paths
     .some((value) => pathSegmentMatchesOntologyClass(value));
 }
 
@@ -349,7 +368,7 @@ async function computeSourceMutationFastPath(
     return { authorized: false, reason: "no source-mutation approvals persisted" };
   }
 
-  const touchedPaths = collectPathLikeValues(payload.tool_input);
+  const touchedPaths = resolveWriteTargetPaths(payload);
   const store = new PromptFrontDoorStore({ projectRoot });
 
   let lastReason = "no persisted approval re-verified against the captured envelope";

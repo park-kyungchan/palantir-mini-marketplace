@@ -198,4 +198,122 @@ describe("ontology-engineering workflow enforcement hook", () => {
     expect(result.additionalContext).toContain("palantir-mini user requirement prompt response requirements");
     expect(result.additionalContext).toContain("Codex");
   });
+
+  // --- CTX-iii: write-target resolver (decide on RESOLVED target, not VOCABULARY) ---
+
+  test("RELAXATION: a memory-note Write whose content describes an ontology re-bind PASSES", () => {
+    // The 2026-06-21 recurrence payload: content body mentions protected surfaces +
+    // /ontology/ segment + SIC/DTC, but the resolved write target is a plain .md.
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Write",
+      tool_input: {
+        file_path: "~/.claude/projects/x/memory/altitude2-rebind.md",
+        content:
+          "Describes a re-bind touching palantir-mini/lib/ontology-engineering-workflow/ and a " +
+          "/ontology/object-type/foo.ts path; SemanticIntentContract DigitalTwinChangeContract palantir-mini/hooks/x.ts.",
+      },
+    });
+    expect(result.decision).toBe("continue");
+  });
+
+  test("RELAXATION: an out-of-tree workspace doc Write PASSES", () => {
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Write",
+      tool_input: {
+        file_path: path.join(projectRoot, "_workspace/run/plan.md"),
+        content: "ontology engineering plan mentioning palantir-mini/hooks/ and semanticintentcontract",
+      },
+    });
+    expect(result.decision).toBe("continue");
+  });
+
+  test("RELAXATION: read-only Bash mentioning a protected path PASSES", () => {
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Bash",
+      tool_input: { command: "grep -rn 'palantir-mini/hooks' ." },
+    });
+    expect(result.decision).toBe("continue");
+  });
+
+  test("RELAXATION: OE-marker in content with a plain .md target does NOT block", () => {
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Write",
+      tool_input: {
+        file_path: path.join(projectRoot, "plain.md"),
+        content: "ontology engineering semanticintentcontract digitaltwinchangecontract",
+      },
+    });
+    expect(result.decision).toBe("continue");
+  });
+
+  test("UNDER-BLOCK: genuine protected pm-source Write still hits provenance deny (no FDE)", () => {
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Write",
+      tool_input: {
+        file_path: path.join(projectRoot, ".claude/plugins/palantir-mini/hooks/x.ts"),
+        content: "anything",
+      },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("FDE workflow provenance");
+  });
+
+  test("UNDER-BLOCK: relative protected-surface Edit resolves abs and still blocks", () => {
+    writeWorkflowState(false);
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: path.join(projectRoot, ".claude/plugins/palantir-mini"),
+      tool_name: "Edit",
+      tool_input: { file_path: "skills/z/SKILL.md" },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("UNDER-BLOCK: MultiEdit targeting protected lib paths still blocks", () => {
+    writeWorkflowState(false);
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "MultiEdit",
+      tool_input: {
+        edits: [
+          { file_path: path.join(projectRoot, ".claude/plugins/palantir-mini/lib/lead-intent/a.ts") },
+          { file_path: path.join(projectRoot, ".claude/plugins/palantir-mini/lib/fde-ontology-engineering/b.ts") },
+        ],
+      },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("UNDER-BLOCK: NotebookEdit on a protected lib path still blocks", () => {
+    writeWorkflowState(false);
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "NotebookEdit",
+      tool_input: {
+        notebook_path: path.join(projectRoot, ".claude/plugins/palantir-mini/lib/context-engineering/c.ipynb"),
+      },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("UNDER-BLOCK: project /object-type/ path-class write (no OE marker) still blocks", () => {
+    writeWorkflowState(false);
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Write",
+      tool_input: {
+        file_path: path.join(projectRoot, "projects/foo/ontology/object-type/bar.ts"),
+        content: "no marker here at all",
+      },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
 });

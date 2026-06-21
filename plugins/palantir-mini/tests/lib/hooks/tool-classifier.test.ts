@@ -149,6 +149,49 @@ describe("classifyHookTool", () => {
     expect(isReadOnlyBashCommand("gh pr merge 123 --squash")).toBe(false);
   });
 
+  test("default-allows benign inspection Bash that the old first-token allowlist over-blocked", () => {
+    // RELAXATION (bd-003): vocabulary no longer decides; absence of a write pattern => read-only.
+    expect(isReadOnlyBashCommand("du -sh *")).toBe(true);
+    expect(isReadOnlyBashCommand("jq '.x' f.json")).toBe(true);
+    expect(isReadOnlyBashCommand("awk '{print $1}' f")).toBe(true);
+    expect(isReadOnlyBashCommand("sort f | uniq -c")).toBe(true);
+    expect(isReadOnlyBashCommand("ps aux | grep node")).toBe(true);
+    expect(isReadOnlyBashCommand("stat f")).toBe(true);
+    expect(isReadOnlyBashCommand("echo hi")).toBe(true);
+    expect(isReadOnlyBashCommand("column -t f")).toBe(true);
+    expect(isReadOnlyBashCommand("wc -l f")).toBe(true);
+    expect(isReadOnlyBashCommand("comm -13 a b")).toBe(true);
+    expect(isReadOnlyBashCommand("cat a | grep b | wc -l")).toBe(true);
+  });
+
+  test("UNDER-BLOCK guard: genuine mutating Bash still classifies as NOT read-only", () => {
+    expect(isReadOnlyBashCommand("echo x > f")).toBe(false);
+    expect(isReadOnlyBashCommand("sed -i s/a/b/ f")).toBe(false);
+    expect(isReadOnlyBashCommand("perl -i -pe '...' f")).toBe(false);
+    expect(isReadOnlyBashCommand("cat a | tee b")).toBe(false);
+    expect(isReadOnlyBashCommand("cat a | sort > b")).toBe(false); // benign head, writing tail
+    expect(isReadOnlyBashCommand("du -sh * | tee out")).toBe(false);
+    expect(isReadOnlyBashCommand("git commit -m x")).toBe(false);
+    expect(isReadOnlyBashCommand("git restore f")).toBe(false);
+    expect(isReadOnlyBashCommand("rm f")).toBe(false);
+    expect(isReadOnlyBashCommand("npm i")).toBe(false);
+    expect(isReadOnlyBashCommand("bun add lodash")).toBe(false);
+    expect(isReadOnlyBashCommand("pip install x")).toBe(false);
+    expect(isReadOnlyBashCommand("dd if=a of=b")).toBe(false);
+    expect(isReadOnlyBashCommand("truncate -s0 f")).toBe(false);
+    expect(isReadOnlyBashCommand("cmd 2> err")).toBe(false);
+    expect(isReadOnlyBashCommand("cmd >| f")).toBe(false);
+  });
+
+  test("read-only-classified Bash drops protected-mutation + regains bypass eligibility", () => {
+    const ro = classifyHookTool({ tool_name: "Bash", tool_input: { command: "du -sh *" } });
+    expect(ro.isReadOnly).toBe(true);
+    expect(ro.isProtectedMutation).toBe(false);
+    const mut = classifyHookTool({ tool_name: "Bash", tool_input: { command: "rm -rf f" } });
+    expect(mut.isReadOnly).toBe(false);
+    expect(mut.isProtectedMutation).toBe(true);
+  });
+
   test("attaches capability metadata for every declared palantir-mini MCP tool", () => {
     for (const capability of MCP_TOOL_CAPABILITIES) {
       const classification = classifyHookTool({

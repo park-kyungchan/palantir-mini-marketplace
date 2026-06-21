@@ -72,7 +72,7 @@ import { writeUniversalOntologyEntry } from "../lib/ontology-entry/entry-store";
 import {
   buildOntologyEngineeringResponseTemplateContext,
   detectPalantirMiniPluginOptOut,
-  isOntologyEngineeringResponseRequired,
+  isPalantirMiniWorkflowResponseRequiredForState,
 } from "../lib/ontology-engineering-response-template";
 // transitionUniversalOntologyEntry is used by downstream handlers (ontology-context-query,
 // pm-semantic-intent-gate, pm-intent-router) for status transitions AFTER the initial capture.
@@ -221,7 +221,12 @@ function buildGateContext(envelope: PromptEnvelope, universalOntologyEntryRef?: 
     "pm Altitude-1 is a multi-stage flow (9-axis SIC -> approve_sic -> DTC -> envelope-advance -> dispatch); before retrying a blocked call, read ONLY your current stage slice in docs/altitude1-runtime-guide/BROWSE.md.",
   ];
 
-  if (isOntologyEngineeringResponseRequired(envelope.promptExcerpt ?? "")) {
+  if (
+    isPalantirMiniWorkflowResponseRequiredForState({
+      frontDoorState: envelope.state,
+      pluginOptOut: envelope.palantirMiniPluginOptOut,
+    })
+  ) {
     lines.push(
       "",
       buildOntologyEngineeringResponseTemplateContext({

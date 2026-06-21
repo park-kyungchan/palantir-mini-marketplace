@@ -268,12 +268,66 @@ export function isPalantirMiniPluginExplicitlyDisabled(text: string): boolean {
   return detectPalantirMiniPluginOptOut(text) !== undefined;
 }
 
-export function isPalantirMiniWorkflowResponseRequired(text: string): boolean {
+// --- STATE-first governed-footer predicate (CTX-B / bd-002) ---
+//
+// The mandatory governed footer must be keyed to the LIVE governance STATE (the
+// front-door envelope's contract lifecycle), not to forgeable prompt/response
+// VOCABULARY. A governed SIC/DTC contract is OPEN for the session iff the
+// envelope's state is one of the governed-active states below (every state
+// EXCEPT the two non-governed poles `captured` and `superseded`).
+//
+// Type-only import of PromptFrontDoorState: erased at compile time, so no runtime
+// cycle is introduced even though envelope.ts imports PalantirMiniPluginOptOut
+// from this file.
+import type { PromptFrontDoorState } from "./prompt-front-door/envelope";
+
+export const PALANTIR_MINI_GOVERNED_ACTIVE_STATES: readonly PromptFrontDoorState[] = [
+  "semantic_intent_questions_open",
+  "semantic_intent_drafted",
+  "semantic_intent_user_review",
+  "semantic_intent_approved",
+  "digital_twin_questions_open",
+  "digital_twin_drafted",
+  "digital_twin_user_review",
+  "digital_twin_approved",
+] as const;
+
+export interface PalantirMiniGovernanceState {
+  /** Current front-door envelope state for the session, if an envelope exists. */
+  readonly frontDoorState?: PromptFrontDoorState;
+  /** Authoritative opt-out captured on the envelope (NOT re-derived from text). */
+  readonly pluginOptOut?: { readonly explicit: boolean };
+}
+
+/** STATE-first: footer required iff a governed SIC/DTC contract is OPEN and not opted out. */
+export function isPalantirMiniWorkflowResponseRequiredForState(
+  state: PalantirMiniGovernanceState,
+): boolean {
+  if (state.pluginOptOut?.explicit) return false;
+  if (state.frontDoorState === undefined) return false;
+  return PALANTIR_MINI_GOVERNED_ACTIVE_STATES.includes(state.frontDoorState);
+}
+
+/**
+ * Recall hint ONLY — surface-text heuristic, NOT a gate. Retained for back-compat
+ * and for the no-envelope fallback at call sites that have no session state.
+ */
+export function promptTextSuggestsPalantirMiniWorkflow(text: string): boolean {
   if (isPalantirMiniPluginExplicitlyDisabled(text)) return false;
   const normalized = text.toLowerCase();
   return PALANTIR_MINI_WORKFLOW_RESPONSE_MARKERS.some((marker) =>
     normalized.includes(marker),
   );
+}
+
+/**
+ * @deprecated Use {@link isPalantirMiniWorkflowResponseRequiredForState} (STATE-first).
+ * Thin alias over the surface-text recall hint, retained for back-compat with
+ * call sites/tests that have no session state. Demoted to a RECALL HINT: the
+ * marker list is a hint, not the gate.
+ */
+export function isPalantirMiniWorkflowResponseRequired(text: string): boolean {
+  return promptTextSuggestsPalantirMiniWorkflow(text);
 }
 
 /**

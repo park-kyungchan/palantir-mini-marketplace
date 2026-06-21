@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   ONTOLOGY_ENGINEERING_RESPONSE_REQUIRED_FIELDS,
   ONTOLOGY_ENGINEERING_RESPONSE_SSOT_REQUIREMENTS,
+  PALANTIR_MINI_GOVERNED_ACTIVE_STATES,
   PALANTIR_MINI_WORKFLOW_RESPONSE_EXPLANATION_REQUIREMENTS,
   buildPalantirMiniWorkflowResponseTemplateContext,
   buildOntologyEngineeringResponseTemplateContext,
@@ -9,7 +10,9 @@ import {
   detectPalantirMiniPluginOptOut,
   isPalantirMiniPluginExplicitlyDisabled,
   isPalantirMiniWorkflowResponseRequired,
+  isPalantirMiniWorkflowResponseRequiredForState,
   isOntologyEngineeringResponseRequired,
+  promptTextSuggestsPalantirMiniWorkflow,
   renderPalantirMiniPlainLanguageSummary,
   validateDtcApprovalCardText,
   validatePalantirMiniWorkflowResponseTemplateText,
@@ -29,6 +32,50 @@ describe("palantir-mini workflow response requirements", () => {
       ),
     ).toBe(true);
     expect(isOntologyEngineeringResponseRequired("Summarize this plain text note.")).toBe(false);
+  });
+
+  test("STATE-first footer predicate: footer required across the whole governed lifecycle", () => {
+    // Every governed-active state requires the footer.
+    for (const frontDoorState of PALANTIR_MINI_GOVERNED_ACTIVE_STATES) {
+      expect(isPalantirMiniWorkflowResponseRequiredForState({ frontDoorState })).toBe(true);
+    }
+    // Representative spot checks (full lifecycle + the mutation-authorized terminal).
+    expect(
+      isPalantirMiniWorkflowResponseRequiredForState({ frontDoorState: "digital_twin_approved" }),
+    ).toBe(true);
+    expect(
+      isPalantirMiniWorkflowResponseRequiredForState({ frontDoorState: "semantic_intent_questions_open" }),
+    ).toBe(true);
+  });
+
+  test("STATE-first footer predicate: non-governed poles + no envelope drop the footer (relaxation)", () => {
+    expect(isPalantirMiniWorkflowResponseRequiredForState({ frontDoorState: "captured" })).toBe(false);
+    expect(isPalantirMiniWorkflowResponseRequiredForState({ frontDoorState: "superseded" })).toBe(false);
+    expect(isPalantirMiniWorkflowResponseRequiredForState({ frontDoorState: undefined })).toBe(false);
+    expect(isPalantirMiniWorkflowResponseRequiredForState({})).toBe(false);
+  });
+
+  test("STATE-first footer predicate: explicit opt-out wins even in a governed state", () => {
+    expect(
+      isPalantirMiniWorkflowResponseRequiredForState({
+        frontDoorState: "digital_twin_approved",
+        pluginOptOut: { explicit: true },
+      }),
+    ).toBe(false);
+  });
+
+  test("UNDER-BLOCK guard: a marker-bearing note is relaxed only when STATE is non-governed", () => {
+    // The bd-002 over-block: a plain note that merely MENTIONS ontology vocabulary.
+    // captured/superseded -> NOT required (relaxed); governed -> still required.
+    expect(
+      isPalantirMiniWorkflowResponseRequiredForState({ frontDoorState: "captured" }),
+    ).toBe(false);
+    expect(
+      isPalantirMiniWorkflowResponseRequiredForState({ frontDoorState: "digital_twin_approved" }),
+    ).toBe(true);
+    // The recall hint still fires on the vocabulary (used only as the no-state fallback).
+    expect(promptTextSuggestsPalantirMiniWorkflow("This note mentions objecttype and ontology.")).toBe(true);
+    expect(promptTextSuggestsPalantirMiniWorkflow("Do not use palantir-mini. objecttype.")).toBe(false);
   });
 
   test("honors explicit user opt-out for palantir-mini plugin workflow enforcement", () => {
