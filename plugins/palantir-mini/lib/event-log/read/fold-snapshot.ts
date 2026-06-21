@@ -202,6 +202,8 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
       // Improvement #2 — developer/source-mutation fast-path audit events
       case "source_mutation_approval_granted":  snapshot.source_mutation_approval_granted = (snapshot.source_mutation_approval_granted ?? 0) + 1; break;
       case "source_mutation_approval_denied":   snapshot.source_mutation_approval_denied = (snapshot.source_mutation_approval_denied ?? 0) + 1; break;
+      // 7.23.0 — drift_rebind composed RESUME audit event
+      case "drift_rebind_envelope_advanced":    snapshot.drift_rebind_envelope_advanced = (snapshot.drift_rebind_envelope_advanced ?? 0) + 1; break;
       // OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage
       case "universal_ontology_entry_transitioned": snapshot.universal_ontology_entry_transitioned = (snapshot.universal_ontology_entry_transitioned ?? 0) + 1; break;
       default: {

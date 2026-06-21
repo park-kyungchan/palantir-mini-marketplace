@@ -134,6 +134,9 @@ const ONTOLOGY_ENGINEERING_WORKFLOW_PUBLIC_FIELDS = [
   // 7.22.2 — rebind_registered (pure-provenance re-elevation) inputs
   "rebindRids",
   "rebindProposalRef",
+  // 7.23.0 — drift_rebind (composed governed RESUME) inputs
+  "promptId",
+  "promptHash",
 ] as const satisfies readonly (keyof OntologyEngineeringWorkflowHandlerInput)[];
 
 const EVENTS_LOG_ROTATE_PUBLIC_FIELDS = [
@@ -340,7 +343,7 @@ describe("mcp-server prompt identity schemas", () => {
     );
 
     expect(props.action?.type).toBe("string");
-    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "approve_sic", "approve_technology_recommendation", "status", "elevate", "approve_source_mutation"]);
+    expect(props.action?.enum).toEqual(["start", "turn", "draft_sic", "approve_sic", "approve_technology_recommendation", "status", "elevate", "drift_rebind", "approve_source_mutation"]);
     expect(props.project?.type).toBe("string");
     expect(props.projectRoot?.type).toBe("string");
     expect(props.fdeSessionRef?.type).toBe("string");

@@ -240,13 +240,17 @@ const TOOLS: ToolSpec[] = [
       "around the internal FDEOntologyEngineeringSession and returns runtime-neutral workflow state. " +
       "The `elevate` action drives the composed GOVERNED ingest -> lint -> draft_sic -> approve -> register " +
       "flow as ONE call: it registers ONLY when the caller explicitly supplies an approved SIC + DTC status " +
-      "and readyForDigitalTwin; otherwise it returns awaiting-approval and registers nothing. The individual " +
+      "and readyForDigitalTwin; otherwise it returns awaiting-approval and registers nothing. " +
+      "The `drift_rebind` action is the composed GOVERNED RESUME flow: it re-binds a PERSISTED minted approved " +
+      "SIC + DTC to the CURRENT prompt envelope (copying the minted approvalRefs forward — never minting, never " +
+      "bypassing), advances the envelope to digital_twin_approved, then drives the existing fail-closed " +
+      "rebind_registered re-elevation in ONE call. The individual " +
       "mutating actions (register/ingest/lint) stay direct-caller and are NOT exposed here.",
     inputSchema: {
       type: "object",
       required: ["projectRoot", "action"],
       properties: {
-        action: { type: "string", enum: ["start", "turn", "draft_sic", "approve_sic", "approve_technology_recommendation", "status", "elevate", "approve_source_mutation"] },
+        action: { type: "string", enum: ["start", "turn", "draft_sic", "approve_sic", "approve_technology_recommendation", "status", "elevate", "drift_rebind", "approve_source_mutation"] },
         project: { type: "string", description: "Legacy alias for projectRoot. Direct/internal callers may pass this field; public MCP callers should use projectRoot." },
         projectRoot: { type: "string", description: "Canonical absolute project root. Required for public MCP calls." },
         universalOntologyEntryRef: { type: "string" },
@@ -285,6 +289,8 @@ const TOOLS: ToolSpec[] = [
         frontDoorRuntime: { type: "string", enum: ["claude", "codex", "cursor", "gemini", "unknown"], description: "Improvement #2: front-door runtime for the pointer freshness re-check." },
         rebindRids: { type: "array", items: { type: "string" }, description: "7.22.2: VERIFIED already-registered rids to re-elevate (direct-caller action `rebind_registered`). Fail-closed: intersected with the live getOntology snapshot; a rid not already-registered is rejected, never registered-new." },
         rebindProposalRef: { type: "string", description: "7.22.2: OPTIONAL audit pointer to the approved drift-proposal the rebindRids derive from. Provenance link only; authorization comes from the live-snapshot proof + the SIC/DTC gate." },
+        promptId: { type: "string", description: "7.23.0 (`drift_rebind`): prompt-front-door promptId of the CURRENT captured envelope the persisted approved SIC+DTC are re-bound to. Used to locate the current envelope (else falls back to the current pointer)." },
+        promptHash: { type: "string", description: "7.23.0 (`drift_rebind`): sha256 of the current captured prompt; continuity anchor the re-keyed contract records carry so the PreToolUse gate's contractContinuityMatches passes for the current prompt." },
       },
       additionalProperties: false,
     },
