@@ -134,3 +134,73 @@ quarantine rejects" was mostly a **re-scan illusion** — 6 distinct poison line
   - **CTX-1** (NEEDS-DESIGN; already in the 2026-06-20 CTX queue) — design-prior injection + single-choice framing; resolve the (a) per-turn prior-ranking vs (b) extend `TurnCardDecisionSpec` fork as a design decision first (schema **rule 08** gates fork b). Do NOT patch.
 - **Owner-decision (harness-upstream, not pm):** G-content — ~11.78MB committed marketing PNG + personal KakaoTalk screenshots + top-level debug/marketing HTML (commit `698705e` / PR #91) vs the "hosts no project content" invariant.
 - **Full handoff:** `harness-upstream/_workspace/2026-06-21-bottleneck-cluster-verification/HANDOFF-remaining-backlog.md`.
+
+---
+
+## Bottleneck-cluster closure — 2026-06-21 (pm 7.22.4 + 7.23.0 shipped; verify live)
+
+> Closure pass for the 2026-06-21 bottleneck track. Versions/SHAs/counts are POINTERS —
+> verify live (`plugins/palantir-mini/.claude-plugin/plugin.json`, `git log`, CHANGELOG).
+
+- **DONE — pm 7.22.4 SHIPPED** (PR #182): bottleneck bundle.
+  - **D outcome-pairs degeneracy → RESOLVED.** Degenerate-pair skip guard added in **BOTH**
+    write paths — `lib/outcome-pairing/track.ts` (the `writeClosedMarker` path) **and**
+    `hooks/outcome-pair-tracker.ts` — so a pair is not emitted when `baseline==refined &&
+    score==−1`. Existing pairs untouched (append-only).
+  - **A-secondary tool-classifier verbs → RESOLVED.** Mutating denylist widened with the
+    pre-existing-gap write verbs (sponge / curl -o / wget / gh api-mutate / gh release / gh repo
+    / git worktree·config·update-ref / tar -x / unzip / kubectl / docker). **No blanket
+    `python|node`** — the anti-over-block posture is preserved.
+  - **H-label → RESOLVED.** Session-start now emits `p.model`; the stale `claude-opus-4-6`
+    literal is dropped and `SessionStartedEnvelope.payload.model` is made optional
+    (reference-don't-pin).
+  - **P3 agent seeds → RESOLVED (done).** The 5 agent-definition seeds
+    (`implementer`/`hook-builder`/`plugin-maintainer`/`protocol-designer`/`project-implementer`)
+    flipped `model:"sonnet"` → `"opus"`, aligning with the opus-only policy. **The OPEN-table P3
+    row is now closed by this entry.**
+- **DONE — pm 7.23.0 SHIPPED** (PR #183): **E `drift_rebind`** — the composed GOVERNED RESUME
+  action is built + merged. It re-binds a persisted **MINTED approved** SIC+DTC to the current
+  prompt envelope, which drives the unchanged fail-closed `rebind_registered` (single commit
+  boundary; **no** mint, **no** bypass, **no** new rid; emits a `drift_rebind_envelope_advanced`
+  audit event). Passed adversarial governance + correctness review; also cleared a pre-existing
+  executor-registration fingerprint drift. **→ The `rebind_registered` operability follow-up
+  logged in the §"Altitude-2 drift-fold re-bind" section above (the "NEW pm follow-up
+  (operability gap) — STATUS QUEUED" bullet) is now RESOLVED via `drift_rebind`.**
+- **STILL OPEN after this closure:**
+  - **LIVE 13-rid Altitude-2 register** — now a SINGLE `drift_rebind` MCP call once pm 7.23.0 is
+    installed + ON. Preconditions verified present in `~/harness-upstream/.palantir-mini`
+    (approved SIC `altitude-2-dynamic-drift-re-bind-re-elevate-atop` + approved DTC; the 13 rids
+    = `get_ontology` ∩ SIC; `atopWhich` auto-stamped from git HEAD at commit). **Recommended next
+    substantive item.**
+  - **FULL pm MCP/Skill/Agent/Hook MetaOptimization RE-REVIEW** — user-directed, explicitly
+    sequenced to run **AFTER** the live 13-rid register completes (user sequencing this session).
+    Carry-forward observation for it: the tool-classifier over-blocks **read**-subcommand forms
+    (e.g. `git config --get`, `git worktree list`) consistent with the file's PRE-EXISTING
+    convention (`git tag` / `git stash` list forms already over-blocked) — a classifier-precision
+    pass candidate, NOT fixed in 7.22.4 (surgical scope: 7.22.4 only widened the MUTATION
+    denylist).
+  - **C(a) bun-test CI gate → BLOCKED.** `plugins/palantir-mini/tests/KNOWN_BROAD_SUITE_FAILURES.md`
+    (last refreshed 2026-05-11) is **doubly stale** at pm 7.23.0: ~14/15 listed entries now PASS,
+    and **5** genuinely-failing test files are MISSING from it —
+    `tests/docs/reload-per-runtime.test.ts` (doc drift: Codex-only vs Codex+Claude),
+    `tests/lib/codex/palantir-mini-activation-policy.test.ts`,
+    `tests/ontology/self/hook-registration.test.ts`,
+    `tests/ontology/self/plugin-manifest-registration.test.ts` (expects 45 skills, got 44),
+    `tests/ontology/self/skill-registration.test.ts`. These 5 are **PRE-EXISTING drift on pm
+    main, NOT from this session.** Unblock path: refresh the ledger (drop now-green rows;
+    triage/fix the 5 red files), THEN land the validated wrapper (JUnit-reporter based; known-set
+    parsed by `tests/` path; NEW = failing − known) + a `package.json` `test:ci` script + a
+    blocking step in `.github/workflows/palantir-mini-integrity.yml`.
+  - **F giant-file split** — modular split of `pm-semantic-intent-gate.ts` (~3k) +
+    `lib/lead-intent/contracts.ts` (~2.4k) deferred (cohesive/test-partitioned; `contracts.ts`
+    fan-in ~54 + rule-08 exposure). Do when a relational-card change forces it.
+  - **marketplace.json 3-copy collapse** — deferred (low value; root vs plugin copies serve
+    different host-read paths; CI version-sync already keeps them consistent).
+- **DONE elsewhere this session (cross-repo, recorded for completeness):**
+  - **C(c)** marketplace README de-pinned (Current-release line → references `CHANGELOG.md`;
+    PR #184).
+  - **G-content** harness-upstream orphan removal (5 files) + the CTX-1 design-decision doc
+    (harness-upstream PR #97); banners + `index/privacy.html` retained.
+  - **KakaoTalk history purge** — 9 `KakaoTalk_20260619_*.jpg` purged from harness-upstream
+    history (filter-repo + force-with-lease).
+- **Full handoff:** `harness-upstream/_workspace/2026-06-21-bottleneck-cluster-verification/HANDOFF-remaining-backlog.md`.
