@@ -16,3 +16,5 @@ jobs:
         run: bun run plugins/palantir-mini/scripts/verify-no-semantic-root-fork.ts
       - name: Verify marketplace integrity
         run: bun run ci/verify-marketplace-integrity.ts
+      - name: Typecheck
+        run: cd plugins/palantir-mini && (bun install --frozen-lockfile || bun install) && bun run typecheck
