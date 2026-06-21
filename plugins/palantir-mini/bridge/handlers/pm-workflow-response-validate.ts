@@ -5,7 +5,7 @@
 import {
   PALANTIR_MINI_WORKFLOW_RESPONSE_TEMPLATE_DOC,
   buildPalantirMiniWorkflowResponseTemplateContext,
-  isPalantirMiniWorkflowResponseRequired,
+  promptTextSuggestsPalantirMiniWorkflow,
   validatePalantirMiniWorkflowResponseTemplateText,
   type PalantirMiniWorkflowResponseTemplateValidation,
 } from "../../lib/ontology-engineering-response-template";
@@ -39,7 +39,7 @@ export default async function workflowResponseValidate(
 
   const promptText = args.promptText ?? text;
   const required =
-    Boolean(args.forceRequired) || isPalantirMiniWorkflowResponseRequired(promptText);
+    Boolean(args.forceRequired) || promptTextSuggestsPalantirMiniWorkflow(promptText);
   const validation = validatePalantirMiniWorkflowResponseTemplateText(text);
   const runtime = args.runtime ?? "unknown";
   const enforcementSurface = args.enforcementSurface ?? "MCP";

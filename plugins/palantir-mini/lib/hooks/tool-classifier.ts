@@ -221,18 +221,49 @@ function extractMcpToolName(normalizedName: string): string | undefined {
 export function isReadOnlyBashCommand(command: string): boolean {
   const trimmed = command.trim();
   if (trimmed.length === 0) return true;
-  if (/[;&]\s*(rm|mv|cp|mkdir|touch|chmod|chown)\b/.test(trimmed)) return false;
-  if (/(^|[^<])>{1,2}[^>]/.test(trimmed)) return false;
-  if (/\btee\s+/.test(trimmed)) return false;
-  if (/\bgit\s+(add|commit|push|stash|merge|rebase|checkout|switch|reset|clean|pull)\b/.test(trimmed)) {
+
+  // --- DENYLIST-WINS: any match below => writes => NOT read-only ---
+  // Decide on the RESOLVED write structure (redirect/verb/tee), never on the
+  // first-token vocabulary. The denylist is the authoritative "does-this-write"
+  // signal; everything else default-allows (read-only).
+
+  // Output redirection to a file/fd target: >, >>, 2>, &>, >| (clobber).
+  // `(^|[^<])` excludes the `<` of a `<(...)`/`<<` read; `(\||[^>])` still catches
+  // a `>| file` clobber and a single trailing `>file`.
+  if (/(^|[^<])>{1,2}(\||[^>])/.test(trimmed)) return false;
+  // Bare trailing redirect with no following char on the line (e.g. `cmd >`).
+  if (/(^|[^<])>{1,2}\s*$/.test(trimmed)) return false;
+
+  // tee anywhere (pipeline write tail): `... | tee f`, `tee -a f`, `tee$VAR`.
+  if (/\btee\b/.test(trimmed)) return false;
+
+  // In-place edit flags on stream editors.
+  if (/\b(sed|perl)\b[^\n]*\s-[A-Za-z]*i\b/.test(trimmed)) return false;
+  if (/\b(sed|perl)\s+-i\b/.test(trimmed)) return false;
+
+  // Filesystem-mutating verbs anywhere in the command (covers piped/`;`/`&&` tails).
+  if (/\b(rm|mv|cp|mkdir|rmdir|touch|chmod|chown|ln|install|dd|truncate|mkfifo|mknod|shred)\b/.test(trimmed)) {
     return false;
   }
-  if (/\b(rm|mv|cp|mkdir|touch|chmod|chown)\b/.test(trimmed)) return false;
-  if (/\b(bun|npm|pnpm|yarn)\s+install\b/.test(trimmed)) return false;
-  if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(trimmed)) return false;
-  if (/\b(vercel|wrangler)\s+(deploy|env|project|link)\b/.test(trimmed)) return false;
 
-  return /^(pwd|ls\b|find\b|rg\b|grep\b|sed\b|cat\b|head\b|tail\b|nl\b|wc\b|git\s+(status|diff|show|log|rev-parse|branch|remote)\b|bun\s+test\b|bunx\s+tsc\b|gh\s+(pr\s+(view|list)|run\s+view|api\b))/.test(trimmed);
+  // Package managers — install/add/remove/update write to disk/lockfiles.
+  // Includes the short forms `i` (npm install), `un` (npm uninstall), `rm` (pnpm remove).
+  if (/\b(bun|npm|pnpm|yarn)\s+(install|add|remove|uninstall|update|upgrade|ci|link|i|un|rm)\b/.test(trimmed)) {
+    return false;
+  }
+  if (/\b(pip|pip3|pipx)\s+(install|uninstall)\b/.test(trimmed)) return false;
+
+  // git WRITE subcommands (read subcommands status/diff/show/log/... fall through to allow).
+  if (/\bgit\s+(add|commit|push|stash|merge|rebase|checkout|switch|reset|clean|pull|restore|tag|am|apply|cherry-pick|revert|mv|rm|fetch|init|clone)\b/.test(trimmed)) {
+    return false;
+  }
+
+  // gh / deploy write surfaces.
+  if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(trimmed)) return false;
+  if (/\b(vercel|wrangler)\s+(deploy|env|project|link|publish)\b/.test(trimmed)) return false;
+
+  // --- DEFAULT-ALLOW: nothing above matched => treat as read-only. ---
+  return true;
 }
 
 export function isOntologyContextQueryMutation(input: Record<string, unknown> | undefined): boolean {

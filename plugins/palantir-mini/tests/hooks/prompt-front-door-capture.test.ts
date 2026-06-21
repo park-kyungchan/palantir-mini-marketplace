@@ -137,7 +137,13 @@ describe("prompt-front-door-capture", () => {
     expect(secondEnvelope.previousPromptHash).toBe(firstPointer.promptHash);
   });
 
-  test("injects workflow response requirements context for palantir-mini mandatory prompts", async () => {
+  test("STATE-first (CTX-B): raw-capture turn (state=captured) does NOT auto-inject the footer", async () => {
+    // CTX-B relaxation: the footer is keyed to LIVE governance STATE, not prompt
+    // VOCABULARY. A freshly-captured envelope is `captured` (no governed contract
+    // open yet), so a prompt that merely MENTIONS palantir-mini/ontology vocabulary
+    // no longer trips the ~3.2k field-dump footer on the capture turn. The footer
+    // becomes required once the envelope advances into a governed-active state
+    // (covered by the STATE-predicate unit tests + the gate/stop hook tests).
     const root = makeTmpProject("ontology-template");
     process.env.PALANTIR_MINI_PROJECT = root;
     process.env.PALANTIR_MINI_EVENTS_FILE = eventsPathFor(root);
@@ -152,19 +158,11 @@ describe("prompt-front-door-capture", () => {
     });
 
     const ctx = result.hookSpecificOutput?.additionalContext ?? "";
-    // Ceiling covers the full assembled injection: base policy + Altitude-1 runbook
-    // pointer + the mandatory ontology-engineering response template. The template
-    // itself stays <=3200 (see ontology-engineering-response-template.test.ts); this
-    // budget is the assembled total, raised for the additive runbook pointer line.
-    expect(ctx.length).toBeLessThanOrEqual(3600);
-    expect(ctx).toContain("palantir-mini user requirement prompt response requirements are mandatory");
-    expect(ctx).toContain("현재 workflow phase");
-    expect(ctx).toContain("선택된 palantir-mini workflow 또는 workflow gap");
-    expect(ctx).toContain("FDE session ref");
-    expect(ctx).toContain("Claude hooks");
-    expect(ctx).toContain("Codex");
-    expect(ctx).toContain("runtime-native question UI");
-    expect(ctx).toContain("what this request means");
+    // Base capture policy is always present.
+    expect(ctx).toContain("palantir-mini prompt front door captured this prompt.");
+    // The governed footer field dump is NOT appended on the captured-state turn.
+    expect(ctx).not.toContain("palantir-mini user requirement prompt response requirements are mandatory");
+    expect(ctx).not.toContain("현재 workflow phase");
   });
 
   test("skips Codex prompt-front-door writes for explicit palantir-mini plugin opt-out", async () => {
