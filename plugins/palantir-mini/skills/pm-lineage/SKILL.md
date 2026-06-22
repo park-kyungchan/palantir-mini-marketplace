@@ -4,7 +4,6 @@ category: maintenance
 surfaceStatus: public-core
 description: "Cross-project workflow lineage query — joins events.jsonl across registered +..."
 allowed-tools:
-  - mcp__plugin_palantir-mini_palantir-mini__pm_workflow_lineage_query
   - mcp__palantir-mini__pm_substrate_query
   - Read
   - Bash
@@ -26,7 +25,7 @@ Three modes, selected by `$ARGUMENTS` shape:
 
 ## Mode: query — Cross-Project Workflow Lineage Query
 
-You are invoked to query events across registered + auto-discovered palantir-mini projects. Wrap the `pm_workflow_lineage_query` MCP tool, parse `$ARGUMENTS` filter clauses, and present results as a Markdown report.
+You are invoked to query events across registered + auto-discovered palantir-mini projects. Wrap the `pm_substrate_query` MCP tool in mode `workflow` (the consolidated successor to the removed `pm_workflow_lineage_query` — see `bridge/handlers/_deprecation-map.ts`), parse `$ARGUMENTS` filter clauses, and present results as a Markdown report.
 
 ## Procedure
 
@@ -51,7 +50,7 @@ Build the args JSON. Skip clauses not provided.
 
 ### Phase 2 — Invoke MCP
 
-Call `mcp__plugin_palantir-mini_palantir-mini__pm_workflow_lineage_query` with the constructed args.
+Call `mcp__palantir-mini__pm_substrate_query` with `{ mode: "workflow", ...args }` (the constructed args).
 
 ### Phase 3 — Render Markdown
 

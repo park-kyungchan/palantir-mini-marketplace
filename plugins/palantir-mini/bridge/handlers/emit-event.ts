@@ -21,6 +21,39 @@ interface EmitEventArgs {
   envelope: Omit<EventEnvelope, "sequence">;
 }
 
+/**
+ * F1 / ssot/palantir/ontology/approval-and-lineage.md (ActionType = SOLE write-back
+ * commit gate) — commit-provenance event types that assert "the governed commit path
+ * ran" (an ActionType committed edits, or a submission-criteria gate rejected them).
+ * These are emitted EXCLUSIVELY by lib/actions/commit.ts (commitEdits) via
+ * appendEventAtomic — NEVER through this MCP boundary. Accepting them here would let a
+ * caller forge `edit_committed`/`submission_criteria_failed` with an arbitrary
+ * actionTypeRid, bypassing the A2 ActionType gate and poisoning the fold's
+ * registeredPrimitives + audit counts. Fail closed: reject direct emit of these types.
+ */
+const RESERVED_PROVENANCE_TYPES: ReadonlySet<string> = new Set([
+  "edit_committed",
+  "submission_criteria_failed",
+]);
+
+/**
+ * F1 — Returns an error message when the envelope's type is a reserved commit-provenance
+ * type that must only originate from the governed commit path, or null when allowed.
+ */
+export function validateReservedProvenanceType(
+  envelope: Omit<EventEnvelope, "sequence">,
+): string | null {
+  if (RESERVED_PROVENANCE_TYPES.has(envelope.type)) {
+    return (
+      `emit_event refuses reserved commit-provenance type "${envelope.type}": this type ` +
+      "may only be emitted by the governed commit path (lib/actions/commit.ts via the " +
+      "ActionType gate), not by a direct emit_event. Commit through commit_edits so the " +
+      "ActionType write-back gate (ssot/palantir approval-and-lineage) applies."
+    );
+  }
+  return null;
+}
+
 interface EmitEventResult {
   eventId:  string;
   sequence: number;
@@ -123,6 +156,18 @@ export default async function emitEvent(rawArgs: unknown): Promise<EmitEventResu
   }
   if (!args.envelope || typeof args.envelope !== "object") {
     throw new Error("emit_event: `envelope` is required");
+  }
+
+  // F1 — fail-closed: reject direct emit of reserved commit-provenance types. No env
+  // bypass; this is a governance invariant (ActionType = sole write-back commit gate),
+  // not an advisory grading check.
+  const provenanceViolation = validateReservedProvenanceType(args.envelope);
+  if (provenanceViolation !== null) {
+    const err = new Error(`emit_event: ${provenanceViolation}`) as Error & {
+      errorClass?: string;
+    };
+    err.errorClass = "reserved_provenance_type_direct_emit";
+    throw err;
   }
 
   // rule 26 §R5 advisory / hard-enforce

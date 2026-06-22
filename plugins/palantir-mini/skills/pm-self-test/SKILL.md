@@ -3,7 +3,7 @@ name: pm-self-test
 category: maintenance
 surfaceStatus: public-core
 description: "End-to-end smoke test of the plugin-only substrate. Runs schema pin check, codegen..."
-allowed-tools: Read Bash mcp__plugin_palantir-mini_palantir-mini__verify_schema_pin mcp__plugin_palantir-mini_palantir-mini__verify_codegen_headers mcp__plugin_palantir-mini_palantir-mini__pm_plugin_self_check mcp__plugin_palantir-mini_palantir-mini__pm_rule_audit mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__pm_preamble
+allowed-tools: Read Bash mcp__plugin_palantir-mini_palantir-mini__pm_plugin_self_check mcp__plugin_palantir-mini_palantir-mini__pm_rule_audit mcp__plugin_palantir-mini_palantir-mini__emit_event mcp__plugin_palantir-mini_palantir-mini__pm_substrate_query
 effort: high
 disable-model-invocation: true
 ---
@@ -12,23 +12,27 @@ disable-model-invocation: true
 
 Sequential checks that verify the plugin-only substrate is healthy end-to-end.
 
-Start by calling `mcp__plugin_palantir-mini_palantir-mini__pm_preamble` to load project context.
+Start by calling `mcp__plugin_palantir-mini_palantir-mini__pm_substrate_query` in mode `session-opener` (the consolidated successor to the removed `pm_preamble` — see `bridge/handlers/_deprecation-map.ts`) to load project context.
 
 ## Check 1 — Schema pin
 
+The standalone `verify_schema_pin` tool was consolidated into `pm_plugin_self_check`; read the schema-pin result from its aggregate (Check 3) `schemaPinResult` field.
+
 ```
-mcp__plugin_palantir-mini_palantir-mini__verify_schema_pin({})
+mcp__plugin_palantir-mini_palantir-mini__pm_plugin_self_check({})  // read .schemaPinResult
 ```
 
-Expected: `{ status: "pass" }`. Plugin `compatibleSchemaVersions` must match installed `~/.claude/schemas/` version. A mismatch here means the bundle was built against a different schema version than the current machine.
+Expected: `schemaPinResult: "pass"`. Plugin `compatibleSchemaVersions` must match installed `~/.claude/schemas/` version. A mismatch here means the bundle was built against a different schema version than the current machine.
 
 ## Check 2 — Codegen headers
 
+The standalone `verify_codegen_headers` tool was consolidated into `pm_plugin_self_check`; read the codegen-headers result from its aggregate (Check 3) `codegenHeadersResult` field.
+
 ```
-mcp__plugin_palantir-mini_palantir-mini__verify_codegen_headers({ fixture: "canary" })
+mcp__plugin_palantir-mini_palantir-mini__pm_plugin_self_check({})  // read .codegenHeadersResult
 ```
 
-Expected: `{ status: "pass", checkedFiles: N }`. Verifies that all generated files under `src/generated/` carry the required schema-version + generator-version headers (rule 08 §Codegen authority).
+Expected: `codegenHeadersResult: "pass"`. Verifies that all generated files under `src/generated/` carry the required schema-version + generator-version headers (rule 08 §Codegen authority).
 
 ## Check 3 — Plugin substrate aggregator
 

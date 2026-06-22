@@ -18,7 +18,7 @@
 import * as path from "node:path";
 import { execSync } from "node:child_process";
 import { emit } from "../scripts/log";
-import { findProjectRoot } from "../lib/project/find-root";
+import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
 import { readCurrentFDEOntologyEngineeringSession } from "../lib/fde-ontology-engineering/session-store";
 import {
   PROMPT_RUNTIMES,
@@ -964,13 +964,15 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
   const mode = effectiveGateMode.effectiveMode;
   const explicitMode = hasExplicitGateMode();
   const cwdProjectRoot = findProjectRoot(p.cwd ?? process.cwd());
-  const tmpRoot = path.resolve(process.env.TMPDIR ?? "/tmp");
-  const cwdProjectRootIsTempRoot =
+  // A stray `.palantir-mini` marker at $HOME or a temp dir must not arm the gate
+  // under HOME/tmp (canonical exclusion — supersedes the former TMPDIR-only check,
+  // now also covering $HOME + os.tmpdir() + /var/tmp; mirrors ontology-import-guard FIX 2).
+  const cwdProjectRootIsExcluded =
     cwdProjectRoot !== null &&
     cwdProjectRoot !== undefined &&
-    path.resolve(cwdProjectRoot) === tmpRoot;
+    isExcludedProjectRoot(cwdProjectRoot);
 
-  if (!mutationClass && !explicitMode && (!cwdProjectRoot || cwdProjectRootIsTempRoot)) {
+  if (!mutationClass && !explicitMode && (!cwdProjectRoot || cwdProjectRootIsExcluded)) {
     await emitOffBypass(p, projectRoot, mutating);
     return { message: "palantir-mini: prompt-DTC gate off" };
   }

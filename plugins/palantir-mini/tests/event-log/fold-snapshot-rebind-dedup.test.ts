@@ -68,6 +68,28 @@ describe("foldToSnapshot — dedup-by-rid latest-wins (Part B, 7.22.2)", () => {
     expect(x?.declaration?.v).toBe(2);
   });
 
+  test("F1 provenance guard — edit_committed WITHOUT a valid actionTypeRid is counted but NOT materialized", () => {
+    const forged = {
+      sequence: 1,
+      type: "edit_committed",
+      eventId: "forged-1" as never,
+      when: new Date().toISOString(),
+      atopWhich: "sha-X" as never,
+      throughWhich: { sessionId: "s" as never, toolName: "test", cwd: "/tmp" },
+      byWhom: { identity: "test-agent" },
+      // No actionTypeRid in payload — provenance is absent.
+      payload: {
+        appliedEdits: [objectEdit("rid.forged", { plainName: "Forged" })],
+        submissionCriteriaPassed: [],
+      },
+    } as unknown as EventEnvelope;
+    const snap = foldToSnapshot([forged]);
+    // The row is still counted (it exists in the log)...
+    expect(snap.edit_committed).toBe(1);
+    // ...but its edits are NOT trusted into the registered grammar.
+    expect(snap.registeredPrimitives!.objectTypes.length).toBe(0);
+  });
+
   test("dedup keys by FULL rid, never by coarse kind (object-family kinds stay distinct)", () => {
     const events = [
       commit(1, "sha-A", [

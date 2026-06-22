@@ -7,6 +7,23 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.27.0] - 2026-06-22 — sole-commit-gate closure + guard over-match defense + fail-closed resume + auditable gate refusal + cross-lens mutation alignment + skill→tool regex/ref remediation + MANIFEST packageVersion sync
+
+### Fixed
+- **F1 (partial) — narrowed the actionType-gate bypass** (`bridge/handlers/emit-event.ts`, `hooks/ontology-drift-fold.ts`, `hooks/second-brain-fold.ts`, `lib/event-log/read/fold-snapshot.ts`): the `emit_event` MCP handler is now fail-closed and rejects direct emission of the reserved provenance types (`edit_committed`, `submission_criteria_failed`); the fold-snapshot path adds a provenance guard. NOTE: full "sole commit gate" closure is **deferred to follow-up F1b** — `hooks/post-edit-propagate.ts` emits `edit_committed` via the shared `scripts/log.ts` `emit()` chokepoint with an unregistered `actionTypeRid` (`PostToolUse:<tool>`), so true closure needs either reclassifying that hook's event type or adding a registered-`actionTypeRid` filter at the governance sinks (fold-snapshot / ontology-staleness / classification-accuracy). A design decision, not a patch.
+- **F2 — guard over-match defense** (`hooks/write-scope-runtime-enforce.ts`, `hooks/lead-ontology-discovery-completeness.ts`, `hooks/prompt-dtc-enforcement-gate.ts` + the other guard sites): an `isExcludedProjectRoot` check is applied at the 5 guard sites so the runtime guards no longer over-match excluded project roots.
+- **F3 — cross-session resume fail-closed** (`lib/ontology-engineering-workflow/store.ts`): the cross-session resolution now fails closed on the ambiguous-only case rather than picking a candidate.
+- **F4 — auditable actionType-gate refusal** (`lib/actions/commit.ts`): the actionType-gate refusal is now auditable, reusing the existing `validation_phase_completed` provenance instead of a silent reject.
+- **F6 — skill→tool self-check hygiene** (`bridge/handlers/pm-plugin-self-check/check-skill-tool-declarations.ts`): the skill→tool reference regex was widened to the canonical tool prefix, and 4 newly-detected dangling refs (`skills/pm-lineage`, `skills/pm-self-test`) were remediated.
+
+### Changed
+- **F5 — agent mutation-capability cross-lens alignment** (`lib/agents/inventory.ts`): the agent inventory's mutation-capability classification is aligned across the capability lenses so the same agent reports a consistent mutating/read-only verdict everywhere.
+- **F7 — schemas-snapshot MANIFEST packageVersion sync** (`runtime-overlay/schemas-snapshot/MANIFEST.json`): `packageVersion` synced 1.82.0 → 1.83.1 to match the snapshot/canonical `@palantirKC/claude-schemas` `package.json` version that the field tracks (per the retired `scripts/refresh-runtime-overlay.ts` `readPackageVersion(sourcePath)` derivation). The field remains ungated (no test/self-check asserts it) and has no in-repo regenerator — the refresh script targets `ontology-shared-core` only, and `schemas-snapshot/` is plugin-owned/canonical (not synced) — so the value was set by hand from ground truth; the `fileSha256Index` regen remains tracked as residual debt.
+
+### Notes
+- Version bump 7.26.0 → 7.27.0 across all integrity-gated manifests (`package.json`, `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, root + plugin `.claude-plugin/marketplace.json`); `bun ci/verify-marketplace-integrity.ts` passes.
+- No agents/skills/hooks were added by F1–F7, so the self-ontology drift guards (agent/skill/hook counts + capability-split partitions) stay green unchanged.
+
 ## [7.26.0] - 2026-06-22 — broad-improvement Wave: actionType gate + cross-session resume + de-hardcode + fold locus shift + skill→tool hygiene
 
 ### Added

@@ -3,7 +3,7 @@
   "snapshotAt": "2026-06-09T16:49:15.395Z",
   "sourcePath": "~/.claude/schemas/",
   "purpose": "Plugin-owned portable @palantirKC/claude-schemas snapshot. Runtime imports resolve through #schemas/* by default. Upstream test files and runtime session state are intentionally excluded from the plugin substrate snapshot.",
-  "packageVersion": "1.82.0",
+  "packageVersion": "1.83.1",
   "totalFiles": 197,
   "totalBytes": 1865147,
   "fileSha256Index": {

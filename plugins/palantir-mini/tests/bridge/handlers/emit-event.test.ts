@@ -62,6 +62,46 @@ describe("emit_event handler", () => {
     expect(parsed.sequence).toBe(result.sequence);
   });
 
+  test("F1 — direct emit of reserved provenance type edit_committed is rejected (fail-closed)", async () => {
+    const project = makeTmpProject();
+    const envelope = {
+      eventId: "evt-forged-001",
+      when: "2026-04-26T00:00:00.000Z",
+      atopWhich: "deadbeef",
+      throughWhich: { sessionId: "sess-1", toolName: "test", cwd: project },
+      byWhom: { identity: "claude-code" as const },
+      type: "edit_committed" as never,
+      payload: {
+        actionTypeRid: "pm.self.ontology/action-type/forged",
+        appliedEdits: [
+          { kind: "object", rid: "rid.evil", properties: { primitiveKind: "ActionType", plainName: "Evil" } },
+        ],
+        submissionCriteriaPassed: [],
+      } as never,
+    };
+
+    await expect(emitEvent({ project, envelope })).rejects.toThrow(/reserved commit-provenance type/);
+    // Nothing was appended — the events file must not exist (or be empty).
+    const eventsPath = path.join(project, ".palantir-mini", "session", "events.jsonl");
+    const written = fs.existsSync(eventsPath) ? fs.readFileSync(eventsPath, "utf8").trim() : "";
+    expect(written).toBe("");
+  });
+
+  test("F1 — direct emit of submission_criteria_failed is also rejected", async () => {
+    const project = makeTmpProject();
+    const envelope = {
+      eventId: "evt-forged-002",
+      when: "2026-04-26T00:00:00.000Z",
+      atopWhich: "deadbeef",
+      throughWhich: { sessionId: "sess-1", toolName: "test", cwd: project },
+      byWhom: { identity: "claude-code" as const },
+      type: "submission_criteria_failed" as never,
+      payload: { actionTypeRid: "pm.self.ontology/action-type/forged", failedConstraints: [] } as never,
+    };
+
+    await expect(emitEvent({ project, envelope })).rejects.toThrow(/reserved commit-provenance type/);
+  });
+
   test("sequence assignment — two emits get distinct increasing sequences", async () => {
     const project = makeTmpProject();
     const baseEnv = {

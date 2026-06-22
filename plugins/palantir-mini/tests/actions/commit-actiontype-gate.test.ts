@@ -39,7 +39,7 @@ function eventLines(): Array<{ type: string; [k: string]: unknown }> {
 }
 
 describe("A2 ActionType commit gate", () => {
-  test("unregistered free-text rid is REFUSED (fail-closed, no append)", async () => {
+  test("unregistered free-text rid is REFUSED (fail-closed) AND audited (F4)", async () => {
     const result = await commitEdits({
       project: TMP,
       actionTypeRid: "totally-made-up-rid",
@@ -50,11 +50,25 @@ describe("A2 ActionType commit gate", () => {
     expect(result.result).toBe("INVALID");
     expect(result.committed).toBe(false);
     expect(result.errorClass).toBe("unregistered_action_type");
-    expect(result.eventType).toBe("none");
+    // F4 — the refusal is now AUDITABLE via a reused validation_phase_completed event.
+    expect(result.eventType).toBe("validation_phase_completed");
 
-    // No edit_committed (or any) event persisted.
     const events = eventLines();
+    // Fail-closed preserved: NO edit_committed despite the audit append.
     expect(events.some((e) => e.type === "edit_committed")).toBe(false);
+
+    // F4 — exactly one audit event recording the fail-closed refusal, carrying the
+    // errorClass and the rule-26 §R5 refinementTarget.
+    const audits = events.filter(
+      (e) => e.type === "validation_phase_completed",
+    ) as Array<{
+      payload?: { passed?: boolean; errorClass?: string };
+      withWhat?: { refinementTarget?: { kind?: string; filePathOrRid?: string } };
+    }>;
+    expect(audits).toHaveLength(1);
+    expect(audits[0]!.payload?.passed).toBe(false);
+    expect(audits[0]!.payload?.errorClass).toBe("unregistered_action_type");
+    expect(audits[0]!.withWhat?.refinementTarget?.filePathOrRid).toBe("totally-made-up-rid");
   });
 
   test("built-in self-ontology rid PASSES", async () => {

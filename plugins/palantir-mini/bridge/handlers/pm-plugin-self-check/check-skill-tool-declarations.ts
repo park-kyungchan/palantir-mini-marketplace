@@ -42,8 +42,19 @@ export interface SkillToolDeclarationsCheckResult {
   }>;
 }
 
-/** mcp__palantir-mini__<token> extractor (token = [A-Za-z0-9_]+). */
-const TOOL_TOKEN_RE = /mcp__palantir-mini__([a-zA-Z0-9_]+)/g;
+/**
+ * Skill allowed-tools refs appear in TWO equivalent token forms that BOTH resolve
+ * to the same live MCP TOOLS registry entry:
+ *   - short form:     mcp__palantir-mini__<token>
+ *   - canonical form: mcp__plugin_palantir-mini_palantir-mini__<token>
+ * A ref in EITHER form whose <token> names no live (and no dep-mapped) tool is a
+ * dangling adapter binding. The canonical alternative is ordered FIRST so its longer
+ * literal prefix anchors before the short literal can mis-match inside it. The matched
+ * token is captured by whichever group fired (group 1 canonical, group 2 short).
+ * Token = [A-Za-z0-9_]+.
+ */
+const TOOL_TOKEN_RE =
+  /mcp__plugin_palantir-mini_palantir-mini__([a-zA-Z0-9_]+)|mcp__palantir-mini__([a-zA-Z0-9_]+)/g;
 
 /**
  * Pure token classifier — unit-testable without filesystem access.
@@ -66,23 +77,45 @@ export function classifySkillTool(
   return { class: "dangling-unknown" };
 }
 
+/** Push every mcp__…__<token> match (either form) found in `text` into `tokens`. */
+function pushToolTokens(text: string, tokens: string[]): void {
+  let m: RegExpExecArray | null;
+  const re = new RegExp(TOOL_TOKEN_RE.source, "g");
+  while ((m = re.exec(text)) !== null) {
+    // Group 1 = canonical full-prefix form, group 2 = short form; exactly one fires.
+    const token = m[1] ?? m[2];
+    if (typeof token === "string") tokens.push(token);
+  }
+}
+
 /**
  * Self-contained frontmatter `allowed-tools` parser (no shared dependency),
  * matching the zero-extra-coupling style of the sibling checks. Tolerates BOTH
- * space- and comma-separated values (pm-orchestrate uses commas).
+ * the inline form (space- or comma-separated, e.g. pm-orchestrate) AND the YAML
+ * block-list form (`allowed-tools:` followed by indented `  - <token>` lines,
+ * e.g. pm-lineage) — the latter was previously skipped entirely, masking the
+ * dangling ref in pm-lineage.
  */
 function extractAllowedToolTokens(source: string): string[] {
   const fmMatch = source.match(/^---\n([\s\S]*?)\n---/);
   if (!fmMatch || typeof fmMatch[1] !== "string") return [];
   const block = fmMatch[1];
   const tokens: string[] = [];
-  for (const line of block.split("\n")) {
+  const lines = block.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
     const lineMatch = line.match(/^allowed-tools:\s*(.*)$/);
     if (!lineMatch || typeof lineMatch[1] !== "string") continue;
-    let m: RegExpExecArray | null;
-    const re = new RegExp(TOOL_TOKEN_RE.source, "g");
-    while ((m = re.exec(lineMatch[1])) !== null) {
-      if (typeof m[1] === "string") tokens.push(m[1]);
+    // Inline form: tokens on the same line.
+    pushToolTokens(lineMatch[1], tokens);
+    // Block-list form: when the value is empty, consume the following indented
+    // `  - <token>` continuation lines until a non-indented (next key) line.
+    if (lineMatch[1].trim().length === 0) {
+      for (let j = i + 1; j < lines.length; j++) {
+        const cont = lines[j] ?? "";
+        if (!/^\s/.test(cont) || cont.trim().length === 0) break;
+        pushToolTokens(cont, tokens);
+      }
     }
   }
   return tokens;

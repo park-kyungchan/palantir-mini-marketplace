@@ -89,8 +89,17 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
         // readable typed-primitive collection, binned by properties.primitiveKind
         // (ObjectType/ActionType/Function carried as kind:"object") or edit kind:"link".
         const reg = snapshot.registeredPrimitives!;
+        // F1 provenance guard (defense in depth) — ssot/palantir approval-and-lineage:
+        // an edit_committed row is only trustworthy if it carries the commit-provenance
+        // field the governed commit path always sets (payload.actionTypeRid, a non-empty
+        // string). A forged row lacking it (e.g. one that slipped past the emit boundary)
+        // is counted but its edits are NOT silently materialized into registeredPrimitives.
+        const provenanceRid = (ev.payload as { actionTypeRid?: unknown } | undefined)?.actionTypeRid;
+        const hasValidProvenance = typeof provenanceRid === "string" && provenanceRid.length > 0;
         // Defensive: historical / fixture edit_committed rows may omit appliedEdits.
-        const appliedEdits = Array.isArray(ev.payload?.appliedEdits) ? ev.payload.appliedEdits : [];
+        const appliedEdits = hasValidProvenance && Array.isArray(ev.payload?.appliedEdits)
+          ? ev.payload.appliedEdits
+          : [];
         for (const edit of appliedEdits) {
           if (edit.kind === "link") {
             // FOLD-1: carry the link's meaning (its endpoints + name) as the
