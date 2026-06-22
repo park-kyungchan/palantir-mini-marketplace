@@ -46,7 +46,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { emit } from "../scripts/log";
-import { findProjectRoot } from "../lib/project/find-root";
+import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
 import { readEvents } from "../lib/event-log/read";
 import { eventsPathFor } from "../scripts/log";
 import { isPlanArtifactPath } from "../lib/plan-root/resolve-plan-root";
@@ -365,6 +365,14 @@ export default async function leadOntologyDiscoveryCompleteness(
     if (!projectRoot) {
       return {
         message: `palantir-mini: lead-ontology-discovery-completeness skipped (not a tracked project)`,
+      };
+    }
+    // A stray `.palantir-mini` marker at $HOME or a temp dir must not make HOME/tmp the
+    // discovery-completeness frame and falsely BLOCK an edit (mirrors the
+    // ontology-import-guard FIX 2 exclusion).
+    if (isExcludedProjectRoot(projectRoot)) {
+      return {
+        message: `palantir-mini: lead-ontology-discovery-completeness skipped (excluded project root)`,
       };
     }
 

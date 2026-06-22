@@ -73,6 +73,13 @@ export function readCurrentOntologyEngineeringWorkflowState(
  * When `preferContractId` is supplied (the active state's `semanticIntentContractRef`),
  * a snapshot whose `contractId` matches is preferred, so the resolved snapshot binds
  * to the SIC the active workflow already references rather than an arbitrary prior one.
+ *
+ * F3 — fail-closed ONLY when AMBIGUOUS. With no `preferContractId`, returning the
+ * readdir FIRST-MATCH risks binding the resume to the wrong concept when multiple
+ * distinct minted SICs coexist on disk. So: exactly ONE distinct minted-approved
+ * contractId ⇒ return it (preserves the bd-011 single-SIC cross-session resume);
+ * >=2 DISTINCT minted contractIds and no `preferContractId` ⇒ return undefined
+ * (fail-closed; the caller's gate refuses rather than bind an arbitrary concept).
  */
 export function resolveProjectMintedSicSnapshot(
   projectRoot: string,
@@ -80,7 +87,10 @@ export function resolveProjectMintedSicSnapshot(
 ): SemanticIntentContract | undefined {
   const dir = ontologyEngineeringWorkflowStoreDir(projectRoot);
   if (!fs.existsSync(dir)) return undefined;
-  let fallback: SemanticIntentContract | undefined;
+  // Track distinct minted contractIds so we can fail-closed on ambiguity. The first
+  // snapshot seen for each contractId is retained (snapshots sharing a contractId are
+  // the same concept; only DISTINCT contractIds create the wrong-concept risk).
+  const byContractId = new Map<string, SemanticIntentContract>();
   for (const name of fs.readdirSync(dir)) {
     if (!name.endsWith(".json")) continue;
     let state: OntologyEngineeringWorkflowState;
@@ -94,7 +104,10 @@ export function resolveProjectMintedSicSnapshot(
     if (preferContractId !== undefined && snapshot.contractId === preferContractId) {
       return snapshot; // exact bind to the active workflow's SIC ref — best match
     }
-    if (fallback === undefined) fallback = snapshot;
+    if (!byContractId.has(snapshot.contractId)) byContractId.set(snapshot.contractId, snapshot);
   }
-  return fallback;
+  // No `preferContractId` match above. Single distinct minted SIC ⇒ unambiguous resume.
+  // Zero or >=2 distinct ⇒ fail-closed (undefined): the caller's gate then refuses.
+  if (byContractId.size === 1) return byContractId.values().next().value;
+  return undefined;
 }

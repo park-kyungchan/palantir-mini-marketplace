@@ -298,7 +298,18 @@ export function classifyMutationCapability(frontmatter: AgentFrontmatter, mdCont
   }
 
   const lowerContent = mdContent.toLowerCase();
-  const readonlyNegated = READONLY_NEGATION_PATTERNS.some((pattern) => pattern.test(lowerContent));
+  // A read-only negation phrase ("never edit…", "read-only") only SUPPRESSES the
+  // body's write/mutation evidence when the agent also BACKS it with a tool-level
+  // prohibition — i.e. disallowedTools forbid the local write tools. Otherwise a
+  // narrow scoping caveat ("Never edit engine files") in an agent that clearly
+  // writes (via an engine + governed emit_event, e.g. second-brain-fold) would
+  // falsely flip it to read-only — disagreeing with the self-ontology seed
+  // (roles.ts MUTATING_AGENT_IDS). Genuine read-only agents (researcher, verifier)
+  // declare `disallowedTools: Write, Edit, NotebookEdit`, so they keep the suppression.
+  const forbidsLocalWrites = [...LOCAL_MUTATION_TOOLS].some((tool) => disallowed.has(tool));
+  const readonlyNegated =
+    forbidsLocalWrites &&
+    READONLY_NEGATION_PATTERNS.some((pattern) => pattern.test(lowerContent));
   const mutationInstructionEvidence = readonlyNegated
     ? []
     : MUTATION_INSTRUCTION_PATTERNS

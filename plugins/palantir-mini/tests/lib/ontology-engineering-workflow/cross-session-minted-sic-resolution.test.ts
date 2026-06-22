@@ -108,6 +108,39 @@ describe("resolveProjectMintedSicSnapshot — cross-session minted-SIC BY-REF (b
     expect(isApprovedSemanticIntentContract(resolved)).toBe(true);
   });
 
+  test("F3 — >=2 DISTINCT minted SICs and no preferContractId ⇒ undefined (fail-closed, no wrong-concept bind)", () => {
+    const root = setupRoot("ambiguous");
+    const first = mintApprovedSemanticIntentContract();
+    const second: SemanticIntentContract = {
+      ...mintApprovedSemanticIntentContract(),
+      contractId: "semantic-intent:concept-ambiguous-second",
+    };
+    expect(first.contractId).not.toBe(second.contractId);
+
+    writeState(root, "session-first", first);
+    writeState(root, "session-second", second);
+
+    // No preferContractId ⇒ ambiguous ⇒ fail-closed rather than returning a first-match.
+    expect(resolveProjectMintedSicSnapshot(root)).toBeUndefined();
+
+    // But supplying the ref still binds (the prefer-by-ref branch is unaffected).
+    expect(resolveProjectMintedSicSnapshot(root, second.contractId)?.contractId).toBe(
+      second.contractId,
+    );
+  });
+
+  test("F3 — same contractId across multiple session files is NOT ambiguous ⇒ still resolves (single-SIC resume preserved)", () => {
+    const root = setupRoot("dup-same-id");
+    const minted = mintApprovedSemanticIntentContract();
+    // Two session files carrying the SAME minted contractId (one distinct concept).
+    writeState(root, "session-A", minted);
+    writeState(root, "session-B", minted);
+
+    const resolved = resolveProjectMintedSicSnapshot(root);
+    expect(resolved?.contractId).toBe(minted.contractId);
+    expect(isApprovedSemanticIntentContract(resolved)).toBe(true);
+  });
+
   test("no snapshot anywhere ⇒ undefined (fail-closed; the caller's gate then refuses)", () => {
     const root = setupRoot("none");
     writeState(root, "session-A", undefined);

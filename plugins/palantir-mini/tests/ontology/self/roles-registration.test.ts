@@ -22,9 +22,11 @@ import {
   MUTATING_AGENT_IDS,
   type RoleInstance,
 } from "#schemas/ontology/self";
+import { loadPluginAgentInventory } from "../../../lib/agents/inventory";
 
 const EXPECTED_ROLE_COUNT = 7;
 const AGENTS_DIR = path.join(import.meta.dir, "../../../agents");
+const PLUGIN_ROOT = path.resolve(import.meta.dir, "../../..");
 
 /** Live agent IDs read off the agents/ directory (the real principal universe). */
 const liveAgentIds = (): Set<string> =>
@@ -114,4 +116,27 @@ test("capability-split member RIDs reference real live agents + partition the 10
   for (const id of all) {
     expect(live.has(id)).toBe(true);
   }
+});
+
+// Cross-lens drift guard (FIX F5): the SEED partition (MUTATING_/READ_ONLY_AGENT_IDS)
+// and the RUNTIME inventory lens (classifyMutationCapability) must AGREE on every
+// agent's capability. They previously disagreed for second-brain-fold — its body says
+// "Never edit engine files" (a scoping caveat) and its tools carry no Write/Edit, so
+// the readonly-negation heuristic falsely classified it read-only, while the seed lists
+// it MUTATING (it writes graph.json via the engine + emits governed events). The fix
+// only honors a readonly-negation phrase when the agent ALSO declares write-forbidding
+// disallowedTools (genuine read-only agents do; second-brain-fold does not).
+test("classifyMutationCapability AGREES with the seed capability partition for all agents (FIX F5)", () => {
+  const inv = loadPluginAgentInventory(PLUGIN_ROOT);
+  expect(inv.length).toBe(10);
+  const mutating = new Set(MUTATING_AGENT_IDS);
+  const readOnly = new Set(READ_ONLY_AGENT_IDS);
+  for (const entry of inv) {
+    const seedSaysMutating = mutating.has(entry.name);
+    expect(readOnly.has(entry.name) || seedSaysMutating).toBe(true); // listed in exactly one
+    expect(entry.mutationCapability.capable).toBe(seedSaysMutating);
+  }
+  // Explicit pin on the agent that motivated the fix.
+  const sbf = inv.find((e) => e.name === "second-brain-fold");
+  expect(sbf?.mutationCapability.capable).toBe(true);
 });

@@ -17,6 +17,7 @@ import { test, expect, describe } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import { pmPluginSelfCheck } from "../../../../bridge/handlers/pm-plugin-self-check";
+import { TOOLS } from "../../../../bridge/mcp-server";
 import {
   checkSkillToolDeclarations,
   classifySkillTool,
@@ -73,5 +74,55 @@ describe("check-skill-tool-declarations (P1-11)", () => {
     const rel = await pmPluginSelfCheck({ mode: "release" });
     expect(rel.skillToolDeclarationsResult.status).toBe("pass");
     expect(rel.activeChecks).toContain("skill-tool-declarations");
+  });
+
+  // FIX F6: the check previously matched ONLY the short `mcp__palantir-mini__X` token
+  // form and ONLY inline `allowed-tools:` values — missing the canonical full-prefix
+  // form `mcp__plugin_palantir-mini_palantir-mini__X` AND the YAML block-list form
+  // (`allowed-tools:` + indented `  - <token>` lines, e.g. pm-lineage). A real dangling
+  // ref hid in pm-lineage as a result. These tests drive a synthetic plugin root to
+  // prove BOTH token forms in BOTH frontmatter shapes are now validated.
+  describe("FIX F6 — canonical full-prefix + list-form coverage", () => {
+    const live = new Set(TOOLS.map((t) => t.name));
+    // Pick a guaranteed-live tool name to build a resolving canonical-form ref.
+    const liveTool = [...live][0]!;
+
+    function makeFixtureRoot(skillFiles: Record<string, string>): string {
+      const root = fs.mkdtempSync(path.join(require("os").tmpdir(), "pm-stc-f6-"));
+      for (const [skill, body] of Object.entries(skillFiles)) {
+        const dir = path.join(root, "skills", skill);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, "SKILL.md"), body);
+      }
+      return root;
+    }
+
+    test("canonical full-prefix form: dangling ref is caught; live ref resolves", () => {
+      const root = makeFixtureRoot({
+        "f6-dangling": `---\nname: f6-dangling\nallowed-tools: mcp__plugin_palantir-mini_palantir-mini__this_tool_does_not_exist\n---\nbody\n`,
+        "f6-live": `---\nname: f6-live\nallowed-tools: mcp__plugin_palantir-mini_palantir-mini__${liveTool}\n---\nbody\n`,
+      });
+      try {
+        const r = checkSkillToolDeclarations(root);
+        expect(r.status).toBe("fail");
+        expect(r.danglingRefs.map((d) => d.tool)).toEqual(["this_tool_does_not_exist"]);
+        expect(r.danglingRefs[0]?.skill).toBe("f6-dangling");
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    test("YAML block-list form is parsed (canonical dangling token in a `  - ` line is caught)", () => {
+      const root = makeFixtureRoot({
+        "f6-list": `---\nname: f6-list\nallowed-tools:\n  - mcp__plugin_palantir-mini_palantir-mini__list_form_missing\n  - mcp__palantir-mini__${liveTool}\n  - Read\n---\nbody\n`,
+      });
+      try {
+        const r = checkSkillToolDeclarations(root);
+        expect(r.status).toBe("fail");
+        expect(r.danglingRefs.map((d) => d.tool)).toEqual(["list_form_missing"]);
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    });
   });
 });

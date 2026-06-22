@@ -40,7 +40,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { emit } from "../scripts/log";
-import { findProjectRoot } from "../lib/project/find-root";
+import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
 import { markPending } from "../lib/second-brain/pending-fold";
 import { resolveHostRuntimeIdentity } from "../lib/runtime/identity";
 
@@ -136,6 +136,14 @@ export default async function secondBrainFold(payload: unknown): Promise<HookRes
     const root = findProjectRoot(cwd);
     if (!root) {
       return { message: "palantir-mini: second-brain-fold skipped (not a tracked project)" };
+    }
+
+    // 1b. A stray `.palantir-mini` marker at $HOME or a temp dir must not make HOME/tmp
+    //     the fold target — that would write graph.json + emit governed lineage under the
+    //     wrong root (mirrors the ontology-import-guard FIX 2 exclusion). The .palantir-mini
+    //     existence gate below does NOT protect this case (the stray marker satisfies it).
+    if (isExcludedProjectRoot(root)) {
+      return { message: "palantir-mini: second-brain-fold skipped (excluded project root)" };
     }
 
     // 2. Gate on .palantir-mini/ existing

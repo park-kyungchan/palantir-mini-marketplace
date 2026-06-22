@@ -56,7 +56,7 @@ export interface CommitResult {
   passedCriteria:     string[];
   failedCriteria:     string[];
   sequence?:          number;
-  eventType:          "edit_committed" | "submission_criteria_failed" | "none";
+  eventType:          "edit_committed" | "submission_criteria_failed" | "validation_phase_completed" | "none";
   /**
    * O-2 observability: count of just-committed register-primitive edits (an edit
    * tagged `properties.primitiveKind` or a `kind:"link"` edit). Derived from
@@ -173,14 +173,46 @@ export async function commitEdits(req: CommitRequest): Promise<CommitResult> {
   }
 
   // A2 — fail-closed ActionType gate: refuse to commit through an unregistered ActionType.
+  // F4 — the refusal is AUDITABLE: append a `validation_phase_completed` (passed:false)
+  // audit event (REUSED type, no new event type) carrying errorClass
+  // "unregistered_action_type" + the rule-26 §R5 refinementTarget so the fail-closed
+  // refusal lands in the substrate instead of vanishing silently. Still INVALID, still
+  // no edit_committed — fail-closed is preserved.
   if (!isRegisteredActionType(req.project, req.actionTypeRid)) {
+    const lineage = baseLineage(req);
+    const refusalEnvelope: Omit<EventEnvelope, "sequence"> = {
+      ...lineage,
+      type: "validation_phase_completed",
+      payload: {
+        phase: "post_write",
+        passed: false,
+        errorClass: "unregistered_action_type",
+      },
+      withWhat: {
+        ...lineage.withWhat,
+        reasoning:
+          lineage.withWhat?.reasoning ??
+          `ActionType commit gate refused unregistered actionTypeRid "${req.actionTypeRid}" (not a built-in self-ontology verb and not a project-registered ActionType).`,
+        memoryLayers: ["procedural"],
+        // rule 26 §R5 — failed validation envelopes MUST carry a typed refinementTarget.
+        refinementTarget: {
+          kind: "other",
+          filePathOrRid: req.actionTypeRid,
+          description:
+            "Register this ActionType (self-ontology verb or project ActionType) before committing edits through it.",
+          confidenceLevel: "high",
+        },
+      },
+    };
+    const sequence = await appendEventAtomic(epath, refusalEnvelope);
     return {
       result: "INVALID",
       committed: false,
       perCriterionResult: evalResult.results,
       passedCriteria: evalResult.passedNames,
       failedCriteria: evalResult.failedNames,
-      eventType: "none",
+      sequence,
+      eventType: "validation_phase_completed",
       errorClass: "unregistered_action_type",
     };
   }

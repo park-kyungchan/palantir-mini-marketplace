@@ -143,6 +143,23 @@ describe("second-brain-fold — shim fail-safe", () => {
     expect(typeof result.message).toBe("string");
     expect(result.message).toContain("skipped");
   });
+
+  // FIX F2: a stray .palantir-mini marker AT $HOME must not make HOME the fold target
+  // (would write graph.json + emit governed lineage under the wrong root). The marker
+  // satisfies the .palantir-mini existence gate, so only isExcludedProjectRoot stops it.
+  test("skips when cwd resolves to an EXCLUDED root ($HOME with a stray .palantir-mini marker)", async () => {
+    delete process.env.PALANTIR_MINI_EVENTS_FILE;
+    const home = os.homedir();
+    const marker = path.join(home, ".palantir-mini");
+    const hadMarker = fs.existsSync(marker);
+    if (!hadMarker) fs.mkdirSync(marker, { recursive: true });
+    try {
+      const result = await secondBrainFold({ cwd: home, session_id: "sess-sbf-test" });
+      expect(result.message).toContain("excluded project root");
+    } finally {
+      if (!hadMarker) { try { fs.rmSync(marker, { recursive: true, force: true }); } catch { /* best-effort */ } }
+    }
+  });
 });
 
 describe("second-brain-fold — deterministic bookmark (P1-2)", () => {

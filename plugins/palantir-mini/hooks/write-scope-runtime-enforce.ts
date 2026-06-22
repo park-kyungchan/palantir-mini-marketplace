@@ -26,7 +26,7 @@ import * as fs   from "fs";
 import * as path from "path";
 import { emit }           from "../scripts/log";
 import { loadProjectScope } from "../lib/project-scope/loader";
-import { findProjectRoot } from "../lib/project/find-root";
+import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -283,6 +283,15 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
     // No project root → no writable-root constraint can be derived; pass-through.
     return {
       message:  `write-scope-runtime-enforce: SKIP (no project root from cwd=${cwd})`,
+      decision: "continue",
+    };
+  }
+  // A stray `.palantir-mini` marker at $HOME or a temp dir must not make HOME/tmp
+  // the writable-root frame and falsely BLOCK writes (defense-in-depth, mirrors the
+  // ontology-import-guard FIX 2 exclusion).
+  if (isExcludedProjectRoot(projectRoot)) {
+    return {
+      message:  `write-scope-runtime-enforce: SKIP (excluded project root ${projectRoot})`,
       decision: "continue",
     };
   }

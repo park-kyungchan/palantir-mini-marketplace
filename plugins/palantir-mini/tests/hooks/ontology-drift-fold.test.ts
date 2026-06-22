@@ -145,4 +145,21 @@ describe("ontology-drift-fold", () => {
     expect(typeof result.message).toBe("string");
     expect(result.message.length).toBeGreaterThan(0);
   });
+
+  // FIX F2: a stray .palantir-mini marker AT $HOME must not make HOME the drift frame
+  // (would detect drift + emit governed events under the wrong root). The marker passes
+  // the .palantir-mini existence gate, so only isExcludedProjectRoot stops it.
+  test("T6: cwd resolves to an EXCLUDED root ($HOME stray marker) → skip, no drift emit", async () => {
+    delete process.env.PALANTIR_MINI_EVENTS_FILE;
+    const home = os.homedir();
+    const marker = path.join(home, ".palantir-mini");
+    const hadMarker = fs.existsSync(marker);
+    if (!hadMarker) fs.mkdirSync(marker, { recursive: true });
+    try {
+      const result = await ontologyDriftFold({ cwd: home, session_id: "test" });
+      expect(result.message).toContain("excluded project root");
+    } finally {
+      if (!hadMarker) { try { fs.rmSync(marker, { recursive: true, force: true }); } catch { /* best-effort */ } }
+    }
+  });
 });

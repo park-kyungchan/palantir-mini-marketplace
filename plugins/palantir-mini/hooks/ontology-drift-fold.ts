@@ -31,7 +31,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { emit } from "../scripts/log";
-import { findProjectRoot } from "../lib/project/find-root";
+import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
 import { detectOntologyStalenessGit } from "../lib/event-log/ontology-staleness";
 
 /** Bypass envvar — turns this advisory lane OFF for a project/session (audited). */
@@ -56,6 +56,14 @@ export default async function ontologyDriftFold(payload: unknown): Promise<HookR
     const projectRoot = findProjectRoot(cwd);
     if (!projectRoot) {
       return { message: "palantir-mini: ontology-drift-fold skipped (not a tracked project)" };
+    }
+
+    // A stray `.palantir-mini` marker at $HOME or a temp dir must not make HOME/tmp the
+    // drift-detection frame + emit governed events under the wrong root (mirrors the
+    // ontology-import-guard FIX 2 exclusion). The existence gate below does NOT protect
+    // this case (the stray marker satisfies it).
+    if (isExcludedProjectRoot(projectRoot)) {
+      return { message: "palantir-mini: ontology-drift-fold skipped (excluded project root)" };
     }
 
     // Gate on .palantir-mini/ existing
