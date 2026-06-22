@@ -429,6 +429,13 @@
           },
           {
             "type": "command",
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/hooks/second-brain-fold.ts\"",
+            "timeout": 120,
+            "async": true,
+            "statusMessage": "Second-brain memory fold \u2014 fold session transcript into the project knowledge graph; forward verdicts to events.jsonl (advisory, never blocks)\u2026"
+          },
+          {
+            "type": "command",
             "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/scripts/run.ts\" stop-validate",
             "timeout": 75
           }

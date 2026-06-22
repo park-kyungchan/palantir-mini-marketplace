@@ -23,7 +23,9 @@
 //     only when totalChanges > 0.
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
+import { spawnSync } from "node:child_process";
 import { emit, projectRoot, eventsPathFor } from "../scripts/log";
 import { readEvents, foldToSnapshot } from "../lib/event-log/read";
 import { sessionResume } from "../bridge/handlers/session_resume";
@@ -36,6 +38,7 @@ import {
   detectStaleState,
 } from "./session-start/state-files";
 import { liveBranch } from "./session-start/branch";
+import { forwardFoldOutput } from "./second-brain-fold";
 import type { HookPayload, HookResult } from "./session-start/types";
 
 // Backward-compat re-exports for tests + external callers
@@ -96,6 +99,64 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
       }
     } catch (err) {
       process.stderr.write(`[session-start] session_resume skipped: ${(err as Error).message}\n`);
+    }
+
+    // Second-brain crash-recovery SWEEP — additive, best-effort. After resume, IF
+    // the project ships a second-brain fold engine, fold any transcript that was
+    // never folded (e.g. a session that crashed before its Stop hook ran). We scan
+    // ~/.claude/projects/<slug>/*.jsonl and skip any sessionId already present in
+    // <root>/second-brain/manifest.json foldedSessions (the engine's idempotency
+    // marker; the engine is itself idempotent, so this is a safety net). A sweep
+    // error MUST NOT break session-start — the whole block is its own try/catch.
+    try {
+      const enginePath = path.join(root, "second-brain", "scripts", "fold.ts");
+      if (fs.existsSync(enginePath)) {
+        const slug = path.resolve(root).split(path.sep).join("-");
+        const projectsDir = path.join(os.homedir(), ".claude", "projects", slug);
+        if (fs.existsSync(projectsDir)) {
+          let folded: Record<string, unknown> = {};
+          try {
+            const manifestPath = path.join(root, "second-brain", "manifest.json");
+            if (fs.existsSync(manifestPath)) {
+              const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
+                foldedSessions?: Record<string, unknown>;
+              };
+              folded = manifest.foldedSessions ?? {};
+            }
+          } catch { /* best-effort — treat as nothing folded */ }
+
+          const transcripts = fs
+            .readdirSync(projectsDir)
+            .filter((f) => f.endsWith(".jsonl"))
+            .map((f) => ({ sessionId: f.slice(0, -".jsonl".length), file: path.join(projectsDir, f) }))
+            .filter((t) => !(t.sessionId in folded));
+
+          let swept = 0;
+          for (const t of transcripts) {
+            try {
+              const run = spawnSync(
+                "bun",
+                ["run", enginePath, "--transcript", t.file, "--session", t.sessionId, "--project", root],
+                { cwd: root, encoding: "utf8", timeout: 90_000, maxBuffer: 64 * 1024 * 1024 },
+              );
+              if (run.status === 0) {
+                swept++;
+                // Layer-1 parity with the Stop path: forward the engine's emit-ready
+                // verdicts + summary into events.jsonl. Fail-safe — a forward error
+                // must not break the sweep or session-start.
+                try {
+                  await forwardFoldOutput(run.stdout ?? "", root, t.sessionId);
+                } catch { /* per-transcript best-effort */ }
+              }
+            } catch { /* per-transcript best-effort */ }
+          }
+          if (swept > 0) {
+            contextLines.push(`[second-brain] crash-recovery sweep folded ${swept} unfolded transcript(s).`);
+          }
+        }
+      }
+    } catch (err) {
+      process.stderr.write(`[session-start] second-brain sweep skipped: ${(err as Error).message}\n`);
     }
 
     // Phase B3-A8: advisory research library drift check — non-blocking, silent on error.

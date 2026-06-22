@@ -64,6 +64,7 @@ function errorClassToEnvvar(errorClass: string): string {
     agent_ownership_bypass_invoked:       "PALANTIR_MINI_AGENT_OWNERSHIP_BYPASS=1",
     domain_classification_bypass_invoked: "PALANTIR_MINI_DOMAIN_CLASSIFICATION_BYPASS=1",
     value_grade_bypass_invoked:           "PALANTIR_MINI_VALUE_GRADE_BYPASS=1",
+    second_brain_fold_bypass_invoked:     "PALANTIR_MINI_SECOND_BRAIN_FOLD_BYPASS=1",
   };
   return mapping[errorClass] ?? errorClass.replace(/_/g, " ").toUpperCase();
 }
