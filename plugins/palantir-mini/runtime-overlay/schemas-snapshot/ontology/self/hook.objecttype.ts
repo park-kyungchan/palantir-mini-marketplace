@@ -1,16 +1,16 @@
 /**
- * palantir-mini SELF-ONTOLOGY — Hook as a registered ObjectType + its 47 instances
+ * palantir-mini SELF-ONTOLOGY — Hook as a registered ObjectType + its 49 instances
  * (Wave 1 self-model build). pm's lifecycle-hook surface modeled AS ontology: each
  * hook is a gate / automation / audit-writer node fired at a runtime lifecycle event.
  *
- * This file declares ONE `Hook` ObjectType (the type) and seeds the 47 hook identities
+ * This file declares ONE `Hook` ObjectType (the type) and seeds the 49 hook identities
  * as instances — the snapshot OWNS the seed (it is the authority), so it does NOT import
- * the hooks layer uphill. The paired registration test cross-checks these 47 names
+ * the hooks layer uphill. The paired registration test cross-checks these 49 names
  * against the LIVE `hooks/*.ts` filesystem AND the wired set in `hooks/hooks.json`, so
  * the self-model fails loud if pm's hook surface drifts (a hook added/removed, or the
  * wired/orphan split changes, without updating this seed).
  *
- * Wired vs orphan (LIVE-verified): the hooks/ dir holds EXACTLY 47 hook files; 46 are
+ * Wired vs orphan (LIVE-verified): the hooks/ dir holds EXACTLY 49 hook files; 48 are
  * wired into a lifecycle event in `hooks/hooks.json` (`orphanInRegistry: false`) and 1
  * is present-but-unwired (`orphanInRegistry: true`). Wired hooks fire via either a
  * direct `hooks/<id>.ts` command, the `scripts/run.ts <id>` dispatcher, or membership in
@@ -71,7 +71,7 @@ export interface HookInstance {
 }
 
 /**
- * The 47 Hook instances — pm's LIVE hooks/ surface (46 wired + 1 orphan), sorted by
+ * The 49 Hook instances — pm's LIVE hooks/ surface (48 wired + 1 orphan), sorted by
  * hookId. Snapshot-owned seed (no hooks-layer import); the registration test cross-checks
  * this set against the live `hooks/*.ts` files AND the wired set in `hooks/hooks.json`,
  * failing loud on any drift in the hook surface or the wired/orphan split.
@@ -93,6 +93,7 @@ export const HOOK_INSTANCES: readonly HookInstance[] = [
   { hookId: "manifest-validate", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "memory-layer-validator", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "ontology-domain-classification-validate", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
+  { hookId: "ontology-drift-fold", lifecycleEvent: "Stop", orphanInRegistry: false },
   { hookId: "ontology-engineering-workflow-enforcement-gate", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "ontology-import-guard", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "orphan-pair-watchdog", lifecycleEvent: "PreCompact", orphanInRegistry: false },
@@ -111,6 +112,7 @@ export const HOOK_INSTANCES: readonly HookInstance[] = [
   { hookId: "prompt-front-door-capture", lifecycleEvent: "UserPromptSubmit", orphanInRegistry: false },
   { hookId: "researcher-citation-precision", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
   { hookId: "rule-audit", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
+  { hookId: "second-brain-fold", lifecycleEvent: "Stop", orphanInRegistry: false },
   { hookId: "semantic-frontmatter-validate", lifecycleEvent: "PostToolUse", orphanInRegistry: false },
   { hookId: "session-end-cleanup", lifecycleEvent: "Stop", orphanInRegistry: false },
   { hookId: "session-start", lifecycleEvent: "SessionStart", orphanInRegistry: false },
@@ -126,6 +128,6 @@ export const HOOK_INSTANCES: readonly HookInstance[] = [
   { hookId: "write-scope-runtime-enforce", lifecycleEvent: "PreToolUse", orphanInRegistry: false },
 ];
 
-// Register the Hook ObjectType (the type). The 47 instances above are data the
+// Register the Hook ObjectType (the type). The 49 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(HOOK_OBJECT_TYPE);
