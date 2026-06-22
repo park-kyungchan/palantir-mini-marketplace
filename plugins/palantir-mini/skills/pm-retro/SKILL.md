@@ -3,7 +3,7 @@ name: pm-retro
 category: research
 surfaceStatus: public-core
 description: "Engineering retrospective. Aggregates session metrics from the palantir-mini..."
-allowed-tools: Bash Read Grep Glob mcp__palantir-mini__pm_retro_query mcp__palantir-mini__pm_learn_query mcp__palantir-mini__emit_event
+allowed-tools: Bash Read Grep Glob mcp__palantir-mini__pm_substrate_query mcp__palantir-mini__emit_event
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -12,7 +12,7 @@ allowed-tools: Bash Read Grep Glob mcp__palantir-mini__pm_retro_query mcp__palan
 
 Generates a comprehensive engineering retrospective analyzing commit history, session metrics, and code-quality signals. Team-aware: identifies the user running the command, then analyzes every contributor with per-person praise and growth opportunities.
 
-Unlike the legacy gstack version that hand-rolled event parsing, this skill delegates the heavy lifting to `mcp__palantir-mini__pm_retro_query`, which reads the append-only `events.jsonl` log and returns pre-aggregated metrics. The skill's job is to (a) gather git-side context, (b) call the MCP aggregator, (c) merge both into a narrative structured around four insight categories.
+Unlike the legacy gstack version that hand-rolled event parsing, this skill delegates the heavy lifting to `mcp__palantir-mini__pm_substrate_query` (mode `retro`), which reads the append-only `events.jsonl` log and returns pre-aggregated metrics. The skill's job is to (a) gather git-side context, (b) call the MCP aggregator, (c) merge both into a narrative structured around four insight categories.
 
 ## Arguments
 
@@ -52,7 +52,7 @@ Usage: /palantir-mini:pm-retro [window | compare]
 
 ### Step 1: Call the MCP aggregator
 
-Call `mcp__palantir-mini__pm_retro_query` with:
+Call `mcp__palantir-mini__pm_substrate_query` (mode `retro`) with:
 
 ```json
 {
@@ -73,7 +73,7 @@ Use these values throughout the narrative instead of hand-parsing `events.jsonl`
 
 ### Step 2: Check prior learnings
 
-Call `mcp__palantir-mini__pm_learn_query` with `{ query: "retro", limit: 20 }`. Use any returned entries to:
+Call `mcp__palantir-mini__pm_substrate_query` with `{ mode: "learn", query: "retro", limit: 20 }`. Use any returned entries to:
 - Note recurring growth areas the team is already tracking.
 - Reference prior shipping insights when writing the narrative.
 - Avoid re-flagging something the team already decided to accept.
@@ -149,10 +149,10 @@ Calculate and present these metrics in a summary table. Merge git-derived fields
 | Active days | git | N |
 | Detected sessions | git | N |
 | Avg raw LOC/session-hour | git | N |
-| **Session wall-clock (most recent)** | `pm_retro_query.sessionMinutes` | N min |
-| **Phase completed count** | `pm_retro_query.phaseCompletedCount` | N |
-| **Skills run (top 3)** | `pm_retro_query.skillsRun` | /pm-review(4) /pm-ship(2) /pm-investigate(1) |
-| **Stale replay count** (inbox hygiene) | `pm_retro_query.staleReplayCount` | N |
+| **Session wall-clock (most recent)** | `pm_substrate_query(retro).sessionMinutes` | N min |
+| **Phase completed count** | `pm_substrate_query(retro).phaseCompletedCount` | N |
+| **Skills run (top 3)** | `pm_substrate_query(retro).skillsRun` | /pm-review(4) /pm-ship(2) /pm-investigate(1) |
+| **Stale replay count** (inbox hygiene) | `pm_substrate_query(retro).staleReplayCount` | N |
 | Test Health | git | N total tests · M added this period · K regression tests |
 
 **Metric order rationale:** features shipped leads — what users got. Commits and weighted commits reflect intent-to-ship. Logical SLOC added reflects real new functionality. Raw LOC is demoted to context because AI inflates it; ten lines of a good fix is not less shipping than ten thousand lines of scaffold.
@@ -364,7 +364,7 @@ Week of Apr 12: 47 commits (3 contributors), 3.2k LOC, 38% tests, 12 PRs, peak: 
 ## Engineering Retro: [date range]
 
 ### Summary Table
-(from Step 4 — git metrics + pm_retro_query rows)
+(from Step 4 — git metrics + pm_substrate_query (mode retro) rows)
 
 ### Trends vs Last Retro
 (from Step 14 — skip if first retro)
@@ -393,12 +393,12 @@ Covers test metrics + regression test commits.
 
 ### Category 3 — Growth Opportunities
 
-Covers Step 8, plus cross-references to `pm_learn_query` hits.
+Covers Step 8, plus cross-references to `pm_substrate_query (mode learn)` hits.
 
 - Hotspot analysis (are the same files churning?)
 - Focus score with interpretation (high focus = deep work; low focus = context switching).
-- Recurring growth areas from `pm_learn_query` — prior retros that flagged the same area.
-- Stale replay count from `pm_retro_query` — if > 0, flag as "inbox hygiene slippage: N task_assignment messages replayed after task completion. Check `TaskCompleted` hook wiring."
+- Recurring growth areas from `pm_substrate_query (mode learn)` — prior retros that flagged the same area.
+- Stale replay count from `pm_substrate_query (mode retro)` — if > 0, flag as "inbox hygiene slippage: N task_assignment messages replayed after task completion. Check `TaskCompleted` hook wiring."
 - 3 specific, actionable suggestions anchored in commit data. Mix personal and team-level.
 
 ### Category 4 — Team Dynamics
@@ -461,7 +461,7 @@ When the user runs `/palantir-mini:pm-retro compare` (or `/palantir-mini:pm-retr
 
 1. Compute metrics for the current window (default 7d) using the midnight-aligned start date.
 2. Compute metrics for the immediately prior same-length window using both `--since` and `--until` with midnight-aligned dates to avoid overlap.
-3. For MCP metrics, call `pm_retro_query` with `sessionLast: 1` for the current window and `sessionLast: 2` for the prior window.
+3. For MCP metrics, call `pm_substrate_query (mode retro)` with `sessionLast: 1` for the current window and `sessionLast: 2` for the prior window.
 4. Show a side-by-side comparison table with deltas and arrows.
 5. Write a brief narrative highlighting the biggest improvements and regressions.
 6. Save only the current-window snapshot to `.palantir-mini/retros/` (same as a normal retro run); do **not** persist the prior-window metrics.
@@ -481,7 +481,7 @@ When the user runs `/palantir-mini:pm-retro compare` (or `/palantir-mini:pm-retr
 
 ## Important Rules
 
-- **Prefer MCP aggregation over manual log parsing.** `pm_retro_query` is the single source of truth for session metrics. Do not reimplement session-window slicing in this skill.
+- **Prefer MCP aggregation over manual log parsing.** `pm_substrate_query (mode retro)` is the single source of truth for session metrics. Do not reimplement session-window slicing in this skill.
 - **ALL narrative output goes directly to the user.** The ONLY file written is the `.palantir-mini/retros/` JSON snapshot.
 - Use `origin/<base>` for all git queries (not local main which may be stale).
 - Display all timestamps in the user's local timezone (do not override `TZ`).

@@ -83,31 +83,45 @@ describe("pre-edit-ontology classification", () => {
     expect(events[0]!.payload).toMatchObject({ functionName: "PreToolUse:Write" });
   });
 
-  test("generated registry → ontology-classified", async () => {
-    const root = setupRoot("onto-gen");
+  // bd-006 DROP: the 4 palantir-math-SPECIFIC descender/codegen layouts are NO
+  // LONGER classified as ontology (they were math-KG-shaped bakes, not generic
+  // project-ontology path-classes). pre-edit-ontology is OBSERVE-only, so the sole
+  // effect is a missed audit event on those math-specific layouts — no block lost.
+  test("generated registry → NON-ontology (dropped math-descender, no event)", async () => {
+    const root = setupRoot("drop-gen");
     await preEditOntology({
       tool_name: "Write",
       tool_input: { file_path: "/proj/src/generated/learn-registry.generated.ts" },
       cwd: root,
     });
-    expect(readEvents(eventsPathFor(root)).length).toBe(1);
+    expect(readEvents(eventsPathFor(root)).length).toBe(0);
   });
 
-  test("convex/schema.ts → ontology-classified", async () => {
-    const root = setupRoot("onto-convex");
+  test("convex/schema.ts → NON-ontology (dropped math-descender, no event)", async () => {
+    const root = setupRoot("drop-convex");
     await preEditOntology({
       tool_name: "Edit",
       tool_input: { file_path: "/proj/convex/schema.ts" },
       cwd: root,
     });
-    expect(readEvents(eventsPathFor(root)).length).toBe(1);
+    expect(readEvents(eventsPathFor(root)).length).toBe(0);
   });
 
-  test("problems seq-data.json → ontology-classified", async () => {
-    const root = setupRoot("onto-problem");
+  test("problems seq-data.json → NON-ontology (dropped math-descender, no event)", async () => {
+    const root = setupRoot("drop-problem");
     await preEditOntology({
       tool_name: "Edit",
       tool_input: { file_path: "/proj/problems/p001/seq-data.json" },
+      cwd: root,
+    });
+    expect(readEvents(eventsPathFor(root)).length).toBe(0);
+  });
+
+  test("generic NON-math project ontology path-class → edit_proposed event (de-hardcode payoff)", async () => {
+    const root = setupRoot("onto-acme");
+    await preEditOntology({
+      tool_name: "Write",
+      tool_input: { file_path: "/repo/projects/acme-widgets/object-type/widget.ts" },
       cwd: root,
     });
     expect(readEvents(eventsPathFor(root)).length).toBe(1);

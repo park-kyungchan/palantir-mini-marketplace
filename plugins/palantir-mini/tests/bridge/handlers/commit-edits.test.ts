@@ -59,7 +59,7 @@ const sampleEdit = {
 describe("commit_edits handler — arg validation", () => {
   test("throws when project missing", async () => {
     await expect(
-      commitEditsHandler({ actionTypeRid: "rid:action:test", edits: [] }),
+      commitEditsHandler({ actionTypeRid: "pm.self.ontology/action-type/commit-edits", edits: [] }),
     ).rejects.toThrow(/project.*required/i);
   });
 
@@ -73,13 +73,13 @@ describe("commit_edits handler — arg validation", () => {
   test("throws when edits not an array", async () => {
     const root = setupRoot("bad-edits");
     await expect(
-      commitEditsHandler({ project: root, actionTypeRid: "rid:action:test", edits: "not-an-array" }),
+      commitEditsHandler({ project: root, actionTypeRid: "pm.self.ontology/action-type/commit-edits", edits: "not-an-array" }),
     ).rejects.toThrow(/edits.*array/i);
   });
 
   test("throws when project is non-string", async () => {
     await expect(
-      commitEditsHandler({ project: 0, actionTypeRid: "rid:action:test", edits: [] }),
+      commitEditsHandler({ project: 0, actionTypeRid: "pm.self.ontology/action-type/commit-edits", edits: [] }),
     ).rejects.toThrow(/project.*required/i);
   });
 });
@@ -91,7 +91,7 @@ describe("commit_edits handler — happy path", () => {
     const root = setupRoot("happy-empty");
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [],
     });
 
@@ -110,7 +110,7 @@ describe("commit_edits handler — happy path", () => {
     const root = setupRoot("happy-nonempty");
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [sampleEdit],
     });
 
@@ -127,7 +127,7 @@ describe("commit_edits handler — validateOnly", () => {
     const root = setupRoot("validate-only");
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [sampleEdit],
       validateOnly: true,
     });
@@ -148,7 +148,7 @@ describe("commit_edits handler — submission criteria failure", () => {
     const root = setupRoot("criteria-fail");
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [sampleEdit],
       submissionCriteria: [
         { type: "Unevaluable", name: "always_fails", reason: "test scenario" },
@@ -172,7 +172,7 @@ describe("commit_edits handler — defaults", () => {
     const root = setupRoot("default-criteria");
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [],
     });
     expect(result.passedCriteria).toEqual([]);
@@ -183,7 +183,7 @@ describe("commit_edits handler — defaults", () => {
     const root = setupRoot("default-validate");
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [sampleEdit],
     });
     expect(result.result).toBe("COMMITTED");
@@ -205,7 +205,7 @@ describe("commit_edits handler — sprint-060 W1.5 dry-run scenarios", () => {
 
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [sampleEdit],
       dryRunRef: "caller-provided-ref-abc123",
     });
@@ -237,7 +237,7 @@ describe("commit_edits handler — sprint-060 W1.5 dry-run scenarios", () => {
 
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [sampleEdit],
       // No dryRunRef — triggers auto-injection
     });
@@ -259,7 +259,7 @@ describe("commit_edits handler — sprint-060 W1.5 dry-run scenarios", () => {
     const autoPayload = autoEvent.payload as Record<string, unknown>;
     expect(autoPayload.autoInjected).toBe(true);
     expect(autoPayload.editCount).toBe(1);
-    expect(autoPayload.actionTypeRid).toBe("rid:action:test");
+    expect(autoPayload.actionTypeRid).toBe("pm.self.ontology/action-type/commit-edits");
     expect(typeof autoPayload.dryRunRef).toBe("string");
     expect((autoPayload.dryRunRef as string).length).toBe(16); // sha256 truncated to 16 hex
 
@@ -283,7 +283,7 @@ describe("commit_edits handler — sprint-060 W1.5 dry-run scenarios", () => {
 
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [sampleEdit],
       // No dryRunRef — but quick mode, so no auto-injection
     });
@@ -323,7 +323,7 @@ describe("commit_edits handler — sprint-060 W1.5 dry-run scenarios", () => {
 
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [sampleEdit],
       skipAutoDryRun: true,
     });
@@ -351,7 +351,7 @@ describe("commit_edits handler — sprint-060 W1.5 dry-run scenarios", () => {
 
     const skipPayload = skipAudit[0]!.payload as Record<string, unknown>;
     expect(skipPayload.skipAutoDryRun).toBe(true);
-    expect(skipPayload.actionTypeRid).toBe("rid:action:test");
+    expect(skipPayload.actionTypeRid).toBe("pm.self.ontology/action-type/commit-edits");
 
     // edit_committed present
     expect(events.filter((e) => e.type === "edit_committed").length).toBe(1);
@@ -367,7 +367,7 @@ describe("commit_edits handler — sprint-060 W1.5 dry-run scenarios", () => {
 
     const result = await commitEditsHandler({
       project: root,
-      actionTypeRid: "rid:action:test",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [sampleEdit],
       validateOnly: true,
     });
@@ -397,13 +397,13 @@ describe("commit_edits handler — sprint-060 W1.5 dry-run scenarios", () => {
 
     await commitEditsHandler({
       project: root1,
-      actionTypeRid: "rid:action:det",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [edit],
     });
 
     await commitEditsHandler({
       project: root2,
-      actionTypeRid: "rid:action:det",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       edits: [edit],
     });
 

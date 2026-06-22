@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { atomicWriteJsonSync } from "../fs-atomic";
 import { safeSegment } from "../id-segment";
+import type { SemanticIntentContract } from "../lead-intent/contracts";
 import type { OntologyEngineeringWorkflowState } from "./types";
 
 export interface WriteOntologyEngineeringWorkflowStateResult {
@@ -57,4 +58,43 @@ export function readCurrentOntologyEngineeringWorkflowState(
   const currentPath = ontologyEngineeringWorkflowCurrentPath(projectRoot);
   if (!fs.existsSync(currentPath)) return null;
   return JSON.parse(fs.readFileSync(currentPath, "utf8")) as OntologyEngineeringWorkflowState;
+}
+
+/**
+ * Resolve the MINTED approved-SIC snapshot BY-REF for THIS projectRoot, independent
+ * of which session is active (bd-011 fix). The snapshot is persisted ONLY onto the
+ * MINTING session's session-keyed file; a fresh `start` in a non-minting session
+ * creates a snapshot-less session file AND overwrites `current.json` (last-writer-wins),
+ * so neither the active session-keyed read nor `current.json` can see it. Scan every
+ * persisted workflow state for this projectRoot and return the first that carries a
+ * snapshot field. The CALLER re-verifies it via `isApprovedSemanticIntentContract`
+ * (fail-closed) — this resolver does NOT validate; it only widens the READ scope.
+ *
+ * When `preferContractId` is supplied (the active state's `semanticIntentContractRef`),
+ * a snapshot whose `contractId` matches is preferred, so the resolved snapshot binds
+ * to the SIC the active workflow already references rather than an arbitrary prior one.
+ */
+export function resolveProjectMintedSicSnapshot(
+  projectRoot: string,
+  preferContractId?: string,
+): SemanticIntentContract | undefined {
+  const dir = ontologyEngineeringWorkflowStoreDir(projectRoot);
+  if (!fs.existsSync(dir)) return undefined;
+  let fallback: SemanticIntentContract | undefined;
+  for (const name of fs.readdirSync(dir)) {
+    if (!name.endsWith(".json")) continue;
+    let state: OntologyEngineeringWorkflowState;
+    try {
+      state = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8")) as OntologyEngineeringWorkflowState;
+    } catch {
+      continue; // skip unreadable/partial files; fail-closed by omission
+    }
+    const snapshot = state.approvedSemanticIntentContractSnapshot;
+    if (snapshot === undefined) continue;
+    if (preferContractId !== undefined && snapshot.contractId === preferContractId) {
+      return snapshot; // exact bind to the active workflow's SIC ref — best match
+    }
+    if (fallback === undefined) fallback = snapshot;
+  }
+  return fallback;
 }

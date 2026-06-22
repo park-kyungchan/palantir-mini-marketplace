@@ -5,6 +5,7 @@ import * as path from "path";
 import type { WorkflowFamilyReleaseGateResult } from "../../../lib/release/workflow-family-release-gate";
 import type { SurfaceContractAuditFinding } from "../../../lib/surface/audit";
 import type { DeletionReadinessResult } from "./check-deletion-readiness";
+import type { SkillToolDeclarationsCheckResult } from "./check-skill-tool-declarations";
 
 /** Plugin root resolved from this file's location (bridge/handlers/pm-plugin-self-check/types.ts → ../../.. = plugin root). */
 export const PLUGIN_ROOT = path.resolve(__dirname, "../../..");
@@ -68,6 +69,12 @@ export interface PmPluginSelfCheckResult {
     missing: string[];
     missingCategory: string[];
   };
+  /**
+   * Skill→tool binding guard (P1-11): every skill allowed-tools
+   * mcp__palantir-mini__X must resolve to a live TOOLS entry. Influences
+   * overallStatus.
+   */
+  skillToolDeclarationsResult: SkillToolDeclarationsCheckResult;
   /**
    * v2.27.0 advisory only — does NOT influence overallStatus.
    * Cross-check between filesystem walk + primitive seed registry.

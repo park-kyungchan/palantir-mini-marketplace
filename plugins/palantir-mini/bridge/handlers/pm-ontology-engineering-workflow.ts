@@ -52,6 +52,7 @@ import {
   ontologyEngineeringWorkflowStatePath,
   readCurrentOntologyEngineeringWorkflowState,
   readOntologyEngineeringWorkflowState,
+  resolveProjectMintedSicSnapshot,
   turnCardDecisionSpecsFromChoices,
   userDecisionRecordsFromSpecs,
   writeOntologyEngineeringWorkflowState,
@@ -684,10 +685,27 @@ function readPreviousWorkflowState(input: {
 }): OntologyEngineeringWorkflowState | null {
   if (input.action === "start") return null;
   const workflowId = workflowIdForSession(input.session);
-  if (workflowId !== undefined) {
-    return readOntologyEngineeringWorkflowState(input.root, workflowId);
+  const base =
+    workflowId !== undefined
+      ? readOntologyEngineeringWorkflowState(input.root, workflowId)
+      : readCurrentOntologyEngineeringWorkflowState(input.root);
+  if (base === null) return null;
+  // bd-011 (P0-2) — the MINTED approved-SIC snapshot is persisted ONLY onto the
+  // MINTING session's state; a cross-session resume reads a snapshot-less active
+  // state (and current.json is also poisoned). Backfill the snapshot BY-REF for
+  // THIS projectRoot when the active state lacks it, preferring the snapshot whose
+  // contractId matches the active state's SIC ref. The downstream
+  // `isApprovedSemanticIntentContract` gate STILL re-verifies (fail-closed).
+  if (base.approvedSemanticIntentContractSnapshot === undefined) {
+    const resolved = resolveProjectMintedSicSnapshot(
+      input.root,
+      base.semanticIntentContractRef,
+    );
+    if (resolved !== undefined) {
+      return { ...base, approvedSemanticIntentContractSnapshot: resolved };
+    }
   }
-  return readCurrentOntologyEngineeringWorkflowState(input.root);
+  return base;
 }
 
 function previousRecords(

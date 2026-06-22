@@ -103,13 +103,13 @@ test("capability-token principals are grant-LABELS, not live agent identities", 
   }
 });
 
-test("capability-split member RIDs reference real live agents + partition the 9-agent surface", () => {
+test("capability-split member RIDs reference real live agents + partition the 10-agent surface", () => {
   const live = liveAgentIds();
-  // 2 read-only + 7 mutating = the full 9-agent surface, disjoint.
+  // 2 read-only + 8 mutating = the full 10-agent surface, disjoint.
   expect(READ_ONLY_AGENT_IDS.length).toBe(2);
-  expect(MUTATING_AGENT_IDS.length).toBe(7);
+  expect(MUTATING_AGENT_IDS.length).toBe(8);
   const all = [...READ_ONLY_AGENT_IDS, ...MUTATING_AGENT_IDS];
-  expect(new Set(all).size).toBe(9); // disjoint, no overlap
+  expect(new Set(all).size).toBe(10); // disjoint, no overlap
   expect(new Set(all)).toEqual(live); // exactly the live agent surface
   for (const id of all) {
     expect(live.has(id)).toBe(true);

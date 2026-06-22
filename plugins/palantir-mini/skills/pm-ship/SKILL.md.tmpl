@@ -3,7 +3,7 @@ name: pm-ship
 category: core-workflow
 surfaceStatus: public-core
 description: "Ship workflow — detect + merge base branch, run tests, audit coverage, review diff,..."
-allowed-tools: Bash Read Write Edit MultiEdit Grep Glob Agent WebSearch mcp__palantir-mini__verify_schema_pin mcp__palantir-mini__detect_doc_drift mcp__palantir-mini__get_team_health mcp__palantir-mini__emit_event
+allowed-tools: Bash Read Write Edit MultiEdit Grep Glob Agent WebSearch mcp__palantir-mini__pm_plugin_self_check mcp__palantir-mini__pm_health_audit mcp__palantir-mini__emit_event
 ---
 
 # /palantir-mini:pm-ship — Fully Automated Ship Workflow
@@ -14,7 +14,7 @@ You are running the `/palantir-mini:pm-ship` workflow. This is a **non-interacti
 - On the base branch (abort)
 - Merge conflicts that can't be auto-resolved (stop, show conflicts)
 - In-branch test failures (pre-existing failures are triaged, not auto-blocking)
-- Pre-flight gate failure — `verify_schema_pin` or `detect_doc_drift` returns a blocking violation
+- Pre-flight gate failure — `pm_plugin_self_check` (schema pin) or `pm_health_audit` (doc-drift) returns a blocking violation
 - Pre-landing review finds ASK items that need user judgment
 - MINOR or MAJOR version bump needed (ask — see Step 12)
 - AI-assessed coverage below minimum threshold (hard gate with user override — see Step 7)
@@ -54,13 +54,11 @@ Substitute the detected name for `<base>` in the commands below.
 
 ## Step 0: Pre-flight — palantir-mini invariants
 
-Before touching any code or branch state, run the three palantir-mini pre-flight checks. These guard the authority chain: ontology → contracts → runtime. A broken ontology pin or drifted doc must never land in `main`.
+Before touching any code or branch state, run the two palantir-mini pre-flight checks. These guard the authority chain: ontology → contracts → runtime. A broken ontology pin or drifted doc must never land in `main`.
 
-1. **Schema pin verification.** Call `mcp__palantir-mini__verify_schema_pin` with no arguments. The tool reads `package.json` `peerDependencies["@palantir/schemas"]` and compares it against the installed `~/.claude/schemas/` version. If the result is `{ status: "blocking" }` or `{ compatible: false }`, **STOP** and print the tool's reason. Resolve via `pm-verify` / schema upgrade before re-running /palantir-mini:pm-ship. Rule: `~/.claude/rules/08-schema-versioning.md`.
+1. **Schema pin verification.** Call `mcp__palantir-mini__pm_plugin_self_check` with no arguments. The check reads `package.json` `peerDependencies["@palantir/schemas"]` and compares it against the installed `~/.claude/schemas/` version. If the schema-pin axis returns a blocking violation, **STOP** and print the reason. Resolve via `pm-verify` / schema upgrade before re-running /palantir-mini:pm-ship. Rule: `~/.claude/rules/08-schema-versioning.md`.
 
-2. **Documentation drift check.** Call `mcp__palantir-mini__detect_doc_drift` with the project root. The tool inspects `.md` files referenced by the diff. If it returns a blocking finding (e.g., `CLAUDE.md` describes a feature the diff removed, `BROWSE.md` references a deleted file), **STOP**. Either update the docs in this branch or accept the drift via an explicit override comment in the PR body — otherwise every future navigator inherits stale context.
-
-3. **Team health (optional).** Call `mcp__palantir-mini__get_team_health` with no arguments. This surfaces stuck teammates, unread inbox backlogs, and stale state from the Lead Protocol v2 session. It is **informational** — surface findings in the PR body but never block. If the tool is unavailable or returns `{ status: "no_active_session" }`, skip silently.
+2. **Documentation drift check.** Call `mcp__palantir-mini__pm_health_audit` with `{ mode: "doc-drift" }` and the project root. The audit inspects `.md` files referenced by the diff. If it returns a blocking finding (e.g., `CLAUDE.md` describes a feature the diff removed, `BROWSE.md` references a deleted file), **STOP**. Either update the docs in this branch or accept the drift via an explicit override comment in the PR body — otherwise every future navigator inherits stale context.
 
 Proceed to Step 1 only if schema_pin + doc_drift both pass (or are explicitly overridden).
 
@@ -648,7 +646,6 @@ commits into logical sections (e.g., "**Performance**", "**Dead Code Removal**",
 ## Pre-flight (palantir-mini)
 - Schema pin: PASS (v<X> against installed v<Y>)
 - Doc drift: CLEAN | FINDINGS
-- Team health: <get_team_health summary or "no active session">
 
 ## Test Coverage
 <coverage diagram from Step 7, or "All new code paths have test coverage.">
@@ -755,7 +752,7 @@ Never auto-merge unless the user asked for it.
 
 ## Important Rules
 
-- **Run palantir-mini pre-flight first.** `verify_schema_pin` + `detect_doc_drift` are the authority-chain guardrails. A broken schema pin or drifted doc must never land on the base branch.
+- **Run palantir-mini pre-flight first.** `pm_plugin_self_check` (schema pin) + `pm_health_audit` (doc-drift) are the authority-chain guardrails. A broken schema pin or drifted doc must never land on the base branch.
 - **Never skip tests.** If tests fail, stop.
 - **Never skip the pre-landing review.** If the diff cannot be fetched, stop.
 - **Never force push.** Use regular `git push` only.

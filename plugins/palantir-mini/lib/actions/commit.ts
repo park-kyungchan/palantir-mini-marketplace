@@ -20,6 +20,16 @@ import type { EventEnvelope, EventId, SessionId, CommitSha } from "../event-log/
 import { appendEventAtomic } from "../event-log/append";
 import { evaluateCriteria, type SubmissionCriterion, type CriterionResult } from "./submission-criteria";
 import { gitHeadSha } from "../git/head-sha";
+import { readEvents, foldToSnapshot } from "../event-log/read";
+import { ACTION_TYPE_REGISTRY } from "../../runtime-overlay/schemas-snapshot/ontology/primitives/action-type";
+// Side-effect import: action-types.ts populates ACTION_TYPE_REGISTRY (the singleton above)
+// with all self-ontology verbs at module load, so .list() returns the full self catalog.
+import "../../runtime-overlay/schemas-snapshot/ontology/self/action-types";
+
+// A2 — mirror of EXECUTOR_ACTION_TYPE_RID (lib/sandbox/executor.ts:53). Inlined as a
+// literal (not imported) because executor.ts already imports commitEdits from this file,
+// so importing back from executor would create a circular import.
+const EXECUTOR_ACTION_TYPE_RID = "pm.self.ontology/action-type/executor";
 
 export interface CommitRequest {
   project:             string;  // absolute project root path
@@ -53,6 +63,8 @@ export interface CommitResult {
    * req.edits — additive to the return type only; no behavior change to the append.
    */
   materializedPrimitives?: number;
+  /** A2 — set to "unregistered_action_type" when the ActionType gate refused the commit. */
+  errorClass?: "unregistered_action_type";
 }
 
 /** Count edits that materialize a typed primitive (object w/ primitiveKind tag, or a link). */
@@ -67,6 +79,30 @@ function countMaterializedPrimitives(edits: OntologyEdit[]): number {
 
 function eventsPathFor(project: string): string {
   return path.join(project, ".palantir-mini", "session", "events.jsonl");
+}
+
+/**
+ * A2 — ActionType commit gate. The design invariant "an ActionType is the only thing that
+ * COMMITS edits" requires the rid to resolve to a real ActionType, not free text.
+ * Honored when the rid is either a built-in pm self-ontology ActionType (the system verbs
+ * register/commit/executor flow through — genesis must be satisfiable) OR a project-registered
+ * ActionType folded from prior edit_committed events.
+ */
+function isRegisteredActionType(project: string, actionTypeRid: string): boolean {
+  // (a0) the Executor self ActionType — registered separately from SELF_ACTION_TYPES; the
+  //      sandbox executor commits with `request.actionTypeRid ?? EXECUTOR_ACTION_TYPE_RID`.
+  if (actionTypeRid === EXECUTOR_ACTION_TYPE_RID) return true;
+  // (a) built-in self-ontology ActionTypes (covers genesis: register-*, commit-edits,
+  //     apply-edit-function, etc. — see runtime-overlay self/action-types.ts).
+  for (const decl of ACTION_TYPE_REGISTRY.list()) {
+    if ((decl.rid as unknown as string) === actionTypeRid) return true;
+  }
+  // (b) project-registered ActionTypes folded into registeredPrimitives.actionTypes
+  //     (fold-snapshot.ts bins committed object edits tagged primitiveKind:"ActionType").
+  const events = readEvents(eventsPathFor(project));
+  const snapshot = foldToSnapshot(events);
+  const projectActionTypes = snapshot.registeredPrimitives?.actionTypes ?? [];
+  return projectActionTypes.some((e) => e.rid === actionTypeRid);
 }
 
 function uniqueEventId(): string {
@@ -133,6 +169,19 @@ export async function commitEdits(req: CommitRequest): Promise<CommitResult> {
       passedCriteria: evalResult.passedNames,
       failedCriteria: evalResult.failedNames,
       eventType: "none",
+    };
+  }
+
+  // A2 — fail-closed ActionType gate: refuse to commit through an unregistered ActionType.
+  if (!isRegisteredActionType(req.project, req.actionTypeRid)) {
+    return {
+      result: "INVALID",
+      committed: false,
+      perCriterionResult: evalResult.results,
+      passedCriteria: evalResult.passedNames,
+      failedCriteria: evalResult.failedNames,
+      eventType: "none",
+      errorClass: "unregistered_action_type",
     };
   }
 

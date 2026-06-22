@@ -113,8 +113,3 @@ Call `emit_event` with `type=plan_reviewed`, payload including impacted RID coun
 - `bridge/handlers/populate-impact-graph.ts` (cache builder).
 - `bridge/handlers/pre-edit-impact.ts` (related: pre-edit blast radius for a single planned change).
 - `/palantir-mini:pm-verify` (runs this alongside drift checks at the pre-ship gate).
-
-## Related tools
-
-- `mcp__palantir-mini__pre_sprint_diff` — programmatic `base...head` diff → downstream RID expansion in one call. Use when a CI script needs the output, not when a human is reading the PR report.
-- `mcp__palantir-mini__gate_on_drift` — runtime drift script gate (runs `bun run ontology:drift` + `bun run lint:fonts`). Orthogonal to PR-impact analysis.

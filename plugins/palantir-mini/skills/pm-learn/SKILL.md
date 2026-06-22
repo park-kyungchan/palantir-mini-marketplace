@@ -3,7 +3,7 @@ name: pm-learn
 category: research
 surfaceStatus: public-core
 description: "Manage cross-session project learnings. Review, search, prune, export, and log..."
-allowed-tools: Bash Read Grep Glob mcp__palantir-mini__pm_learn_query mcp__palantir-mini__emit_event
+allowed-tools: Bash Read Grep Glob mcp__palantir-mini__pm_substrate_query mcp__palantir-mini__emit_event
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -24,7 +24,7 @@ palantir-mini does NOT maintain a separate `learnings.jsonl` file. Instead, lear
 are `learning_captured` events in the canonical append-only `events.jsonl` log
 (see `~/.claude/rules/10-events-jsonl.md`). This means:
 
-- **Retrieval** uses `mcp__palantir-mini__pm_learn_query` — it scans events.jsonl
+- **Retrieval** uses `mcp__palantir-mini__pm_substrate_query` (mode `learn`) — it scans events.jsonl
   and returns entries with `type: "learning_captured"`.
 - **Logging** uses `mcp__palantir-mini__emit_event` with `type: "learning_captured"` —
   the event is appended, never rewritten.
@@ -54,7 +54,7 @@ Parse the user's input to determine which command to run:
 
 Show the most recent 20 learnings, grouped by type.
 
-Call `mcp__palantir-mini__pm_learn_query` with `{ limit: 20 }`. Present the returned
+Call `mcp__palantir-mini__pm_substrate_query` with `{ mode: "learn", limit: 20 }`. Present the returned
 entries in a readable format, grouped by `type` (pattern / pitfall / preference /
 architecture / tool / investigation). Each entry should show:
 
@@ -74,7 +74,7 @@ If the tool returns no entries, tell the user:
 
 ## Search
 
-Call `mcp__palantir-mini__pm_learn_query` with `{ query: "<user's search terms>", limit: 20 }`.
+Call `mcp__palantir-mini__pm_substrate_query` with `{ mode: "learn", query: "<user's search terms>", limit: 20 }`.
 
 Present results clearly, grouped by type. If no matches, say so and suggest broader
 search terms or browsing recent entries.
@@ -85,7 +85,7 @@ search terms or browsing recent entries.
 
 Check learnings for staleness and contradictions.
 
-1. Call `mcp__palantir-mini__pm_learn_query` with `{ limit: 100 }` to retrieve a
+1. Call `mcp__palantir-mini__pm_substrate_query` with `{ mode: "learn", limit: 100 }` to retrieve a
    working set.
 
 2. For each learning in the output:
@@ -135,7 +135,7 @@ Check learnings for staleness and contradictions.
 
 Export learnings as markdown suitable for adding to CLAUDE.md or project documentation.
 
-1. Call `mcp__palantir-mini__pm_learn_query` with `{ limit: 50 }`.
+1. Call `mcp__palantir-mini__pm_substrate_query` with `{ mode: "learn", limit: 50 }`.
 
 2. Format the output as a markdown section, grouping by type:
 
@@ -170,7 +170,7 @@ Export learnings as markdown suitable for adding to CLAUDE.md or project documen
 
 Show summary statistics about the project's learnings.
 
-1. Call `mcp__palantir-mini__pm_learn_query` with `{ limit: 1000 }`. This returns
+1. Call `mcp__palantir-mini__pm_substrate_query` with `{ mode: "learn", limit: 1000 }`. This returns
    the full deduped learning set (latest entry wins per `key|type` pair).
 
 2. Compute and present in a readable table:
@@ -241,5 +241,5 @@ Confirm to the user: `Logged: [key] → [insight] (confidence N/10)`.
   changes, route the user to `/palantir-mini:pm-review`, `/palantir-mini:pm-investigate`,
   or `/palantir-mini:pm-ship` as appropriate.
 - **Latest entry wins** is the canonical dedup rule. A `key|type` pair with 3
-  versions resolves to the most recent event. The `pm_learn_query` handler
+  versions resolves to the most recent event. The `pm_substrate_query` (mode `learn`) handler
   applies this automatically — callers see deduped results.

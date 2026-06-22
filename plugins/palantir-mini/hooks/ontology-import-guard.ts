@@ -20,6 +20,7 @@
 import * as os from "os";
 import * as path from "path";
 import { emit } from "../scripts/log";
+import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
 
 interface HookPayload {
   cwd?:        string;
@@ -39,14 +40,23 @@ const FORBIDDEN_PATTERNS = [
   /import\s+["']~\/\.claude\/schemas\b/,
 ];
 
-const TARGETED_PROJECTS_RE = /\/projects\/(palantir-math|mathcrew|kosmos)\//;
 const TS_EXT_RE = /\.(ts|tsx|mts|cts)$/;
 
-/** Determines whether the file path is in scope for the guard. */
+/**
+ * Determines whether the file path is in scope for the guard.
+ * STRUCTURAL membership (de-hardcoded, bd-005): a TS file is in scope iff it
+ * lives under a project whose root contains `.palantir-mini/` (the cross-runtime
+ * per-project marker, rule 27). Replaces the former hardcoded 3-name allowlist
+ * so pm guards the schema-import discipline for ANY governed project.
+ */
 export function isTargetedFile(filePath: string): boolean {
   if (!filePath) return false;
   if (!TS_EXT_RE.test(filePath)) return false;
-  if (!TARGETED_PROJECTS_RE.test(filePath)) return false;
+  const root = findProjectRoot(filePath);
+  if (root === null) return false;
+  // FIX 2: a stray `.palantir-mini` marker at $HOME or a temp dir must not make a
+  // file sitting directly there "in a project" (would over-match pm's own source).
+  if (isExcludedProjectRoot(root)) return false;
   return true;
 }
 

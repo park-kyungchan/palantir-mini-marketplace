@@ -3,7 +3,7 @@ name: pm-blueprint
 category: research
 surfaceStatus: public-core
 description: "Generate a TechBlueprint for a new architecture question using a 7-agent research..."
-allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage
+allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__pm_substrate_query
 effort: medium
 disable-model-invocation: false
 ---

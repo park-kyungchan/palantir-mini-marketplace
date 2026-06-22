@@ -308,6 +308,80 @@ describe("drift_rebind action — composed governed RESUME (7.23.0)", () => {
     expect(await envelopeState(P, envelope.sessionId, envelope.promptId)).toBe("digital_twin_approved");
   });
 
+  test("CROSS-SESSION (bd-011 / P0-2): resume from a NON-minting session B re-binds the projectRoot's minted SIC and commits", async () => {
+    const P = setupRoot("xsession");
+    // Session A is the MINTING session — persist the minted snapshot under A.
+    const sessionA = seedSession(P);
+    const sicContractId = seedMintedSicState(P, sessionA.sessionId);
+
+    // (1) Register under session A to materialize the already-registered grammar.
+    const reg = await handleOntologyEngineeringWorkflow({
+      action: "register",
+      project: P,
+      sessionId: sessionA.sessionId,
+      semanticIntentContractRef: sicContractId,
+      semanticIntentContractStatus: "approved",
+      digitalTwinChangeContractRef: "dtc:placeholder",
+      digitalTwinChangeContractStatus: "approved",
+    });
+    expect(reg.register?.committed).toBe(true);
+    const beforeRids = await registeredRids(P);
+    const commitsBefore = editCommittedCount(P);
+    expect(beforeRids.length).toBeGreaterThan(0);
+
+    // (2) A DIFFERENT FDE session B (fresh id), with its own session snapshot.
+    const sessionB: FDEOntologyEngineeringSession = { ...sessionA, sessionId: `${sessionA.sessionId}-B` };
+    writeFDEOntologyEngineeringSessionSnapshot(sessionB);
+
+    // (3) Write a SNAPSHOT-LESS workflow state keyed to session B AFTER seedMintedSicState
+    //     + register: its dual-write OVERWRITES current.json snapshot-less, exactly
+    //     reproducing bd-011 (neither session-B's state nor current.json sees the snapshot).
+    const now = "2026-06-22T00:00:00.000Z";
+    const snapshotLess: OntologyEngineeringWorkflowState = {
+      schemaVersion: ONTOLOGY_ENGINEERING_WORKFLOW_SCHEMA_VERSION,
+      contractId: `ontology-engineering-workflow:${sessionB.sessionId}`,
+      projectRoot: P,
+      fdeSessionId: sessionB.sessionId,
+      fdeSessionRef: `fde-ontology-engineering://session/${sessionB.sessionId}`,
+      semanticIntentContractRef: sicContractId,
+      semanticIntentContractStatus: "approved",
+      digitalTwinChangeContractRef: "dtc:placeholder",
+      digitalTwinChangeContractStatus: "approved",
+      phase: "digital-twin-approved",
+      allowedNextActions: ["status"],
+      mutationAuthorized: false,
+      sourceRefs: [`fde-ontology-engineering://session/${sessionB.sessionId}`],
+      turnDecisionSpecs: [],
+      userDecisionRecords: [],
+      decisionLedgerAuditFindings: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    writeOntologyEngineeringWorkflowState(snapshotLess);
+
+    // (4) Front-door + drift_rebind under session B (the non-minting resume).
+    const { envelope, dtcRef } = await seedFrontDoor(P, sicContractId);
+    const result = await handleOntologyEngineeringWorkflow({
+      action: "drift_rebind",
+      project: P,
+      sessionId: sessionB.sessionId,
+      digitalTwinChangeContractRef: dtcRef,
+      rebindRids: beforeRids,
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      frontDoorSessionId: envelope.sessionId,
+      frontDoorRuntime: "claude",
+    });
+
+    // Cross-session resume now SUCCEEDS (NOT the predicate-A OE-2 refusal).
+    expect(result.register?.committed).toBe(true);
+    expect(result.register?.invalidReason).toBeUndefined();
+    expect(editCommittedCount(P)).toBeGreaterThanOrEqual(commitsBefore + 1);
+    expect(driftAdvancedCount(P)).toBeGreaterThanOrEqual(1);
+    // The current envelope was ADVANCED (the gate-advance step ran).
+    expect(await envelopeState(P, envelope.sessionId, envelope.promptId)).toBe("digital_twin_approved");
+  });
+
   test("NEGATIVE: empty rebindRids ⇒ committed:false with the DISTINCT rebind invalidReason", async () => {
     const P = setupRoot("empty");
     const session = seedSession(P);

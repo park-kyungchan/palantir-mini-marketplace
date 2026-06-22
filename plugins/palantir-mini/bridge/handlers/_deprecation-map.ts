@@ -135,6 +135,84 @@ export const DEPRECATION_MAP: DeprecationEntry[] = [
     replacement:      "pm_substrate_query mode='session-opener'",
     removedAtVersion: "7.0.0",
   },
+  // ── Skill→tool binding hygiene (7.26.0) — consolidated query/audit tools whose
+  //    skill adapter-face refs were dangling. The backing handlers survive as the
+  //    consolidated tool modes; only the skill allowed-tools refs were remediated.
+  //    (P1-10/P1-11; see check-skill-tool-declarations.ts.)
+  {
+    removed:          "replay_lineage",
+    replacement:      "pm_substrate_query mode='lineage'",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "pm_learn_query",
+    replacement:      "pm_substrate_query mode='learn'",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "pm_event_query_by_grade",
+    replacement:      "pm_substrate_query mode='by-grade'",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "pm_workflow_lineage_query",
+    replacement:      "pm_substrate_query mode='workflow'",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "pm_retro_query",
+    replacement:      "pm_substrate_query mode='retro'",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "pm_memory_layer_audit",
+    replacement:      "pm_health_audit mode='memory-layer'",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "pm_outcome_pair_audit",
+    replacement:      "pm_health_audit mode='outcome-pair'",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "pm_preamble",
+    replacement:      "pm_substrate_query mode='session-opener'",
+    removedAtVersion: "7.26.0",
+  },
+  // ── Skill→tool binding hygiene (7.26.0) — never-existed refs removed from skills
+  //    (no handler, no live equivalent; governance enforced elsewhere).
+  {
+    removed:          "capability_token_check",
+    replacement:      "pm_pre_mutation_governance (+ PreToolUse governance hooks)",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "get_team_health",
+    replacement:      "(removed; no replacement — informational only)",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "gate_on_drift",
+    replacement:      "(removed; run bun run ontology:drift directly)",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "pre_sprint_diff",
+    replacement:      "pm_substrate_query mode='workflow' / external base...head diff",
+    removedAtVersion: "7.26.0",
+  },
+  // ── Skill→tool binding hygiene (7.26.0) — routed to a PARAM of a live tool
+  //    (advisory discoverability; the tool itself was never registered).
+  {
+    removed:          "compute_edits_dry_run",
+    replacement:      "commit_edits validateOnly:true",
+    removedAtVersion: "7.26.0",
+  },
+  {
+    removed:          "research_library_diff",
+    replacement:      "research_library_refresh dryRun:true",
+    removedAtVersion: "7.26.0",
+  },
 ];
 
 /**

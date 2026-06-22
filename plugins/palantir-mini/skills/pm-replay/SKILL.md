@@ -3,7 +3,7 @@ name: pm-replay
 category: maintenance
 surfaceStatus: public-core
 description: "Deterministic BackwardProp replay of events.jsonl filtered by 5-dim Decision Lineage..."
-allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage mcp__palantir-mini__pm_event_query_by_grade
+allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__pm_substrate_query
 effort: low
 disable-model-invocation: false
 ---
@@ -19,7 +19,7 @@ disable-model-invocation: false
 
 ## What this does
 
-Invokes `replay_lineage` MCP tool with a Decision Lineage 5-dim filter:
+Invokes `pm_substrate_query` (mode `lineage`) with a Decision Lineage 5-dim filter:
 
 - `when` — ISO8601 time window
 - `atopWhich` — CommitSha substring (git context)
@@ -32,7 +32,8 @@ Invokes `replay_lineage` MCP tool with a Decision Lineage 5-dim filter:
 ### Default (T2+ filter, noise excluded)
 
 ```
-mcp__palantir-mini__pm_event_query_by_grade({
+mcp__palantir-mini__pm_substrate_query({
+  mode: "by-grade",
   project: "<path>",
   gradeFilter: "T2+",
   eventTypeFilter: ["edit_committed", "submission_criteria_failed"],
@@ -40,10 +41,11 @@ mcp__palantir-mini__pm_event_query_by_grade({
 })
 ```
 
-Then narrow via `replay_lineage` with the matching event ids:
+Then narrow via `pm_substrate_query` (mode `lineage`) with the matching event ids:
 
 ```
-mcp__palantir-mini__replay_lineage({
+mcp__palantir-mini__pm_substrate_query({
+  mode: "lineage",
   project: "<path>",
   filter: {
     fromSequence: 1,
@@ -58,7 +60,7 @@ mcp__palantir-mini__replay_lineage({
 
 ### `--include-noise` (full replay, T0+T1 included)
 
-Skip the `pm_event_query_by_grade` pre-filter; call `replay_lineage` directly. Use sparingly — most useful when investigating a non-conformant emit OR running governance audits where T0 noise itself is the subject.
+Skip the `pm_substrate_query` mode `by-grade` pre-filter; call `pm_substrate_query` mode `lineage` directly. Use sparingly — most useful when investigating a non-conformant emit OR running governance audits where T0 noise itself is the subject.
 
 ## Output
 
@@ -82,8 +84,8 @@ For reviewing what decisions DROVE refinements (T3+ circuit inputs only), invoke
 
 This defaults `gradeFilter` to `"T3+"` (T3 + T4 only — the BackPropagation circuit), composing the same 2 handlers:
 
-1. `pm_event_query_by_grade({ project, gradeFilter: "T3+", sinceWhen?, eventTypeFilter?, limit })` — narrows the read window to circuit inputs.
-2. `replay_lineage({ project, filter: { eventIds: [...] } })` — deterministic 5-dim reconstruction of the filtered set.
+1. `pm_substrate_query({ mode: "by-grade", project, gradeFilter: "T3+", sinceWhen?, eventTypeFilter?, limit })` — narrows the read window to circuit inputs.
+2. `pm_substrate_query({ mode: "lineage", project, filter: { eventIds: [...] } })` — deterministic 5-dim reconstruction of the filtered set.
 
 Grade-filter escalation:
 

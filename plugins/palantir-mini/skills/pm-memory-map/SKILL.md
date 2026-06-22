@@ -3,7 +3,7 @@ name: pm-memory-map
 category: research
 surfaceStatus: public-core
 description: "4-layer agentic memory balance audit (working / episodic / semantic / procedural)."
-allowed-tools: mcp__palantir-mini__pm_memory_layer_audit
+allowed-tools: mcp__palantir-mini__pm_health_audit
 effort: low
 disable-model-invocation: false
 ---
@@ -19,7 +19,7 @@ disable-model-invocation: false
 
 ## What this does
 
-Wraps `pm_memory_layer_audit` MCP handler. Computes:
+Wraps `pm_health_audit` (mode `memory-layer`) MCP handler. Computes:
 
 | Field | Meaning |
 |-------|---------|

@@ -3,7 +3,7 @@ name: pm-t4-promotion-review
 category: research
 surfaceStatus: public-core
 description: "Audit T4-graded events (rule 26 §Substrate routing top tier — T3 + D2 K-LLM..."
-allowed-tools: mcp__palantir-mini__pm_event_query_by_grade mcp__palantir-mini__replay_lineage mcp__palantir-mini__emit_event Read Bash
+allowed-tools: mcp__palantir-mini__pm_substrate_query mcp__palantir-mini__emit_event Read Bash
 effort: high
 disable-model-invocation: false
 ---
@@ -29,7 +29,8 @@ This skill complements `/palantir-mini:pm-value-audit --three-questions` (W2.C) 
 ### Step 1 — Query T4 events
 
 ```
-mcp__plugin_palantir-mini_palantir-mini__pm_event_query_by_grade({
+mcp__palantir-mini__pm_substrate_query({
+  mode: "by-grade",
   project: "/home/palantirkc",
   gradeFilter: "T4",
   windowDays: 30
@@ -52,7 +53,8 @@ For each T4 event, extract `withWhat.refinementTarget.{kind, filePathOrRid, desc
 ### Step 3 — Replay lineage for top-3 candidates
 
 ```
-mcp__plugin_palantir-mini_palantir-mini__replay_lineage({
+mcp__palantir-mini__pm_substrate_query({
+  mode: "lineage",
   project: "/home/palantirkc",
   filter: { byRefinementTarget: <kind>, valueGrade: "T4" }
 })
