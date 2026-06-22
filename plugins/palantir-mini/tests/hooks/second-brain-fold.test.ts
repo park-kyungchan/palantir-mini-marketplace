@@ -1,11 +1,16 @@
-// palantir-mini — second-brain-fold hook tests (LEARN lane, Stop shim)
+// palantir-mini — second-brain-fold hook tests (LEARN lane, Stop = detect+bookmark)
 // Covers the pm-OFF-verifiable parts:
 //   (a) EMIT INTEGRATION — emit() a resolution_verdict envelope carrying the full
 //       T3 recipe (5-dim + memoryLayers + hypothesis + refinementTarget) and assert
 //       the appended events.jsonl row is type==="resolution_verdict" AND valueGrade==="T3".
-//       This proves the in-band Path B grader end-to-end, pm-OFF.
+//       This proves the in-band Path B grader (still used by the retained
+//       forwardFoldOutput helper) end-to-end, pm-OFF.
 //   (b) SHIM FAIL-SAFE — the hook default export resolves to a { message } object and
 //       never throws when invoked against a tmp dir with NO second-brain/ engine.
+//   (c) DETERMINISTIC BOOKMARK (P1-2) — with a stub engine present + a transcript on
+//       disk, the Stop hook writes a pending-fold.json entry and does NOT spawn the
+//       engine (graph.json never appears); the message says "bookmarked".
+//   (d) BYPASS — bypass envvar set → no pending-fold.json entry + audit event.
 
 import { test, expect, describe, afterEach } from "bun:test";
 import * as fs from "fs";
@@ -13,15 +18,42 @@ import * as os from "os";
 import * as path from "path";
 import { emit } from "../../scripts/log";
 import secondBrainFold from "../../hooks/second-brain-fold";
+import { readPendingFold, pendingFoldPath } from "../../lib/second-brain/pending-fold";
+
+const SECOND_BRAIN_FOLD_BYPASS = "PALANTIR_MINI_SECOND_BRAIN_FOLD_BYPASS";
 
 const originalEventsFile = process.env.PALANTIR_MINI_EVENTS_FILE;
 const originalEventsFileForce = process.env.PALANTIR_MINI_EVENTS_FILE_FORCE;
+const originalBypass = process.env[SECOND_BRAIN_FOLD_BYPASS];
 const tmpDirs: string[] = [];
+const tmpTranscripts: string[] = [];
 
 function makeTmpProject(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-sbf-"));
   tmpDirs.push(dir);
   return dir;
+}
+
+/**
+ * Make `root` a tracked project with a STUB engine file present + a transcript on
+ * disk at the slug path the hook computes. Returns the sessionId. The transcript
+ * lives under the real ~/.claude/projects/<slug>/ (the hook reads os.homedir());
+ * it is tracked for cleanup.
+ */
+function seedTrackedProjectWithTranscript(root: string): string {
+  fs.mkdirSync(path.join(root, ".palantir-mini", "session"), { recursive: true });
+  fs.mkdirSync(path.join(root, "second-brain", "scripts"), { recursive: true });
+  // stub engine: present but never executed by the bookmark path
+  fs.writeFileSync(path.join(root, "second-brain", "scripts", "fold.ts"), "// stub engine\n", "utf8");
+
+  const sessionId = `sess-bm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const slug = path.resolve(root).split(path.sep).join("-");
+  const projectsDir = path.join(os.homedir(), ".claude", "projects", slug);
+  fs.mkdirSync(projectsDir, { recursive: true });
+  const transcript = path.join(projectsDir, sessionId + ".jsonl");
+  fs.writeFileSync(transcript, '{"type":"user"}\n', "utf8");
+  tmpTranscripts.push(transcript);
+  return sessionId;
 }
 
 function restoreEnv(): void {
@@ -30,11 +62,17 @@ function restoreEnv(): void {
 
   if (originalEventsFileForce === undefined) delete process.env.PALANTIR_MINI_EVENTS_FILE_FORCE;
   else process.env.PALANTIR_MINI_EVENTS_FILE_FORCE = originalEventsFileForce;
+
+  if (originalBypass === undefined) delete process.env[SECOND_BRAIN_FOLD_BYPASS];
+  else process.env[SECOND_BRAIN_FOLD_BYPASS] = originalBypass;
 }
 
 afterEach(() => {
   restoreEnv();
   for (const dir of tmpDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  for (const t of tmpTranscripts.splice(0)) {
+    try { fs.rmSync(t, { force: true }); } catch { /* best-effort */ }
+  }
 });
 
 describe("second-brain-fold — emit integration (T3 recipe, Path B)", () => {
@@ -104,5 +142,54 @@ describe("second-brain-fold — shim fail-safe", () => {
     const result = await secondBrainFold({ cwd: fsRoot, session_id: "sess-sbf-test" });
     expect(typeof result.message).toBe("string");
     expect(result.message).toContain("skipped");
+  });
+});
+
+describe("second-brain-fold — deterministic bookmark (P1-2)", () => {
+  test("with a stub engine + transcript, writes pending-fold.json and does NOT spawn the engine", async () => {
+    const tmpRoot = makeTmpProject();
+    process.env.PALANTIR_MINI_EVENTS_FILE = path.join(tmpRoot, ".palantir-mini", "session", "events.jsonl");
+    delete process.env[SECOND_BRAIN_FOLD_BYPASS];
+    const sessionId = seedTrackedProjectWithTranscript(tmpRoot);
+
+    const result = await secondBrainFold({ cwd: tmpRoot, session_id: sessionId });
+
+    expect(result.message).toContain("bookmarked");
+    // bookmark written for the session
+    const pf = readPendingFold(pendingFoldPath(tmpRoot));
+    expect(sessionId in pf.pending).toBe(true);
+    expect(pf.pending[sessionId]?.transcriptPath).toContain(sessionId + ".jsonl");
+    // engine was NOT spawned: no graph.json materialized
+    expect(fs.existsSync(path.join(tmpRoot, "second-brain", "graph.json"))).toBe(false);
+  });
+});
+
+describe("second-brain-fold — bypass", () => {
+  test("bypass envvar set → no pending-fold.json entry + audit event emitted", async () => {
+    const tmpRoot = makeTmpProject();
+    const eventsFile = path.join(tmpRoot, ".palantir-mini", "session", "events.jsonl");
+    process.env.PALANTIR_MINI_EVENTS_FILE = eventsFile;
+    process.env.PALANTIR_MINI_EVENTS_FILE_FORCE = "1";
+    process.env[SECOND_BRAIN_FOLD_BYPASS] = "1";
+    const sessionId = seedTrackedProjectWithTranscript(tmpRoot);
+
+    const result = await secondBrainFold({ cwd: tmpRoot, session_id: sessionId });
+
+    expect(result.message).toContain(SECOND_BRAIN_FOLD_BYPASS);
+    // a bypassed session is never queued
+    const pf = readPendingFold(pendingFoldPath(tmpRoot));
+    expect(sessionId in pf.pending).toBe(false);
+    // audit event was emitted (bypass-budget-monitor counts it)
+    const lines = fs
+      .readFileSync(eventsFile, "utf8")
+      .split("\n")
+      .filter((l) => l.trim().length > 0)
+      .map((l) => JSON.parse(l) as Record<string, unknown>);
+    const audit = lines.find(
+      (r) =>
+        r["type"] === "validation_phase_completed" &&
+        (r["payload"] as Record<string, unknown>)?.["errorClass"] === "second_brain_fold_bypass_invoked",
+    );
+    expect(audit).toBeDefined();
   });
 });

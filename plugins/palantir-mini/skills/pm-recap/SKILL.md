@@ -3,7 +3,7 @@ name: pm-recap
 category: maintenance
 surfaceStatus: public-core
 description: "Produce a /recap-compatible summary (Claude Code v2.1.114+ Native Runtime, plugin..."
-allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__replay_lineage mcp__palantir-mini__pm_event_query_by_grade mcp__palantir-mini__pm_memory_layer_audit
+allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__get_ontology mcp__palantir-mini__pm_substrate_query mcp__palantir-mini__pm_health_audit
 effort: low
 disable-model-invocation: false
 ---
@@ -22,12 +22,13 @@ disable-model-invocation: false
 2. Folds them via `foldToSnapshot()` into an `EventSnapshot`.
 3. Groups events by type and produces a compact markdown brief.
 4. Includes the 5 most recent `edit_committed` events with Decision Lineage.
-5. **valueGrade weighting (v4.1.0+, rule 26)** — narrative emphasis follows T3 > T2 > T1; T0 events excluded from default fold (use `--include-noise` to override). Section "Memory layer summary" surfaces `pm_memory_layer_audit` snapshot.
+5. **valueGrade weighting (v4.1.0+, rule 26)** — narrative emphasis follows T3 > T2 > T1; T0 events excluded from default fold (use `--include-noise` to override). Section "Memory layer summary" surfaces `pm_health_audit` (mode `memory-layer`) snapshot.
 
 ## How to run
 
 ```
-mcp__palantir-mini__replay_lineage({
+mcp__palantir-mini__pm_substrate_query({
+  mode: "lineage",
   project: "<path>",
   filter: { limit: 20 }
 })
@@ -80,7 +81,7 @@ Example recap section:
 
 - `~/.claude/rules/10-events-jsonl.md` — events.jsonl is append-only; pm-recap folds events into a snapshot but never rewrites the log.
 - `~/.claude/rules/02-research-retrieval.md §Memory` — pm-recap output is a cold-start surface; it does not replace MEMORY.md, which is the cross-conversation memory index.
-- `~/.claude/rules/26-valuable-data-standard.md §Grading` — fold weighting (T3 > T2 > T1; T0 excluded). Use `pm_event_query_by_grade(gradeFilter="T2+")` to pre-filter the read window.
+- `~/.claude/rules/26-valuable-data-standard.md §Grading` — fold weighting (T3 > T2 > T1; T0 excluded). Use `pm_substrate_query({ mode: "by-grade", gradeFilter: "T2+" })` to pre-filter the read window.
 
 ## Memory layer declaration
 

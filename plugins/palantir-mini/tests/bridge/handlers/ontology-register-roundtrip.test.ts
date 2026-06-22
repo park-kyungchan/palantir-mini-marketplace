@@ -119,7 +119,7 @@ describe("O-2 — full loop closure (§2.5)", () => {
 
     await commitEditsHandler({
       project: root,
-      actionTypeRid: "pm.self.ontology/action-type/register-mixed",
+      actionTypeRid: "pm.self.ontology/action-type/register-action-type",
       edits: [...objEdit, ...linkEdit, ...actEdit, ...fnEdit],
     });
 

@@ -3,7 +3,7 @@ name: pm-value-audit
 category: maintenance
 surfaceStatus: public-core
 description: "Substrate health dashboard (rule 26 valuable-data) + AIP no-slop Three Questions audit (Q1 Trust / Q2 Scope / Q3 Refine)."
-allowed-tools: mcp__palantir-mini__pm_value_grade_metrics mcp__palantir-mini__replay_lineage mcp__palantir-mini__pm_outcome_pair_audit mcp__palantir-mini__pm_event_query_by_grade mcp__palantir-mini__emit_event Read Bash
+allowed-tools: mcp__palantir-mini__pm_health_audit mcp__palantir-mini__pm_substrate_query mcp__palantir-mini__emit_event Read Bash
 effort: high
 disable-model-invocation: false
 ---
@@ -137,10 +137,10 @@ Anchored to AIP "no-slop zone" + DC5-02 3 conditions for human-agent leverage (`
 Parallel MCP calls (project defaults to the active project root):
 
 ```
-mcp__palantir-mini__pm_value_grade_metrics({ project, windowDays: 1 })
-mcp__palantir-mini__replay_lineage({ project, atopWhich: "<commit-sha>", filter: { byContract: "<sprint-id>" } })
-mcp__palantir-mini__pm_outcome_pair_audit({ project, orphanThresholdMs: 1800000 })
-mcp__palantir-mini__pm_event_query_by_grade({ project, gradeFilter: "T3+", windowDays: 1 })
+mcp__palantir-mini__pm_health_audit({ mode: "events-5d", project, windowDays: 1 })
+mcp__palantir-mini__pm_substrate_query({ mode: "lineage", project, atopWhich: "<commit-sha>", filter: { byContract: "<sprint-id>" } })
+mcp__palantir-mini__pm_health_audit({ mode: "outcome-pair", project, orphanThresholdMs: 1800000 })
+mcp__palantir-mini__pm_substrate_query({ mode: "by-grade", project, gradeFilter: "T3+", windowDays: 1 })
 ```
 
 Compute a per-Q verdict object, then `overall`: `3/3 = no-slop`, `2/3 = warn`, `≤1/3 = slop`.

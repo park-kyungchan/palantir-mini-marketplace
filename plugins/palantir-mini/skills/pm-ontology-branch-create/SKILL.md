@@ -3,7 +3,7 @@ name: pm-ontology-branch-create
 category: core-workflow
 surfaceStatus: public-core
 description: "Create an OntologyBranchDeclaration (Foundry Global Branching / AI FDE working..."
-allowed-tools: mcp__palantir-mini__apply_edit_function mcp__palantir-mini__commit_edits mcp__palantir-mini__compute_edits_dry_run mcp__palantir-mini__emit_event Read Write Bash
+allowed-tools: mcp__palantir-mini__apply_edit_function mcp__palantir-mini__commit_edits mcp__palantir-mini__emit_event Read Write Bash
 effort: medium
 disable-model-invocation: false
 ---

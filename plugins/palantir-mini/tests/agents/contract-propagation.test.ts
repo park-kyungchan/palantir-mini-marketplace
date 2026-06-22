@@ -36,6 +36,7 @@ const EXPECTED_MUTATION_CAPABLE = [
 
 const EXPECTED_EXEMPT = [
   "researcher",
+  "second-brain-fold",
   "verifier",
 ];
 
@@ -67,9 +68,9 @@ describe("contract-propagation: agent authority chain section", () => {
 describe("PR-G agent inventory", () => {
   const inventory = loadPluginAgentInventory(PLUGIN_ROOT);
 
-  test("parses all 9 plugin agents", () => {
-    expect(inventory.length).toBe(9);
-    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(9);
+  test("parses all 10 plugin agents", () => {
+    expect(inventory.length).toBe(10);
+    expect(new Set(inventory.map((entry) => entry.name)).size).toBe(10);
   });
 
   test("classifies mutation-capable plugin agents", () => {

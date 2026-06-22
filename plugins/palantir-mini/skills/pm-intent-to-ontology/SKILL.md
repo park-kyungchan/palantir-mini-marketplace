@@ -37,9 +37,9 @@ source-authority (`.ssot-authority.json`).
 
 1. **get_ontology** — snapshot the current ontology state for the project.
 2. **impact_query** — blast radius walk from scope RIDs (depth=2).
-3. **pm_workflow_lineage_query** — past 7-day edit history for the project (last 30 committed edits).
-4. **pm_event_query_by_grade T3+** — decision events that informed prior work (BackProp inputs).
-5. **propagation_audit_forward** — ForwardProp chain integrity (research → runtime).
+3. **pm_substrate_query (mode workflow)** — past 7-day edit history for the project (last 30 committed edits).
+4. **pm_substrate_query (mode by-grade) T3+** — decision events that informed prior work (BackProp inputs).
+5. **pm_health_audit (mode ontology-runtime)** — ForwardProp chain integrity (research → runtime).
 6. **negotiate_sprint_contract** — bind before non-trivial Edit/Write/MultiEdit.
    *(Lead action; no MCP call)*
 
@@ -78,10 +78,11 @@ mcp__palantir-mini__impact_query({ "rid": "<scopePaths[0]>", "depth": 2 })
 
 Captures: downstream dependency graph (blast radius) for top-RID in scope.
 
-### Step 3 — pm_workflow_lineage_query
+### Step 3 — pm_substrate_query (mode workflow)
 
 ```json
-mcp__palantir-mini__pm_workflow_lineage_query({
+mcp__palantir-mini__pm_substrate_query({
+  "mode": "workflow",
   "projects": ["<project>"],
   "filter": {
     "whenRange": { "from": "<7 days ago ISO>", "to": "<now ISO>" },
@@ -94,18 +95,18 @@ mcp__palantir-mini__pm_workflow_lineage_query({
 
 Captures: last 30 committed edits in the last 7 days — shows what recently changed.
 
-### Step 4 — pm_event_query_by_grade T3+
+### Step 4 — pm_substrate_query (mode by-grade) T3+
 
 ```json
-mcp__palantir-mini__pm_event_query_by_grade({ "project": "<project>", "gradeFilter": "T3+" })
+mcp__palantir-mini__pm_substrate_query({ "mode": "by-grade", "project": "<project>", "gradeFilter": "T3+" })
 ```
 
 Captures: T3+ decision events — the BackProp circuit inputs that informed prior work.
 
-### Step 5 — propagation_audit_forward
+### Step 5 — pm_health_audit (mode ontology-runtime)
 
 ```json
-mcp__palantir-mini__propagation_audit_forward({ "project": "<project>" })
+mcp__palantir-mini__pm_health_audit({ "mode": "ontology-runtime", "project": "<project>" })
 ```
 
 Captures: ForwardProp chain integrity — whether research → schemas → shared-core →
@@ -119,9 +120,9 @@ project-ontology → contracts → runtime is all intact.
   "scopePaths": ["<path>", ...],
   "ontology": { /* get_ontology result */ },
   "impact": { /* impact_query result */ },
-  "lineage": { /* pm_workflow_lineage_query result */ },
-  "decisions": { /* pm_event_query_by_grade T3+ result */ },
-  "propagation": { /* propagation_audit_forward result */ },
+  "lineage": { /* pm_substrate_query mode=workflow result */ },
+  "decisions": { /* pm_substrate_query mode=by-grade T3+ result */ },
+  "propagation": { /* pm_health_audit mode=ontology-runtime result */ },
   "totalElapsedMs": 1234
 }
 ```
@@ -132,9 +133,9 @@ Total output MUST be ≤25K. Truncate lineage to last 5 events if needed.
 
 - `get_ontology not found` — handler not wired; fallback: Read ontology files manually.
 - `impact_query not found` — handler not wired; skip blast radius; proceed with lineage only.
-- `pm_workflow_lineage_query empty` — no recent edits; normal for fresh projects.
-- `pm_event_query_by_grade T3+ empty` — no T3+ events yet; BackProp circuit is new.
-- `propagation_audit_forward unavailable` — handler not wired; skip + note in output.
+- `pm_substrate_query mode=workflow empty` — no recent edits; normal for fresh projects.
+- `pm_substrate_query mode=by-grade T3+ empty` — no T3+ events yet; BackProp circuit is new.
+- `pm_health_audit mode=ontology-runtime unavailable` — handler not wired; skip + note in output.
 - Any step fails → report partial results with error context.
 
 ## Hook integration
@@ -149,7 +150,7 @@ Total output MUST be ≤25K. Truncate lineage to last 5 events if needed.
 
 - Sprint-062 Phase 2 W1-alpha (hook-builder task T-W1a-1)
 - MCP-First protocol (MCP discovery before edit)
-- Rule 01 §ForwardProp Audit (propagation_audit_forward required before cross-layer schema promotion)
+- Rule 01 §ForwardProp Audit (pm_health_audit mode='ontology-runtime' required before cross-layer schema promotion)
 - Rule 26 §Axis E (procedural + semantic memory layers)
 - `user-prompt-ontology-intent-extract.ts` — companion UserPromptSubmit hook
 - `lead-ontology-discovery-completeness.ts` — companion PreToolUse advisory hook

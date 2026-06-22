@@ -7,6 +7,24 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.26.0] - 2026-06-22 — broad-improvement Wave: actionType gate + cross-session resume + de-hardcode + fold locus shift + skill→tool hygiene
+
+### Added
+- **`second-brain-fold` native subagent (P1-2 locus shift)** (`agents/second-brain-fold.md`, the 10th agent): the model-driven session-end memory-fold dispatcher. A Stop hook is a detached child process that can reach neither the model nor the gated MCP `emit_event` path, so the heavy LLM fold + the governed emit move onto the model turn. It runs the project-owned engine (`second-brain/scripts/fold.ts`, pure + LLM-DI, owns `graph.json`) in model-fed mode and forwards each emit-ready object through the gated `emit_event` MCP tool (5-dim auto-fill + rule-26 auto-grade + real runtime identity) — strictly more governed than the prior detached in-band `emit()`. `model: inherit`; mutating; `outputContractExempt` (runs the engine + emits governed lineage, authors no ontology files itself). The Stop/SessionStart hooks were rewired to dispatch it (one dispatch per pending session).
+- **Skill→tool self-check guard (P1-10/11)**: a new self-check that fails loud on dangling tool references in skill bodies; 18 dangling refs remediated and 14 `_deprecation-map` rows recorded (`removedAtVersion: "7.26.0"`).
+
+### Fixed
+- **P0-1 actionTypeRid commit gate** (`lib/actions/commit.ts`): the write-back commit gate binds to a real `actionTypeRid`.
+- **P0-2 cross-session resume**: a persisted governed session resumes across process boundaries.
+- **P0-3 de-hardcode guards**: removed hard-coded assumptions behind explicit guards.
+
+### Changed
+- **Self-ontology + inventory seed reconciliation (10th agent + skill drift)**: the new agent + a pre-existing skill-surface drift are registered across every self-Ontology + PR-G inventory drift guard. Agent surface 9→10: the `Agent` self-Ontology seed (`runtime-overlay/schemas-snapshot/ontology/self/agent.objecttype.ts` `AGENT_INSTANCES`, `tier` union widened to include `"inherit"`), the capability-split partition (`roles.ts` `MUTATING_AGENT_IDS` 7→8 — `second-brain-fold` is mutating: it writes graph state + emits events, no `disallowedTools` forbid Write/Edit/NotebookEdit; read-only stays researcher/verifier), the PR-G inventory (`tests/agents/contract-propagation.test.ts` parses 10, `outputContractExempt` set = researcher/second-brain-fold/verifier), and the `PluginManifest` seed `registeredAgents` 9→10. Skill surface 44→45: registered `pm-ontology-drift-propose` (pre-existing baseline drift) in the `Skill` self-Ontology seed + `PluginManifest` seed `registeredSkills` 44→45. Drift-guard pins advanced to live (EXPECTED_AGENT_COUNT 9→10, EXPECTED_SKILL_COUNT 44→45, capability-split 2/7/9 → 2/8/10); the set-equality drift guards against the live `agents/`+`skills/` dirs are unchanged (no check weakened).
+
+### Notes
+- Version bump 7.25.0 → 7.26.0 across all integrity-gated manifests (`package.json`, `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, root + plugin `.claude-plugin/marketplace.json`); `bun ci/verify-marketplace-integrity.ts` passes.
+- KNOWN residual (out of session scope, P2): `runtime-overlay/schemas-snapshot/MANIFEST.json` `packageVersion` (1.82.0) lags the snapshot `package.json` (1.83.1) and its `fileSha256Index` is stale; the only snapshot-refresh tool (`scripts/refresh-runtime-overlay.ts`) targets `ontology-shared-core` from an external source, not `schemas-snapshot`, so there is no in-repo regenerator and no test gates the MANIFEST. Tracked as E-5/F-2; the fix is to wire a `schemas-snapshot` MANIFEST regen into the bump path.
+
 ## [7.25.0] - 2026-06-22
 
 ### Added

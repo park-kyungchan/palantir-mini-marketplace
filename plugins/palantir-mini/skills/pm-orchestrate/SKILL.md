@@ -6,7 +6,7 @@ description: "Ontology-Driven work orchestration for complex multi-step tasks. E
 argument-hint: "task description"
 context: standard
 model: opus
-allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Agent, TaskCreate, TaskList, TaskUpdate, TaskGet, SendMessage, mcp__palantir-mini__pm_preamble, mcp__palantir-mini__replay_lineage, mcp__palantir-mini__emit_event, mcp__palantir-mini__apply_edit_function, mcp__palantir-mini__commit_edits, mcp__palantir-mini__capability_token_check, mcp__palantir-mini__get_ontology, mcp__palantir-mini__impact_query, mcp__palantir-mini__pre_edit_impact, mcp__palantir-mini__pm_retro_query, mcp__palantir-mini__pm_learn_query, mcp__palantir-mini__detect_doc_drift, mcp__palantir-mini__get_team_health
+allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Agent, TaskCreate, TaskList, TaskUpdate, TaskGet, SendMessage, mcp__palantir-mini__pm_substrate_query, mcp__palantir-mini__emit_event, mcp__palantir-mini__apply_edit_function, mcp__palantir-mini__commit_edits, mcp__palantir-mini__get_ontology, mcp__palantir-mini__impact_query, mcp__palantir-mini__pre_edit_impact, mcp__palantir-mini__pm_health_audit
 effort: high
 disable-model-invocation: false
 ---
@@ -70,7 +70,8 @@ if flat project:
 
 1. **events.jsonl** — when `.palantir-mini/session/` exists, call:
    ```
-   mcp__palantir-mini__replay_lineage({
+   mcp__palantir-mini__pm_substrate_query({
+     mode: "lineage",
      project: "<project-root>",
      filter: { types: ["session_start", "phase_completed", "task_created"] }
    })
@@ -173,7 +174,8 @@ Before spawning Explore agents, check `events.jsonl` for recent audit events at
 the current git SHA:
 
 ```
-mcp__palantir-mini__replay_lineage({
+mcp__palantir-mini__pm_substrate_query({
+  mode: "lineage",
   project: "<project-root>",
   filter: { types: ["phase_completed"], atopWhich: "<current-sha>" }
 })
@@ -565,12 +567,12 @@ L2/L3 RBAC. The orchestration protocol maps onto these capabilities as follows:
 
 | Phase | palantir-mini surface |
 |-------|---------------------------|
-| Phase 0 CHECK | `mcp__palantir-mini__replay_lineage` — prior session event query |
+| Phase 0 CHECK | `mcp__palantir-mini__pm_substrate_query` (mode `lineage`) — prior session event query |
 | Phase 1 INJECT | `mcp__palantir-mini__get_ontology` — canonical ontology snapshot |
-| Phase 2 AUDIT | `mcp__palantir-mini__replay_lineage` — cached audit findings at SHA |
+| Phase 2 AUDIT | `mcp__palantir-mini__pm_substrate_query` (mode `lineage`) — cached audit findings at SHA |
 | Phase 3 DECIDE | `mcp__palantir-mini__emit_event` — record user decisions |
 | Phase 4 DECOMPOSE | `mcp__palantir-mini__apply_edit_function` (Tier-1) + `emit_event` per task |
-| Phase 5 EXECUTE | `mcp__palantir-mini__commit_edits` + `capability_token_check` (L2) |
+| Phase 5 EXECUTE | `mcp__palantir-mini__commit_edits` + PreToolUse governance hooks + `mcp__palantir-mini__pm_pre_mutation_governance` (L2) |
 | Phase 6 VALIDATE | `/pm-verify` (6-phase pipeline) + `emit_event` phase_completed |
 
 ### Mechanical Enforcement via Hooks
@@ -582,17 +584,18 @@ Plugin hooks enforce Principles mechanically:
 - **TeammateIdle hook** — throttles deeply-blocked agents (3-tier: silent → warn → stop)
 - **SubagentStop hook** — captures agent completion state to events.jsonl
 
-### L2 Capability Token Pre-Flight
+### L2 Governance Pre-Flight
 
 For operations that touch `schema-write`, `ontology-register`, or `ship-merge`,
-call capability_token_check before proceeding:
+governance is enforced by PreToolUse hooks plus `pm_pre_mutation_governance`
+before any write proceeds:
 
 ```
-mcp__palantir-mini__capability_token_check({
+mcp__palantir-mini__pm_pre_mutation_governance({
   project: "<project-root>",
   operation: "schema-write|ontology-register|ship-merge",
   holder: "Lead (Opus)"
 })
 ```
 
-If the check fails, halt and surface the permission error to the user.
+If governance denies the operation, halt and surface the permission error to the user.

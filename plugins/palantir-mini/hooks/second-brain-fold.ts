@@ -1,47 +1,48 @@
-// palantir-mini — second-brain-fold hook (LEARN lane, Stop, advisory-only shim)
-// Fires on: Stop — advisory only, NEVER blocks. This is the THIN cross-repo shim.
+// palantir-mini — second-brain-fold hook (LEARN lane, Stop, deterministic bookmark)
+// Fires on: Stop — advisory only, NEVER blocks.
 //
-// PURPOSE: Once-per-session, fold the current session's Claude Code transcript into
-// the project's second-brain knowledge graph (Layer-2, graph.json) by subprocess-
-// invoking the project's OWN second-brain fold engine, then forwarding the engine's
-// emit-ready verdict objects into events.jsonl (Layer-1) via the in-band emit() path.
+// LOCUS (P1-2): Stop hook = deterministic detect+bookmark ONLY. The LLM fold runs
+// on the model turn, triggered by SessionStart additionalContext, via a native
+// subagent (palantir-mini:second-brain-fold) + the MCP emit_event path. This hook
+// NEVER spawns the engine and NEVER does LLM work.
 //
-// BOUNDARY (cross-repo engine ⇄ shim):
-//   - The ENGINE (<root>/second-brain/scripts/fold.ts) is pure + LLM-DI. It OWNS
-//     graph.json, never imports pm, never writes events.jsonl. It prints emit-ready
-//     objects to stdout: { verdicts: EmitObj[], summary: EmitObj | null }.
-//   - This SHIM is THIN: forward (spawn the engine) + emit (one emit() per object)
-//     + never-block. It does NOT compute graph state and does NOT grade events —
-//     grading happens in-band inside emit() (the SAME autoGradeEnvelope as Path A).
+// WHY THE SHIFT: a Stop hook is a detached bun child process, NOT the model — it
+// CANNOT call the model or the MCP emit_event tool. The prior design spawned the
+// engine here and forwarded verdicts via the in-band emit() path (identity
+// "monitor", bypassing the pretool-emit-event-value gate). The model-driven locus
+// (a) keeps the heavy/fragile LLM work off the hot Stop path (15s fs-only vs 120s
+// engine-spawn), and (b) routes the emit through the gated MCP path with the real
+// runtime identity. See agents/second-brain-fold.md + hooks/session-start.ts.
 //
-// A Stop hook is a bun child process, NOT the model — it CANNOT call the MCP
-// emit_event tool. It MUST use the in-band emit() helper (scripts/log), which runs
-// the SAME grader. Never use MCP emit_event; never call appendEventAtomic directly.
-//
-// Logic:
+// Logic (NO LLM, NO engine spawn):
 //   1. Find project root from cwd; skip if none (not a tracked project).
 //   2. Gate on `.palantir-mini/` existing; skip if absent.
 //   3. ADDITIONAL gate: skip if <root>/second-brain/scripts/fold.ts is absent
 //      (no-op on projects without the engine).
 //   4. Bypass envvar PALANTIR_MINI_SECOND_BRAIN_FOLD_BYPASS=1 → skip + emit one
-//      *_bypass_invoked validation_phase_completed so bypass-budget-monitor audits it.
+//      *_bypass_invoked validation_phase_completed so bypass-budget-monitor audits
+//      it (returns BEFORE markPending, so a bypassed session is never queued).
 //   5. Resolve the session transcript path (~/.claude/projects/<slug>/<sessionId>.jsonl);
 //      skip if sessionId or the transcript file is missing.
-//   6. spawnSync the engine; on non-zero exit → stderr advisory + return (never block).
-//   7. JSON.parse stdout; emit() one event per verdict + the summary (best-effort).
-//   8. Always returns { message } (Stop hook never blocks).
+//   6. markPending(...) — deterministically bookmark this session for the
+//      model-driven fold (atomic fs write; no engine, no LLM).
+//   7. Always returns { message } (Stop hook never blocks).
 //
-// Cross-ref: hooks/ontology-drift-fold.ts (exact precedent: async, advisory, read-only,
-//            in-band emit, bypass-audit branch), scripts/log.ts emit() (Path B).
+// forwardFoldOutput (below) is KEPT + EXPORTED as the version-fallback engine-stdout
+// -> Path-B helper (P2-9/F9). It is no longer called from the Stop path.
+//
+// Cross-ref: lib/second-brain/pending-fold.ts (the bookmark), hooks/session-start.ts
+//            (detect+inject), agents/second-brain-fold.md (the model-driven fold).
 
 // @domain: LEARN
 
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { spawnSync } from "node:child_process";
 import { emit } from "../scripts/log";
 import { findProjectRoot } from "../lib/project/find-root";
+import { markPending } from "../lib/second-brain/pending-fold";
+import { resolveHostRuntimeIdentity } from "../lib/runtime/identity";
 
 /** Bypass envvar — turns this fold lane OFF for a project/session (audited). */
 const SECOND_BRAIN_FOLD_BYPASS = "PALANTIR_MINI_SECOND_BRAIN_FOLD_BYPASS";
@@ -175,44 +176,18 @@ export default async function secondBrainFold(payload: unknown): Promise<HookRes
       return { message: `palantir-mini: second-brain-fold skipped (no transcript at ${transcript})` };
     }
 
-    // 6. Run the engine (subprocess). Never block on failure.
-    const run = spawnSync(
-      "bun",
-      ["run", enginePath, "--transcript", transcript, "--session", sessionId, "--project", root],
-      { cwd: root, encoding: "utf8", timeout: 90_000, maxBuffer: 64 * 1024 * 1024 },
-    );
-
-    if (run.status !== 0) {
-      try {
-        process.stderr.write(
-          `[palantir-mini/second-brain-fold] engine exited ${run.status} (suppressed): ` +
-          `${(run.stderr ?? "").trim() || (run.error?.message ?? "unknown error")}\n`,
-        );
-      } catch { /* truly silent */ }
-      return {
-        message: `palantir-mini: second-brain-fold advisory — engine non-zero exit (${run.status}); no fold applied. See stderr.`,
-      };
-    }
-
-    // 7. Parse stdout + forward verdicts + summary (best-effort each) via the
-    //    shared helper, so the session-start sweep path emits identically.
-    const skipped = (() => {
-      try {
-        return (JSON.parse((run.stdout ?? "").trim() || "{}") as EngineResult).skipped === true;
-      } catch { return false; }
-    })();
-    const emitted = await forwardFoldOutput(run.stdout ?? "", root, sessionId);
-
-    if (emitted === 0) {
-      return {
-        message: `palantir-mini: second-brain-fold OK (nothing to fold${skipped ? " — session already folded" : ""}).`,
-      };
-    }
+    // 6. Deterministically bookmark this session for the model-driven fold (NO LLM,
+    //    no engine spawn). The model-driven fold subagent clears it on success;
+    //    SessionStart reads it to decide whether to inject the fold trigger.
+    markPending(root, {
+      sessionId,
+      transcriptPath: transcript,
+      bookmarkedAt:   new Date().toISOString(),
+      runtime:        resolveHostRuntimeIdentity(),
+    });
 
     return {
-      message:
-        `palantir-mini: second-brain-fold OK — forwarded ${emitted} event(s) ` +
-        `to events.jsonl (session ${sessionId}).`,
+      message: `palantir-mini: second-brain-fold bookmarked session ${sessionId} for model-driven fold (no LLM at Stop).`,
     };
 
   } catch (err) {

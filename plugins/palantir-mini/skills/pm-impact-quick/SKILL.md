@@ -2,8 +2,8 @@
 name: pm-impact-quick
 category: maintenance
 surfaceStatus: public-core
-description: "1-call wrapper for impact_query + pm_workflow_lineage_query targeting a single RID."
-allowed-tools: mcp__palantir-mini__impact_query,mcp__palantir-mini__pm_workflow_lineage_query,mcp__palantir-mini__emit_event
+description: "1-call wrapper for impact_query + pm_substrate_query (mode workflow) targeting a single RID."
+allowed-tools: mcp__palantir-mini__impact_query,mcp__palantir-mini__pm_substrate_query,mcp__palantir-mini__emit_event
 effort: low
 disable-model-invocation: false
 ---
@@ -22,7 +22,7 @@ disable-model-invocation: false
 Bundles 2 MCP calls into a single skill invocation and returns a combined result ≤5KB:
 
 1. `impact_query { rid: <rid>, depth: 3 }` — downstream dependency graph (blast radius)
-2. `pm_workflow_lineage_query { filter: { rid: <rid> } }` — recent workflow events referencing this RID
+2. `pm_substrate_query { mode: "workflow", filter: { rid: <rid> } }` — recent workflow events referencing this RID
 
 The combined output tells Lead: (a) what breaks, (b) what activity recently touched this RID.
 
@@ -48,10 +48,10 @@ mcp__palantir-mini__impact_query({ "rid": "<rid>", "depth": 3 })
 
 Captures: downstream RIDs, edge types, impact score.
 
-### Step 2 — pm_workflow_lineage_query
+### Step 2 — pm_substrate_query (mode workflow)
 
 ```json
-mcp__palantir-mini__pm_workflow_lineage_query({ "filter": { "rid": "<rid>" } })
+mcp__palantir-mini__pm_substrate_query({ "mode": "workflow", "filter": { "rid": "<rid>" } })
 ```
 
 Captures: recent events referencing this RID (last 30 events by default).
@@ -84,7 +84,7 @@ Render combined result as:
 <impact_query result: downstream count, top edges>
 
 ### Recent Lineage
-<pm_workflow_lineage_query result: last N events referencing this RID>
+<pm_substrate_query mode=workflow result: last N events referencing this RID>
 ```
 
 Total output MUST be ≤5KB. Truncate lineage to last 5 events if needed.
@@ -92,13 +92,13 @@ Total output MUST be ≤5KB. Truncate lineage to last 5 events if needed.
 ## Failure modes
 
 - `impact_query not found` — handler not wired; fallback: run `Read` on the file + `grep` for imports.
-- `pm_workflow_lineage_query empty` — no events referencing this RID yet; normal for new files.
+- `pm_substrate_query mode=workflow empty` — no events referencing this RID yet; normal for new files.
 - Any step fails → report partial results + still emit `skill_started` so hook sees the invocation.
 
 ## MCP-first hook integration
 
 `pre-edit-impact-mcp-first` hook scans `events.jsonl` for:
-- `throughWhich.toolName` in `{ impact_query, pm_workflow_lineage_query }`, OR
+- `throughWhich.toolName` in `{ impact_query, pm_substrate_query }`, OR
 - `type === "skill_started" && payload.skillName === "pm-impact-quick"` AND `payload.skillContext` contains the target file path or parent directory
 
 Running this skill within 5 min of an Edit/Write/MultiEdit satisfies the MCP-first advisory and changes the hook outcome from `"bypassed"` to `"passed"`.

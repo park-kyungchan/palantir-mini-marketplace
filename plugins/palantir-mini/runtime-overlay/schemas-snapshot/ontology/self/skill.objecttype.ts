@@ -1,17 +1,17 @@
 /**
- * palantir-mini SELF-ONTOLOGY — Skill as a registered ObjectType + its 44 instances
+ * palantir-mini SELF-ONTOLOGY — Skill as a registered ObjectType + its 45 instances
  * (Wave 1, harness redesign self-model build). Mirrors the `mcp-tool.objecttype.ts`
  * idiom: ONE `Skill` ObjectType (the type) + the live skill slugs seeded as instances.
  *
  * pm's governed skill surface modeled AS ontology: each `skills/<slug>/SKILL.md`
  * directory (excluding `_shared`) is one Skill identity. This file declares the type
- * and seeds the 44 slugs — the snapshot OWNS the seed (it is the authority), so it does
- * NOT import the skills tree uphill. The paired registration test cross-checks these 44
+ * and seeds the 45 slugs — the snapshot OWNS the seed (it is the authority), so it does
+ * NOT import the skills tree uphill. The paired registration test cross-checks these 45
  * slugs against the LIVE `skills/` directory so the self-model fails loud if pm's skill
  * surface drifts (a skill added/removed without updating this seed).
  *
- * Count provenance (LIVE-verified): `skills/` holds 45 directories; `_shared` is a
- * shared-fragment dir (not a skill), leaving EXACTLY 44 governed skills. Identity-only
+ * Count provenance (LIVE-verified): `skills/` holds 46 directories; `_shared` is a
+ * shared-fragment dir (not a skill), leaving EXACTLY 45 governed skills. Identity-only
  * here (slug primary key); richer per-skill descriptor metadata (name / surfaceStatus /
  * backingHandler) lives in each `SKILL.md` frontmatter, not duplicated in the seed.
  *
@@ -61,7 +61,7 @@ export interface SkillInstance {
 }
 
 /**
- * The 44 Skill instances — pm's LIVE skill surface, in `skills/` directory order.
+ * The 45 Skill instances — pm's LIVE skill surface, in `skills/` directory order.
  * Snapshot-owned seed (no skills-tree import); the registration test cross-checks this
  * set against the live `skills/` directory and fails on any drift.
  */
@@ -87,6 +87,7 @@ export const SKILL_INSTANCES: readonly SkillInstance[] = [
   { slug: "pm-mcp-reload" },
   { slug: "pm-memory-map" },
   { slug: "pm-ontology-branch-create" },
+  { slug: "pm-ontology-drift-propose" },
   { slug: "pm-ontology-engineering-lead" },
   { slug: "pm-ontology-proposal-create" },
   { slug: "pm-ontology-proposal-review" },
@@ -112,6 +113,6 @@ export const SKILL_INSTANCES: readonly SkillInstance[] = [
   { slug: "pm-walk-build" },
 ];
 
-// Register the Skill ObjectType (the type). The 44 instances above are data the
+// Register the Skill ObjectType (the type). The 45 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(SKILL_OBJECT_TYPE);

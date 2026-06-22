@@ -20,6 +20,7 @@ import { checkSchemaPin } from "./pm-plugin-self-check/check-schema-pin";
 import { checkCodegenHeaders } from "./pm-plugin-self-check/check-codegen-headers";
 import { checkRuleAudit } from "./pm-plugin-self-check/check-rule-audit";
 import { checkDeclaredAgents, checkDeclaredSkills } from "./pm-plugin-self-check/check-declarations";
+import { checkSkillToolDeclarations } from "./pm-plugin-self-check/check-skill-tool-declarations";
 import { checkPrimitiveSeedAdvisories } from "./pm-plugin-self-check/check-primitive-seeds";
 import { checkConsumerPeerDeps } from "./pm-plugin-self-check/check-consumer-peerdeps";
 import { checkMcpRegistration } from "./pm-plugin-self-check/check-mcp-registration";
@@ -58,7 +59,7 @@ const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {
   "public-mcp": ["mcp-tools"],
   "handler-inventory": ["mcp-tools"],
   hooks: ["hooks"],
-  skills: ["skills"],
+  skills: ["skills", "skill-tool-declarations"],
   "project-skill-ontology": ["project-skill-ontology"],
   agents: ["agents"],
   "managed-settings": ["managed-settings"],
@@ -69,6 +70,7 @@ const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {
     "rule-audit",
     "agents",
     "skills",
+    "skill-tool-declarations",
     "mcp-tools",
     "hooks",
     "managed-settings",
@@ -85,6 +87,7 @@ const ALL_CHECKS = [
   "rule-audit",
   "agents",
   "skills",
+  "skill-tool-declarations",
   "consumer-peerdeps",
   "mcp-tools",
   "hooks",
@@ -110,6 +113,7 @@ function statusFor(
     case "rule-audit": return result.ruleAuditResult.status;
     case "agents": return result.declaredAgentsResult.status;
     case "skills": return result.declaredSkillsResult.status;
+    case "skill-tool-declarations": return result.skillToolDeclarationsResult.status;
     case "consumer-peerdeps": return result.consumerPeerDepResult.status;
     case "mcp-tools": return result.mcpToolsRegistrationResult.status;
     case "hooks": return result.hookRegistryResult.status;
@@ -136,6 +140,7 @@ export async function pmPluginSelfCheck(
   const ruleAuditResult = await checkRuleAudit();
   const declaredAgentsResult = checkDeclaredAgents();
   const declaredSkillsResult = checkDeclaredSkills();
+  const skillToolDeclarationsResult = checkSkillToolDeclarations();
   const primitiveSeedAdvisories = checkPrimitiveSeedAdvisories();
   const consumerPeerDepResult = checkConsumerPeerDeps();
   // sprint-060 W2.2 R6-F2: Dead-handler regression check.
@@ -189,6 +194,7 @@ export async function pmPluginSelfCheck(
       ruleAuditResult,
       declaredAgentsResult,
       declaredSkillsResult,
+      skillToolDeclarationsResult,
       primitiveSeedAdvisories,
       consumerPeerDepResult,
       mcpToolsRegistrationResult,
@@ -219,6 +225,7 @@ export async function pmPluginSelfCheck(
     ruleAuditResult,
     declaredAgentsResult,
     declaredSkillsResult,
+    skillToolDeclarationsResult,
     primitiveSeedAdvisories,
     consumerPeerDepResult,
     mcpToolsRegistrationResult,
@@ -240,7 +247,7 @@ export async function pmPluginSelfCheck(
     toolName: "pm_plugin_self_check",
     cwd: project,
     agentName: args.agentName,
-    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} workflowResponseTemplate=${workflowResponseTemplateResult.status} workflowFamilyReleaseGate=${workflowFamilyReleaseGateResult.status} workflowFamilyReleaseFindings=${workflowFamilyReleaseGateResult.findings.length} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length} runtimeVersion=${runtimeIdentity.version}`,
+    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} skillToolDecls=${skillToolDeclarationsResult.status} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} workflowResponseTemplate=${workflowResponseTemplateResult.status} workflowFamilyReleaseGate=${workflowFamilyReleaseGateResult.status} workflowFamilyReleaseFindings=${workflowFamilyReleaseGateResult.findings.length} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length} runtimeVersion=${runtimeIdentity.version}`,
     hypothesis:
       "Substrate health aggregation provides a single-call readiness signal before Phase 2 migration steps execute.",
   });

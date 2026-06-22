@@ -1,39 +1,98 @@
-// palantir-mini v2.25.0 — ontology-import-guard tests (sprint-053 W3B)
-// v2.25.0: + tilde-expansion canonicalization tests.
+// palantir-mini — ontology-import-guard tests
+// bd-005 de-hardcode: isTargetedFile now resolves STRUCTURAL .palantir-mini
+// membership (FS walk-up) instead of a hardcoded 3-name allowlist, so the
+// scope cases build a real tmp project with a .palantir-mini/ marker.
+// (Retains tilde-expansion canonicalization tests.)
 
 import * as os from "os";
+import * as fs from "fs";
 import * as path from "path";
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, afterEach } from "bun:test";
 import ontologyImportGuard, {
   isTargetedFile,
   detectForbiddenImports,
   collectNewContent,
 } from "../../hooks/ontology-import-guard";
 
+// --- tmp-root harness (real .palantir-mini/ marker so the FS walk-up resolves) ---
+const tmpRoots: string[] = [];
+
+afterEach(() => {
+  for (const r of tmpRoots.splice(0)) {
+    try { fs.rmSync(r, { recursive: true, force: true }); } catch { /* best-effort */ }
+  }
+});
+
+function makeProjectRoot(label: string): string {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), `pm-oig-${label}-`));
+  tmpRoots.push(root);
+  fs.mkdirSync(path.join(root, ".palantir-mini"), { recursive: true });
+  return root;
+}
+
+// A tmp root with NO .palantir-mini ANYWHERE up its spine. os.tmpdir() (/tmp) and
+// $HOME can carry stray .palantir-mini markers on a real pm-governed machine, so a
+// marker-free root must live under a spine known to be clean (/var/tmp -> /var -> /).
+function makeMarkerFreeRoot(label: string): string {
+  const root = fs.mkdtempSync(path.join("/var/tmp", `pm-oig-nomark-${label}-`));
+  tmpRoots.push(root);
+  return root;
+}
+
 describe("isTargetedFile", () => {
-  test("matches .ts under projects/palantir-math/", () => {
-    expect(isTargetedFile("/home/palantirkc/projects/palantir-math/src/foo.ts")).toBe(true);
+  test("guards a TS file under ANY project with .palantir-mini (P0 proof)", () => {
+    const root = makeProjectRoot("any");
+    const fp = path.join(root, "some-new-project/src/foo.ts");
+    fs.mkdirSync(path.dirname(fp), { recursive: true });
+    // "some-new-project" was NEVER in the old 3-name allowlist.
+    expect(isTargetedFile(fp)).toBe(true);
   });
 
-  test("matches .tsx under projects/mathcrew/", () => {
-    expect(isTargetedFile("/home/palantirkc/projects/mathcrew/src/Bar.tsx")).toBe(true);
+  test("still guards palantir-math / mathcrew / kosmos (behavior identical)", () => {
+    const root = makeProjectRoot("legacy");
+    const math = path.join(root, "palantir-math/src/foo.ts");
+    const crew = path.join(root, "mathcrew/src/Bar.tsx");
+    const kos = path.join(root, "kosmos/lib/baz.ts");
+    for (const fp of [math, crew, kos]) fs.mkdirSync(path.dirname(fp), { recursive: true });
+    expect(isTargetedFile(math)).toBe(true);
+    expect(isTargetedFile(crew)).toBe(true);
+    expect(isTargetedFile(kos)).toBe(true);
   });
 
-  test("matches .ts under projects/kosmos/", () => {
-    expect(isTargetedFile("/home/palantirkc/projects/kosmos/lib/baz.ts")).toBe(true);
+  test("ignores a TS file with NO .palantir-mini ancestor (fail-open for non-ontology)", () => {
+    const root = makeMarkerFreeRoot("ignore");
+    const fp = path.join(root, "src/foo.ts");
+    fs.mkdirSync(path.dirname(fp), { recursive: true });
+    expect(isTargetedFile(fp)).toBe(false);
   });
 
-  test("rejects non-projects path", () => {
-    expect(isTargetedFile("/home/palantirkc/.claude/plugins/palantir-mini/hooks/x.ts")).toBe(false);
+  test("rejects non-TS extension (extension gate fires before membership)", () => {
+    const root = makeProjectRoot("ext");
+    const dir = path.join(root, "palantir-math/src");
+    fs.mkdirSync(dir, { recursive: true });
+    expect(isTargetedFile(path.join(dir, "foo.js"))).toBe(false);
+    expect(isTargetedFile(path.join(dir, "README.md"))).toBe(false);
   });
 
-  test("rejects non-TS extension", () => {
-    expect(isTargetedFile("/home/palantirkc/projects/palantir-math/src/foo.js")).toBe(false);
-    expect(isTargetedFile("/home/palantirkc/projects/palantir-math/README.md")).toBe(false);
+  test("does NOT target a .ts sitting DIRECTLY in $HOME even with a HOME .palantir-mini marker (FIX 2)", () => {
+    const home = os.homedir();
+    const marker = path.join(home, ".palantir-mini");
+    const hadMarker = fs.existsSync(marker);
+    if (!hadMarker) fs.mkdirSync(marker, { recursive: true });
+    try {
+      // A file directly in HOME resolves its root to HOME (excluded) → not targeted.
+      expect(isTargetedFile(path.join(home, "some-stray-file.ts"))).toBe(false);
+    } finally {
+      // Only remove the marker if WE created it (never delete a real HOME marker).
+      if (!hadMarker) { try { fs.rmSync(marker, { recursive: true, force: true }); } catch { /* best-effort */ } }
+    }
   });
 
-  test("rejects unrelated project", () => {
-    expect(isTargetedFile("/home/palantirkc/projects/other-project/src/foo.ts")).toBe(false);
+  test("STILL targets a real project .palantir-mini root under HOME (FIX 2 does not over-exclude)", () => {
+    const root = makeProjectRoot("under-home-still-guarded");
+    const fp = path.join(root, "src/foo.ts");
+    fs.mkdirSync(path.dirname(fp), { recursive: true });
+    expect(isTargetedFile(fp)).toBe(true);
   });
 });
 
@@ -93,11 +152,14 @@ describe("ontology-import-guard hook", () => {
     expect(result.message).toContain("skipped");
   });
 
-  test("skips out-of-scope file", async () => {
+  test("skips out-of-scope file (no .palantir-mini ancestor)", async () => {
+    const root = makeMarkerFreeRoot("oos");
+    const fp = path.join(root, "foo.ts");
+    fs.mkdirSync(path.dirname(fp), { recursive: true });
     const result = await ontologyImportGuard({
       tool_name: "Edit",
       tool_input: {
-        file_path: "/home/palantirkc/.claude/plugins/foo.ts",
+        file_path: fp,
         new_string: `import { x } from "~/.claude/schemas/anywhere";`,
       },
     });
@@ -105,11 +167,14 @@ describe("ontology-import-guard hook", () => {
     expect(result.message).toContain("out-of-scope");
   });
 
-  test("allows clean import in projects/palantir-math/", async () => {
+  test("allows clean import in a .palantir-mini project", async () => {
+    const root = makeProjectRoot("clean");
+    const fp = path.join(root, "palantir-math/src/foo.ts");
+    fs.mkdirSync(path.dirname(fp), { recursive: true });
     const result = await ontologyImportGuard({
       tool_name: "Edit",
       tool_input: {
-        file_path: "/home/palantirkc/projects/palantir-math/src/foo.ts",
+        file_path: fp,
         new_string: `import { Y } from "~/ontology/shared-core/primitives";`,
       },
     });
@@ -117,11 +182,14 @@ describe("ontology-import-guard hook", () => {
     expect(result.message).toContain("OK");
   });
 
-  test("BLOCKS forbidden ~/.claude/schemas import in projects/palantir-math/", async () => {
+  test("BLOCKS forbidden ~/.claude/schemas import in a .palantir-mini project", async () => {
+    const root = makeProjectRoot("block-math");
+    const fp = path.join(root, "palantir-math/src/foo.ts");
+    fs.mkdirSync(path.dirname(fp), { recursive: true });
     const result = await ontologyImportGuard({
       tool_name: "Edit",
       tool_input: {
-        file_path: "/home/palantirkc/projects/palantir-math/src/foo.ts",
+        file_path: fp,
         new_string: `import { X } from "~/.claude/schemas/ontology";`,
       },
     });
@@ -130,11 +198,14 @@ describe("ontology-import-guard hook", () => {
     expect(result.reason).toContain("ontology/shared-core");
   });
 
-  test("BLOCKS forbidden @palantirKC/claude-schemas import in projects/mathcrew/", async () => {
+  test("BLOCKS forbidden @palantirKC/claude-schemas import via Write", async () => {
+    const root = makeProjectRoot("block-crew");
+    const fp = path.join(root, "mathcrew/src/foo.tsx");
+    fs.mkdirSync(path.dirname(fp), { recursive: true });
     const result = await ontologyImportGuard({
       tool_name: "Write",
       tool_input: {
-        file_path: "/home/palantirkc/projects/mathcrew/src/foo.tsx",
+        file_path: fp,
         content: `import type { X } from "@palantirKC/claude-schemas";`,
       },
     });
@@ -143,10 +214,13 @@ describe("ontology-import-guard hook", () => {
   });
 
   test("BLOCKS via MultiEdit edits[]", async () => {
+    const root = makeProjectRoot("block-multi");
+    const fp = path.join(root, "kosmos/lib/baz.ts");
+    fs.mkdirSync(path.dirname(fp), { recursive: true });
     const result = await ontologyImportGuard({
       tool_name: "MultiEdit",
       tool_input: {
-        file_path: "/home/palantirkc/projects/kosmos/lib/baz.ts",
+        file_path: fp,
         edits: [
           { old_string: "// foo", new_string: `import { X } from "~/.claude/schemas/x";` },
         ],

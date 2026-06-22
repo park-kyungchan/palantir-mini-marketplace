@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 /**
@@ -21,4 +22,18 @@ export function findProjectRoot(start: string): string | null {
     cur = path.dirname(cur);
   }
   return null;
+}
+
+/**
+ * A directory that must NOT be treated as a project root even if it carries a
+ * stray `.palantir-mini/` marker: the user's HOME itself and the system temp
+ * dirs. A file sitting DIRECTLY in one of these is not "in a project" — only a
+ * deeper subdir with its own marker is. Bounds the structural membership check
+ * (FIX 2) so a $HOME/.palantir-mini marker does not make EVERY .ts under HOME
+ * (incl. pm's own source) falsely guarded.
+ */
+export function isExcludedProjectRoot(dir: string): boolean {
+  const resolved = path.resolve(dir);
+  const excluded = [os.homedir(), os.tmpdir(), "/tmp", "/var/tmp"].map((d) => path.resolve(d));
+  return excluded.includes(resolved);
 }

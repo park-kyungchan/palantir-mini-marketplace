@@ -25,7 +25,6 @@
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { spawnSync } from "node:child_process";
 import { emit, projectRoot, eventsPathFor } from "../scripts/log";
 import { readEvents, foldToSnapshot } from "../lib/event-log/read";
 import { sessionResume } from "../bridge/handlers/session_resume";
@@ -38,7 +37,7 @@ import {
   detectStaleState,
 } from "./session-start/state-files";
 import { liveBranch } from "./session-start/branch";
-import { forwardFoldOutput } from "./second-brain-fold";
+import { markPending, listPending, type PendingFoldEntry } from "../lib/second-brain/pending-fold";
 import type { HookPayload, HookResult } from "./session-start/types";
 
 // Backward-compat re-exports for tests + external callers
@@ -58,6 +57,34 @@ function eagerSessionStartContextEnabled(): boolean {
   return (
     process.env["PALANTIR_MINI_SESSION_START_EAGER"] === "1" ||
     process.env["PALANTIR_MINI_SESSION_CONTEXT_MODE"] === "eager"
+  );
+}
+
+/**
+ * Build the second-brain fold-trigger additionalContext line (P1-2). Returns a
+ * single self-contained instruction the model acts on by dispatching the
+ * palantir-mini:second-brain-fold subagent ONCE PER pending session. The id list
+ * and the structured Transcripts tail are each capped at 5 (rest via the CLI).
+ * Caller injects ONLY when pend.length > 0.
+ */
+export function buildFoldTriggerContext(pend: PendingFoldEntry[], root: string): string {
+  const CAP = 5;
+  const ids = pend.map((e) => e.sessionId);
+  const shownIds = ids.slice(0, CAP).join(", ");
+  const moreIds = ids.length > CAP ? ` (+${ids.length - CAP} more)` : "";
+  const transcripts = pend
+    .slice(0, CAP)
+    .map((e) => `${e.sessionId}=${e.transcriptPath}`)
+    .join("; ");
+  const moreTr = pend.length > CAP ? ` (+${pend.length - CAP} more)` : "";
+  return (
+    `[second-brain] ${pend.length} unfolded session transcript(s) detected (${shownIds}${moreIds}). ` +
+    `To fold them into this project's knowledge graph, dispatch the palantir-mini:second-brain-fold subagent (Agent tool) ` +
+    `ONCE PER session, passing { sessionId, transcriptPath, projectRoot:"${root}" } in the delegation message. ` +
+    `The subagent runs second-brain/scripts/fold.ts in model-fed mode and emits resolution_verdict + memory_fold_committed ` +
+    `via mcp__palantir-mini__emit_event. After each succeeds, the pending bookmark auto-clears; if you skip this, the next ` +
+    `session start will re-detect. On Codex, instead use the file-backed spawn-prompt orchestration to run the same fold command. ` +
+    `Transcripts: ${transcripts}${moreTr} (full list: bun run ${root}/<plugin>/lib/second-brain/pending-fold-cli.ts list ${root}).`
   );
 }
 
@@ -101,64 +128,6 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
       process.stderr.write(`[session-start] session_resume skipped: ${(err as Error).message}\n`);
     }
 
-    // Second-brain crash-recovery SWEEP — additive, best-effort. After resume, IF
-    // the project ships a second-brain fold engine, fold any transcript that was
-    // never folded (e.g. a session that crashed before its Stop hook ran). We scan
-    // ~/.claude/projects/<slug>/*.jsonl and skip any sessionId already present in
-    // <root>/second-brain/manifest.json foldedSessions (the engine's idempotency
-    // marker; the engine is itself idempotent, so this is a safety net). A sweep
-    // error MUST NOT break session-start — the whole block is its own try/catch.
-    try {
-      const enginePath = path.join(root, "second-brain", "scripts", "fold.ts");
-      if (fs.existsSync(enginePath)) {
-        const slug = path.resolve(root).split(path.sep).join("-");
-        const projectsDir = path.join(os.homedir(), ".claude", "projects", slug);
-        if (fs.existsSync(projectsDir)) {
-          let folded: Record<string, unknown> = {};
-          try {
-            const manifestPath = path.join(root, "second-brain", "manifest.json");
-            if (fs.existsSync(manifestPath)) {
-              const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
-                foldedSessions?: Record<string, unknown>;
-              };
-              folded = manifest.foldedSessions ?? {};
-            }
-          } catch { /* best-effort — treat as nothing folded */ }
-
-          const transcripts = fs
-            .readdirSync(projectsDir)
-            .filter((f) => f.endsWith(".jsonl"))
-            .map((f) => ({ sessionId: f.slice(0, -".jsonl".length), file: path.join(projectsDir, f) }))
-            .filter((t) => !(t.sessionId in folded));
-
-          let swept = 0;
-          for (const t of transcripts) {
-            try {
-              const run = spawnSync(
-                "bun",
-                ["run", enginePath, "--transcript", t.file, "--session", t.sessionId, "--project", root],
-                { cwd: root, encoding: "utf8", timeout: 90_000, maxBuffer: 64 * 1024 * 1024 },
-              );
-              if (run.status === 0) {
-                swept++;
-                // Layer-1 parity with the Stop path: forward the engine's emit-ready
-                // verdicts + summary into events.jsonl. Fail-safe — a forward error
-                // must not break the sweep or session-start.
-                try {
-                  await forwardFoldOutput(run.stdout ?? "", root, t.sessionId);
-                } catch { /* per-transcript best-effort */ }
-              }
-            } catch { /* per-transcript best-effort */ }
-          }
-          if (swept > 0) {
-            contextLines.push(`[second-brain] crash-recovery sweep folded ${swept} unfolded transcript(s).`);
-          }
-        }
-      }
-    } catch (err) {
-      process.stderr.write(`[session-start] second-brain sweep skipped: ${(err as Error).message}\n`);
-    }
-
     // Phase B3-A8: advisory research library drift check — non-blocking, silent on error.
     // Pushes a line to additionalContext only when totalChanges > 0.
     try {
@@ -179,6 +148,71 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
     } catch {
       // advisory only — never surface errors to the hook output
     }
+  }
+
+  // P1 fix (eager-gate defect): the second-brain fold DETECT+INJECT runs on EVERY
+  // SessionStart (lightweight fs-only), independent of eagerContext. Only the heavy
+  // cold-start/eager context injection above stays eager-gated (finding D-7).
+  // Second-brain DETECT + INJECT (P1-2) — additive, best-effort, NO LLM here.
+  // The LLM fold runs on the MODEL turn: this block detects unfolded transcripts
+  // and injects a fold-trigger into additionalContext that tells the model to
+  // dispatch the palantir-mini:second-brain-fold subagent (which runs the engine
+  // model-fed + emits via the gated MCP emit_event path). We also back-fill the
+  // pending bookmark for any transcript whose Stop hook never ran (crash-before-
+  // Stop) — still deterministic, no engine spawn. A detect error MUST NOT break
+  // session-start — the whole block is its own try/catch.
+  try {
+    const enginePath = path.join(root, "second-brain", "scripts", "fold.ts");
+    if (fs.existsSync(enginePath)) {
+      const slug = path.resolve(root).split(path.sep).join("-");
+      const projectsDir = path.join(os.homedir(), ".claude", "projects", slug);
+      if (fs.existsSync(projectsDir)) {
+        let folded: Record<string, unknown> = {};
+        try {
+          const manifestPath = path.join(root, "second-brain", "manifest.json");
+          if (fs.existsSync(manifestPath)) {
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
+              foldedSessions?: Record<string, unknown>;
+            };
+            folded = manifest.foldedSessions ?? {};
+          }
+        } catch { /* best-effort — treat as nothing folded */ }
+
+        // Back-fill: bookmark any unfolded transcript not already pending (covers
+        // crash-before-Stop). Deterministic — no engine, no LLM.
+        let alreadyPending: Record<string, PendingFoldEntry> = {};
+        try {
+          const { readPendingFold, pendingFoldPath } = await import("../lib/second-brain/pending-fold");
+          alreadyPending = readPendingFold(pendingFoldPath(root)).pending;
+        } catch { /* best-effort */ }
+
+        const transcripts = fs
+          .readdirSync(projectsDir)
+          .filter((f) => f.endsWith(".jsonl"))
+          .map((f) => ({ sessionId: f.slice(0, -".jsonl".length), file: path.join(projectsDir, f) }))
+          .filter((t) => !(t.sessionId in folded));
+
+        for (const t of transcripts) {
+          if (t.sessionId in alreadyPending) continue;
+          try {
+            markPending(root, {
+              sessionId:      t.sessionId,
+              transcriptPath: t.file,
+              bookmarkedAt:   new Date().toISOString(),
+              runtime:        "monitor", // back-filled at session-start, not the Stop runtime
+            });
+          } catch { /* per-transcript best-effort */ }
+        }
+
+        // Actionable set: pending entries whose sessionId is NOT already folded.
+        const pend = listPending(root);
+        if (pend.length > 0) {
+          contextLines.push(buildFoldTriggerContext(pend, root));
+        }
+      }
+    }
+  } catch (err) {
+    process.stderr.write(`[session-start] second-brain detect skipped: ${(err as Error).message}\n`);
   }
 
   if (cleanRequested) {

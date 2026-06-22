@@ -3,7 +3,7 @@ name: pm-ontology-drift-propose
 category: core-workflow
 surfaceStatus: public-core
 description: "MANUAL drift propose-step — compose re-elevation GlobalBranchingProposals from a per-file-sha staleness report, gated, NO commit…"
-allowed-tools: mcp__palantir-mini__apply_edit_function mcp__palantir-mini__commit_edits mcp__palantir-mini__compute_edits_dry_run mcp__palantir-mini__emit_event Read Write Bash
+allowed-tools: mcp__palantir-mini__apply_edit_function mcp__palantir-mini__commit_edits mcp__palantir-mini__emit_event Read Write Bash
 effort: medium
 disable-model-invocation: false
 ---
@@ -64,7 +64,7 @@ const { proposals, skipped, gateNote } = driftPropose(report);
 
 ### Step 3 — Persist + emit (same as pm-ontology-proposal-create)
 
-For each proposal: `apply_edit_function` → `compute_edits_dry_run` → `commit_edits`, persisted
+For each proposal: `apply_edit_function` → `commit_edits` (validateOnly: true) → `commit_edits`, persisted
 at `<project>/.palantir-mini/ontology-proposals/<proposalId>.json`. Then:
 
 ```

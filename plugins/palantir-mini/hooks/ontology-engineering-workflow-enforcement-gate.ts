@@ -20,6 +20,7 @@ import {
 } from "../lib/ontology-engineering-workflow";
 import { PromptFrontDoorStore } from "../lib/prompt-front-door/store";
 import { buildOntologyEngineeringResponseTemplateContext } from "../lib/ontology-engineering-response-template";
+import { pathIsProjectOntologyClass } from "../lib/project/ontology-path-class";
 import { emit } from "../scripts/log";
 
 interface HookPayload {
@@ -337,41 +338,22 @@ function targetsProtectedSurface(payload: HookPayload): boolean {
   return targets.some((t) => PROTECTED_SURFACE_MARKERS.some((marker) => t.includes(marker)));
 }
 
-// OE-3 — project-ontology path-CLASS markers. Unlike PROTECTED_SURFACE_MARKERS
-// (pm-self surfaces, matched by literal substring) these are *path-class* segments
-// that name a PROJECT'S ontology source — a structural ontology mutation regardless
-// of which project owns it and regardless of any OE-marker string in the payload.
-// Path-class is unforgeable by the adapter; OE-marker strings are. A raw
-// Edit/Write/MultiEdit to e.g. `projects/foo/ontology/object-type/bar.ts` trips here
-// even with no `ontology-engineering`/`SemanticIntentContract` marker present.
+// OE-3 — project-ontology path-CLASS membership. Unlike PROTECTED_SURFACE_MARKERS
+// (pm-self surfaces, matched by literal substring) the path-class predicate names a
+// PROJECT'S ontology source — a structural ontology mutation regardless of which
+// project owns it and regardless of any OE-marker string in the payload. Path-class
+// is unforgeable by the adapter; OE-marker strings are. A raw Edit/Write/MultiEdit to
+// e.g. `projects/foo/ontology/object-type/bar.ts` trips here even with no
+// `ontology-engineering`/`SemanticIntentContract` marker present. The predicate is
+// shared with pre-edit-ontology via lib/project/ontology-path-class (bd-006 de-hardcode).
 //
 // NEVER-CLOSE: matching here only routes the call into the SAME
 // `protectedSurfaceMutation && !mutationAuthorized` branch the pm-self markers use —
 // the envelope-bound source-mutation fast-path stays reachable; this adds NO blanket
 // deny and weakens no allow.
-const PROJECT_ONTOLOGY_PATH_CLASS_SEGMENTS = [
-  "/ontology/",
-  "/object-type/",
-  "/object-types/",
-  "/link-type/",
-  "/link-types/",
-  "/interface-type/",
-  "/interface-types/",
-  "/action-type/",
-  "/action-types/",
-  "/shared-property/",
-  "/shared-properties/",
-] as const;
-
-function pathSegmentMatchesOntologyClass(candidate: string): boolean {
-  // Bracket with leading "/" so a bare segment like "ontology/foo.ts" matches too.
-  const bracketed = `/${candidate.replace(/^\/+/, "")}`;
-  return PROJECT_ONTOLOGY_PATH_CLASS_SEGMENTS.some((segment) => bracketed.includes(segment));
-}
-
 function targetsProjectOntologyPathClass(payload: HookPayload): boolean {
   return resolveWriteTargetPaths(payload) // already normalized abs paths
-    .some((value) => pathSegmentMatchesOntologyClass(value));
+    .some((value) => pathIsProjectOntologyClass(value));
 }
 
 function isSemanticOrRouterTool(payload: HookPayload): boolean {

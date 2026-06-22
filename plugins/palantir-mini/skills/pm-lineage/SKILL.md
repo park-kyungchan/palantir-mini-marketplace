@@ -5,7 +5,7 @@ surfaceStatus: public-core
 description: "Cross-project workflow lineage query — joins events.jsonl across registered +..."
 allowed-tools:
   - mcp__plugin_palantir-mini_palantir-mini__pm_workflow_lineage_query
-  - mcp__palantir-mini__replay_lineage
+  - mcp__palantir-mini__pm_substrate_query
   - Read
   - Bash
 effort: low
@@ -123,11 +123,11 @@ After rendering, surface:
 ### What it does
 
 1. Reads `<project>/.palantir-mini/session/workflow-traces/<traceId>.json` for the persisted snapshot (mode, lastEvent, outcome, updatedAt).
-2. Calls `replay_lineage` with the `traceId` filter to fetch the ordered event chain (workflow_trace_opened → workflow_trace_transitioned → workflow_trace_closed).
+2. Calls `pm_substrate_query` (mode `lineage`) with the `traceId` filter to fetch the ordered event chain (workflow_trace_opened → workflow_trace_transitioned → workflow_trace_closed).
 3. Renders a compact markdown table: timestamp / event-kind / mode / refs-summary / outcome.
 
 ```
-mcp__palantir-mini__replay_lineage({ project: "<path>", traceId: "<traceId>" })
+mcp__palantir-mini__pm_substrate_query({ mode: "lineage", project: "<path>", filter: { traceId: "<traceId>" } })
 ```
 
 ### Example output

@@ -16,6 +16,7 @@
 
 import { emit, projectRoot, eventsPathFor } from "../scripts/log";
 import { replayLineage } from "../lib/event-log/replay";
+import { pathIsProjectOntologyClass } from "../lib/project/ontology-path-class";
 
 interface HookPayload {
   session_id?:    string;
@@ -42,18 +43,13 @@ interface HookOutput {
 
 function isOntologyFile(filePath: string | undefined): boolean {
   if (!filePath) return false;
-  // schemas/ontology/** (palantir-mini canonical schemas)
+  // pm-canonical schema surface (kept explicit — it is pm-self, not a project
+  // path-class, and is the one surface independent of any project layout).
   if (filePath.includes("schemas/ontology/")) return true;
-  // <project>/ontology/*.ts (palantir-math style)
-  if (/\/ontology\/.+\.ts$/.test(filePath)) return true;
-  // Project descender layers that consume ontology declarations
-  if (/\/src\/generated\/.*-registry\.generated\.ts$/.test(filePath)) return true;
-  if (/\/src\/lib\/(changeResolver|capabilityRegistry|capabilityResolver)\.ts$/.test(filePath)) return true;
-  // Convex schema/queries/mutations are codegen-driven from ontology in palantir-math
-  if (/\/convex\/(schema|queries|mutations)\.ts$/.test(filePath)) return true;
-  // Canonical artifacts owned by ontology contracts
-  if (/\/problems\/[^/]+\/seq-(data|frames)\.json$/.test(filePath)) return true;
-  return false;
+  // STRUCTURAL project-ontology class membership (de-hardcoded, bd-006):
+  // replaces the former baked palantir-math layout regexes with the same
+  // path-class predicate the enforcement gate uses.
+  return pathIsProjectOntologyClass(filePath);
 }
 
 export default async function preEditOntology(payload: unknown): Promise<HookOutput> {

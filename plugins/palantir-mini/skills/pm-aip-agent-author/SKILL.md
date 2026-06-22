@@ -3,7 +3,7 @@ name: pm-aip-agent-author
 category: core-workflow
 surfaceStatus: public-core
 description: "Author an AIPAgentDeclaration (Palantir AIP Chatbot Studio / AI FDE-style governed..."
-allowed-tools: mcp__palantir-mini__apply_edit_function mcp__palantir-mini__commit_edits mcp__palantir-mini__compute_edits_dry_run mcp__palantir-mini__emit_event mcp__palantir-mini__ontology_schema_get Read Write Bash
+allowed-tools: mcp__palantir-mini__apply_edit_function mcp__palantir-mini__commit_edits mcp__palantir-mini__emit_event mcp__palantir-mini__ontology_schema_get Read Write Bash
 effort: high
 disable-model-invocation: true
 ---
@@ -61,7 +61,7 @@ mcp__palantir-mini__apply_edit_function({
 })
 ```
 
-Then `mcp__palantir-mini__compute_edits_dry_run({...})` → `mcp__palantir-mini__commit_edits({...})` per the mandatory dry-run→commit loop.
+Then `mcp__palantir-mini__commit_edits({ ..., validateOnly: true })` → `mcp__palantir-mini__commit_edits({...})` per the mandatory dry-run→commit loop.
 
 Persisted at `<project>/.palantir-mini/aip-agents/<agentId>.json` (mkdir if absent).
 

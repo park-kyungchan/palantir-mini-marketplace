@@ -3,7 +3,7 @@ name: pm-investigate
 category: core-workflow
 surfaceStatus: public-core
 description: "Systematic root-cause debugging. Four phases — investigate, analyze, hypothesize,..."
-allowed-tools: Bash Read Write Edit Grep Glob Agent mcp__palantir-mini__pm_preamble mcp__palantir-mini__replay_lineage mcp__palantir-mini__impact_query mcp__palantir-mini__pm_learn_query mcp__palantir-mini__emit_event WebSearch
+allowed-tools: Bash Read Write Edit Grep Glob Agent mcp__palantir-mini__pm_substrate_query mcp__palantir-mini__impact_query mcp__palantir-mini__emit_event WebSearch
 ---
 
 # /palantir-mini:pm-investigate — Systematic Debugging
@@ -15,7 +15,7 @@ allowed-tools: Bash Read Write Edit Grep Glob Agent mcp__palantir-mini__pm_pream
 Fixing symptoms creates whack-a-mole debugging. Every fix that doesn't address root
 cause makes the next bug harder to find. Find the root cause, then fix it.
 
-Call `mcp__palantir-mini__pm_preamble` once at session start to load project-specific
+Call `mcp__palantir-mini__pm_substrate_query` (mode `session-opener`) once at session start to load project-specific
 debugging context (test commands, known-fragile areas, recent incidents).
 
 ---
@@ -44,15 +44,15 @@ Gather context before forming any hypothesis.
    evidence before proceeding.
 
 5. **Check investigation history.** Search prior learnings for investigations on
-   the same files. Call `mcp__palantir-mini__pm_learn_query` with
-   `{ query: "<affected-file or component name>", limit: 20 }` and look for entries
+   the same files. Call `mcp__palantir-mini__pm_substrate_query` (mode `learn`) with
+   `{ mode: "learn", query: "<affected-file or component name>", limit: 20 }` and look for entries
    with `type: "investigation"`. Recurring bugs in the same area are an
    architectural smell — if prior investigations exist, note patterns and check
    if the root cause was structural.
 
 6. **Check BackwardProp trace.** If the bug involves ontology drift, contract
    mismatch, or runtime behavior that used to work, call
-   `mcp__palantir-mini__replay_lineage` with a 5-dim filter keyed on the affected
+   `mcp__palantir-mini__pm_substrate_query` (mode `lineage`) with a 5-dim filter keyed on the affected
    surface (e.g., `throughWhich: "<skill-or-tool>"`) to see what events led to
    the current state. For ontology/schema drift specifically, also suggest
    running `/palantir-mini:pm-verify` to detect invariant violations before

@@ -3,7 +3,7 @@ name: pm-research
 category: research
 surfaceStatus: public-core
 description: "Research-library lifecycle — diff (local vs upstream drift) | refresh (manifest-backed re-fetch) | audit (manifest staleness report) modes."
-allowed-tools: mcp__palantir-mini__research_library_diff mcp__palantir-mini__research_context_select mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event Read Bash
+allowed-tools: mcp__palantir-mini__research_context_select mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event Read Bash
 effort: medium
 disable-model-invocation: false
 ---
@@ -32,7 +32,7 @@ Pick `diff` before deciding whether to `refresh`; pick `audit` for a periodic fr
 
 ### What it does
 
-Invokes `mcp__palantir-mini__research_library_diff` which:
+Invokes `mcp__palantir-mini__research_library_refresh` with `dryRun: true` which:
 1. Reads the declared source URL(s) for each library entry.
 2. Fetches current upstream content (read-only; does NOT write locally).
 3. Produces a structured diff: sections added, removed, or modified.
@@ -40,7 +40,8 @@ Invokes `mcp__palantir-mini__research_library_diff` which:
 5. Emits a `research_diff_completed` event with entry count and drift summary.
 
 ```
-mcp__palantir-mini__research_library_diff({
+mcp__palantir-mini__research_library_refresh({
+  dryRun: true,
   entries: ["<entry-key>"]         // omit to diff all tracked entries
 })
 ```
