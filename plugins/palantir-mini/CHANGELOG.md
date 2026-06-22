@@ -7,6 +7,19 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.24.0] - 2026-06-22 — feat(events): memory event substrate + gitHeadSha SHA fix + gate D-i path-aware
+
+### Fixed
+- **`gitHeadSha` resolves `atopWhich` to a commit SHA (packed-refs symbolic-ref bug)**: the events.jsonl 5-dim `atopWhich` lineage anchor must be a commit SHA. A hand-rolled `.git/HEAD` parser fell through to the SYMBOLIC ref `refs/heads/<branch>` whenever HEAD was symbolic and the loose ref file was absent — the NORMAL packed-refs state after `git gc` / `git pack-refs` / a fresh clone — corrupting the anchor with a ref name instead of a SHA. Extracted the resolver into a single shared module `lib/git/head-sha.ts` (`gitHeadSha(project)`) using `git rev-parse HEAD` (consults packed-refs natively, always yields a 40-hex SHA, sentinel `no-git` on failure); deduped the 7 inline copies to import it.
+- **Path-aware D-i commit classification**: both commit lanes (`commit_edits` + bash `git commit`) were floored to blocking with zero path inspection, forcing the pm-off workaround. Now path-aware via the existing `scopedBlockingFileReason` predicate over the resolved staged/target set: ALL-non-ontology commits => generic-mutation (scoped-blocking, passes); ANY ontology surface (incl. `.palantir-mini/`, `schemas/ontology/`) => commit (blocking); conservative default (unresolvable/empty) => blocking.
+
+### Added
+- **Two governed memory event types registered**: `resolution_verdict` + `memory_fold_committed` added to `EVENT_TYPE_NAMES` + the `EventEnvelope` union + lineage declarations + parity + the schema-snapshot CHANGELOG (v1.92.0) + value-grade `learnTypes`. Events grade >= T1 (emittable); T3 requires the emitter to supply memory/lineage + refinement-axis fields at emit (NOT `learnTypes` membership).
+- **Additive optional `envelopeRev` on `EventEnvelopeBase`** (both the `lib/event-log/types.ts` type and the schema-snapshot primitive mirror, in lockstep) + a NEW `lib/event-log/upcasters/` on-read transform that normalizes older envelopes.
+
+### Notes
+- Version bump 7.23.0 -> 7.24.0 across all integrity-gated manifests (`package.json`, `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, root + plugin `.claude-plugin/marketplace.json`). This release commit carries ONLY the version bump + this CHANGELOG entry; the three changes above were already merged to `main` (gitHeadSha fix; gate D-i fix; memory event substrate). `bun ci/verify-marketplace-integrity.ts` must pass.
+
 ## [7.23.0] - 2026-06-21 — feat(pm): composed governed `drift_rebind` RESUME action
 
 ### Added
