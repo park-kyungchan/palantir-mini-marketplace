@@ -7,6 +7,17 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.25.0] - 2026-06-22
+
+### Added
+- Second-brain session-end fold Stop hook (`hooks/second-brain-fold.ts`) — P1 of the second-brain memory arc. Slotted after `ontology-drift-fold`, before `stop-validate` (async, bounded, never-blocks). Subprocess-invokes the project's `second-brain/scripts/fold.ts` engine and forwards its output as Layer-1 events via the in-band `emit()` helper (Path B): `resolution_verdict` (per ADD/UPDATE) + `memory_fold_committed` (summary), graded T3. Gated on the engine existing (no-op where absent) + a `PALANTIR_MINI_SECOND_BRAIN_FOLD_BYPASS=1` bypass. A SessionStart crash-recovery sweep folds transcripts lacking a fold marker (Layer-1 parity via the shared `forwardFoldOutput` helper). bypass-budget-monitor gains the matching errorClass→envvar mapping.
+
+### Changed
+- Self-ontology hook-seed reconciliation: registered `ontology-drift-fold` (pre-existing debt) + `second-brain-fold` in the `Hook` self-ontology `HOOK_INSTANCES` seed; bumped the drift-guard pins to live (EXPECTED_HOOK_COUNT 47→49, EXPECTED_WIRED_COUNT 46→48, timeout-policy classifications 43→45) — three pre-existing-red guards now green.
+
+### Notes
+- The fold hook's FIRING + the SessionStart sweep are pm-ON runtime behaviors (verified separately); the fold engine + the emit-integration (T3) are unit-tested pm-OFF. No source/hook/test code changed in this release — version + changelog + catalog only.
+
 ## [7.24.0] - 2026-06-22 — feat(events): memory event substrate + gitHeadSha SHA fix + gate D-i path-aware
 
 ### Fixed
