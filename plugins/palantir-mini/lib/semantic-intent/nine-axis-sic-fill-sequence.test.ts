@@ -184,6 +184,25 @@ describe("advanceNineAxisSicBatch — first-class batched multi-axis fill", () =
     expect(byStep(4).source).toBe("system");
   });
 
+  it("forces notApplicable provenance to 'user' even when source='agent' (waiver invariant)", () => {
+    const result = advanceNineAxisSicBatch(makeBase(), {
+      intent: "intent",
+      // An agent CANNOT forge a not-applicable waiver as agent-sourced — a waived
+      // axis is ALWAYS the user's explicit waiver, so source is hardcoded "user".
+      data: { notApplicable: true, source: "agent" },
+      // The answered branch still honors turn.source (item a not undone).
+      logic: { answer: "rule X", source: "agent" },
+    });
+
+    const byStep = (n: number) =>
+      result.contract.fillSequence!.find((s) => s.step === n)!;
+    // T1 data axis is a notApplicable waiver ⇒ source forced to "user" despite source:"agent".
+    expect(byStep(2).source).toBe("user");
+    expect(result.contract.axes!.data.status).toBe("not-applicable");
+    // T2 logic axis is an ANSWER ⇒ honest source:"agent" preserved (answered path unchanged).
+    expect(byStep(3).source).toBe("agent");
+  });
+
   it("absent source fields keep every step user-sourced (default-preserving)", () => {
     const result = advanceNineAxisSicBatch(makeBase(), {
       intent: "plain user intent",

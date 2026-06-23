@@ -366,14 +366,23 @@ export function advanceNineAxisSicBatch(
 
     let nextAxis: SicAxis | undefined;
     let answer: string | undefined;
+    // A notApplicable axis is ALWAYS the USER's explicit waiver (never an agent
+    // skip — see the per-turn `turnNotApplicable` doc ~L271-272 and
+    // nine-axis-understand-session.ts), so its provenance is hardcoded "user"
+    // regardless of turn.source. The answered branch keeps the honest
+    // `turn.source ?? "user"` so a Lead/agent-sourced answer records "agent".
+    let stepSource: SicFillSource;
     if (turn.notApplicable === true) {
       nextAxis = NOT_APPLICABLE_AXIS;
       answer = "(N/A)";
+      stepSource = "user";
     } else if (turn.answer !== undefined) {
       nextAxis = fillAxisFromUserInput(turn.answer);
       answer = turn.answer;
+      stepSource = turn.source ?? "user";
+    } else {
+      continue;
     }
-    if (nextAxis === undefined) continue;
 
     axes = { ...axes, [axisKey]: nextAxis } as SemanticIntentAxes;
     steps.push({
@@ -381,7 +390,7 @@ export function advanceNineAxisSicBatch(
       question: descriptor.question,
       answer,
       filledAt: new Date().toISOString(),
-      source: turn.source ?? "user",
+      source: stepSource,
     });
     appliedTurns.push(descriptor.turnIndex);
   }
