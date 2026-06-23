@@ -52,6 +52,8 @@ const SEMANTIC_INTENT_GATE_PUBLIC_FIELDS = [
   "fillPolicy",
   "semanticConsistencyResolverInput",
   "proposedAxisDraft",
+  // P1-7-wire — BATCH-mode 9-axis fill input (additive)
+  "nineAxisBatch",
   "responseView",
 ] as const satisfies readonly (keyof SemanticIntentGateInput)[];
 

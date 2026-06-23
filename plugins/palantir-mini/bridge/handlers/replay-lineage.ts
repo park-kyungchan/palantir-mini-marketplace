@@ -21,10 +21,10 @@
 
 import * as path from "path";
 import { replayLineage, type LineageFilter, type ReplayResult } from "../../lib/event-log/replay";
-import { foldToSnapshot } from "../../lib/event-log/read";
+import { foldToSnapshot, foldDecisionRecords } from "../../lib/event-log/read";
 import { readPromotedEvents } from "../../lib/event-log/promoted-index";
 import { deriveProjectSlug } from "../../lib/project/slug";
-import type { EventEnvelope, EventSnapshot } from "../../lib/event-log/types";
+import type { EventEnvelope, EventSnapshot, DecisionRecord } from "../../lib/event-log/types";
 
 interface ReplayLineageArgs {
   project: string;
@@ -74,6 +74,17 @@ interface ReplayLineageResult extends ReplayResult {
    * undefined when verbose=false (back-compat).
    */
   verboseMarkdown?: string;
+  /**
+   * P1-13 — bound D+L+A+S DecisionRecords folded from the SAME filtered stream
+   * that feeds `derivedState`/`lineageGraph`. The replay path is the BackwardProp
+   * lineage read, so it is the natural production consumer of `foldDecisionRecords`:
+   * each `edit_proposed` (Logic + staged edit) bound to its `edit_committed`
+   * (Action + Security + Data) surfaces as ONE meaning-bearing decision instead of
+   * the unlinked propose/commit rows in `events`. Additive + non-breaking: a pure
+   * read derived from `postFilteredEvents`; empty `[]` when the window carries no
+   * propose/commit rows. (decision-model.md + approval-and-lineage.md.)
+   */
+  decisionRecords: DecisionRecord[];
 }
 
 // ── B.W2.c: T3+ verbose formatter ────────────────────────────────────────
@@ -230,6 +241,11 @@ export default async function replayLineageHandler(rawArgs: unknown): Promise<Re
 
   const derivedState = foldToSnapshot(postFilteredEvents);
 
+  // P1-13 — fold the SAME filtered stream into bound D+L+A+S DecisionRecords so a
+  // lineage replay surfaces each decision as one united Logic⇄Action+Data+Security
+  // unit (not the raw, unlinked propose/commit rows in `events`). Pure read.
+  const decisionRecords = foldDecisionRecords(postFilteredEvents);
+
   const lineageGraph = postFilteredEvents.map((ev) => ({
     sequence:  ev.sequence,
     eventType: ev.type,
@@ -251,6 +267,7 @@ export default async function replayLineageHandler(rawArgs: unknown): Promise<Re
     events: postFilteredEvents,
     matched: postFilteredEvents.length,
     derivedState,
+    decisionRecords,
     lineageGraph,
     ...(verboseMarkdown !== undefined ? { verboseMarkdown } : {}),
   };

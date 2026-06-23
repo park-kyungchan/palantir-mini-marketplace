@@ -284,3 +284,189 @@ test("nine-axis-sic full T0–T9 fill → semantic_intent_contract_finalized emi
   expect(finalized!.payload?.fillPolicy).toBe("nine-axis-sic");
   expect(finalized!.payload?.verdict).toBe("filled");
 });
+
+// ---------------------------------------------------------------------------
+// P1-7-wire — BATCH 9-axis fill is runtime-reachable through the MCP gate.
+// Proves advanceNineAxisSicBatch is no longer dead code: a single gate call with
+// `nineAxisBatch` fills multiple turns; a FULL batch reaches the same fillComplete +
+// finalization as 10 sequential per-turn calls.
+// ---------------------------------------------------------------------------
+
+const FULL_BATCH = {
+  intent: "build a grading dashboard",
+  data: { answer: "Student, Assignment, Grade" },
+  logic: { answer: "weighted average per rubric" },
+  action: { answer: "publish final grades to students" },
+  governance: { answer: "teacher approves before publish" },
+  context: { answer: "rubric.md, gradebook.csv" },
+  successEval: { answer: "every student has a final grade" },
+  constraintsNonGoals: { answer: "do not expose other students' grades" },
+  actors: { answer: "teacher runs it, admin authorizes" },
+  memoryPrior: { answer: "prior term's rubric decision" },
+} as const;
+
+test("nine-axis-sic FULL batch (one call) → fillComplete true + nineAxisBatchResult + finalization emit", async () => {
+  const project = makeTmpProject();
+  const contract = makeDraftContract("nine-axis full batch");
+
+  const result = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis full batch",
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    nineAxisBatch: FULL_BATCH,
+  });
+
+  // Batch summary present and complete.
+  expect(result.nineAxisBatchResult).toBeDefined();
+  expect(result.nineAxisBatchResult!.fillComplete).toBe(true);
+  // T0 + 9 axes applied in canonical order.
+  expect(result.nineAxisBatchResult!.appliedTurns).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+  // The accumulated contract rides on fillResult.contract (shared persistence/projection).
+  expect(result.fillResult).toBeDefined();
+  expect(result.fillResult!.fillComplete).toBe(true);
+  // The synthesized fillResult anchors to the LAST applied turn (T9 → memoryPrior).
+  expect(result.fillResult!.appliedTurn).toBe(9);
+  const axes = result.fillResult!.contract.axes;
+  expect(axes!.data.status).toBe("filled");
+  expect(axes!.memoryPrior.status).toBe("filled");
+
+  // Finalization lineage row fires for a completing batch (mirrors per-turn T9).
+  const finalized = readEvents(project).find(
+    (e) =>
+      e.type === "validation_phase_completed" &&
+      e.payload?.errorClass === "semantic_intent_contract_finalized",
+  );
+  expect(finalized).toBeDefined();
+  expect(finalized!.payload?.fillPolicy).toBe("nine-axis-sic");
+  // The batch-advanced lineage row also fires.
+  const batchAdvanced = readEvents(project).find(
+    (e) =>
+      e.type === "validation_phase_completed" &&
+      e.payload?.errorClass === "nine_axis_sic_batch_advanced",
+  );
+  expect(batchAdvanced).toBeDefined();
+});
+
+test("nine-axis-sic PARTIAL batch → accumulates without completing (fail-closed)", async () => {
+  const project = makeTmpProject();
+  const contract = makeDraftContract("nine-axis partial batch");
+
+  const result = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis partial batch",
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    nineAxisBatch: {
+      intent: "build a grading dashboard",
+      data: { answer: "Student, Assignment, Grade" },
+      logic: { answer: "weighted average per rubric" },
+    },
+  });
+
+  expect(result.nineAxisBatchResult).toBeDefined();
+  expect(result.nineAxisBatchResult!.appliedTurns).toEqual([0, 1, 2]);
+  expect(result.nineAxisBatchResult!.fillComplete).toBe(false);
+  expect(result.fillResult!.fillComplete).toBe(false);
+  expect(result.fillResult!.fillIncomplete).toBeDefined();
+  // Last applied turn was T2 (logic).
+  expect(result.fillResult!.appliedTurn).toBe(2);
+});
+
+test("nine-axis-sic batch threads across two calls → second call completes", async () => {
+  const project = makeTmpProject();
+  let contract: SemanticIntentContract = makeDraftContract("nine-axis two-call batch");
+
+  const first = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis two-call batch",
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    nineAxisBatch: {
+      intent: FULL_BATCH.intent,
+      data: FULL_BATCH.data,
+      logic: FULL_BATCH.logic,
+      action: FULL_BATCH.action,
+      governance: FULL_BATCH.governance,
+    },
+  });
+  expect(first.nineAxisBatchResult!.fillComplete).toBe(false);
+  contract = first.fillResult!.contract as SemanticIntentContract;
+
+  const second = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis two-call batch",
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    nineAxisBatch: {
+      context: FULL_BATCH.context,
+      successEval: FULL_BATCH.successEval,
+      constraintsNonGoals: FULL_BATCH.constraintsNonGoals,
+      actors: FULL_BATCH.actors,
+      memoryPrior: FULL_BATCH.memoryPrior,
+    },
+  });
+  expect(second.nineAxisBatchResult!.fillComplete).toBe(true);
+  expect(second.fillResult!.fillComplete).toBe(true);
+});
+
+test("nine-axis-sic batch supports per-axis not-applicable waiver", async () => {
+  const project = makeTmpProject();
+  const contract = makeDraftContract("nine-axis batch N/A");
+
+  const result = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis batch N/A",
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    nineAxisBatch: {
+      ...FULL_BATCH,
+      memoryPrior: { notApplicable: true },
+    },
+  });
+
+  // A waived axis still counts toward completeness (status not-applicable).
+  expect(result.nineAxisBatchResult!.fillComplete).toBe(true);
+  expect(result.fillResult!.contract.axes!.memoryPrior.status).toBe("not-applicable");
+});
+
+test("nineAxisBatch ABSENT → per-axis turn path byte-identical (no nineAxisBatchResult)", async () => {
+  const project = makeTmpProject();
+  const contract = makeDraftContract("nine-axis no batch");
+
+  const result = await semanticIntentGate({
+    project,
+    rawIntent: "nine-axis no batch",
+    fillPolicy: "nine-axis-sic",
+    semanticIntentContract: contract,
+    turn: 1,
+    turnUserInput: "Student, Assignment, Grade",
+  });
+
+  expect(result.nineAxisBatchResult).toBeUndefined();
+  expect(result.fillResult).toBeDefined();
+  expect(result.fillResult!.appliedTurn).toBe(1);
+  expect(result.fillResult!.contract.axes!.data.status).toBe("filled");
+});
+
+test("nineAxisBatch ignored on a NON-nine-axis fillPolicy (fde-ontology-build)", async () => {
+  const project = makeTmpProject();
+  const contract = makeDraftContract("batch ignored on fde");
+
+  const result = await semanticIntentGate({
+    project,
+    rawIntent: "batch ignored on fde",
+    fillPolicy: "fde-ontology-build",
+    semanticIntentContract: contract,
+    turn: 0,
+    turnUserInput: "fde turn answer",
+    // A batch is supplied but must be IGNORED — fde policy is not batch-eligible.
+    nineAxisBatch: FULL_BATCH,
+  });
+
+  // No batch result; the FDE per-turn path ran instead.
+  expect(result.nineAxisBatchResult).toBeUndefined();
+  expect(result.fdeFillResult).toBeDefined();
+  expect(result.fdeFillResult!.appliedTurn).toBe(0);
+});
