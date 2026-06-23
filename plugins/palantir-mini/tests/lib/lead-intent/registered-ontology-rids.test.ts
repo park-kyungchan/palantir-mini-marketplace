@@ -142,7 +142,7 @@ function makeTmpProjectRegistering(rids: string[]): string {
       withWhat: { reasoning: "register fixture" },
     },
     payload: {
-      actionTypeRid: "pm.self/register",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       appliedEdits: rids.map((rid) => ({
         kind: "object",
         rid,

@@ -188,6 +188,23 @@ function extractRefs(values: readonly string[]): string[] {
 }
 
 /**
+ * Build the SicAxis a user-sourced `userInput` answer produces for one axis.
+ * SINGLE SOURCE of the per-axis transform shared by the per-turn engine
+ * (`advanceNineAxisSicSequence`) and the batched engine (`advanceNineAxisSicBatch`),
+ * so a batched fill records each axis byte-identically to 10 sequential turns.
+ */
+function fillAxisFromUserInput(userInput: string): SicAxis {
+  return {
+    summary: userInput.trim(),
+    refs: extractRefs(csv(userInput)),
+    status: "filled",
+  };
+}
+
+/** The not-applicable axis a user-waived turn produces (mirrors the gate's N/A path). */
+const NOT_APPLICABLE_AXIS: SicAxis = { summary: "(not applicable)", refs: [], status: "not-applicable" };
+
+/**
  * Advance the 9-axis SIC sequence by one turn (turnIndex 0-9).
  * T0 records rawIntent/confirmedIntent. T1-T9 fill one axis each:
  * summary = the free-text answer; refs = path/rid-like tokens; status = "filled".
@@ -226,13 +243,10 @@ export function advanceNineAxisSicSequence(
     t0Fields.rawIntent = contract.rawIntent || userInput.trim();
     t0Fields.confirmedIntent = contract.confirmedIntent || userInput.trim();
   } else if (descriptor.targetAxis !== undefined && userInput !== undefined) {
-    const values = csv(userInput);
-    const axis: SicAxis = {
-      summary: userInput.trim(),
-      refs: extractRefs(values),
-      status: "filled",
-    };
-    nextAxes = { ...baseAxes, [descriptor.targetAxis]: axis } as SemanticIntentAxes;
+    nextAxes = {
+      ...baseAxes,
+      [descriptor.targetAxis]: fillAxisFromUserInput(userInput),
+    } as SemanticIntentAxes;
   }
 
   return {
@@ -243,6 +257,136 @@ export function advanceNineAxisSicSequence(
     axes: nextAxes,
     fillSequence: [...(ext.fillSequence ?? []), step],
   } as NineAxisSicContract;
+}
+
+// ---------------------------------------------------------------------------
+// Batched multi-axis fill (first-class) — fill several turns in ONE round-trip.
+// ---------------------------------------------------------------------------
+
+/**
+ * One axis answer in a batched fill. Exactly one of `answer` / `notApplicable`
+ * carries the signal:
+ *   - `answer`         — the user's free-text confirmation for the axis (user-sourced,
+ *                        recorded the same as a per-turn `turnUserInput`).
+ *   - `notApplicable`  — `true` waives the axis (user-sourced `status:"not-applicable"`),
+ *                        mirroring the per-turn `turnNotApplicable` path.
+ * `notApplicable` is ignored on the intent turn (T0 has no axis).
+ */
+export interface NineAxisBatchTurn {
+  readonly answer?: string;
+  readonly notApplicable?: boolean;
+}
+
+/**
+ * A batch of axis answers keyed by turn target. `intent` fills T0 (rawIntent +
+ * confirmedIntent); each `SicAxisKey` fills its corresponding axis turn. Only the
+ * keys present are applied — a partial batch is valid and accumulates onto the
+ * threaded contract exactly like a partial run of sequential turns.
+ */
+export type NineAxisBatchInput = {
+  readonly intent?: string;
+} & {
+  readonly [K in SicAxisKey]?: NineAxisBatchTurn;
+};
+
+/**
+ * Result of a batched multi-axis fill — the same accumulating contract the
+ * per-turn engine returns, plus the list of turn indices applied in this call.
+ */
+export interface NineAxisBatchResult {
+  /** The contract after every batched turn was applied (thread back like the per-turn contract). */
+  readonly contract: NineAxisSicContract;
+  /** Turn indices applied this call, ascending (e.g. [0,1,2,...]). */
+  readonly appliedTurns: readonly number[];
+  /** True once T0 + all 9 axes are filled-or-not-applicable (== isNineAxisSicComplete). */
+  readonly fillComplete: boolean;
+}
+
+/**
+ * FIRST-CLASS batched multi-axis 9-axis fill: apply several axis turns (and/or the
+ * intent turn) in ONE round-trip instead of N sequential `advanceNineAxisSicSequence`
+ * calls. Cuts the N-times-10 round-trips per concept WITHOUT removing the strict
+ * per-axis path (that engine is unchanged; this composes the SAME per-axis transform).
+ *
+ * Every applied axis records a user-sourced `SicFillStep` byte-identically to the
+ * per-turn engine, so a full batch reaches the same `isNineAxisSicComplete` / Q2
+ * readiness as 10 sequential per-turn calls. Turns apply in canonical sequence order
+ * (T0 → T9) regardless of input key order, so the accumulated `fillSequence` is ordered.
+ *
+ * @param contract   Current SemanticIntentContract (immutable read; thread the result back).
+ * @param batch      The axis answers to apply this round-trip (any subset of intent + 9 axes).
+ * @returns          NineAxisBatchResult with the accumulated contract, appliedTurns, fillComplete.
+ */
+export function advanceNineAxisSicBatch(
+  contract: SemanticIntentContract,
+  batch: NineAxisBatchInput,
+): NineAxisBatchResult {
+  const ext = contract as NineAxisSicContract;
+  let axes: SemanticIntentAxes = ext.axes ?? emptyAxes();
+  const steps: SicFillStep[] = [];
+  const appliedTurns: number[] = [];
+  let rawIntent = contract.rawIntent;
+  let confirmedIntent = contract.confirmedIntent;
+
+  // Apply in canonical sequence order so fillSequence stays ordered T0..T9.
+  for (const descriptor of NINE_AXIS_SIC_SEQUENCE) {
+    if (descriptor.turnIndex === 0) {
+      const intent = batch.intent;
+      if (intent === undefined) continue;
+      rawIntent = rawIntent || intent.trim();
+      confirmedIntent = confirmedIntent || intent.trim();
+      steps.push({
+        step: descriptor.step,
+        question: descriptor.question,
+        answer: intent,
+        filledAt: new Date().toISOString(),
+        source: "user",
+      });
+      appliedTurns.push(descriptor.turnIndex);
+      continue;
+    }
+
+    const axisKey = descriptor.targetAxis;
+    if (axisKey === undefined) continue;
+    const turn = batch[axisKey];
+    if (turn === undefined) continue;
+
+    let nextAxis: SicAxis | undefined;
+    let answer: string | undefined;
+    if (turn.notApplicable === true) {
+      nextAxis = NOT_APPLICABLE_AXIS;
+      answer = "(N/A)";
+    } else if (turn.answer !== undefined) {
+      nextAxis = fillAxisFromUserInput(turn.answer);
+      answer = turn.answer;
+    }
+    if (nextAxis === undefined) continue;
+
+    axes = { ...axes, [axisKey]: nextAxis } as SemanticIntentAxes;
+    steps.push({
+      step: descriptor.step,
+      question: descriptor.question,
+      answer,
+      filledAt: new Date().toISOString(),
+      source: "user",
+    });
+    appliedTurns.push(descriptor.turnIndex);
+  }
+
+  const next: NineAxisSicContract = {
+    ...contract,
+    rawIntent,
+    confirmedIntent,
+    fillPolicy: NINE_AXIS_SIC_POLICY,
+    axes,
+    fillSequence: [...(ext.fillSequence ?? []), ...steps],
+  } as NineAxisSicContract;
+
+  return {
+    contract: next,
+    appliedTurns,
+    fillComplete: isNineAxisSicComplete(next),
+  };
 }
 
 export interface NineAxisReadinessIssue {

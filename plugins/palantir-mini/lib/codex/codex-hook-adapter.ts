@@ -550,6 +550,38 @@ export function directPromptPluginOptOut(payload: JsonObject): PalantirMiniPlugi
     : undefined;
 }
 
+/**
+ * Structured per-turn opt-out directive.
+ *
+ * Governance rule (bd-004): a prompt SUBSTRING must never silently disarm the
+ * harness for the rest of the session. A substring opt-out (`directPromptPluginOptOut`)
+ * is evaluated PER TURN and only ever suppresses the current turn — it is never
+ * promoted into a session-wide bypass.
+ *
+ * A SESSION-WIDE hard opt-out (the bypass that survives later turns whose prompt
+ * carries no marker) is only established from an EXPLICIT, machine-readable
+ * directive on the payload — never inferred from free-text prose. The directive
+ * is the structured field `palantir_mini_plugin_opt_out` with an explicit
+ * `scope` of `"turn"` (default) or `"session"`. This keeps the rest-of-session
+ * silent bypass under a deliberate, structured, per-turn control instead of a
+ * forgeable substring.
+ */
+function structuredPromptPluginOptOutDirective(
+  payload: JsonObject,
+): { bypass: PalantirMiniPluginBypass; scope: "turn" | "session" } | undefined {
+  const directive = asObject(payload.palantir_mini_plugin_opt_out);
+  if (directive.explicit !== true) return undefined;
+  const scope = directive.scope === "session" ? "session" : "turn";
+  const matchedMarker =
+    typeof directive.matchedMarker === "string" && directive.matchedMarker.trim().length > 0
+      ? directive.matchedMarker
+      : `structured-directive:${scope}`;
+  return {
+    bypass: { explicit: true, matchedMarker, source: "prompt" },
+    scope,
+  };
+}
+
 function isPromptFrontDoorCaptureHook(hook: HookConfig): boolean {
   return typeof hook.command === "string" && /\bprompt-front-door-capture\b/.test(hook.command);
 }
@@ -1489,7 +1521,10 @@ export async function runCodexHookAdapter(
 ): Promise<CodexAdapterRunResult> {
   const doc = loadHooks(options);
   const resolved = resolveOptions(options);
-  const directBypass = directPromptPluginOptOut(inputPayload);
+  const structuredDirective = structuredPromptPluginOptOutDirective(inputPayload);
+  // Per-turn suppression: a substring prose marker OR a structured directive of
+  // any scope suppresses the CURRENT turn only. Neither is persisted here.
+  const directBypass = directPromptPluginOptOut(inputPayload) ?? structuredDirective?.bypass;
   if (eventName && runtimeHasSchemaOnlyEvent("codex", eventName)) {
     await emitCodexAdapterCapabilityMismatch(eventName, inputPayload, options);
     return {
@@ -1516,8 +1551,12 @@ export async function runCodexHookAdapter(
   payload.hook_event_name = policyEventName;
   const payloadProjectRootHint = projectRootHintForPayload(payload, options);
   rememberSessionProjectRootHint(payload, options, payloadProjectRootHint);
-  if (directBypass?.explicit) {
-    rememberSessionPluginOptOut(payload, options, optOutForBypass(directBypass));
+  // Session-wide persistence (bd-004): ONLY an explicit structured directive with
+  // `scope: "session"` is promoted into the rest-of-session hard opt-out store. A
+  // substring prose marker is per-turn only and is NEVER persisted — a substring
+  // must not silently disarm the harness for the remainder of the session.
+  if (structuredDirective?.scope === "session" && structuredDirective.bypass.explicit) {
+    rememberSessionPluginOptOut(payload, options, optOutForBypass(structuredDirective.bypass));
   }
   const sessionOptOut = directBypass?.explicit
     ? undefined

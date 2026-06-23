@@ -26,7 +26,9 @@ function commit(seq: number, atopWhich: string, edits: OntologyEdit[]): EventEnv
     throughWhich: { sessionId: "s" as never, toolName: "test", cwd: "/tmp" },
     byWhom: { identity: "test-agent" },
     payload: {
-      actionTypeRid: "pm.actions.ontology.commitEdits",
+      // F1b — a REGISTERED built-in self-ontology verb so the fold's registration
+      // guard materializes these edits (presence→registration upgrade).
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       appliedEdits: edits,
       submissionCriteriaPassed: ["ok"],
     },
@@ -68,7 +70,7 @@ describe("foldToSnapshot — dedup-by-rid latest-wins (Part B, 7.22.2)", () => {
     expect(x?.declaration?.v).toBe(2);
   });
 
-  test("F1 provenance guard — edit_committed WITHOUT a valid actionTypeRid is counted but NOT materialized", () => {
+  test("F1b registration guard — edit_committed WITHOUT a registered actionTypeRid is NOT counted and NOT materialized", () => {
     const forged = {
       sequence: 1,
       type: "edit_committed",
@@ -84,9 +86,32 @@ describe("foldToSnapshot — dedup-by-rid latest-wins (Part B, 7.22.2)", () => {
       },
     } as unknown as EventEnvelope;
     const snap = foldToSnapshot([forged]);
-    // The row is still counted (it exists in the log)...
-    expect(snap.edit_committed).toBe(1);
-    // ...but its edits are NOT trusted into the registered grammar.
+    // F1b presence→registration upgrade: an unregistered-rid (here absent) commit row
+    // is NOT counted in the banner total...
+    expect(snap.edit_committed).toBe(0);
+    // ...and its edits are NOT trusted into the registered grammar.
+    expect(snap.registeredPrimitives!.objectTypes.length).toBe(0);
+  });
+
+  test("F1b registration guard — a non-empty but UNREGISTERED actionTypeRid is also rejected (presence is not enough)", () => {
+    const unregistered = {
+      sequence: 1,
+      type: "edit_committed",
+      eventId: "unreg-1" as never,
+      when: new Date().toISOString(),
+      atopWhich: "sha-X" as never,
+      throughWhich: { sessionId: "s" as never, toolName: "test", cwd: "/tmp" },
+      byWhom: { identity: "test-agent" },
+      payload: {
+        // Non-empty string that would PASS the old presence-only guard, but is not a
+        // registered ActionType — the registration upgrade rejects it.
+        actionTypeRid: "PostToolUse:Edit",
+        appliedEdits: [objectEdit("rid.phantom", { plainName: "Phantom" })],
+        submissionCriteriaPassed: [],
+      },
+    } as unknown as EventEnvelope;
+    const snap = foldToSnapshot([unregistered]);
+    expect(snap.edit_committed).toBe(0);
     expect(snap.registeredPrimitives!.objectTypes.length).toBe(0);
   });
 

@@ -117,6 +117,41 @@ export function validateRule26R5(
   return null;
 }
 
+/**
+ * P1-3 / rule 26 §Axis A — `withWhat.reasoning` is a FIRST-CLASS decision-
+ * lineage field (the WHY behind the emitted decision), required at the emit
+ * boundary for every T1+ (valuable) event. Returns null when the envelope
+ * satisfies the requirement, or a human-readable message when a valuable
+ * (graded ≥ T1) envelope omits a non-empty `withWhat.reasoning`.
+ *
+ * Scope (non-breaking):
+ *   - T0 envelopes (5-dim incomplete) are NOT checked here — they are already
+ *     rejected by the T0 path; piling a reasoning error on top is noise.
+ *   - The check ONLY fires for envelopes that would emit as valuable (T1+), so
+ *     structural/historical T0 rows are unaffected.
+ *   - Default mode is ADVISORY (logged to stderr; emit proceeds). Hard-reject
+ *     only under PALANTIR_MINI_REASONING_ENFORCE=1 (bypassable via the shared
+ *     PALANTIR_MINI_VALUE_GRADE_BYPASS=1). This mirrors the rule 26 §R5 gate.
+ */
+export function validateReasoningPresence(
+  envelope: Omit<EventEnvelope, "sequence">,
+): string | null {
+  // Only valuable (T1+) envelopes are required to carry the WHY. T0 (5-dim
+  // incomplete) is rejected elsewhere; do not double-report.
+  if (autoGradeEnvelope(envelope) === "T0") return null;
+
+  const reasoning = envelope.withWhat?.reasoning;
+  if (typeof reasoning === "string" && reasoning.trim().length > 0) return null;
+
+  return (
+    "rule 26 §Axis A: T1+ (valuable) envelopes MUST carry a non-empty " +
+    "withWhat.reasoning (the WHY behind the emitted decision) — it is a " +
+    "first-class decision-lineage field, not an optional pointer. Add " +
+    "`reasoning` to the emit() call OR set PALANTIR_MINI_VALUE_GRADE_BYPASS=1 " +
+    "to bypass (audited)."
+  );
+}
+
 export default async function emitEvent(rawArgs: unknown): Promise<EmitEventResult> {
   const args = (rawArgs ?? {}) as EmitEventArgs;
   if (!args.project || typeof args.project !== "string") {
@@ -149,6 +184,20 @@ export default async function emitEvent(rawArgs: unknown): Promise<EmitEventResu
     }
     process.stderr.write(`[palantir-mini/emit-event ADVISORY] ${r5Violation}\n`);
     valuableDataAdvisory = r5Violation;
+  }
+
+  // P1-3 / rule 26 §Axis A — first-class withWhat.reasoning required at the emit
+  // boundary for T1+ valuable events. Advisory by default; hard-reject under
+  // PALANTIR_MINI_REASONING_ENFORCE=1 (bypassable via the shared bypass env).
+  const reasoningViolation = validateReasoningPresence(args.envelope);
+  if (reasoningViolation !== null) {
+    const enforce = process.env.PALANTIR_MINI_REASONING_ENFORCE === "1";
+    const bypass  = process.env.PALANTIR_MINI_VALUE_GRADE_BYPASS  === "1";
+    if (enforce && !bypass) {
+      throw new Error(`emit_event: ${reasoningViolation}`);
+    }
+    process.stderr.write(`[palantir-mini/emit-event ADVISORY] ${reasoningViolation}\n`);
+    if (valuableDataAdvisory === undefined) valuableDataAdvisory = reasoningViolation;
   }
 
   // rule 26 §Auto-grade — compute + inject valueGrade if not pre-set by caller.

@@ -29,6 +29,8 @@ import { checkManagedSettings } from "./pm-plugin-self-check/check-managed-setti
 import { checkProjectSkillOntology } from "./pm-plugin-self-check/check-project-skill-ontology";
 import { checkWorkflowResponseTemplate } from "./pm-plugin-self-check/check-workflow-response-template";
 import { checkDeletionReadiness } from "./pm-plugin-self-check/check-deletion-readiness";
+import { checkSchemasSnapshotManifest } from "./pm-plugin-self-check/check-schemas-snapshot-manifest";
+import { checkHookSeed } from "./pm-plugin-self-check/check-hook-seed";
 import { DEPRECATION_MAP } from "./_deprecation-map";
 import { gitHeadSha as resolveGitHeadSha } from "../../lib/git/head-sha";
 import { auditSurfaceContracts } from "../../lib/surface/audit";
@@ -78,6 +80,8 @@ const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {
     "workflow-family-release-gate",
     "surface-contracts",
     "deletion-readiness",
+    "schemas-snapshot-manifest",
+    "hook-seed",
   ],
 };
 
@@ -97,6 +101,8 @@ const ALL_CHECKS = [
   "workflow-family-release-gate",
   "surface-contracts",
   "deletion-readiness",
+  "schemas-snapshot-manifest",
+  "hook-seed",
 ] as const;
 
 function modeFromArgs(mode: PmPluginSelfCheckArgs["mode"]): PmPluginSelfCheckMode {
@@ -123,6 +129,8 @@ function statusFor(
     case "workflow-family-release-gate": return result.workflowFamilyReleaseGateResult.status;
     case "surface-contracts": return result.surfaceContractAuditResult.status === "fail" ? "fail" : "pass";
     case "deletion-readiness": return result.deletionReadinessResult.status;
+    case "schemas-snapshot-manifest": return result.schemasSnapshotManifestResult.status;
+    case "hook-seed": return result.hookSeedResult.status;
     default: return "skipped";
   }
 }
@@ -170,6 +178,8 @@ export async function pmPluginSelfCheck(
       `invalid=${rawSurfaceContractAuditResult.invalidContractCount}.`,
   };
   const deletionReadinessResult = checkDeletionReadiness();
+  const schemasSnapshotManifestResult = checkSchemasSnapshotManifest();
+  const hookSeedResult = checkHookSeed();
 
   // In-band runtime-identity self-report (additive; always populated regardless
   // of mode). Answers "what pm version is running?" in ONE tool call.
@@ -205,6 +215,8 @@ export async function pmPluginSelfCheck(
       workflowFamilyReleaseGateResult,
       surfaceContractAuditResult,
       deletionReadinessResult,
+      schemasSnapshotManifestResult,
+      hookSeedResult,
       overallStatus: "pass",
     }, check))
     .some((status) => status === "fail") ? "fail" : "pass";
@@ -236,6 +248,8 @@ export async function pmPluginSelfCheck(
     workflowFamilyReleaseGateResult,
     surfaceContractAuditResult,
     deletionReadinessResult,
+    schemasSnapshotManifestResult,
+    hookSeedResult,
     overallStatus,
     removedToolAdvisories,
   };
@@ -247,7 +261,7 @@ export async function pmPluginSelfCheck(
     toolName: "pm_plugin_self_check",
     cwd: project,
     agentName: args.agentName,
-    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} skillToolDecls=${skillToolDeclarationsResult.status} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} workflowResponseTemplate=${workflowResponseTemplateResult.status} workflowFamilyReleaseGate=${workflowFamilyReleaseGateResult.status} workflowFamilyReleaseFindings=${workflowFamilyReleaseGateResult.findings.length} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length} runtimeVersion=${runtimeIdentity.version}`,
+    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} skillToolDecls=${skillToolDeclarationsResult.status} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} workflowResponseTemplate=${workflowResponseTemplateResult.status} workflowFamilyReleaseGate=${workflowFamilyReleaseGateResult.status} workflowFamilyReleaseFindings=${workflowFamilyReleaseGateResult.findings.length} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} schemasSnapshotManifest=${schemasSnapshotManifestResult.status} hookSeed=${hookSeedResult.status} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length} runtimeVersion=${runtimeIdentity.version}`,
     hypothesis:
       "Substrate health aggregation provides a single-call readiness signal before Phase 2 migration steps execute.",
   });

@@ -7,7 +7,11 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { execSync } from "child_process";
-import sessionStart, { liveBranch, buildFoldTriggerContext } from "../../hooks/session-start";
+import sessionStart, {
+  liveBranch,
+  buildFoldTriggerContext,
+  selectFoldTriggerContext,
+} from "../../hooks/session-start";
 import { markPending } from "../../lib/second-brain/pending-fold";
 
 function makeTmpDir(label: string): string {
@@ -109,6 +113,22 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     expect(line).toContain("abc");
     expect(line).toContain("/proj/root");
     expect(line).toContain("palantir-mini:second-brain-fold");
+  });
+
+  test("selectFoldTriggerContext (P2-9): supported capability → native Agent-tool trigger", () => {
+    const pend = [{ sessionId: "abc", transcriptPath: "/tmp/abc.jsonl", bookmarkedAt: "x", runtime: "claude-code" as const }];
+    const line = selectFoldTriggerContext(pend, "/proj/root", { supported: true, version: "2.1.186", reason: "ok" });
+    expect(line).toContain("palantir-mini:second-brain-fold subagent (Agent tool)");
+    expect(line).not.toContain("does not support native/background subagent dispatch");
+  });
+
+  test("selectFoldTriggerContext (P2-9): unsupported capability → CLI engine-direct fallback trigger", () => {
+    const pend = [{ sessionId: "abc", transcriptPath: "/tmp/abc.jsonl", bookmarkedAt: "x", runtime: "claude-code" as const }];
+    const line = selectFoldTriggerContext(pend, "/proj/root", { supported: false, version: null, reason: "cli-unavailable" });
+    expect(line).toContain("[second-brain]");
+    expect(line).toContain("does not support native/background subagent dispatch");
+    expect(line).toContain("second-brain/scripts/fold.ts");
+    expect(line).not.toContain("(Agent tool)");
   });
 
   test("eager + engine + unfolded transcript + pending bookmark → additionalContext names the session", async () => {

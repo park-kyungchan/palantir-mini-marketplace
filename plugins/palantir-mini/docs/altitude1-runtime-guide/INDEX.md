@@ -15,5 +15,6 @@ Full file list. Route via [BROWSE.md](./BROWSE.md); read ONE slice, then act.
 | [05-dtc-fill.md](./05-dtc-fill.md) | Build a complete `digital-twin-change/v2` turn-by-turn from the approved SIC; last turn grades. |
 | [06-envelope-advance.md](./06-envelope-advance.md) | Flip the PROMPT ENVELOPE to `digital_twin_approved` (separate store from OE `current.json`). |
 | [07-dispatch.md](./07-dispatch.md) | Dispatch the build via native subagent; why the router readiness gate is N/A here. |
+| [08-cross-session-minted-snapshot-resume.md](./08-cross-session-minted-snapshot-resume.md) | Resume class: resolve a minted approved-SIC snapshot BY-REF when you resume the flow in a different session (bd-011). |
 | [99-failure-fix-table.md](./99-failure-fix-table.md) | Consolidated blocker-string → fix table across all 8 stages (one-stop triage). |
 | [_SOURCES.md](./_SOURCES.md) | Pointer index: every live source the guide cites — path + grep anchor + what it defines. |

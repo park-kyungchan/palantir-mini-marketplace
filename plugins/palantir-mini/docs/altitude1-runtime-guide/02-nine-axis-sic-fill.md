@@ -36,8 +36,13 @@ fillComplete, nextQuestion, turnCard, nextTurnCard }`.
   `semanticIntentContract`; each call re-drafts an empty contract.
 - Axes recorded AI-sourced → Q2 refuses at Stage 03 with `unconfirmedAxes`. Every axis needs
   `turnUserInput` OR `turnNotApplicable:true`.
-- EFFICIENCY: batch all nine `proposedAxisDraft`s into ONE prose turn-card so the owner
-  confirms in ~1–2 messages, not 10 round-trips.
+- EFFICIENCY: when the owner confirms several axes at once, fill them in ONE round-trip via
+  the first-class batched path `advanceNineAxisSicBatch(contract, batch)` (lib/semantic-intent/
+  nine-axis-sic-fill-sequence.ts) instead of N sequential `pm_semantic_intent_gate` turn calls.
+  `batch` keys = `intent` (T0) + any subset of the 9 axis keys, each `{ answer }` or
+  `{ notApplicable: true }`. It records one user-sourced step per axis — byte-identical to the
+  sequential turns — so a full batch reaches the same `isNineAxisSicComplete` / Q2 readiness.
+  The strict per-axis path (`advanceNineAxisSicSequence`, one turn-card at a time) is unchanged.
 
 **Source.** `lib/semantic-intent/nine-axis-sic-fill-sequence.ts` (grep
 `NINE_AXIS_SIC_POLICY`, `targetAxis`, `turnIndex` for the order) + `skills/pm-understand/`

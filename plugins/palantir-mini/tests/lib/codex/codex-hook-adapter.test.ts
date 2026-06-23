@@ -284,7 +284,7 @@ describe("Codex hook adapter", () => {
     expect(fs.existsSync(recordPath)).toBe(false);
   });
 
-  test("session hard opt-out keeps later short UserPromptSubmit and PermissionRequest silent", async () => {
+  test("structured session-scope directive keeps later short UserPromptSubmit and PermissionRequest silent", async () => {
     const recordPath = path.join(os.tmpdir(), `pm-codex-hard-optout-${Date.now()}.jsonl`);
     const { root, options } = makePlugin(
       {
@@ -306,19 +306,31 @@ describe("Codex hook adapter", () => {
     );
     tmpDirs.push(recordPath);
 
+    // A session-wide hard opt-out is only established by an EXPLICIT structured
+    // directive (scope: "session"), never inferred from prompt prose (bd-004).
     const first = await runCodexHookAdapter(
       "UserPromptSubmit",
       {
         cwd: root,
         session_id: "session-hard-opt-out",
         turn_id: "turn-hard-opt-out-1",
-        prompt: "Do not use palantir-mini for this session. Work as plain Codex.",
+        prompt: "Work as plain Codex.",
+        palantir_mini_plugin_opt_out: {
+          explicit: true,
+          scope: "session",
+          matchedMarker: "structured session opt-out",
+        },
       },
       options,
     );
+    // The structured directive carries no prose marker, so turn 1 reaches the
+    // plugin-bypass response (not the activation-policy silent short-circuit that
+    // a prose substring would trigger). Either way no hooks run.
     expect(first.matchedHooks).toEqual([]);
     expect(first.runs).toEqual([]);
-    expect(first.response).toEqual({});
+    expect(first.response.hookSpecificOutput).toMatchObject({
+      hookEventName: "UserPromptSubmit",
+    });
 
     const shortReply = await runCodexHookAdapter(
       "UserPromptSubmit",
@@ -348,6 +360,58 @@ describe("Codex hook adapter", () => {
     expect(permission.runs).toEqual([]);
     expect(permission.response).toEqual({});
     expect(fs.existsSync(recordPath)).toBe(false);
+  });
+
+  test("prompt substring opt-out is per-turn only and never disarms the rest of the session", async () => {
+    const recordPath = path.join(os.tmpdir(), `pm-codex-substr-optout-${Date.now()}.jsonl`);
+    const { root, options } = makePlugin(
+      {
+        hooks: {
+          UserPromptSubmit: [
+            {
+              hooks: [{ type: "command", command: command("user-context"), timeout: 3 }],
+            },
+          ],
+        },
+      },
+      { FAKE_HOOK_RECORD_PATH: recordPath },
+    );
+    tmpDirs.push(recordPath);
+
+    // Turn 1: a prose substring opt-out suppresses THIS turn only — it must not be
+    // promoted into a session-wide bypass (bd-004 governance hole).
+    const first = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: root,
+        session_id: "session-substr-opt-out",
+        turn_id: "turn-substr-opt-out-1",
+        prompt: "Do not use palantir-mini for this session. Work as plain Codex.",
+      },
+      options,
+    );
+    expect(first.matchedHooks).toEqual([]);
+    expect(first.runs).toEqual([]);
+    expect(first.response).toEqual({});
+
+    // Turn 2: a later short prompt carrying NO marker must re-arm the harness —
+    // a substring must never silently disarm the harness for the rest of the session.
+    const later = await runCodexHookAdapter(
+      "UserPromptSubmit",
+      {
+        cwd: root,
+        session_id: "session-substr-opt-out",
+        turn_id: "turn-substr-opt-out-2",
+        prompt: "A",
+      },
+      options,
+    );
+    expect(later.matchedHooks.map((hook) => hook.command)).toEqual([command("user-context")]);
+    expect(later.runs).toHaveLength(1);
+    expect(later.response.hookSpecificOutput).toEqual({
+      hookEventName: "UserPromptSubmit",
+      additionalContext: "gate A",
+    });
   });
 
   test("explicit opt-in after session hard opt-out reactivates UserPromptSubmit hooks", async () => {

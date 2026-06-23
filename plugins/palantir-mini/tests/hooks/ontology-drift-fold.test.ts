@@ -60,6 +60,9 @@ function writeRegisteredPrimitive(atopSha: string, backingRel: string): void {
     throughWhich: { sessionId: "test", toolName: "commit_edits", cwd: TMP },
     byWhom: { identity: "claude-code" },
     payload: {
+      // F1b — a REGISTERED built-in self-ontology verb so the fold's registration
+      // guard materializes this primitive into registeredPrimitives (presence→registration).
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       appliedEdits: [
         {
           kind: "object",

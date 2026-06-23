@@ -14,6 +14,8 @@ import type { EventEnvelope } from "./types";
 import { quarantineMalformedRow, readQuarantine } from "./quarantine";
 
 export { foldToSnapshot } from "./read/fold-snapshot";
+// P1-13 — opt-in projection: fold the stream into bound D+L+A+S DecisionRecords.
+export { foldDecisionRecords } from "./read/decision-record";
 export { readQuarantine, readQuarantineManifest } from "./quarantine";
 
 const HARD_REQUIRED_FIELDS = ["when", "atopWhich", "throughWhich", "byWhom"] as const;

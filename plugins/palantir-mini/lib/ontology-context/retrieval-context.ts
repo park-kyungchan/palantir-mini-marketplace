@@ -188,7 +188,22 @@ function listMarkdownRecursive(root: string, cap: number): string[] {
   return out;
 }
 
-function listTsRecursive(root: string, cap: number): string[] {
+/**
+ * Recursively list `.ts` files under `root`, bounded by `cap`.
+ *
+ * `accept`, when supplied, is applied DURING traversal — a file only counts
+ * toward `cap` if it passes the predicate. This is load-bearing: the cap must
+ * bound the RELEVANT result set, not an incidental pre-filter set. Applying a
+ * scope filter only AFTER capping lets unrelated files (whatever happens to
+ * sort first in DFS order) crowd a relevant subtree entirely out of the cap,
+ * so the composer would return zero scoped files even though they exist. With
+ * `accept` pushed into the scan, files outside scope never consume cap budget.
+ */
+function listTsRecursive(
+  root: string,
+  cap: number,
+  accept?: (p: string) => boolean,
+): string[] {
   const out: string[] = [];
   const stack: string[] = [root];
   while (stack.length > 0 && out.length < cap) {
@@ -204,6 +219,7 @@ function listTsRecursive(root: string, cap: number): string[] {
       const p = path.join(dir, ent.name);
       if (ent.isDirectory()) stack.push(p);
       else if (ent.isFile() && p.endsWith(".ts") && !p.endsWith(".d.ts")) {
+        if (accept !== undefined && !accept(p)) continue;
         out.push(p);
         if (out.length >= cap) break;
       }
@@ -386,13 +402,16 @@ function composePluginSourceFiles(
 ): PluginSourceFilesSubField {
   try {
     const libRoot = path.join(resolvePalantirMiniRoot(), "lib");
-    const all = listTsRecursive(libRoot, SCOPED_FILE_CAP);
-    let scopedFiles: ReadonlyArray<string> = all;
-    if (scopePaths && scopePaths.length > 0) {
-      scopedFiles = all.filter((p) =>
-        scopePaths.some((sp) => p.includes(sp) || sp.includes(p)),
-      );
-    }
+    // Push the scope filter INTO the scan so the cap bounds the scoped result
+    // set, not an incidental pre-filter set (see listTsRecursive). Without
+    // this, unrelated lib files sorting first in DFS order can exhaust the cap
+    // before any in-scope file is reached, crowding the requested subtree out.
+    const inScope =
+      scopePaths && scopePaths.length > 0
+        ? (p: string): boolean =>
+            scopePaths.some((sp) => p.includes(sp) || sp.includes(p))
+        : undefined;
+    const scopedFiles = listTsRecursive(libRoot, SCOPED_FILE_CAP, inScope);
     return { available: true, count: scopedFiles.length, scopedFiles };
   } catch (err) {
     return { available: false, error: String(err) };

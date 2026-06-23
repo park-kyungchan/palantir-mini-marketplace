@@ -18,6 +18,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { HANDLER_MODULES, TOOLS } from "../../mcp-server";
+import { classifyUnregisteredHandler } from "../_deprecation-map";
 import { PLUGIN_ROOT } from "./types";
 
 /** Files in handlers/ that are not independent tool handlers. */
@@ -37,6 +38,16 @@ export interface McpRegistrationCheckResult {
   missingHandlerModules: string[];
   missingMetadataFields: string[];
   unregisteredTopLevelHandlers: string[];
+  /**
+   * P2-5 (task #15): every unregistered handler split by
+   * _deprecation-map.ts UNREGISTERED_HANDLER_CLASSIFICATION (internal vs dead).
+   * `unclassifiedUnregisteredHandlers` should stay empty — a non-empty list means
+   * a new unregistered handler was added without a classification record, which
+   * is what previously hid behind the gap<=10 tolerance.
+   */
+  internalUnregisteredHandlers: string[];
+  deadUnregisteredHandlers: string[];
+  unclassifiedUnregisteredHandlers: string[];
 }
 
 const REQUIRED_TOOL_METADATA = [
@@ -82,6 +93,9 @@ export function checkMcpRegistration(): McpRegistrationCheckResult {
       missingHandlerModules: [],
       missingMetadataFields: [],
       unregisteredTopLevelHandlers: [],
+      internalUnregisteredHandlers: [],
+      deadUnregisteredHandlers: [],
+      unclassifiedUnregisteredHandlers: [],
     };
   }
 
@@ -111,37 +125,27 @@ export function checkMcpRegistration(): McpRegistrationCheckResult {
     (entry) => !registeredHandlerEntryNames.has(entry),
   );
 
-  if (missingHandlerModules.length > 0) {
-    return {
-      status:              "fail",
-      details:             `Public MCP tools missing handler module mapping: ${missingHandlerModules.join(", ")}.`,
-      handlerFileCount,
-      registeredToolCount,
-      gap,
-      registeredHandlerModules,
-      missingHandlerModules,
-      missingMetadataFields,
-      unregisteredTopLevelHandlers,
-    };
+  // P2-5 (task #15): classify each unregistered handler against the
+  // _deprecation-map.ts record. The infra file `_deprecation-map` itself is not
+  // a handler surface, so it is excluded from the classification requirement.
+  const classifiableUnregistered = unregisteredTopLevelHandlers.filter(
+    (entry) => entry !== "_deprecation-map",
+  );
+  const internalUnregisteredHandlers: string[] = [];
+  const deadUnregisteredHandlers: string[] = [];
+  const unclassifiedUnregisteredHandlers: string[] = [];
+  for (const entry of classifiableUnregistered) {
+    const row = classifyUnregisteredHandler(entry);
+    if (row === undefined) {
+      unclassifiedUnregisteredHandlers.push(entry);
+    } else if (row.classification === "internal") {
+      internalUnregisteredHandlers.push(entry);
+    } else {
+      deadUnregisteredHandlers.push(entry);
+    }
   }
 
-  if (missingMetadataFields.length > 0) {
-    return {
-      status:              "fail",
-      details:             missingMetadataFields.join("; "),
-      handlerFileCount,
-      registeredToolCount,
-      gap,
-      registeredHandlerModules,
-      missingHandlerModules,
-      missingMetadataFields,
-      unregisteredTopLevelHandlers,
-    };
-  }
-
-  return {
-    status:              "pass",
-    details:             `Public MCP registration consistent: ${registeredToolCount} public tools, ${registeredHandlerModules} handler module mappings, ${handlerFileCount} top-level handler inventory entries. Inventory-only handlers are reported separately, not treated as registration drift.`,
+  const inventoryFields = {
     handlerFileCount,
     registeredToolCount,
     gap,
@@ -149,5 +153,30 @@ export function checkMcpRegistration(): McpRegistrationCheckResult {
     missingHandlerModules,
     missingMetadataFields,
     unregisteredTopLevelHandlers,
+    internalUnregisteredHandlers,
+    deadUnregisteredHandlers,
+    unclassifiedUnregisteredHandlers,
+  };
+
+  if (missingHandlerModules.length > 0) {
+    return {
+      status:              "fail",
+      details:             `Public MCP tools missing handler module mapping: ${missingHandlerModules.join(", ")}.`,
+      ...inventoryFields,
+    };
+  }
+
+  if (missingMetadataFields.length > 0) {
+    return {
+      status:              "fail",
+      details:             missingMetadataFields.join("; "),
+      ...inventoryFields,
+    };
+  }
+
+  return {
+    status:              "pass",
+    details:             `Public MCP registration consistent: ${registeredToolCount} public tools, ${registeredHandlerModules} handler module mappings, ${handlerFileCount} top-level handler inventory entries (${internalUnregisteredHandlers.length} internal + ${deadUnregisteredHandlers.length} dead unregistered, classified in bridge/handlers/_deprecation-map.ts; ${unclassifiedUnregisteredHandlers.length} unclassified). Inventory-only handlers are reported separately, not treated as registration drift.`,
+    ...inventoryFields,
   };
 }

@@ -7,6 +7,45 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.30.0] - 2026-06-23 — C-stage backlog close-out (18 items)
+
+Closes the C-stage backlog accumulated on top of 7.29.0. Items are grouped by cluster. Where a capability is **introduced at the lib level but its production wiring is intentionally a tracked follow-up**, that is called out explicitly — the entry ships the seam, not the end-to-end activation.
+
+### Added — S-cheap cluster
+- **P1-3 — `withWhat.reasoning` is now a first-class event field with an emit-boundary advisory.** The reasoning dimension is surfaced at the `emit()` boundary as advisory by default; an opt-in **hard-enforce** mode is gated behind `PALANTIR_MINI_REASONING_ENFORCE` (off ⇒ advisory-only, on ⇒ rejects a reasoning-less governed emit). No existing emit path changes behavior unless the env flag is set.
+- **P2-3 — front-door advisory is now conditional on active governed-session state.** The prompt front-door capture advisory fires only when a governed session is active, instead of unconditionally, removing the false-positive advisory on ungoverned turns.
+- **P2-6 — schemas-snapshot MANIFEST `fileSha256Index` regenerator + self-check.** A regenerator (`scripts/refresh-schemas-snapshot-manifest.ts`, `lib/runtime-overlay/schemas-snapshot-manifest.ts`) recomputes the per-file SHA-256 index, and a self-check (`bridge/handlers/pm-plugin-self-check/check-schemas-snapshot-manifest.ts`) fails loud when the live snapshot drifts from the recorded index — retiring the `fileSha256Index` residual debt noted in 7.27.0.
+- **P2-9 — `claude --version` capability gate on the native/background-subagent dispatch path + CLI engine-direct fallback** (`lib/runtime/claude-version-capability.ts`). The dispatch path probes the CLI capability and falls back to engine-direct when the native/background-subagent surface is unavailable.
+- **P3-3 — PreCompact events-5d-gate is now row-id-granular.** The gate reports/blocks at the offending row-id granularity rather than per-file (`hooks/events-5d-gate.ts`).
+- **P3-4 — consolidated-handler dep-map migration records** added to `bridge/handlers/_deprecation-map.ts`.
+- **P3-5 — codex-skills subset intent doc** (`codex-skills/README.md`): documents which skill subset the Codex surface intentionally exposes and why.
+- **P3-6 — runtime-guide cross-session minted-snapshot resume class** (`docs/altitude1-runtime-guide/08-cross-session-minted-snapshot-resume.md` + BROWSE/INDEX/README/_SOURCES routing).
+- **P3-7 — agent-memory vs graph-SSoT guardrail** documented in the runtime guide (`docs/altitude1-runtime-guide/99-failure-fix-table.md`).
+
+### Added — M-cluster
+- **P1-4 — static declared-write-set guard on the governed atomic writers + subset check** (`lib/fs-atomic.ts`). A governed atomic write must declare its write-set and the actual path must be a subset; violations fail loud. **Coverage = the atomic-write routers**; extending the guard to the broader call-site surface is tracked as a follow-up.
+- **P1-7 — first-class batched multi-axis 9-axis fill path at the lib level** (`lib/semantic-intent/nine-axis-sic-fill-sequence.ts`): a single call can fill multiple axes in one batched pass. **The MCP-gate handler wiring is tracked as a follow-up** — the lib seam ships now; the gate does not yet route through it.
+- **P1-8 — first-edit MCP-first gate softened / project-scope de-tax** (`hooks/pre-edit-impact-mcp-first.ts`): the first-edit MCP-first requirement is relaxed for project-scope edits, removing the per-edit tax that over-fired outside ontology operations.
+- **P2-1 — envelope + workflow stores are now transactionally coupled** (`lib/ontology-engineering-workflow/store.ts`): the current-pointer envelope and the workflow store advance together or not at all, so a partial write can no longer desync them (test: `tests/lib/ontology-engineering-workflow/current-pointer-transactional-coupling.test.ts`).
+- **P2-5 — ~48 unregistered handlers classified internal/dead** in `bridge/handlers/_deprecation-map.ts`, resolving the unregistered-handler ambiguity surfaced by the self-check.
+
+### Added — bd-004 (codex opt-out)
+- **Codex opt-out is now a structured per-turn directive.** A prompt substring no longer persists a session-wide bypass; the opt-out is expressed as a structured per-turn signal that does not leak across turns (`lib/codex/codex-hook-adapter.ts`).
+
+### Added — F1b follow-ups
+- **deferred-#5 — fold-snapshot read-side presence→registration hardening** (`lib/event-log/read/fold-snapshot.ts`): the read side now performs a local registry check on presence→registration with no circular re-fold.
+- **stale_codegen drift dedupe** per file/window (`hooks/post-edit-propagate.ts`): repeated `drift_detected{stale_codegen}` signals for the same file within a window collapse to one.
+- **CodegenRun-v1** (`hooks/post-edit-propagate.ts`): post-edit-propagate is now wired to real descender-gen, debounced, and emits a rule-08-compliant header-wrapped CodegenRun record; opt-out via env.
+
+### Added — bd-012 (hook self-ontology seed drift gate)
+- **Release-mode hook self-ontology seed drift self-check** (`bridge/handlers/pm-plugin-self-check/check-hook-seed.ts`, `lib/runtime-overlay/hook-seed-drift.ts`): fails loud when the live `hooks/` + `hooks.json` drift from the recorded hook seed.
+
+### Added — P1-13 (bound DecisionRecord)
+- **`DecisionRecord` uniting Data + Logic + Action + Security** (`lib/event-log/read/decision-record.ts`): an opt-in fold projection that binds the four decision dimensions into one record. **Production fold-wiring is tracked as a follow-up** — the projection ships opt-in; the default fold path does not yet emit it.
+
+### Fixed
+- **Latent retrieval-context composer defect** (`lib/ontology-context/retrieval-context.ts`): the scope filter was applied **after** a 200-file DFS cap, so scoping to a subtree beyond the first 200 lib files silently returned **zero** relevant files. The cap now bounds the **relevant** result set, so subtree scoping returns the correct files regardless of DFS order.
+
 ## [7.29.0] - 2026-06-23
 
 ### Fixed — FIX-FOLD-WIRING (bd-016): SessionStart fold-trigger now reaches the Claude runtime

@@ -29,7 +29,9 @@ function makeEvent(type: EventEnvelope["type"], eventId: string, payload: unknow
 const makeEditProposed = (i: number) =>
   makeEvent("edit_proposed", `evt-${i}`, { functionName: "editFn", params: { i }, hypotheticalEdits: [] });
 const makeEditCommitted = (i: number) =>
-  makeEvent("edit_committed", `evt-c-${i}`, { actionTypeRid: "action-01", appliedEdits: [], submissionCriteriaPassed: ["criteria-1"] });
+  // F1b — a REGISTERED built-in self-ontology verb so the fold's registration-gated
+  // edit_committed count includes these rows (presence→registration upgrade).
+  makeEvent("edit_committed", `evt-c-${i}`, { actionTypeRid: "pm.self.ontology/action-type/commit-edits", appliedEdits: [], submissionCriteriaPassed: ["criteria-1"] });
 const makeSessionStarted = (i: number) =>
   makeEvent("session_started", `evt-s-${i}`, { model: "claude-sonnet-4-6", effort: "high" });
 

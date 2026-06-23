@@ -15,6 +15,7 @@ Do **not** load the whole guide. Verify every pointer against disk before acting
 | Build the DTC turn-by-turn from the approved SIC | [05 dtc-fill](./05-dtc-fill.md) |
 | Advance the prompt envelope to `digital_twin_approved` | [06 envelope-advance](./06-envelope-advance.md) |
 | Dispatch the build (native subagent) | [07 dispatch](./07-dispatch.md) |
+| Resume an approved-SIC flow in a DIFFERENT session than minted it | [08 cross-session-minted-snapshot-resume](./08-cross-session-minted-snapshot-resume.md) |
 
 ## Entry mode (b): "the exact blocker string I just hit" → slice that fixes it
 
@@ -28,6 +29,7 @@ Do **not** load the whole guide. Verify every pointer against disk before acting
 | Gate still "no SIC ref" AFTER approve_sic succeeded | Stage 06 (workflow state != prompt envelope; pass both approved OBJECTS inline) |
 | PreToolUse "not digital_twin_approved" | Stage 06 |
 | operating on a stale `<old-date>` session / unexpected mission | Stage 00 (status + start; thread sessionId) |
+| Gate says `no SIC ref` in a session that did NOT mint the SIC (approve_sic succeeded earlier) | Stage 08 (cross-session by-ref resolve; thread sessionId if ≥2 distinct minted SICs) |
 
 For the consolidated version of mode (b) with one-line fixes, read
 [99-failure-fix-table.md](./99-failure-fix-table.md) instead of any single slice.

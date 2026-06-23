@@ -39,7 +39,7 @@ function seedRegistered(): string {
     type: "edit_committed",
     when: new Date().toISOString(),
     payload: {
-      actionTypeRid: "pm.self/register-mixed",
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       appliedEdits: [
         { kind: "object", rid: objRid, properties: { primitiveKind: "ObjectType", name: "Submission" } },
         { kind: "link", rid: linkRid, srcRid: objRid, dstRid: objRid, linkName: "belongsToRubric" },

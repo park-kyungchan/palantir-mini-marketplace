@@ -52,7 +52,9 @@ function makeCommit(eventId: string, atopWhich: string, edits: OntologyEdit[]): 
     throughWhich: { sessionId: "sess-stale" as never, toolName: "test", cwd: "/tmp" },
     byWhom: { identity: "test-agent" },
     payload: {
-      actionTypeRid: "pm.actions.ontology.commitEdits",
+      // F1b — a REGISTERED built-in self-ontology verb so the fold's registration
+      // guard materializes these edits into registeredPrimitives (presence→registration).
+      actionTypeRid: "pm.self.ontology/action-type/commit-edits",
       appliedEdits: edits,
       submissionCriteriaPassed: ["ok"],
     },

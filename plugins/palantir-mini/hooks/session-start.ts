@@ -38,6 +38,10 @@ import {
 } from "./session-start/state-files";
 import { liveBranch } from "./session-start/branch";
 import { markPending, listPending, type PendingFoldEntry } from "../lib/second-brain/pending-fold";
+import {
+  detectNativeSubagentCapability,
+  type NativeSubagentCapability,
+} from "../lib/runtime/claude-version-capability";
 import type { HookPayload, HookResult } from "./session-start/types";
 
 // Backward-compat re-exports for tests + external callers
@@ -66,8 +70,19 @@ function eagerSessionStartContextEnabled(): boolean {
  * palantir-mini:second-brain-fold subagent ONCE PER pending session. The id list
  * and the structured Transcripts tail are each capped at 5 (rest via the CLI).
  * Caller injects ONLY when pend.length > 0.
+ *
+ * The NATIVE variant (default) dispatches the subagent via the Agent tool; that
+ * native/background-subagent dispatch needs Claude Code >= MIN_NATIVE_SUBAGENT_VERSION
+ * (SubagentStart/SubagentStop lifecycle). When a live `claude --version` gate reports
+ * the CLI is unavailable/too-old, callers pass mode "cli-fallback" to emit the
+ * engine-direct (CliLlmClient) fold instruction instead — same engine, no subagent
+ * round-trip. Selection is centralized in selectFoldTriggerContext().
  */
-export function buildFoldTriggerContext(pend: PendingFoldEntry[], root: string): string {
+export function buildFoldTriggerContext(
+  pend: PendingFoldEntry[],
+  root: string,
+  mode: "native" | "cli-fallback" = "native",
+): string {
   const CAP = 5;
   const ids = pend.map((e) => e.sessionId);
   const shownIds = ids.slice(0, CAP).join(", ");
@@ -77,15 +92,46 @@ export function buildFoldTriggerContext(pend: PendingFoldEntry[], root: string):
     .map((e) => `${e.sessionId}=${e.transcriptPath}`)
     .join("; ");
   const moreTr = pend.length > CAP ? ` (+${pend.length - CAP} more)` : "";
+  const detected =
+    `[second-brain] ${pend.length} unfolded session transcript(s) detected (${shownIds}${moreIds}). `;
+  const tail =
+    `Transcripts: ${transcripts}${moreTr} (full list: bun run ${root}/<plugin>/lib/second-brain/pending-fold-cli.ts list ${root}).`;
+
+  if (mode === "cli-fallback") {
+    return (
+      detected +
+      `Your Claude CLI does not support native/background subagent dispatch, so fold via the CLI engine-direct path INSTEAD of the Agent tool: ` +
+      `run \`bun run ${root}/second-brain/scripts/fold.ts --transcript <transcriptPath> --session <sessionId> --project ${root}\` ONCE PER session, ` +
+      `serving the engine's file-backed LLM requests yourself, then forward the engine's { verdicts, summary } stdout through ` +
+      `mcp__palantir-mini__emit_event (one event per verdict + the summary). After each succeeds, the pending bookmark auto-clears; if you skip this, the next ` +
+      `session start will re-detect. ` +
+      tail
+    );
+  }
+
   return (
-    `[second-brain] ${pend.length} unfolded session transcript(s) detected (${shownIds}${moreIds}). ` +
+    detected +
     `To fold them into this project's knowledge graph, dispatch the palantir-mini:second-brain-fold subagent (Agent tool) ` +
     `ONCE PER session, passing { sessionId, transcriptPath, projectRoot:"${root}" } in the delegation message. ` +
     `The subagent runs second-brain/scripts/fold.ts in model-fed mode and emits resolution_verdict + memory_fold_committed ` +
     `via mcp__palantir-mini__emit_event. After each succeeds, the pending bookmark auto-clears; if you skip this, the next ` +
     `session start will re-detect. On Codex, instead use the file-backed spawn-prompt orchestration to run the same fold command. ` +
-    `Transcripts: ${transcripts}${moreTr} (full list: bun run ${root}/<plugin>/lib/second-brain/pending-fold-cli.ts list ${root}).`
+    tail
   );
+}
+
+/**
+ * Live capability-gated selector (P2-9/F9). Runs the `claude --version` gate and
+ * returns the native fold-trigger when the CLI supports background/native subagents,
+ * or the CLI engine-direct (CliLlmClient) fallback trigger otherwise. The capability
+ * probe is injectable so tests pin the version path without spawning a binary.
+ */
+export function selectFoldTriggerContext(
+  pend: PendingFoldEntry[],
+  root: string,
+  capability: NativeSubagentCapability = detectNativeSubagentCapability(),
+): string {
+  return buildFoldTriggerContext(pend, root, capability.supported ? "native" : "cli-fallback");
 }
 
 export default async function sessionStart(payload: unknown): Promise<HookResult> {
@@ -207,7 +253,11 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
         // Actionable set: pending entries whose sessionId is NOT already folded.
         const pend = listPending(root);
         if (pend.length > 0) {
-          contextLines.push(buildFoldTriggerContext(pend, root));
+          // P2-9/F9: live `claude --version` gate selects native subagent dispatch
+          // vs the CLI engine-direct (CliLlmClient) fallback. A gate failure must
+          // NOT break detect — selectFoldTriggerContext defaults to a best-effort
+          // probe that returns the CLI-fallback trigger when the CLI is unavailable.
+          contextLines.push(selectFoldTriggerContext(pend, root));
         }
       }
     }

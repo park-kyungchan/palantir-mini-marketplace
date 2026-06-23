@@ -18,6 +18,7 @@ import preEditImpactMcpFirst from "../../hooks/pre-edit-impact-mcp-first";
 
 let TMP: string;
 let savedBypass: string | undefined;
+let savedProjectScope: string | undefined;
 
 /** Build a minimal .palantir-mini project fixture */
 function setupProject(): void {
@@ -70,7 +71,9 @@ function declareReviewArtifact(reportFile: string): void {
 beforeEach(() => {
   TMP = fs.mkdtempSync(path.join(os.tmpdir(), "pm-mcp-first-"));
   savedBypass = process.env.PALANTIR_MINI_MCP_FIRST_BYPASS;
+  savedProjectScope = process.env.PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE;
   delete process.env.PALANTIR_MINI_MCP_FIRST_BYPASS;
+  delete process.env.PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE;
   setupProject();
 });
 
@@ -79,6 +82,11 @@ afterEach(() => {
     process.env.PALANTIR_MINI_MCP_FIRST_BYPASS = savedBypass;
   } else {
     delete process.env.PALANTIR_MINI_MCP_FIRST_BYPASS;
+  }
+  if (savedProjectScope !== undefined) {
+    process.env.PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE = savedProjectScope;
+  } else {
+    delete process.env.PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE;
   }
   fs.rmSync(TMP, { recursive: true, force: true });
 });
@@ -341,5 +349,47 @@ describe("pre-edit-impact-mcp-first", () => {
 
     expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
     expect(result.hookSpecificOutput?.permissionDecisionReason).toContain("matching RID/path evidence");
+  });
+
+  test("10. PASSED — project-scope analysis de-taxes a later edit under the same root (P1-8)", async () => {
+    const targetFile = path.join(TMP, "src", "deep", "later.ts");
+    fs.mkdirSync(path.join(TMP, "src", "deep"), { recursive: true });
+
+    // A project-scope impact_query 2 min ago: NO per-file rid, but project=<root>.
+    // This is a broad governed analysis covering the whole project subtree.
+    writeEvent(
+      "mcp_tool_invoked",
+      { project: TMP, depth: 3 },
+      { toolName: "impact_query" },
+      2 * 60 * 1000
+    );
+
+    const result = await preEditImpactMcpFirst(makePayload(targetFile)) as {
+      message: string;
+      hookSpecificOutput?: { permissionDecision?: string };
+    };
+
+    expect(result.message).toContain("PASSED");
+    expect(result.hookSpecificOutput?.permissionDecision).not.toBe("deny");
+  });
+
+  test("11. BLOCKED — project-scope de-tax disabled via PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE=0 → strict per-file", async () => {
+    process.env.PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE = "0";
+    const targetFile = path.join(TMP, "src", "deep", "later.ts");
+    fs.mkdirSync(path.join(TMP, "src", "deep"), { recursive: true });
+
+    // Same project-scope evidence, but the de-tax is opted out → no per-file RID → deny.
+    writeEvent(
+      "mcp_tool_invoked",
+      { project: TMP, depth: 3 },
+      { toolName: "impact_query" },
+      2 * 60 * 1000
+    );
+
+    const result = await preEditImpactMcpFirst(makePayload(targetFile)) as {
+      hookSpecificOutput?: { permissionDecision?: string };
+    };
+
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
   });
 });

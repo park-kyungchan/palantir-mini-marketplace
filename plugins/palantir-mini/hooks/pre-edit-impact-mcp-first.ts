@@ -88,6 +88,22 @@ const SMALL_CHANGE_MAX_CHARS = 400;
 /** pm-impact-quick skill satisfies MCP-first (it bundles all 3 calls) */
 const PM_IMPACT_QUICK_SLUG = "pm-impact-quick";
 
+/**
+ * P1-8 (task #15) — scope the block so high-volume governed edits are not
+ * re-taxed per-edit. When the Lead has already run a PROJECT-SCOPE MCP-first
+ * analysis (impact_query/pre_edit_impact/get_ontology whose payload carries a
+ * project/projectRoot that resolves to the target file's project root) within
+ * the 5-min window, subsequent file edits under that SAME root are satisfied
+ * without a per-file RID match — the broad analysis already covered the working
+ * set. Per-file RID matching (matchesRid) remains the primary path and the hard
+ * block still fires when NO analysis at all preceded the first edit (the
+ * impact-query nudge is preserved). Set PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE=0
+ * to require strict per-file evidence (disable the de-tax).
+ */
+function projectScopeDeTaxEnabled(): boolean {
+  return process.env.PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE !== "0";
+}
+
 interface HookPayload {
   cwd?:        string;
   session_id?: string;
@@ -261,8 +277,13 @@ async function readPluginOptOutEnvelope(
  *
  * AND event.when within last MCP_FIRST_WINDOW_MS.
  *
- * RID/path matching is required: payload must carry rid/query/filePath/proposedFiles
- * evidence that references relPath, parentDir, or basename.
+ * Evidence is satisfied by EITHER:
+ *   - per-file RID/path match: payload carries rid/query/filePath/proposedFiles
+ *     evidence that references relPath, parentDir, or basename (primary); OR
+ *   - P1-8 project-scope de-tax: payload carries an explicit project/projectRoot
+ *     that resolves to this file's project root (matchesProjectScope) — so a broad
+ *     governed analysis is not re-taxed per file. Opt out via
+ *     PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE=0 for strict per-file evidence.
  */
 function hasMcpFirstCall(
   projectRoot: string,
@@ -278,6 +299,14 @@ function hasMcpFirstCall(
     // Take last MAX_EVENTS_SCAN events
     const recent = all.slice(-MAX_EVENTS_SCAN);
 
+    const deTaxEnabled = projectScopeDeTaxEnabled();
+
+    // Satisfied when EITHER per-file RID evidence (primary) OR — for the per-edit
+    // de-tax — a project-scope analysis whose project/projectRoot covers this root.
+    const evidenceSatisfies = (evtPayload: Record<string, unknown>): boolean =>
+      matchesRid(evtPayload, tokens) ||
+      (deTaxEnabled && matchesProjectScope(evtPayload, projectRoot));
+
     for (const evt of recent) {
       const evtWhen = new Date(evt.when).getTime();
       if (evtWhen < cutoff) continue;
@@ -286,14 +315,14 @@ function hasMcpFirstCall(
       const toolName = (evt as unknown as { throughWhich?: { toolName?: string } })
         .throughWhich?.toolName ?? "";
       if (isMcpFirstEvidenceToolName(toolName)) {
-        if (matchesRid(evt.payload as Record<string, unknown>, tokens)) return true;
+        if (evidenceSatisfies(evt.payload as Record<string, unknown>)) return true;
       }
 
       // B. skill_started with pm-impact-quick
       if (evt.type === "skill_started") {
         const skillName = (evt.payload as Record<string, unknown>)?.skillName;
         if (skillName === PM_IMPACT_QUICK_SLUG) {
-          if (matchesRid(evt.payload as Record<string, unknown>, tokens)) return true;
+          if (evidenceSatisfies(evt.payload as Record<string, unknown>)) return true;
         }
       }
     }
@@ -338,6 +367,35 @@ function matchesRid(
   }
 
   // No substring match — the tool was called but for a different RID
+  return false;
+}
+
+/**
+ * P1-8 — Project-scope evidence match (the per-edit de-tax).
+ * Returns true when the event payload carries an explicit project/projectRoot
+ * that resolves to (equals or is an ancestor of) the target file's project root.
+ * A project-scope analysis (e.g. get_ontology / impact_query / pre_edit_impact
+ * called with a project argument) covers every file under that root, so once it
+ * lands in the window, further edits beneath it are not re-taxed per-file.
+ *
+ * Deliberately distinct from generic evidence: a call with NEITHER rid/path NOR
+ * project/projectRoot remains weak evidence and still denies (tests 9 / T14).
+ */
+function matchesProjectScope(
+  payload: Record<string, unknown>,
+  projectRoot: string,
+): boolean {
+  const scopeCandidates = [payload?.project, payload?.projectRoot]
+    .filter((v): v is string => typeof v === "string" && v.length > 0)
+    .map((v) => path.resolve(v));
+  if (scopeCandidates.length === 0) return false;
+
+  const targetRoot = path.resolve(projectRoot);
+  for (const scope of scopeCandidates) {
+    if (scope === targetRoot) return true;
+    // Scope is an ancestor of the target root (broad analysis covers subtree).
+    if (targetRoot.startsWith(scope + path.sep)) return true;
+  }
   return false;
 }
 
@@ -505,6 +563,12 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
       `Run MCP analysis BEFORE editing:`,
       `  ${mcpCallSuggestion}`,
       `  OR: /palantir-mini:pm-impact-quick file:${relPath}`,
+      ``,
+      `For a high-volume governed edit session, ONE project-scope analysis`,
+      `(impact_query/pre_edit_impact/get_ontology with project:"<projectRoot>") within`,
+      `the 5-min window covers every file under that root — subsequent edits are not`,
+      `re-taxed per file (P1-8). Set PALANTIR_MINI_MCP_FIRST_PROJECT_SCOPE=0 for strict`,
+      `per-file enforcement.`,
       ``,
       `Bypass env vars are audit-only and cannot authorize tracked edits.`,
       `Advisory-only mode: PALANTIR_MINI_MCP_FIRST_ADVISORY_ONLY=1 (sprint-062 rollout escape).`,
