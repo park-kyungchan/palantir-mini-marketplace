@@ -5,19 +5,19 @@
   },
   "metadata": {
     "description": "Private marketplace for the palantir-mini native Claude/Codex plugin.",
-    "version": "7.29.0"
+    "version": "7.30.0"
   },
   "plugins": [
     {
       "name": "palantir-mini",
       "source": "./plugins/palantir-mini",
       "description": "Ontology-first control-plane plugin for palantir-mini workflows, MCP handlers, hooks, skills, validation, and cross-runtime bridge sync.",
-      "version": "7.29.0",
+      "version": "7.30.0",
       "author": {
         "name": "palantirKC"
       },
       "category": "development"
     }
   ],
-  "version": "7.29.0"
+  "version": "7.30.0"
 }

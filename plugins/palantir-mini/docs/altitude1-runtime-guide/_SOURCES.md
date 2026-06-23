@@ -22,6 +22,7 @@ pointer. (global CLAUDE.md §6.)
 |------|----------|-------------------------|
 | `lib/semantic-intent/approved-contract.ts` | `status: "approved"` / `approvalRef` / `Mints status:'approved'` | The SIC mint seam — `status:"approved"` + structured `approvalRef`; the model may NOT self-write `approvalRef` (Stage 03). |
 | `lib/fde-ontology-engineering/sic-from-session.ts` | `buildAxes` / `axes` | Session→SIC reconstruction that yields **axes but no `fillSequence`** — the trap that triggers the `issues:[{field:"fillSequence"}]` refusal if threaded into `approve_sic` (Stages 02/03). NOTE: lives under `lib/fde-ontology-engineering/`, not `lib/semantic-intent/`. |
+| `lib/ontology-engineering-workflow/store.ts` | `resolveProjectMintedSicSnapshot` | The cross-session BY-REF resolver: scans the projectRoot workflow store for a minted `approvedSemanticIntentContractSnapshot`, prefers a `preferContractId` match, fail-closed on ≥2 distinct minted SICs (Stage 08, bd-011 / P0-2). Caller: `bridge/handlers/pm-ontology-engineering-workflow.ts` grep `readPreviousWorkflowState`. |
 
 ## Fill sequences (turn order)
 | Path | grep for | Authoritatively defines |

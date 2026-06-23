@@ -67,6 +67,7 @@ import { emitSkillSuggestion } from "../lib/skill-suggestion-emit";
 import {
   autoGradeEnvelope,
   validateRule26R5,
+  validateReasoningPresence,
 } from "../bridge/handlers/emit-event";
 import { normalizePalantirMiniMcpToolName } from "../lib/hooks/tool-classifier";
 import type { EventEnvelope } from "../lib/event-log/types";
@@ -679,6 +680,26 @@ export default async function valueGradeAssigner(
   // so the T3 → T4 consensus promotion no longer applies. effectiveGrade follows grade.
   const effectiveGrade = grade;
 
+  // ─── Step 7b (P1-3): first-class withWhat.reasoning required at emit for T1+
+  // valuable events. We are past the T0 reject, so this only fires for valuable
+  // envelopes. Advisory by default (surfaced in additionalContext); BLOCK under
+  // PALANTIR_MINI_REASONING_ENFORCE=1 (bypass env already short-circuits above).
+  const reasoningViolation = validateReasoningPresence(envelope);
+  const reasoningEnforce = process.env.PALANTIR_MINI_REASONING_ENFORCE === "1";
+  if (reasoningViolation !== null && reasoningEnforce) {
+    emitInstrumentationEvent({
+      cwd,
+      sessionId:           p.session_id,
+      originalEnvelopeId:  (envelope as { eventId?: string }).eventId,
+      assignedTier:        effectiveGrade,
+      axesScored:          axes14.axesScored,
+      axesNotApplicable:   axes14.axesNotApplicable,
+      originalIdentity:    (envelope as { byWhom?: { identity?: string } }).byWhom?.identity,
+      rejectedReason:      "rule-26-reasoning-missing",
+    });
+    return blockReason(p, "rule-26-reasoning-missing", reasoningViolation);
+  }
+
   // ─── Step 8: Instrumentation meta-event (EVERY T1..T4 path, sprint-060 W1.9)
   emitInstrumentationEvent({
     cwd,
@@ -703,6 +724,10 @@ export default async function valueGradeAssigner(
   // ─── R1-F12: Explicit substrate routing annotation (sprint-060 W3) ──────────
   const routingNote = substrateRoutingAnnotation(effectiveGrade);
 
+  // P1-3: advisory note when a T1+ envelope omits first-class withWhat.reasoning
+  // (non-enforce path — emit proceeds; the gap is surfaced for BackProp audit).
+  const reasoningNote = reasoningViolation !== null ? ` (reasoning advisory: missing withWhat.reasoning)` : "";
+
   return {
     message: `palantir-mini: value-grade-assigner OK (grade=${effectiveGrade})`,
     decision: "continue",
@@ -710,7 +735,7 @@ export default async function valueGradeAssigner(
       permissionDecision: "allow",
       additionalContext: `[rule 26] envelope grade=${effectiveGrade}${axisRelaxNote}${
         r5Violation !== null ? ` (R5 advisory: ${r5Violation})` : ""
-      } routing=${routingNote} [rule 10] ${depthContext}`,
+      }${reasoningNote} routing=${routingNote} [rule 10] ${depthContext}`,
     },
   };
 }

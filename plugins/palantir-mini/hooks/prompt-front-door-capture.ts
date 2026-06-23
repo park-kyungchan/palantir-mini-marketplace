@@ -178,6 +178,29 @@ export function writePromptCaptureSync(envelope: PromptEnvelope): PromptCurrentP
   return pointer;
 }
 
+/**
+ * STATE-first governed-session signal (P2-3): a governed SIC/DTC session is LIVE
+ * for this session/runtime iff the PRIOR captured envelope is in a governed-active
+ * state. Reuses the existing {@link isPalantirMiniWorkflowResponseRequiredForState}
+ * ACTIVE_STATES predicate. Best-effort: a missing/corrupt prior envelope reads as
+ * "not live", which collapses the per-turn injection to the thin acknowledgement.
+ */
+function isGovernedSessionLive(
+  projectRoot: string,
+  sessionId: string,
+  previous: PromptCurrentPointer | null,
+): boolean {
+  if (!previous) return false;
+  const prior = readJsonSync<PromptEnvelope>(
+    envelopePathFor(projectRoot, sessionId, previous.promptId),
+  );
+  if (!prior) return false;
+  return isPalantirMiniWorkflowResponseRequiredForState({
+    frontDoorState: prior.state,
+    pluginOptOut: prior.palantirMiniPluginOptOut,
+  });
+}
+
 function detectRuntime(payload: HookPayload): PromptRuntime {
   const hostRuntime = process.env.PALANTIR_MINI_HOST_RUNTIME;
   if (
@@ -194,7 +217,11 @@ function detectRuntime(payload: HookPayload): PromptRuntime {
   return "claude";
 }
 
-function buildGateContext(envelope: PromptEnvelope, universalOntologyEntryRef?: string): string {
+function buildGateContext(
+  envelope: PromptEnvelope,
+  universalOntologyEntryRef?: string,
+  governedSessionLive = false,
+): string {
   if (envelope.palantirMiniPluginOptOut?.explicit) {
     return [
       "palantir-mini prompt front door captured this prompt.",
@@ -205,6 +232,20 @@ function buildGateContext(envelope: PromptEnvelope, universalOntologyEntryRef?: 
       "Policy: Do not apply palantir-mini workflow routing, response-template enforcement, Prompt-DTC mutation gating, MCP-first hook enforcement, or other palantir-mini plugin policy hooks for this prompt unless the user later opts back in.",
       "UniversalOntologyEntry and PromptEnvelope were captured only as trace evidence.",
     ].join("\n");
+  }
+
+  // STATE-first (P2-3): the gate-advisory block is only injected while a governed
+  // SIC/DTC session is LIVE for this session/runtime (the PRIOR envelope is in a
+  // governed-active state). When no governed session is live, the capture/status
+  // side effects still run, but the per-turn injection collapses to a thin
+  // acknowledgement so the fat advisory does not fire on every turn.
+  if (!governedSessionLive) {
+    return [
+      "palantir-mini prompt front door captured this prompt.",
+      universalOntologyEntryRef ? `UniversalOntologyEntryRef: ${universalOntologyEntryRef}` : "",
+    ]
+      .filter((line) => line.length > 0)
+      .join("\n");
   }
 
   const lines = [
@@ -312,6 +353,7 @@ export default async function promptFrontDoorCapture(payload: unknown): Promise<
   const previous = readJsonSync<PromptCurrentPointer>(
     currentPointerPathFor(projectRoot, runtime, sessionId),
   );
+  const governedSessionLive = isGovernedSessionLive(projectRoot, sessionId, previous);
   const envelope = createPromptEnvelope({
     rawPrompt,
     sessionId,
@@ -339,7 +381,7 @@ export default async function promptFrontDoorCapture(payload: unknown): Promise<
     message: `palantir-mini: prompt-front-door-capture stored ${envelope.promptId}`,
     hookSpecificOutput: {
       hookEventName: "UserPromptSubmit",
-      additionalContext: buildGateContext(envelope, entryWrite.entryRef),
+      additionalContext: buildGateContext(envelope, entryWrite.entryRef, governedSessionLive),
     },
   };
 }

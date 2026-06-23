@@ -103,7 +103,7 @@ describe("getOntology", () => {
     function seedAllKinds(): string {
       return makeTmpProject([
         makeEvent(1, "edit_committed", {
-          actionTypeRid: "pm.self/register-mixed",
+          actionTypeRid: "pm.self.ontology/action-type/commit-edits",
           appliedEdits: [
             { kind: "object", rid: "rid:obj/a", properties: { primitiveKind: "ObjectType", plainName: "A" } },
             { kind: "object", rid: "rid:prop/p", properties: { primitiveKind: "Property", plainName: "P" } },

@@ -24,9 +24,19 @@ function eventsPathFor(root: string): string {
 const tmpRoots: string[] = [];
 const savedEnv: Record<string, string | undefined> = {};
 
+const ENV_KEYS = [
+  "PALANTIR_MINI_PROJECT",
+  "PALANTIR_MINI_EVENTS_FILE",
+  "PALANTIR_MINI_CODEGEN_ON_EDIT_DISABLE",
+  "PALANTIR_MINI_CODEGEN_DEBOUNCE_MS",
+] as const;
+
 beforeEach(() => {
-  savedEnv["PALANTIR_MINI_PROJECT"]     = process.env["PALANTIR_MINI_PROJECT"];
-  savedEnv["PALANTIR_MINI_EVENTS_FILE"] = process.env["PALANTIR_MINI_EVENTS_FILE"];
+  for (const k of ENV_KEYS) savedEnv[k] = process.env[k];
+  // The drift-classification suite below isolates the (a) drift signal — codegen (c) is
+  // exercised in its own describe block. Disable CodegenRun by default so these tests
+  // assert exactly one event (the drift), not the drift + codegen_started/completed.
+  process.env["PALANTIR_MINI_CODEGEN_ON_EDIT_DISABLE"] = "1";
 });
 
 afterEach(() => {
@@ -132,5 +142,91 @@ describe("post-edit-propagate hook", () => {
       cwd: root,
     });
     expect(out.message).toContain("non-ontology");
+  });
+});
+
+// ── (b) Dedup stale_codegen drift per affected file ──────────────────────────
+describe("post-edit-propagate — dedup stale_codegen (F1b follow-up)", () => {
+  const fp = "/x/ontology/types.ts";
+  const other = "/x/ontology/other.ts";
+
+  function countStaleDrift(root: string, forPath: string): number {
+    return readEvents(eventsPathFor(root)).filter(
+      (e) =>
+        e.type === "drift_detected" &&
+        (e.payload as { driftType?: string; affectedObjectType?: string }).driftType === "stale_codegen" &&
+        (e.payload as { affectedObjectType?: string }).affectedObjectType === forPath,
+    ).length;
+  }
+
+  test("repeat edit of the SAME file while a drift is pending is deduped (no second drift row)", async () => {
+    const root = setupRoot("dedup-same");
+    // codegen stays disabled (beforeEach) so the drift stays pending-unresolved.
+    const first = await postEditPropagate({ tool_name: "Edit", tool_input: { file_path: fp }, cwd: root });
+    expect(first.message).toContain("drift_detected");
+    expect(countStaleDrift(root, fp)).toBe(1);
+
+    const second = await postEditPropagate({ tool_name: "Edit", tool_input: { file_path: fp }, cwd: root });
+    expect(second.message).toContain("deduped");
+    // No SECOND drift row for the same path — the lane stays clean.
+    expect(countStaleDrift(root, fp)).toBe(1);
+  });
+
+  test("a DIFFERENT file is not deduped (dedup is per affected file)", async () => {
+    const root = setupRoot("dedup-diff");
+    await postEditPropagate({ tool_name: "Edit", tool_input: { file_path: fp }, cwd: root });
+    const out = await postEditPropagate({ tool_name: "Edit", tool_input: { file_path: other }, cwd: root });
+    expect(out.message).toContain("drift_detected");
+    expect(countStaleDrift(root, fp)).toBe(1);
+    expect(countStaleDrift(root, other)).toBe(1);
+  });
+});
+
+// ── (c) CodegenRun v1 ForwardProp (debounced) ────────────────────────────────
+describe("post-edit-propagate — CodegenRun v1 ForwardProp (F1b follow-up)", () => {
+  const fp = "/x/ontology/types.ts";
+
+  function eventTypes(root: string): string[] {
+    return readEvents(eventsPathFor(root)).map((e) => e.type);
+  }
+
+  test("a fresh drift triggers a REAL codegen pass (codegen_started + codegen_completed appended)", async () => {
+    const root = setupRoot("codegen-run");
+    delete process.env["PALANTIR_MINI_CODEGEN_ON_EDIT_DISABLE"]; // enable CodegenRun
+    const out = await postEditPropagate({ tool_name: "Edit", tool_input: { file_path: fp }, cwd: root });
+    expect(out.message).toContain("CodegenRun");
+    const types = eventTypes(root);
+    expect(types).toContain("drift_detected");
+    expect(types).toContain("codegen_started");
+    expect(types).toContain("codegen_completed");
+  });
+
+  test("codegen is DEBOUNCED — a second drift within the window does not re-run codegen", async () => {
+    const root = setupRoot("codegen-debounce");
+    delete process.env["PALANTIR_MINI_CODEGEN_ON_EDIT_DISABLE"];
+    process.env["PALANTIR_MINI_CODEGEN_DEBOUNCE_MS"] = "600000"; // 10 min — guarantees in-window
+
+    // Edit 1: fresh drift + codegen pass (resolves the drift via codegen_completed).
+    const first = await postEditPropagate({ tool_name: "Edit", tool_input: { file_path: fp }, cwd: root });
+    expect(first.message).toContain("CodegenRun");
+    const started1 = eventTypes(root).filter((t) => t === "codegen_started").length;
+    expect(started1).toBe(1);
+
+    // Edit 2: the prior codegen_completed resolved the drift, so a fresh drift is emitted,
+    // but codegen is DEBOUNCED (within window) → no SECOND codegen_started.
+    const second = await postEditPropagate({ tool_name: "Edit", tool_input: { file_path: fp }, cwd: root });
+    expect(second.message).toContain("debounced");
+    const started2 = eventTypes(root).filter((t) => t === "codegen_started").length;
+    expect(started2).toBe(1);
+  });
+
+  test("PALANTIR_MINI_CODEGEN_ON_EDIT_DISABLE=1 → drift only, no codegen", async () => {
+    const root = setupRoot("codegen-disabled");
+    process.env["PALANTIR_MINI_CODEGEN_ON_EDIT_DISABLE"] = "1";
+    const out = await postEditPropagate({ tool_name: "Edit", tool_input: { file_path: fp }, cwd: root });
+    expect(out.message).toContain("codegen disabled");
+    const types = eventTypes(root);
+    expect(types).toContain("drift_detected");
+    expect(types).not.toContain("codegen_started");
   });
 });

@@ -549,4 +549,58 @@ describe("valueGradeAssigner", () => {
     expect(counters.totalInvocationsSeen).toBeGreaterThanOrEqual(1);
     expect(counters.metaEventsEmitted).toBeGreaterThanOrEqual(1);
   });
+
+  // ─── P1-3: first-class withWhat.reasoning required at emit for T1+ events ────
+
+  test("P1-3: advisory by default — T1+ envelope without reasoning continues with advisory", async () => {
+    delete process.env.PALANTIR_MINI_REASONING_ENFORCE;
+    const envelope = baseEnvelope(); // 5-dim full, no withWhat.reasoning → T1
+    const result = await valueGradeAssigner({
+      tool_name: EMIT_EVENT_TOOL,
+      cwd: TMP,
+      tool_input: { project: TMP, envelope },
+    });
+    expect(result.decision).toBe("continue");
+    expect(result.hookSpecificOutput?.permissionDecision).toBe("allow");
+    expect(result.hookSpecificOutput?.additionalContext).toContain("reasoning advisory");
+  });
+
+  test("P1-3: enforce mode BLOCKS a T1+ envelope missing withWhat.reasoning", async () => {
+    const savedReason = process.env.PALANTIR_MINI_REASONING_ENFORCE;
+    process.env.PALANTIR_MINI_REASONING_ENFORCE = "1";
+    try {
+      const envelope = baseEnvelope({ withWhat: { memoryLayers: ["procedural"] as const } });
+      const result = await valueGradeAssigner({
+        tool_name: EMIT_EVENT_TOOL,
+        cwd: TMP,
+        tool_input: { project: TMP, envelope },
+      });
+      expect(result.decision).toBe("block");
+      expect(result.message).toContain("rule-26-reasoning-missing");
+      expect(result.hookSpecificOutput?.permissionDecision).toBe("deny");
+    } finally {
+      if (savedReason !== undefined) process.env.PALANTIR_MINI_REASONING_ENFORCE = savedReason;
+      else delete process.env.PALANTIR_MINI_REASONING_ENFORCE;
+    }
+  });
+
+  test("P1-3: enforce mode ALLOWS a T1+ envelope that carries withWhat.reasoning", async () => {
+    const savedReason = process.env.PALANTIR_MINI_REASONING_ENFORCE;
+    process.env.PALANTIR_MINI_REASONING_ENFORCE = "1";
+    try {
+      const envelope = baseEnvelope({
+        withWhat: { memoryLayers: ["procedural"] as const, reasoning: "the WHY behind this emit" },
+      });
+      const result = await valueGradeAssigner({
+        tool_name: EMIT_EVENT_TOOL,
+        cwd: TMP,
+        tool_input: { project: TMP, envelope },
+      });
+      expect(result.decision).toBe("continue");
+      expect(result.hookSpecificOutput?.additionalContext).not.toContain("reasoning advisory");
+    } finally {
+      if (savedReason !== undefined) process.env.PALANTIR_MINI_REASONING_ENFORCE = savedReason;
+      else delete process.env.PALANTIR_MINI_REASONING_ENFORCE;
+    }
+  });
 });

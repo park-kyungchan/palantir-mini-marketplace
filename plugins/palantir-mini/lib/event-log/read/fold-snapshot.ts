@@ -7,6 +7,36 @@
 // Extracted from read.ts during A.2 decomposition.
 
 import type { EventEnvelope, EventSnapshot } from "../types";
+import { ACTION_TYPE_REGISTRY } from "../../../runtime-overlay/schemas-snapshot/ontology/primitives/action-type";
+// Side-effect import: self/action-types.ts populates ACTION_TYPE_REGISTRY (the singleton
+// above) with the built-in self-ontology verbs at module load, so BUILTIN_ACTION_TYPE_RIDS
+// below resolves to the full self catalog. NO uphill lib import — this stays inside the
+// runtime-overlay snapshot boundary, so importing it here cannot create a cycle through
+// lib/actions/commit.ts (whose isRegisteredActionType re-folds — see F1b registration check).
+import "../../../runtime-overlay/schemas-snapshot/ontology/self/action-types";
+// A2 — the Executor self ActionType is registered separately from the 21-verb catalog;
+// the sandbox executor commits with this rid (mirror of commit.ts:32, inlined to avoid a
+// lib import uphill into the snapshot boundary).
+const EXECUTOR_ACTION_TYPE_RID = "pm.self.ontology/action-type/executor";
+
+/**
+ * F1b registration check (LOCAL — defense-in-depth for "ActionType = sole write-back
+ * commit gate"). Built-in self-ontology ActionType rids, snapshotted ONCE at module load
+ * after the side-effect import above. Used to decide whether an `edit_committed` row's
+ * commit-provenance rid resolves to a REGISTERED ActionType — NOT just a non-empty string.
+ *
+ * This MUST NOT reuse commit.ts isRegisteredActionType: that helper calls foldToSnapshot
+ * (to read project-registered ActionTypes), so calling it from here would re-fold the
+ * very log we are folding → unbounded circular re-fold. Instead, the project-registered
+ * ActionTypes are read LOCALLY off the in-progress `reg.actionTypes` accumulated earlier
+ * in THIS fold pass (registration must precede the commit that rides it, so an earlier
+ * edit_committed has already pushed any project ActionType into reg.actionTypes by the time
+ * a later row references it).
+ */
+const BUILTIN_ACTION_TYPE_RIDS: ReadonlySet<string> = new Set<string>([
+  EXECUTOR_ACTION_TYPE_RID,
+  ...ACTION_TYPE_REGISTRY.list().map((d) => d.rid as unknown as string),
+]);
 
 /**
  * Folds the event log into a typed count snapshot — canonical Reducer primitive.
@@ -84,20 +114,32 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
     switch (ev.type) {
       case "edit_proposed":               snapshot.edit_proposed++;               break;
       case "edit_committed": {
-        snapshot.edit_committed++;
         // O-2 materialization: project each committed register edit's rid into the
         // readable typed-primitive collection, binned by properties.primitiveKind
         // (ObjectType/ActionType/Function carried as kind:"object") or edit kind:"link".
         const reg = snapshot.registeredPrimitives!;
-        // F1 provenance guard (defense in depth) — ssot/palantir approval-and-lineage:
-        // an edit_committed row is only trustworthy if it carries the commit-provenance
-        // field the governed commit path always sets (payload.actionTypeRid, a non-empty
-        // string). A forged row lacking it (e.g. one that slipped past the emit boundary)
-        // is counted but its edits are NOT silently materialized into registeredPrimitives.
+        // F1b REGISTRATION guard (defense in depth) — ssot/palantir approval-and-lineage:
+        // an edit_committed row is only trustworthy if its commit-provenance rid
+        // (payload.actionTypeRid) resolves to a REGISTERED ActionType, not merely a
+        // non-empty string. "Registered" = a built-in self-ontology verb (snapshotted in
+        // BUILTIN_ACTION_TYPE_RIDS) OR a project ActionType already materialized into
+        // reg.actionTypes by an EARLIER edit_committed in this same fold pass (registration
+        // precedes the commit that rides it). This is the LOCAL check mandated by the F1b
+        // design — it does NOT call commit.ts isRegisteredActionType, which re-folds the log.
+        // A row whose rid is absent / non-string / unregistered (e.g. a forged hole row
+        // carrying a tool name like "PostToolUse:Edit") is NOT counted and its edits are
+        // NOT silently materialized into registeredPrimitives.
         const provenanceRid = (ev.payload as { actionTypeRid?: unknown } | undefined)?.actionTypeRid;
-        const hasValidProvenance = typeof provenanceRid === "string" && provenanceRid.length > 0;
+        const isRegisteredProvenance =
+          typeof provenanceRid === "string" &&
+          provenanceRid.length > 0 &&
+          (BUILTIN_ACTION_TYPE_RIDS.has(provenanceRid) ||
+            reg.actionTypes.some((e) => e.rid === provenanceRid));
+        // Gate the count on the same registration check so the session-start banner
+        // (snapshot.edit_committed) stops over-counting forged/unregistered commits.
+        if (isRegisteredProvenance) snapshot.edit_committed++;
         // Defensive: historical / fixture edit_committed rows may omit appliedEdits.
-        const appliedEdits = hasValidProvenance && Array.isArray(ev.payload?.appliedEdits)
+        const appliedEdits = isRegisteredProvenance && Array.isArray(ev.payload?.appliedEdits)
           ? ev.payload.appliedEdits
           : [];
         for (const edit of appliedEdits) {

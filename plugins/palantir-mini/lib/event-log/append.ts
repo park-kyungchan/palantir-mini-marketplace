@@ -17,6 +17,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import type { EventEnvelope } from "./types";
+import { assertWriteWithinDeclaredSet } from "../fs-atomic";
 
 // Exported for v3.2.0 G3 events_log_rotate which needs the same lock to
 // prevent torn rotation under concurrent writers.
@@ -288,6 +289,10 @@ export async function appendEventAtomic(
   eventsPath: string,
   envelope: Omit<EventEnvelope, "sequence">
 ): Promise<number> {
+  // @Edits GOVERNED_EDIT_WRITE_SET — the ActionType-gated event write-back lands
+  // inside the project's `.palantir-mini/` subtree; assert the actual target is a
+  // subset (NON-BREAKING: warns unless PALANTIR_MINI_WRITE_SET_STRICT=1).
+  assertWriteWithinDeclaredSet(eventsPath);
   const lockDir = lockPath(eventsPath);
   fs.mkdirSync(path.dirname(eventsPath), { recursive: true });
 

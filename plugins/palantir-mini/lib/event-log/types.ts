@@ -65,6 +65,17 @@ export interface EventEnvelopeBase
    * Axes C2 + E extension fields the runtime carries (memoryLayers /
    * refinementTarget). The core 5-dim WITH_WHAT shape is single-sourced from
    * the primitive's `EventWithWhat`.
+   *
+   * `withWhat.reasoning` is a FIRST-CLASS decision-lineage field (the WHY behind
+   * the emitted decision), NOT a free-form advisory pointer. It is REQUIRED-AT-
+   * EMIT for every T1+ (valuable) event: the emit boundary
+   * (bridge/handlers/emit-event.ts `validateReasoningPresence` + the
+   * value-grade-assigner PreToolUse hook) advises on a missing `reasoning` and
+   * hard-rejects under PALANTIR_MINI_REASONING_ENFORCE=1. T0 (5-dim incomplete)
+   * is unaffected (rejected earlier); the requirement is scoped to T1+ so
+   * structural emits that already grade T1 carry their WHY. The field stays
+   * OPTIONAL in the TYPE (non-breaking for legacy/historical rows + in-flight
+   * call sites) — the emit-boundary gate is the enforcement seam, not the type.
    */
   withWhat?: DeepMutable<PrimitiveEventWithWhat> & {
     /**
@@ -80,8 +91,11 @@ export interface EventEnvelopeBase
   };
   /**
    * v1.35.0+ Axis A3 — typed cross-references (actionRid / dryRunRef /
-   * outcomePairId / evidenceUrls / playgroundSandboxId). Replaces free-form
-   * `withWhat.reasoning` pointers per rule 26 §Axis A3.
+   * outcomePairId / evidenceUrls / playgroundSandboxId). COMPLEMENTS the
+   * first-class `withWhat.reasoning` WHY-narrative per rule 26 §Axis A3: typed
+   * refs carry the machine-followable pointers, `reasoning` carries the human-
+   * readable decision rationale. lineageRefs does NOT supersede reasoning — both
+   * are required-for-valuable; the emit boundary gates on reasoning presence.
    */
   lineageRefs?: LineageRefs;
   /**
@@ -1166,6 +1180,19 @@ export type UniversalOntologyEntryTransitionedEnvelope = EventEnvelopeBase & {
 // ADD/UPDATE/DELETE/NONE entity-resolution verdict per graph mutation (the
 // log = audit trail of every Layer-2 graph mutation). memory_fold_committed
 // records the committed graph.json projection (node/edge counts) for a session.
+//
+// GUARDRAIL (P3-7 — agent-memory vs graph-SSoT): the per-project second-brain
+// engine's Zod-validated graph.json IS the Layer-2 SSoT. `graphPath` below is a
+// POINTER to that authoritative artifact, never a substitute for it; this event
+// (and the value-grade / fold-snapshot counters that read it) is an advisory,
+// non-gating PROJECTION, not the source of truth. Any persistent agent-memory
+// surface — the runtime's native MEMORY.md cache (lib/runtime-overlay/
+// memory-reflect.ts), recap digests, host-runtime memory layers — is a
+// CONVENIENCE surface derived for retrieval ergonomics, NOT a parallel SSoT.
+// Do NOT treat an agent-memory write as authoritative, and do NOT let it
+// diverge from graph.json: on any conflict, graph.json (Zod-validated) wins and
+// the convenience surface must be re-derived from it. New fold/memory code MUST
+// keep graph.json's Zod schema as the single Layer-2 validation boundary.
 
 export type ResolutionVerdictEnvelope = EventEnvelopeBase & {
   type: "resolution_verdict";
@@ -1458,4 +1485,89 @@ export interface SnapshotManifest {
   atSequence:       number;
   generatedAt:      string;
   sourceEventCount: number;
+}
+
+// ─── DecisionRecord — the ONE bound D+L+A+S decision (P1-13) ────────────────
+//
+// GROUNDING (ssot/palantir/ontology/decision-model.md + approval-and-lineage.md):
+// the Ontology is decision-centric, and a decision has FOUR components —
+// "decision = Data + Logic + Action + Security" IS the commit pipeline:
+//   Logic *computes* the staged edit  → Security (submission criteria + the
+//   ActionType permission) *gates* it → Action *commits* it to Data.
+// Those four already flow through the event log as SEPARATE rows: Logic + the
+// staged edit land as `edit_proposed` (functionName + hypotheticalEdits + the
+// withWhat.reasoning WHY-narrative); Action + Security + Data land as
+// `edit_committed` (actionTypeRid = the verb that gated+committed,
+// submissionCriteriaPassed = the Security gate, appliedEdits = the Data). Before
+// P1-13 nothing UNITED a proposal with its commit into one record — Logic and
+// Action were unlinked.
+//
+// `DecisionRecord` is that bound record: ONE structure that links the Logic side
+// (`edit_proposed`) to the Action side (`edit_committed`) carrying Data +
+// Security, so a KG decision can fold its staging + data into a single
+// meaning-bearing unit. It is DERIVED (a fold projection over the existing
+// append-only event stream — see lib/event-log/read/decision-record.ts), NOT a
+// new authoritative source: the events.jsonl rows remain the SSoT and the
+// derivation is a pure read. Additive + non-breaking — no existing event/fold
+// path is altered.
+//
+// The four named fields map 1:1 onto the four decision components so the binding
+// is legible at the type level (decision-model.md §"The four components"):
+//   data     — the nouns that landed / would land (the edit set)
+//   logic    — the heuristic that produced the staged edit + its WHY-narrative
+//   action   — the verb (ActionType) that committed it + commit provenance
+//   security — the actor + the submission-criteria gate that authorized it.
+
+/** LOGIC component — the heuristic/computation that staged the edit (from `edit_proposed`). */
+export interface DecisionLogic {
+  /** The edit function / binding whose evaluation produced the staged edit. */
+  functionName?: string;
+  /** WITH_WHAT.reasoning — the first-class WHY-narrative behind the decision (P1-3). */
+  reasoning?:    string;
+  /** Sequence of the `edit_proposed` row this decision was staged by (absent ⇒ commit-only). */
+  proposedSeq?:  number;
+}
+
+/** ACTION component — the verb that committed the decision to Data (from `edit_committed`). */
+export interface DecisionAction {
+  /** The ActionType rid = the sole write-back commit gate (approval-and-lineage.md). */
+  actionTypeRid?: string;
+  /** True once an `edit_committed` row bound to this decision was observed. */
+  committed:      boolean;
+  /** Sequence of the `edit_committed` row (absent ⇒ staged-only / proposal-only). */
+  committedSeq?:  number;
+}
+
+/** SECURITY component — the actor + the gate that authorized the commit. */
+export interface DecisionSecurity {
+  /** BY_WHOM.identity — the actor (human/agent) whose permissions the commit ran under. */
+  actor?:                    string;
+  /** Submission-criteria names that PASSED — the Security gate that admitted the commit. */
+  submissionCriteriaPassed?: readonly string[];
+  /** ATOP_WHICH — the commit-base lineage sha the decision was committed against. */
+  atopWhich?:                string;
+}
+
+/**
+ * The ONE bound decision record uniting Data + Logic + Action + Security
+ * (P1-13). Derived by `foldDecisionRecords` from a contiguous event stream;
+ * `committed === false` (action.committed) ⇒ the decision is `proposal-only`
+ * (staged, not yet admitted through the ActionType gate) per the write-back
+ * boundary invariant.
+ */
+export interface DecisionRecord {
+  /** Stable correlation id for this decision (derives from proposed/committed seqs). */
+  decisionId: string;
+  /** DATA — the edit set (the nouns) the decision lands; committed edits when present, else staged. */
+  data:       readonly OntologyEdit[];
+  /** LOGIC — the heuristic that staged the edit + its WHY. */
+  logic:      DecisionLogic;
+  /** ACTION — the verb that committed it (or proposal-only when not yet committed). */
+  action:     DecisionAction;
+  /** SECURITY — the actor + submission-criteria gate that authorized the commit. */
+  security:   DecisionSecurity;
+  /** WHEN — ISO timestamp of the binding event (the commit if present, else the proposal). */
+  when?:      string;
+  /** THROUGH_WHICH.sessionId — the session this decision belongs to. */
+  sessionId?: string;
 }

@@ -5,7 +5,7 @@ import { test, expect, describe, afterEach } from "bun:test";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import emitEvent from "../../../bridge/handlers/emit-event";
+import emitEvent, { validateReasoningPresence } from "../../../bridge/handlers/emit-event";
 
 const tmpDirs: string[] = [];
 
@@ -119,5 +119,108 @@ describe("emit_event handler", () => {
     expect(r2.sequence).toBeGreaterThan(r1.sequence);
     const lines = fs.readFileSync(r1.eventsPath, "utf8").trim().split("\n");
     expect(lines.length).toBe(2);
+  });
+});
+
+// ─── P1-3: first-class withWhat.reasoning required at emit for T1+ events ─────
+describe("validateReasoningPresence (P1-3)", () => {
+  function t1Envelope(project: string, withWhat?: Record<string, unknown>) {
+    return {
+      eventId: "evt-reason-1",
+      when: "2026-06-23T00:00:00.000Z",
+      atopWhich: "deadbeef",
+      throughWhich: { sessionId: "sess-1", toolName: "test", cwd: project },
+      byWhom: { identity: "claude-code" as const },
+      type: "phase_completed" as never,
+      payload: { phaseTag: "t", taskId: "t-1", validations: [] } as never,
+      ...(withWhat !== undefined ? { withWhat } : {}),
+    };
+  }
+
+  test("returns null for a T0 envelope (5-dim incomplete — not double-reported)", () => {
+    const env = { ...t1Envelope("/tmp/x"), atopWhich: "" } as never;
+    expect(validateReasoningPresence(env)).toBeNull();
+  });
+
+  test("returns a violation for a T1+ envelope missing withWhat.reasoning", () => {
+    const msg = validateReasoningPresence(t1Envelope("/tmp/x") as never);
+    expect(msg).not.toBeNull();
+    expect(msg).toContain("withWhat.reasoning");
+  });
+
+  test("returns a violation when reasoning is empty/whitespace-only", () => {
+    const msg = validateReasoningPresence(
+      t1Envelope("/tmp/x", { reasoning: "   " }) as never,
+    );
+    expect(msg).not.toBeNull();
+  });
+
+  test("returns null when a non-empty reasoning is present", () => {
+    const msg = validateReasoningPresence(
+      t1Envelope("/tmp/x", { reasoning: "because the design contract changed" }) as never,
+    );
+    expect(msg).toBeNull();
+  });
+});
+
+describe("emit_event reasoning gate (P1-3) — advisory default + enforce flag", () => {
+  const savedEnforce = process.env.PALANTIR_MINI_REASONING_ENFORCE;
+  const savedBypass = process.env.PALANTIR_MINI_VALUE_GRADE_BYPASS;
+  afterEach(() => {
+    if (savedEnforce !== undefined) process.env.PALANTIR_MINI_REASONING_ENFORCE = savedEnforce;
+    else delete process.env.PALANTIR_MINI_REASONING_ENFORCE;
+    if (savedBypass !== undefined) process.env.PALANTIR_MINI_VALUE_GRADE_BYPASS = savedBypass;
+    else delete process.env.PALANTIR_MINI_VALUE_GRADE_BYPASS;
+  });
+
+  function valuableEnvelope(project: string, reasoning?: string) {
+    return {
+      eventId: "evt-reason-emit",
+      when: "2026-06-23T00:00:00.000Z",
+      atopWhich: "deadbeef",
+      throughWhich: { sessionId: "sess-1", toolName: "test", cwd: project },
+      byWhom: { identity: "claude-code" as const },
+      type: "phase_completed" as never,
+      payload: { phaseTag: "t", taskId: "t-1", validations: [] } as never,
+      ...(reasoning !== undefined ? { withWhat: { reasoning } } : {}),
+    };
+  }
+
+  test("default (advisory) — T1+ envelope without reasoning still appends, sets advisory", async () => {
+    delete process.env.PALANTIR_MINI_REASONING_ENFORCE;
+    const project = makeTmpProject();
+    const result = await emitEvent({ project, envelope: valuableEnvelope(project) });
+    expect(result.sequence).toBeGreaterThan(0);
+    expect(result.valuableDataAdvisory).toContain("withWhat.reasoning");
+    expect(fs.existsSync(result.eventsPath)).toBe(true);
+  });
+
+  test("enforce mode — T1+ envelope without reasoning throws", async () => {
+    process.env.PALANTIR_MINI_REASONING_ENFORCE = "1";
+    delete process.env.PALANTIR_MINI_VALUE_GRADE_BYPASS;
+    const project = makeTmpProject();
+    await expect(
+      emitEvent({ project, envelope: valuableEnvelope(project) }),
+    ).rejects.toThrow(/withWhat\.reasoning/);
+  });
+
+  test("enforce mode — envelope WITH reasoning appends cleanly", async () => {
+    process.env.PALANTIR_MINI_REASONING_ENFORCE = "1";
+    delete process.env.PALANTIR_MINI_VALUE_GRADE_BYPASS;
+    const project = makeTmpProject();
+    const result = await emitEvent({
+      project,
+      envelope: valuableEnvelope(project, "the WHY behind this decision"),
+    });
+    expect(result.sequence).toBeGreaterThan(0);
+    expect(result.valuableDataAdvisory).toBeUndefined();
+  });
+
+  test("enforce + bypass — reasoning-less T1+ envelope proceeds (audited bypass)", async () => {
+    process.env.PALANTIR_MINI_REASONING_ENFORCE = "1";
+    process.env.PALANTIR_MINI_VALUE_GRADE_BYPASS = "1";
+    const project = makeTmpProject();
+    const result = await emitEvent({ project, envelope: valuableEnvelope(project) });
+    expect(result.sequence).toBeGreaterThan(0);
   });
 });

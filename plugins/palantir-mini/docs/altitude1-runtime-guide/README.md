@@ -24,6 +24,8 @@ are doing everyday Altitude-2 operation atop an already-built ontology, you do n
 ## The 8-stage ladder (one line)
 `00 stale-session → 01 fde-provenance → 02 9-axis-sic-fill → 03 approve-sic → 04 approve-technology (conditional) → 05 dtc-fill → 06 envelope-advance → 07 dispatch`
 
+Plus one **resume class** off the forward ladder: [08 cross-session-minted-snapshot-resume](./08-cross-session-minted-snapshot-resume.md) — read it when you resume an already-approved-SIC flow in a *different* session than minted it.
+
 ## Pointer-not-copy + verify against disk
 Every slice cites a **live source file** by path and tells you what stable symbol to `grep`
 for — it does **not** copy volatile line numbers, version strings, or fill-sequence ranges

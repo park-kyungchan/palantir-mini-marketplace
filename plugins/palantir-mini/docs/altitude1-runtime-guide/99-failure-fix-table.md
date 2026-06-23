@@ -13,6 +13,7 @@ cause, make the corrective call. This is the card `BROWSE.md` points at FIRST.
 | Gate still `no SIC ref` AFTER `approve_sic` succeeded | Approved in WORKFLOW state but the prompt ENVELOPE was not advanced (different store) | ONE `pm_semantic_intent_gate` call passing **both approved contracts inline as OBJECTS** with matching prompt identity | 06 |
 | PreToolUse `not digital_twin_approved` | Prompt envelope has not reached `digital_twin_approved` | Advance the envelope: inline approved SIC + DTC (each with `approvalRef`) + captured promptId/promptHash/sessionId/runtime | 06 |
 | Operating on a stale `<old-date>` session / unexpected mission | Threading an old/wrong `sessionId` | `pm_ontology_engineering_workflow action:"status"` to inspect, then `action:"start"`; thread the fresh `sessionId` | 00 |
+| `no SIC ref` / `contract_required` in a session that did NOT mint the SIC (approve_sic succeeded earlier) | Minted snapshot is keyed to the MINTING session; the active session + `current.json` are snapshot-less | Runtime resolves it BY-REF (single distinct minted SIC). If it still refuses, ≥2 distinct minted SICs on disk (fail-closed) — thread the intended `sessionId` so the active `semanticIntentContractRef` selects its snapshot | 08 |
 
 **Reading note:** rows are ordered by where they bite in the pipeline (pre-SIC →
 SIC fill/approve → DTC → envelope → session-identity). A blocker that appears

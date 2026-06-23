@@ -5,10 +5,39 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import promptFrontDoorCapture, {
   currentPointerPathFor,
   envelopePathFor,
+  writePromptCaptureSync,
 } from "../../hooks/prompt-front-door-capture";
 import { readEvents } from "../../lib/event-log/read";
 import { readCurrentUniversalOntologyEntry } from "../../lib/ontology-entry/entry-store";
 import type { PromptCurrentPointer, PromptEnvelope } from "../../lib/prompt-front-door";
+import {
+  createPromptEnvelope,
+  withPromptState,
+  type PromptRuntime,
+} from "../../lib/prompt-front-door";
+
+/**
+ * Seed a LIVE governed session (P2-3): write a prior envelope + current pointer in a
+ * governed-active state so the next capture turn sees a live governed SIC/DTC session
+ * and injects the full gate advisory.
+ */
+function seedGovernedSession(
+  root: string,
+  sessionId: string,
+  runtime: PromptRuntime,
+): void {
+  const prior = withPromptState(
+    createPromptEnvelope({
+      rawPrompt: "prior governed turn",
+      sessionId,
+      runtime,
+      projectRoot: root,
+      sequence: 1,
+    }),
+    "semantic_intent_drafted",
+  );
+  writePromptCaptureSync(prior);
+}
 
 const tmpRoots: string[] = [];
 const savedEnv: Record<string, string | undefined> = {};
@@ -60,11 +89,13 @@ describe("prompt-front-door-capture", () => {
     expect(result.continue).toBe(true);
     expect(result.hookSpecificOutput?.hookEventName).toBe("UserPromptSubmit");
     const ctx = result.hookSpecificOutput?.additionalContext ?? "";
-    expect(ctx).toContain("pm_semantic_intent_gate");
-    expect(ctx).toContain("promptId:");
-    expect(ctx).toContain("promptHash:");
+    // STATE-first (P2-3): no governed session is live on a fresh capture turn, so the
+    // injection collapses to the thin capture acknowledgement (+ entry ref) and the
+    // fat gate-advisory block is NOT injected every turn.
+    expect(ctx).toContain("palantir-mini prompt front door captured this prompt.");
     expect(ctx).toContain("UniversalOntologyEntryRef:");
-    expect(ctx).toContain("Query ontology context first");
+    expect(ctx).not.toContain("pm_semantic_intent_gate");
+    expect(ctx).not.toContain("Query ontology context first");
 
     const pointer = readJson<PromptCurrentPointer>(
       currentPointerPathFor(root, "codex", "session/alpha"),
@@ -86,11 +117,16 @@ describe("prompt-front-door-capture", () => {
     expect(events.some((event) => event.type === "user_prompt_submitted")).toBe(true);
   });
 
-  test("injects the Altitude-1 multi-stage runbook pointer for an ontology-affecting prompt", async () => {
+  test("injects the Altitude-1 multi-stage runbook pointer when a governed session is live", async () => {
     const root = makeTmpProject("altitude1-pointer");
     process.env.PALANTIR_MINI_PROJECT = root;
     process.env.PALANTIR_MINI_EVENTS_FILE = eventsPathFor(root);
     process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
+
+    // P2-3: the fat gate advisory (incl. the Altitude-1 runbook pointer) is only
+    // injected while a governed SIC/DTC session is LIVE. Seed a governed-active prior
+    // envelope for this session so the next capture turn sees a live session.
+    seedGovernedSession(root, "session-altitude1", "codex");
 
     const result = await promptFrontDoorCapture({
       hook_event_name: "UserPromptSubmit",
@@ -101,9 +137,31 @@ describe("prompt-front-door-capture", () => {
     });
 
     const ctx = result.hookSpecificOutput?.additionalContext ?? "";
+    expect(ctx).toContain("pm_semantic_intent_gate");
     expect(ctx).toContain("pm Altitude-1 is a multi-stage flow");
     expect(ctx).toContain("9-axis SIC -> approve_sic -> DTC -> envelope-advance -> dispatch");
     expect(ctx).toContain("docs/altitude1-runtime-guide/BROWSE.md");
+  });
+
+  test("STATE-first (P2-3): fat gate advisory is skipped when no governed session is live", async () => {
+    const root = makeTmpProject("no-governed-session");
+    process.env.PALANTIR_MINI_PROJECT = root;
+    process.env.PALANTIR_MINI_EVENTS_FILE = eventsPathFor(root);
+    process.env.PALANTIR_MINI_HOST_RUNTIME = "codex";
+
+    const result = await promptFrontDoorCapture({
+      hook_event_name: "UserPromptSubmit",
+      session_id: "session-no-governed",
+      turn_id: "turn-no-governed",
+      cwd: root,
+      prompt: "Start Ontology Engineering: mutate the linear-function ObjectType in the digital twin.",
+    });
+
+    const ctx = result.hookSpecificOutput?.additionalContext ?? "";
+    // Thin acknowledgement only — the per-turn fat advisory does not fire.
+    expect(ctx).toContain("palantir-mini prompt front door captured this prompt.");
+    expect(ctx).not.toContain("pm_semantic_intent_gate");
+    expect(ctx).not.toContain("pm Altitude-1 is a multi-stage flow");
   });
 
   test("records previousPromptHash when the same runtime/session already has a current pointer", async () => {
