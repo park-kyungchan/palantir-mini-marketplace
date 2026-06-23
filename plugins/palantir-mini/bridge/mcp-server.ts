@@ -584,8 +584,8 @@ const TOOLS: ToolSpec[] = [
       properties: {
         mode: {
           type: "string",
-          enum: ["public-mcp", "handler-inventory", "hooks", "skills", "project-skill-ontology", "agents", "managed-settings", "surface-contracts", "release"],
-          description: "Self-check mode. Defaults to release.",
+          enum: ["public-mcp", "handler-inventory", "hooks", "skills", "project-skill-ontology", "agents", "managed-settings", "surface-contracts", "hook-seed", "release"],
+          description: "Self-check mode. Defaults to release. `hook-seed` narrowly gates the hook self-Ontology seed drift axis alone (for per-edit/incremental callers).",
         },
         projectPath: { type: "string", description: "Optional project path for project-specific codegen header verification. If omitted, codegen check returns skipped." },
         agentName: { type: "string", description: "Optional caller name for 5-dim event envelope." },

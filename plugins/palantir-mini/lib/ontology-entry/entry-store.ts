@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { assertWriteWithinDeclaredSet } from "../fs-atomic";
 import type { UniversalOntologyEntry } from "./universal-entry";
 
 export interface UniversalOntologyEntryStoreWriteResult {
@@ -58,7 +59,11 @@ export function writeUniversalOntologyEntry(
   const entryPath = universalOntologyEntryPath(entry.project.projectRoot, entry.entryId);
   const currentPath = path.join(dir, "current.json");
   const payload = `${JSON.stringify(entry, null, 2)}\n`;
+  // @Edits GOVERNED_EDIT_WRITE_SET — assert raw writes land inside .palantir-mini/
+  // (NON-BREAKING: warns unless PALANTIR_MINI_WRITE_SET_STRICT=1).
+  assertWriteWithinDeclaredSet(entryPath);
   fs.writeFileSync(entryPath, payload, "utf8");
+  assertWriteWithinDeclaredSet(currentPath);
   fs.writeFileSync(currentPath, payload, "utf8");
   return { entryPath, currentPath, entryRef: universalOntologyEntryRef(entry) };
 }

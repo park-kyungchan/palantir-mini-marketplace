@@ -11,6 +11,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { assertWriteWithinDeclaredSet } from "../fs-atomic";
 import {
   DEFAULT_RETENTION_MANIFEST,
   isRetentionManifestEntry,
@@ -57,6 +58,9 @@ export function writeRetentionManifest(opts: {
   const tmp = manifestTmpPath(sessionDir);
   const dest = manifestPath(sessionDir);
 
+  // @Edits GOVERNED_EDIT_WRITE_SET — assert the rename TARGET lands inside
+  // .palantir-mini/ (NON-BREAKING: warns unless PALANTIR_MINI_WRITE_SET_STRICT=1).
+  assertWriteWithinDeclaredSet(dest);
   fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2) + "\n", "utf8");
   fs.renameSync(tmp, dest);
 }

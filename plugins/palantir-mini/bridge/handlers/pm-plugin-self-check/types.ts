@@ -21,6 +21,7 @@ export type PmPluginSelfCheckMode =
   | "agents"
   | "managed-settings"
   | "surface-contracts"
+  | "hook-seed"
   | "release";
 
 export type PmPluginSelfCheckStatus = "pass" | "fail" | "skipped";

@@ -17,6 +17,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { acquireLock, lockPath, releaseLock } from "./append";
+import { assertWriteWithinDeclaredSet } from "../fs-atomic";
 import type { EventEnvelope } from "./types";
 
 export interface RotationEventInfo {
@@ -149,6 +150,9 @@ export async function rotateEventLog(
     }
 
     const lastSequence = readLastSequence(eventsPath);
+    // @Edits GOVERNED_EDIT_WRITE_SET — assert the rename TARGET (archive) lands
+    // inside .palantir-mini/ (NON-BREAKING: warns unless PALANTIR_MINI_WRITE_SET_STRICT=1).
+    assertWriteWithinDeclaredSet(archivedPath);
     fs.renameSync(eventsPath, archivedPath);
 
     let rotationEventSequence: number | undefined;
@@ -167,6 +171,7 @@ export async function rotateEventLog(
         ...rotationEvent,
         sequence: rotationEventSequence,
       } as EventEnvelope;
+      assertWriteWithinDeclaredSet(eventsPath);
       fs.writeFileSync(eventsPath, `${JSON.stringify(sequencedEvent)}\n`, "utf8");
     }
 

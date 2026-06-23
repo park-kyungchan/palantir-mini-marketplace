@@ -7,6 +7,30 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.32.0] - 2026-06-23 — EFFORT A cleanup follow-ups (a–g) + bd-017 push/PR de-floor
+
+Closes the 7.31.0 "Known follow-ups" backlog plus bd-012 and bd-017. Items (a), (b), (e) retire tracked follow-ups from 7.31.0; (d) corrects a 7.30.0 doc wording; (f) and (g) close standing bottleneck cases. Default / per-turn paths stay byte-identical when the new additive inputs/env flags are absent. ((c) rule-10 wording reconciliation landed in the user-global `~/.claude/rules/CORE.md`, outside this repo.)
+
+### Changed — provenance + bounds (retires 7.31.0 follow-ups a, b)
+- **(a) Batched-fill provenance is now caller-derivable** — `advanceNineAxisSicBatch` no longer hardcodes `source="user"`; an optional `source`/`intentSource` lets the caller derive provenance per the single-turn path, defaulting to `"user"` when absent (`lib/semantic-intent/nine-axis-sic-fill-sequence.ts`, `lib/semantic-intent/nine-axis-sic-fill-sequence.test.ts`).
+- **(b) `replay-lineage` `decisionRecords` is now bounded** — a `decisionRecordsLimit` (default 200) caps the projected records, with a `decisionRecordsTruncated` flag set when the window exceeds the bound (`bridge/handlers/replay-lineage.ts`, `tests/bridge/handlers/replay-lineage-decision-records.test.ts`).
+
+### Changed — doc/wording (no behavior change)
+- **(d) [7.30.0] P2-1 wording corrected** — clarified that `store.ts` performs two sequential atomic writes with a RECONCILED `current.json` pointer (not a single atomic transaction). Comment/doc only; no behavior change (`lib/ontology-engineering-workflow/store.ts`).
+
+### Changed — write-set guard scope (retires 7.31.0 follow-up e)
+- **(e) `assertWriteWithinDeclaredSet` scope extended beyond the atomic-write routers** to also guard the entry-store, outcome-pairing/track, and the event-log snapshot / rotate / quarantine / retention-writer raw writes (`lib/ontology-entry/entry-store.ts`, `lib/outcome-pairing/track.ts`, `lib/event-log/snapshot.ts`, `lib/event-log/rotate.ts`, `lib/event-log/quarantine.ts`, `lib/event-log/retention-writer.ts`). Warn-default; throws only under `PALANTIR_MINI_WRITE_SET_STRICT=1` (`tests/lib/event-log/quarantine.test.ts`).
+
+### Added — bd-012 (per-edit hook-seed-drift gating)
+- **(f) New narrow `"hook-seed"` `pm_plugin_self_check` mode** — a focused self-check scope for per-edit hook-seed-drift gating, distinct from the full self-check sweep (`bridge/handlers/pm-plugin-self-check.ts`, `bridge/handlers/pm-plugin-self-check/types.ts`, `bridge/mcp-server.ts`, `tests/bridge/handlers/pm-plugin-self-check/check-hook-seed.test.ts`, fingerprint golden refreshed).
+
+### Fixed — bd-017 (push/PR over-block RESOLVED)
+- **(g) The prompt-DTC enforcement gate no longer hard-blocks all-non-ontology push/PR turns.** `prompt-dtc-enforcement-gate.ts` now runs a **push-RANGE resolver** that diffs `base...HEAD` (reusing `isNonOntologyPath`): an all-non-ontology push/PR resolves to generic-mutation/advisory, while any ontology-touch — or an unresolvable / empty / MIXED range — stays blocking. The `effective-gate-mode.ts` floor table is unchanged. Removes the pm-ON push/PR hard-block (closes bd-017) (`tests/hooks/prompt-dtc-enforcement-gate.test.ts`).
+
+### In-workflow fixes
+- Regenerated the `mcp-tool-fingerprint` golden for the new `"hook-seed"` self-check mode (`tests/ontology/self/mcp-tool-fingerprint.golden.json`, `tests/bridge/mcp-server-schema.test.ts`).
+- Rooted the quarantine strict-mode test fixtures under `.palantir-mini/` so `PALANTIR_MINI_WRITE_SET_STRICT=1` passes (`tests/lib/event-log/quarantine.test.ts`).
+
 ## [7.31.0] - 2026-06-23 — residual wiring completions (P1-7-wire, P1-13-wire, fold-ergonomics)
 
 Activates the production wiring for three seams shipped at the lib level in 7.30.0 (which were intentionally left as tracked follow-ups), plus a fold-agent ergonomics fix from the live #22 finding. No new lib capability — these entries make the 7.30.0 seams runtime-reachable. Per-turn / default paths are byte-identical when the new additive inputs are absent.
@@ -47,7 +71,7 @@ Closes the C-stage backlog accumulated on top of 7.29.0. Items are grouped by cl
 - **P1-4 — static declared-write-set guard on the governed atomic writers + subset check** (`lib/fs-atomic.ts`). A governed atomic write must declare its write-set and the actual path must be a subset; violations fail loud. **Coverage = the atomic-write routers**; extending the guard to the broader call-site surface is tracked as a follow-up.
 - **P1-7 — first-class batched multi-axis 9-axis fill path at the lib level** (`lib/semantic-intent/nine-axis-sic-fill-sequence.ts`): a single call can fill multiple axes in one batched pass. **The MCP-gate handler wiring is tracked as a follow-up** — the lib seam ships now; the gate does not yet route through it.
 - **P1-8 — first-edit MCP-first gate softened / project-scope de-tax** (`hooks/pre-edit-impact-mcp-first.ts`): the first-edit MCP-first requirement is relaxed for project-scope edits, removing the per-edit tax that over-fired outside ontology operations.
-- **P2-1 — envelope + workflow stores are now transactionally coupled** (`lib/ontology-engineering-workflow/store.ts`): the current-pointer envelope and the workflow store advance together or not at all, so a partial write can no longer desync them (test: `tests/lib/ontology-engineering-workflow/current-pointer-transactional-coupling.test.ts`).
+- **P2-1 — the `current.json` pointer write is now reconciled against the per-concept envelope** (`lib/ontology-engineering-workflow/store.ts`): `writeOntologyEngineeringWorkflowState` does two sequential atomic writes (session-keyed envelope, then `current.json`); the pointer write is RECONCILED (snapshot resolve + approvals union) so it can never DROP per-concept SIC/approval data — not a single atomic transaction (test: `tests/lib/ontology-engineering-workflow/current-pointer-transactional-coupling.test.ts`).
 - **P2-5 — ~48 unregistered handlers classified internal/dead** in `bridge/handlers/_deprecation-map.ts`, resolving the unregistered-handler ambiguity surfaced by the self-check.
 
 ### Added — bd-004 (codex opt-out)

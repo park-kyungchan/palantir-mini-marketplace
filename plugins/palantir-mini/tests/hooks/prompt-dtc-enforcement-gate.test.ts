@@ -1099,8 +1099,10 @@ describe("D-i path-aware commit floor (mutationClass)", () => {
     expect(__test__.isNonOntologyPath("_workspace/y.md", root)).toBe(true);
   });
 
-  // REGRESSION — non-commit git/gh/external lanes are unchanged by the D-i fix.
-  test("REGRESSION: git push → release", () => {
+  // REGRESSION + bd-017 conservative fallback — a fresh repo has no upstream and no
+  // commits ahead of any base, so the push/PR range is empty/unresolvable → the
+  // release / pull-request floor is PRESERVED (blocking).
+  test("REGRESSION: git push, unresolvable/empty range → release (blocking)", () => {
     const root = initGitRepo();
     const cls = __test__.protectedMutationClassForPromptGate(
       { cwd: root, tool_name: "Bash", tool_input: { command: "git push origin main" } },
@@ -1110,7 +1112,7 @@ describe("D-i path-aware commit floor (mutationClass)", () => {
     expect(cls).toBe("release");
   });
 
-  test("REGRESSION: gh pr create → pull-request", () => {
+  test("REGRESSION: gh pr create, unresolvable/empty range → pull-request (blocking)", () => {
     const root = initGitRepo();
     const cls = __test__.protectedMutationClassForPromptGate(
       { cwd: root, tool_name: "Bash", tool_input: { command: "gh pr create --fill" } },
@@ -1171,5 +1173,138 @@ describe("D-i path-aware commit floor (mutationClass)", () => {
       root,
     );
     expect(cls).toBe("commit");
+  });
+});
+
+// bd-017 (push/PR de-floor) — extend bd-010's path-aware classifier from the `commit`
+// class to the `release` (git push) and `pull-request` (gh pr) classes. The change set
+// is the PUSHED RANGE (upstream..HEAD), not the staged set — a push of already-committed
+// work has an EMPTY staged set, so the range resolver is required. all-non-ontology
+// range → generic-mutation (de-floored); MIXED / empty / unresolvable range → keep the
+// release/pull-request floor (blocking). Header (class floor) and body (scoped-blocking
+// predicate) now agree because both key off the same isNonOntologyPath test.
+describe("bd-017 path-aware push/PR floor (mutationClass)", () => {
+  const repoRoots: string[] = [];
+
+  afterEach(() => {
+    for (const r of repoRoots.splice(0)) fs.rmSync(r, { recursive: true, force: true });
+  });
+
+  function git(root: string, ...args: string[]): string {
+    return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  }
+
+  function writeCommit(root: string, relPath: string, msg: string, content = "x\n"): void {
+    const abs = path.join(root, relPath);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, content);
+    git(root, "add", "--", relPath);
+    git(root, "commit", "-q", "-m", msg);
+  }
+
+  /**
+   * A repo with a `base` branch (one commit) and a `feature` branch checked out that
+   * is one commit AHEAD of `base`, with `feature` tracking `base` as its upstream so
+   * `@{u}` resolves. The ahead commit touches `aheadPath`. Returns the root dir.
+   */
+  function initRepoWithAhead(aheadPath: string, content = "x\n"): string {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-gate-push-repo-"));
+    repoRoots.push(root);
+    git(root, "init", "-q");
+    git(root, "config", "user.email", "t@t.test");
+    git(root, "config", "user.name", "test");
+    git(root, "checkout", "-q", "-b", "base");
+    writeCommit(root, "anchor.txt", "base", "v1\n");
+    git(root, "checkout", "-q", "-b", "feature");
+    writeCommit(root, aheadPath, "ahead", content);
+    // Make `base` the tracking upstream of `feature` so `@{u}` resolves.
+    git(root, "branch", "--set-upstream-to=base", "feature");
+    return root;
+  }
+
+  function pushPayload(root: string) {
+    return { cwd: root, tool_name: "Bash", tool_input: { command: "git push origin feature" } };
+  }
+  function prPayload(root: string) {
+    return { cwd: root, tool_name: "Bash", tool_input: { command: "gh pr create --fill" } };
+  }
+
+  // (1) all-non-ontology push range → de-floored to generic-mutation (advisory).
+  test("git push + ALL-non-ontology range → generic-mutation (de-floored)", () => {
+    const root = initRepoWithAhead("second-brain/note.md");
+    expect(__test__.allPushRangePathsNonOntology(root)).toBe(true);
+    const cls = __test__.protectedMutationClassForPromptGate(pushPayload(root), true, root);
+    expect(cls).toBe("generic-mutation");
+    expect(cls).not.toBe("release");
+  });
+
+  // (2) ontology-touching push range → keep release (blocking).
+  test("git push + ontology-touching range → release (blocking)", () => {
+    const root = initRepoWithAhead("schemas/ontology/primitives/foo.ts", "export const FOO = 1;\n");
+    expect(__test__.allPushRangePathsNonOntology(root)).toBe(false);
+    const cls = __test__.protectedMutationClassForPromptGate(pushPayload(root), true, root);
+    expect(cls).toBe("release");
+  });
+
+  // (2b) MIXED push range (one ontology + one non-ontology) → keep release (blocking).
+  test("git push + MIXED range → release (blocking)", () => {
+    const root = initRepoWithAhead("second-brain/note.md");
+    writeCommit(root, "schemas/ontology/primitives/bar.ts", "ahead2", "export const BAR = 2;\n");
+    git(root, "branch", "--set-upstream-to=base", "feature");
+    expect(__test__.allPushRangePathsNonOntology(root)).toBe(false);
+    const cls = __test__.protectedMutationClassForPromptGate(pushPayload(root), true, root);
+    expect(cls).toBe("release");
+  });
+
+  // (3) unresolvable/empty range → keep release (blocking). A repo with an upstream
+  // but NO commits ahead of it has an empty range.
+  test("git push + empty range (no commits ahead of upstream) → release (blocking)", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-gate-push-empty-"));
+    repoRoots.push(root);
+    git(root, "init", "-q");
+    git(root, "config", "user.email", "t@t.test");
+    git(root, "config", "user.name", "test");
+    git(root, "checkout", "-q", "-b", "base");
+    writeCommit(root, "anchor.txt", "base", "v1\n");
+    git(root, "checkout", "-q", "-b", "feature");
+    git(root, "branch", "--set-upstream-to=base", "feature");
+    expect(__test__.allPushRangePathsNonOntology(root)).toBe(false);
+    const cls = __test__.protectedMutationClassForPromptGate(pushPayload(root), true, root);
+    expect(cls).toBe("release");
+  });
+
+  test("git push in a non-git dir → release (resolver throws → conservative)", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-gate-push-nogit-"));
+    repoRoots.push(dir);
+    expect(__test__.allPushRangePathsNonOntology(dir)).toBe(false);
+    const cls = __test__.protectedMutationClassForPromptGate(pushPayload(dir), true, dir);
+    expect(cls).toBe("release");
+  });
+
+  // (4) PR arm mirrors all three.
+  test("gh pr + ALL-non-ontology range → generic-mutation (de-floored)", () => {
+    const root = initRepoWithAhead("docs/changelog.md");
+    const cls = __test__.protectedMutationClassForPromptGate(prPayload(root), true, root);
+    expect(cls).toBe("generic-mutation");
+    expect(cls).not.toBe("pull-request");
+  });
+
+  test("gh pr + ontology-touching range → pull-request (blocking)", () => {
+    const root = initRepoWithAhead("schemas/ontology/primitives/foo.ts", "export const FOO = 1;\n");
+    const cls = __test__.protectedMutationClassForPromptGate(prPayload(root), true, root);
+    expect(cls).toBe("pull-request");
+  });
+
+  test("gh pr + empty/unresolvable range → pull-request (blocking)", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-gate-pr-nogit-"));
+    repoRoots.push(dir);
+    const cls = __test__.protectedMutationClassForPromptGate(prPayload(dir), true, dir);
+    expect(cls).toBe("pull-request");
+  });
+
+  // resolvePushRangeBaseRef prefers the configured upstream.
+  test("resolvePushRangeBaseRef: returns the tracking upstream when configured", () => {
+    const root = initRepoWithAhead("second-brain/note.md");
+    expect(__test__.resolvePushRangeBaseRef(root)).toBe("base");
   });
 });

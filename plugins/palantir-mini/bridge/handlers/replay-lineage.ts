@@ -57,6 +57,17 @@ interface ReplayLineageArgs {
    * Default false (promoted-index preferred; T3+ grade filter applied).
    */
   includeLegacyRaw?: boolean;
+  /**
+   * EFFORT-A (b) — Optional cap on the folded `decisionRecords` projection
+   * (default DECISION_RECORDS_DEFAULT_LIMIT = 200). Bounds an otherwise
+   * unbounded read so a long window cannot blow up the response. The slice is
+   * post-fold (only the projection is capped; `derivedState`/`lineageGraph`/
+   * the raw `events` stream are unaffected). When the fold produced more than
+   * the limit, `decisionRecordsTruncated` is set true. Additive + non-breaking:
+   * absent ⇒ the 200 default, which preserves current behaviour for any window
+   * with ≤200 decision records.
+   */
+  decisionRecordsLimit?: number;
 }
 
 interface ReplayLineageResult extends ReplayResult {
@@ -83,9 +94,27 @@ interface ReplayLineageResult extends ReplayResult {
    * the unlinked propose/commit rows in `events`. Additive + non-breaking: a pure
    * read derived from `postFilteredEvents`; empty `[]` when the window carries no
    * propose/commit rows. (decision-model.md + approval-and-lineage.md.)
+   *
+   * EFFORT-A (b) — bounded by `decisionRecordsLimit` (default 200). When the
+   * underlying fold produced MORE records than the cap, this array is the
+   * `.slice(0, limit)` head and `decisionRecordsTruncated` is true.
    */
   decisionRecords: DecisionRecord[];
+  /**
+   * EFFORT-A (b) — true when the folded decision set exceeded
+   * `decisionRecordsLimit` and `decisionRecords` was capped. false otherwise
+   * (including the empty `[]` case). Lets callers know the list is a head, not
+   * the complete decision set for the window.
+   */
+  decisionRecordsTruncated: boolean;
 }
+
+/**
+ * EFFORT-A (b) — default cap for the folded `decisionRecords` projection.
+ * Bounds an otherwise unbounded read; overridable per-call via
+ * `decisionRecordsLimit`.
+ */
+const DECISION_RECORDS_DEFAULT_LIMIT = 200;
 
 // ── B.W2.c: T3+ verbose formatter ────────────────────────────────────────
 
@@ -244,7 +273,17 @@ export default async function replayLineageHandler(rawArgs: unknown): Promise<Re
   // P1-13 — fold the SAME filtered stream into bound D+L+A+S DecisionRecords so a
   // lineage replay surfaces each decision as one united Logic⇄Action+Data+Security
   // unit (not the raw, unlinked propose/commit rows in `events`). Pure read.
-  const decisionRecords = foldDecisionRecords(postFilteredEvents);
+  //
+  // EFFORT-A (b) — bound the projection: a long window could otherwise fold an
+  // unbounded list into the response. Cap post-fold via `.slice(0, limit)` and
+  // flag truncation so callers know the list is a head, not the full set.
+  const decisionRecordsLimit =
+    typeof args.decisionRecordsLimit === "number" && args.decisionRecordsLimit >= 0
+      ? args.decisionRecordsLimit
+      : DECISION_RECORDS_DEFAULT_LIMIT;
+  const allDecisionRecords = foldDecisionRecords(postFilteredEvents);
+  const decisionRecords = allDecisionRecords.slice(0, decisionRecordsLimit);
+  const decisionRecordsTruncated = allDecisionRecords.length > decisionRecordsLimit;
 
   const lineageGraph = postFilteredEvents.map((ev) => ({
     sequence:  ev.sequence,
@@ -268,6 +307,7 @@ export default async function replayLineageHandler(rawArgs: unknown): Promise<Re
     matched: postFilteredEvents.length,
     derivedState,
     decisionRecords,
+    decisionRecordsTruncated,
     lineageGraph,
     ...(verboseMarkdown !== undefined ? { verboseMarkdown } : {}),
   };

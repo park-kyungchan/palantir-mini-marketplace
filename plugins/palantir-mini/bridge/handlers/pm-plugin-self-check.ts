@@ -66,6 +66,7 @@ const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {
   agents: ["agents"],
   "managed-settings": ["managed-settings"],
   "surface-contracts": ["surface-contracts"],
+  "hook-seed": ["hook-seed"],
   release: [
     "schema-pin",
     "codegen-headers",

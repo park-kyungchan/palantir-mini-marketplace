@@ -11,6 +11,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { assertWriteWithinDeclaredSet } from "../fs-atomic";
 import type { EventSnapshot, SnapshotManifest } from "./types";
 import { readEvents } from "./read";
 import { foldToSnapshot } from "./read";
@@ -40,8 +41,14 @@ export function writeSnapshot(
     sourceEventCount: snapshot.totalEvents,
   };
 
-  fs.writeFileSync(path.join(snapshotDir, "ontology.json"), JSON.stringify(snapshot, null, 2) + "\n", "utf8");
-  fs.writeFileSync(path.join(snapshotDir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n", "utf8");
+  // @Edits GOVERNED_EDIT_WRITE_SET — assert raw snapshot writes land inside
+  // .palantir-mini/ (NON-BREAKING: warns unless PALANTIR_MINI_WRITE_SET_STRICT=1).
+  const ontologyPath = path.join(snapshotDir, "ontology.json");
+  const manifestDestPath = path.join(snapshotDir, "manifest.json");
+  assertWriteWithinDeclaredSet(ontologyPath);
+  fs.writeFileSync(ontologyPath, JSON.stringify(snapshot, null, 2) + "\n", "utf8");
+  assertWriteWithinDeclaredSet(manifestDestPath);
+  fs.writeFileSync(manifestDestPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
 
   return { manifest, snapshot };
 }
