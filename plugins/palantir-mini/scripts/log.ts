@@ -9,6 +9,7 @@
 
 import * as path from "path";
 import { appendEventAtomic } from "../lib/event-log/append";
+import { RESERVED_PROVENANCE_TYPES } from "../lib/event-log/reserved-provenance";
 import { gitHeadSha } from "../lib/git/head-sha";
 import type { EventEnvelope, EventId, CommitSha, SessionId } from "../lib/event-log/types";
 import type { AgenticMemoryLayer } from "#schemas/ontology/primitives/agentic-memory-layer";
@@ -119,6 +120,24 @@ function uniqueEventId(): string {
 
 /** Build a complete envelope with 5-dim Decision Lineage and append atomically. */
 export async function emit(env: LogEnvelope): Promise<number> {
+  // F1b — fail-closed: reject hook-side emit() of reserved commit-provenance types.
+  // These types ("edit_committed"/"submission_criteria_failed") assert "the governed
+  // commit path ran"; they may ONLY originate from lib/actions/commit.ts (the ActionType
+  // write-back gate, ssot/palantir approval-and-lineage), which bypasses emit() by calling
+  // appendEventAtomic directly — so this guard never touches the governed path. Any hook or
+  // helper reaching emit() with these types is forging commit-provenance; commit through
+  // commit_edits instead. Mirrors the bridge/handlers/emit-event.ts MCP-boundary guard.
+  if (RESERVED_PROVENANCE_TYPES.has(env.type)) {
+    const err = new Error(
+      `emit refuses reserved commit-provenance type "${env.type}": this type may only be ` +
+      "emitted by the governed commit path (lib/actions/commit.ts via the ActionType gate), " +
+      "not by a hook-side emit(). Commit through commit_edits so the ActionType write-back " +
+      "gate (ssot/palantir approval-and-lineage) applies.",
+    ) as Error & { errorClass?: string };
+    err.errorClass = "reserved_provenance_type_hook_emit";
+    throw err;
+  }
+
   // B-30 (harness-h4 canary): handler-supplied env.cwd takes precedence over
   // MCP subprocess process.cwd() so events land in the project's events.jsonl
   // that the handler was invoked for, not the MCP server's launch cwd.

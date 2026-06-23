@@ -2,9 +2,15 @@
 // Fires on: PostToolUse(Edit|Write|MultiEdit)
 //
 // Responsibilities:
-//   1. Append an edit_committed event for successful ontology edits
+//   1. Append a drift_detected (stale_codegen) event for ontology schema-source edits
 //   2. Trigger CodegenRun (deferred to v1 — v0 emits the event only)
 //   3. Optionally run Post-Write phase drift check
+//
+// F1b — a raw schema-source FILE edit makes codegen potentially stale = a DRIFT
+// signal, NOT a commit. edit_committed asserts the governed commit path ran and may
+// ONLY originate from lib/actions/commit.ts (the ActionType write-back gate, ssot/
+// palantir approval-and-lineage = sole edit_committed emitter); forging it here from
+// an ungoverned file edit bypasses that gate, so this hook emits drift instead.
 
 import { emit } from "../scripts/log";
 
@@ -40,17 +46,10 @@ export default async function postEditPropagate(payload: unknown): Promise<{ mes
 
   try {
     await emit({
-      type: "edit_committed",
+      type: "drift_detected",
       payload: {
-        actionTypeRid: `PostToolUse:${toolName}`,
-        appliedEdits: [
-          {
-            kind: "object",
-            rid: filePath ?? "unknown-file",
-            properties: { editedBy: toolName },
-          },
-        ],
-        submissionCriteriaPassed: [],
+        driftType: "stale_codegen",
+        affectedObjectType: filePath ?? "unknown-file",
       },
       toolName,
       cwd,
@@ -63,5 +62,5 @@ export default async function postEditPropagate(payload: unknown): Promise<{ mes
 
   // v0: CodegenRun propagation is a no-op placeholder.
   // v1: Run lib/codegen/descender-gen.ts and emit codegen_started/codegen_completed events.
-  return { message: `palantir-mini: edit_committed event appended for ${filePath}` };
+  return { message: `palantir-mini: drift_detected (stale_codegen) event appended for ${filePath}` };
 }
