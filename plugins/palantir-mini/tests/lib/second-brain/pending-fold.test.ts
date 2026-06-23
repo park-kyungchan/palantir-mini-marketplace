@@ -14,6 +14,7 @@ import {
   markPending,
   clearPending,
   listPending,
+  markerIsGovernedComplete,
   type PendingFoldEntry,
 } from "../../../lib/second-brain/pending-fold";
 
@@ -43,6 +44,29 @@ function writeManifest(root: string, folded: string[]): void {
     JSON.stringify({ foldedSessions }, null, 2),
     "utf8",
   );
+}
+
+/** Write a manifest with arbitrary per-session foldedSessions records (lifecycle or legacy). */
+function writeManifestRecords(root: string, records: Record<string, unknown>): void {
+  fs.writeFileSync(
+    path.join(root, "second-brain", "manifest.json"),
+    JSON.stringify({ foldedSessions: records }, null, 2),
+    "utf8",
+  );
+}
+
+function lifecycleMarker(status: "in-progress" | "governed-complete", overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    status,
+    graphBatchesPersisted: 3,
+    governedBatches: status === "governed-complete" ? 3 : 1,
+    totalBatches: 3,
+    nodeCount: 9,
+    edgeCount: 0,
+    startedAt: "2026-06-23T00:00:00.000Z",
+    ...(status === "governed-complete" ? { foldedAt: "2026-06-23T01:00:00.000Z" } : {}),
+    ...overrides,
+  };
 }
 
 afterEach(() => {
@@ -106,6 +130,66 @@ describe("pending-fold — listPending excludes folded sessions", () => {
     markPending(root, entry("a"));
     markPending(root, entry("b"));
     expect(listPending(root).length).toBe(2);
+  });
+});
+
+describe("pending-fold — G2-A lifecycle marker semantics", () => {
+  test("markerIsGovernedComplete truth-table (the SOLE done definition)", () => {
+    // OLD write-once (no status) → done (present == done, back-compat)
+    expect(markerIsGovernedComplete({ foldedAt: "x", nodeCount: 5, edgeCount: 3 })).toBe(true);
+    // lifecycle governed-complete → done
+    expect(markerIsGovernedComplete(lifecycleMarker("governed-complete"))).toBe(true);
+    // lifecycle in-progress → NOT done (resumes)
+    expect(markerIsGovernedComplete(lifecycleMarker("in-progress"))).toBe(false);
+    // absent / non-object → not done
+    expect(markerIsGovernedComplete(undefined)).toBe(false);
+    expect(markerIsGovernedComplete(null)).toBe(false);
+    expect(markerIsGovernedComplete("nope")).toBe(false);
+  });
+
+  test("a governed-complete lifecycle record is excluded from pending", () => {
+    const root = makeTmpRoot();
+    markPending(root, entry("done-one"));
+    writeManifestRecords(root, { "done-one": lifecycleMarker("governed-complete") });
+    expect(listPending(root).map((e) => e.sessionId)).not.toContain("done-one");
+    expect(listPending(root).length).toBe(0);
+  });
+
+  test("an IN-PROGRESS lifecycle record STAYS pending (re-triggers a resume)", () => {
+    const root = makeTmpRoot();
+    markPending(root, entry("partial-one"));
+    writeManifestRecords(root, { "partial-one": lifecycleMarker("in-progress") });
+    const ids = listPending(root).map((e) => e.sessionId);
+    expect(ids).toContain("partial-one"); // NOT excluded — partial stays in the queue
+    expect(listPending(root).length).toBe(1);
+  });
+
+  test("OLD write-once marker (no status) stays excluded — back-compat (9910c7ea/1c0831f7 unbroken)", () => {
+    const root = makeTmpRoot();
+    markPending(root, entry("legacy-one"));
+    writeManifestRecords(root, { "legacy-one": { foldedAt: "2026-06-01", nodeCount: 68, edgeCount: 60 } });
+    expect(listPending(root).map((e) => e.sessionId)).not.toContain("legacy-one");
+    expect(listPending(root).length).toBe(0);
+  });
+
+  test("absent record stays listed (the 122-backlog case)", () => {
+    const root = makeTmpRoot();
+    markPending(root, entry("never-folded"));
+    writeManifestRecords(root, {}); // session not in foldedSessions at all
+    expect(listPending(root).map((e) => e.sessionId)).toContain("never-folded");
+  });
+
+  test("mixed manifest: governed-complete + legacy excluded; in-progress + absent kept", () => {
+    const root = makeTmpRoot();
+    for (const s of ["gc", "legacy", "ip", "absent"]) markPending(root, entry(s));
+    writeManifestRecords(root, {
+      gc: lifecycleMarker("governed-complete"),
+      legacy: { foldedAt: "x", nodeCount: 1, edgeCount: 0 },
+      ip: lifecycleMarker("in-progress"),
+      // "absent" deliberately omitted
+    });
+    const ids = listPending(root).map((e) => e.sessionId).sort();
+    expect(ids).toEqual(["absent", "ip"]);
   });
 });
 
