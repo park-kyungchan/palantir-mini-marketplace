@@ -588,6 +588,7 @@ describe("mcp-server ToolSpec metadata", () => {
       "agents",
       "managed-settings",
       "surface-contracts",
+      "hook-seed",
       "release",
     ]);
   });

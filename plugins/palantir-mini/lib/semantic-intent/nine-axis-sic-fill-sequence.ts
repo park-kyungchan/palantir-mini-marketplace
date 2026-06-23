@@ -275,6 +275,13 @@ export function advanceNineAxisSicSequence(
 export interface NineAxisBatchTurn {
   readonly answer?: string;
   readonly notApplicable?: boolean;
+  /**
+   * Provenance of this axis answer. Mirrors the per-turn engine's derived
+   * `SicFillStep.source`. Absent ⇒ "user" (byte-identical to the prior hardcode),
+   * so a Lead/agent-sourced batch fill records honest `source:"agent"`/"system"
+   * instead of forging user-confirmation provenance.
+   */
+  readonly source?: SicFillSource;
 }
 
 /**
@@ -285,6 +292,12 @@ export interface NineAxisBatchTurn {
  */
 export type NineAxisBatchInput = {
   readonly intent?: string;
+  /**
+   * Provenance of the T0 intent step. Mirrors the per-turn engine's derived
+   * `SicFillStep.source`. Absent ⇒ "user" (byte-identical to the prior hardcode);
+   * a Lead-captured summary should pass "agent" rather than forge "user".
+   */
+  readonly intentSource?: SicFillSource;
 } & {
   readonly [K in SicAxisKey]?: NineAxisBatchTurn;
 };
@@ -340,7 +353,7 @@ export function advanceNineAxisSicBatch(
         question: descriptor.question,
         answer: intent,
         filledAt: new Date().toISOString(),
-        source: "user",
+        source: batch.intentSource ?? "user",
       });
       appliedTurns.push(descriptor.turnIndex);
       continue;
@@ -368,7 +381,7 @@ export function advanceNineAxisSicBatch(
       question: descriptor.question,
       answer,
       filledAt: new Date().toISOString(),
-      source: "user",
+      source: turn.source ?? "user",
     });
     appliedTurns.push(descriptor.turnIndex);
   }

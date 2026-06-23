@@ -16,8 +16,20 @@ import type { EventEnvelope } from "../../../lib/event-log/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Session dirs are rooted under a `.palantir-mini/session` subtree so the
+// governed write-set guard (assertWriteWithinDeclaredSet) sees an in-set target,
+// mirroring production layout (sessionDir = path.dirname(.palantir-mini/session/events.jsonl)).
+// This keeps the suite green under PALANTIR_MINI_WRITE_SET_STRICT=1 (tests / CI).
 function makeTmpDir(label: string): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), `pm-quarantine-${label}-`));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), `pm-quarantine-${label}-`));
+  const sessionDir = path.join(root, ".palantir-mini", "session");
+  fs.mkdirSync(sessionDir, { recursive: true });
+  return sessionDir;
+}
+
+/** Outermost mkdtemp root for a session dir returned by makeTmpDir (for cleanup). */
+function tmpRootOf(sessionDir: string): string {
+  return path.dirname(path.dirname(sessionDir));
 }
 
 /** Standard valid event line (all 4 hard-required 5-dim fields present). */
@@ -50,7 +62,7 @@ function writeEvents(sessionDir: string, lines: string[]): void {
 describe("quarantineMalformedRow", () => {
   let tmp: string;
   beforeEach(() => { tmp = makeTmpDir("q"); });
-  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+  afterEach(() => { fs.rmSync(tmpRootOf(tmp), { recursive: true, force: true }); });
 
   test("creates quarantine directory if absent", () => {
     quarantineMalformedRow({
@@ -152,7 +164,7 @@ describe("quarantineMalformedRow", () => {
 describe("readQuarantine", () => {
   let tmp: string;
   beforeEach(() => { tmp = makeTmpDir("rq"); });
-  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+  afterEach(() => { fs.rmSync(tmpRootOf(tmp), { recursive: true, force: true }); });
 
   test("returns empty array when quarantine dir absent", () => {
     expect(readQuarantine(tmp)).toEqual([]);
@@ -173,7 +185,7 @@ describe("readQuarantine", () => {
 describe("readEvents quarantine integration", () => {
   let tmp: string;
   beforeEach(() => { tmp = makeTmpDir("re"); });
-  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+  afterEach(() => { fs.rmSync(tmpRootOf(tmp), { recursive: true, force: true }); });
 
   test("malformed JSON row → quarantined, default read skips it", () => {
     writeEvents(tmp, [

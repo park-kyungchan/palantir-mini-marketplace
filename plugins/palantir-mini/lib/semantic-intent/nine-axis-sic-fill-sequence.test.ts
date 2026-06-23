@@ -162,4 +162,36 @@ describe("advanceNineAxisSicBatch — first-class batched multi-axis fill", () =
     });
     expect(result.appliedTurns).toEqual([0, 1, 9]);
   });
+
+  it("propagates per-turn / intent source instead of forging 'user' (provenance, item a)", () => {
+    const result = advanceNineAxisSicBatch(makeBase(), {
+      intent: "lead-captured intent summary",
+      intentSource: "agent",
+      data: { answer: "obj-a", source: "agent" },
+      logic: { answer: "rule X" }, // absent source ⇒ defaults to "user"
+      action: { answer: "do Y", source: "system" },
+    });
+
+    const byStep = (n: number) =>
+      result.contract.fillSequence!.find((s) => s.step === n)!;
+    // T0 intent step honors batch.intentSource.
+    expect(byStep(1).source).toBe("agent");
+    // T1 data axis honors turn.source.
+    expect(byStep(2).source).toBe("agent");
+    // T2 logic axis has NO source ⇒ defaults to "user" (byte-identical to prior behavior).
+    expect(byStep(3).source).toBe("user");
+    // T3 action axis honors turn.source = "system".
+    expect(byStep(4).source).toBe("system");
+  });
+
+  it("absent source fields keep every step user-sourced (default-preserving)", () => {
+    const result = advanceNineAxisSicBatch(makeBase(), {
+      intent: "plain user intent",
+      data: { answer: "obj-a" },
+      logic: { answer: "rule X" },
+    });
+    for (const step of result.contract.fillSequence ?? []) {
+      expect(step.source).toBe("user");
+    }
+  });
 });

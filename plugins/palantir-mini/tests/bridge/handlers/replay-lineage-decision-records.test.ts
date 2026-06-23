@@ -97,6 +97,8 @@ describe("P1-13-wire — replay_lineage folds bound D+L+A+S DecisionRecords", ()
     // Existing outputs are unchanged (additive, non-breaking).
     expect(Array.isArray(result.lineageGraph)).toBe(true);
     expect(result.derivedState).toBeDefined();
+    // EFFORT-A (b) — single record is well under the default cap ⇒ not truncated.
+    expect(result.decisionRecordsTruncated).toBe(false);
   });
 
   test("propose/commit-free window ⇒ decisionRecords is [] (pure read, non-breaking)", async () => {
@@ -112,5 +114,73 @@ describe("P1-13-wire — replay_lineage folds bound D+L+A+S DecisionRecords", ()
     // Existing outputs still present.
     expect(Array.isArray(result.lineageGraph)).toBe(true);
     expect(result.derivedState).toBeDefined();
+    // EFFORT-A (b) — empty fold is never truncated.
+    expect(result.decisionRecordsTruncated).toBe(false);
+  });
+});
+
+describe("EFFORT-A (b) — decisionRecords is bounded by decisionRecordsLimit", () => {
+  // Build N independent propose→commit pairs (each pair folds into ONE
+  // DecisionRecord). distinct rids keep each pair its own decision.
+  function proposeCommitPairs(n: number): unknown[] {
+    const events: unknown[] = [];
+    for (let i = 0; i < n; i++) {
+      events.push({
+        type: "edit_proposed",
+        payload: {
+          functionName: "stageEdit",
+          params: {},
+          hypotheticalEdits: [{ kind: "object", rid: `rid-${i}`, properties: { primitiveKind: "ObjectType" } }],
+        },
+        withWhat: { reasoning: `stage object ${i} because the contract requires it` },
+      });
+      events.push({
+        type: "edit_committed",
+        payload: {
+          actionTypeRid: EXECUTOR_ACTION_TYPE_RID,
+          appliedEdits: [{ kind: "object", rid: `rid-${i}`, properties: { primitiveKind: "ObjectType" } }],
+          submissionCriteriaPassed: ["c1"],
+        },
+      });
+    }
+    return events;
+  }
+
+  test(">limit window ⇒ decisionRecords capped to limit + decisionRecordsTruncated true", async () => {
+    const project = makeTmpProject();
+    // 5 pairs ⇒ 5 folded records; cap at 3.
+    writeEvents(project, proposeCommitPairs(5));
+
+    const result = await replayLineageHandler({ project, includeLegacyRaw: true, decisionRecordsLimit: 3 });
+
+    expect(result.decisionRecords.length).toBe(3);
+    expect(result.decisionRecordsTruncated).toBe(true);
+    // The slice is the head of the folded stream (first 3 decisions).
+    expect(result.decisionRecords.map((dr) => dr.data.map((e) => e.rid)[0])).toEqual([
+      "rid-0",
+      "rid-1",
+      "rid-2",
+    ]);
+  });
+
+  test("<=limit window ⇒ all records returned + decisionRecordsTruncated false (complete)", async () => {
+    const project = makeTmpProject();
+    // 3 pairs ⇒ 3 folded records; limit 3 (boundary: equal, not exceeded).
+    writeEvents(project, proposeCommitPairs(3));
+
+    const result = await replayLineageHandler({ project, includeLegacyRaw: true, decisionRecordsLimit: 3 });
+
+    expect(result.decisionRecords.length).toBe(3);
+    expect(result.decisionRecordsTruncated).toBe(false);
+  });
+
+  test("absent decisionRecordsLimit ⇒ default 200 cap (small window is complete, not truncated)", async () => {
+    const project = makeTmpProject();
+    writeEvents(project, proposeCommitPairs(4));
+
+    const result = await replayLineageHandler({ project, includeLegacyRaw: true });
+
+    expect(result.decisionRecords.length).toBe(4);
+    expect(result.decisionRecordsTruncated).toBe(false);
   });
 });

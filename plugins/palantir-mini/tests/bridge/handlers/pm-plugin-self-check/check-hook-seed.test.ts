@@ -102,4 +102,15 @@ describe("check-hook-seed", () => {
     expect(release.hookSeedResult.status).toBe("pass");
     expect(release.activeChecks).toContain("hook-seed");
   });
+
+  test("5. hook-seed mode narrowly gates only the seed drift axis", async () => {
+    eventsEnv();
+    const result = await pmPluginSelfCheck({ mode: "hook-seed" });
+    // The narrow per-edit mode runs ONLY the seed axis in its overall-status set.
+    expect(result.mode).toBe("hook-seed");
+    expect(result.activeChecks).toEqual(["hook-seed"]);
+    expect(result.hookSeedResult.status).toBe("pass");
+    // hook-seed != the "hooks" registry mode: the registry check is NOT gated here.
+    expect(result.activeChecks).not.toContain("hooks");
+  });
 });

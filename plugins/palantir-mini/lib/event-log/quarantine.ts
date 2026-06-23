@@ -13,6 +13,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { assertWriteWithinDeclaredSet } from "../fs-atomic";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -132,6 +133,9 @@ export function quarantineMalformedRow(opts: {
     try { existing = fs.readFileSync(rowsPath, "utf8"); } catch { /* best-effort */ }
   }
   const tmpRows = rowsPath + ".tmp." + process.pid;
+  // @Edits GOVERNED_EDIT_WRITE_SET — assert the rename TARGET lands inside
+  // .palantir-mini/ (NON-BREAKING: warns unless PALANTIR_MINI_WRITE_SET_STRICT=1).
+  assertWriteWithinDeclaredSet(rowsPath);
   fs.writeFileSync(tmpRows, existing + newLine, "utf8");
   fs.renameSync(tmpRows, rowsPath);
 
@@ -145,6 +149,7 @@ export function quarantineMalformedRow(opts: {
   }
 
   const tmpManifest = manifestPath(sessionDir) + ".tmp." + process.pid;
+  assertWriteWithinDeclaredSet(manifestPath(sessionDir));
   fs.writeFileSync(tmpManifest, JSON.stringify(manifest, null, 2), "utf8");
   fs.renameSync(tmpManifest, manifestPath(sessionDir));
 

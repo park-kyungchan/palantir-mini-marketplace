@@ -221,7 +221,11 @@ function protectedMutationClassForPromptGate(
   if (normalizedName === "bash" && mutating) {
     const command = String(payload.tool_input?.command ?? "").toLowerCase();
     if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(command)) {
-      return "pull-request";
+      // bd-017: a `gh pr` whose ENTIRE pushed/PR RANGE is non-ontology drops from the
+      // `pull-request` floor (blocking) to `generic-mutation` (scoped floor). An
+      // empty / unresolvable / MIXED range stays `pull-request` (conservative,
+      // BLOCKING). The range — not the staged set — is the change being shipped.
+      return allPushRangePathsNonOntology(projectRoot) ? "generic-mutation" : "pull-request";
     }
     if (/\bgit\s+commit\b/.test(command)) {
       // D-i: a `git commit` whose ENTIRE staged set is non-ontology drops from the
@@ -230,7 +234,13 @@ function protectedMutationClassForPromptGate(
       return allStagedPathsNonOntology(projectRoot) ? "generic-mutation" : "commit";
     }
     if (/\b(git\s+push|npm\s+publish|bun\s+publish|release|deploy)\b/.test(command)) {
-      return "release";
+      // bd-017: a `git push` (and publish/release/deploy) whose ENTIRE pushed RANGE
+      // is non-ontology drops from the `release` floor (blocking) to
+      // `generic-mutation` (scoped floor). A push moves already-committed refs, so the
+      // staged set is usually empty — the RANGE (origin/<branch>..HEAD or the default
+      // base) is the change being shipped. An empty / unresolvable / MIXED range stays
+      // `release` (conservative, BLOCKING).
+      return allPushRangePathsNonOntology(projectRoot) ? "generic-mutation" : "release";
     }
     return "external-command";
   }
@@ -432,6 +442,68 @@ function allCommitEditsTargetsNonOntology(
     if (!isNonOntologyPath(p, projectRoot)) return false;
   }
   return true;
+}
+
+/** Run a git command read-only, returning trimmed stdout or undefined on any failure. */
+function gitReadOnly(projectRoot: string, ...args: string[]): string | undefined {
+  try {
+    return execSync(`git ${args.join(" ")}`, {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * bd-017 — resolve the change-set base ref for a `git push` / `gh pr` range. The
+ * range is what is actually being SHIPPED (vs already-on-base), NOT the staged set
+ * (which is empty for a push of already-committed work, the bd-010 subtlety). Prefer
+ * the tracking upstream (`@{u}` = origin/<branch>); when none is configured, fall
+ * back to the first existing default base ref. A base that resolves to HEAD itself
+ * (e.g. a fresh single-branch repo) yields an EMPTY range, which the predicate below
+ * treats conservatively as unresolvable → keep the floor (blocking).
+ */
+function resolvePushRangeBaseRef(projectRoot: string): string | undefined {
+  const upstream = gitReadOnly(
+    projectRoot,
+    "rev-parse",
+    "--abbrev-ref",
+    "--symbolic-full-name",
+    "@{u}",
+  );
+  if (upstream && upstream.length > 0) return upstream;
+  for (const candidate of ["origin/main", "origin/master", "main", "master"]) {
+    if (gitReadOnly(projectRoot, "rev-parse", "--verify", "-q", `${candidate}^{commit}`)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * bd-017 — true IFF the push/PR RANGE resolves AND every path in it is non-ontology,
+ * so an all-non-ontology `git push` / `gh pr` may drop from the `release` /
+ * `pull-request` floor (blocking) to `generic-mutation` (scoped floor). Mirrors
+ * bd-010's `allStagedPathsNonOntology` semantics on the PUSHED range instead of the
+ * staged set: CONSERVATIVE on every failure path — an unresolvable base, a throw, or
+ * an EMPTY range returns `false` (do NOT de-floor). A MIXED range (any ontology
+ * surface) returns `false`, keeping the push/PR blocking. Reuses the SAME
+ * `isNonOntologyPath` predicate the advisory body uses, so header and body agree.
+ */
+function allPushRangePathsNonOntology(projectRoot: string): boolean {
+  const base = resolvePushRangeBaseRef(projectRoot);
+  if (!base) return false;
+  // Three-dot diff = changes on HEAD since the merge-base with `base` (the PR-diff
+  // set), so a base that is ahead of / unrelated to HEAD does not pull in unrelated
+  // paths.
+  const raw = gitReadOnly(projectRoot, "diff", "--name-only", `${base}...HEAD`);
+  if (raw === undefined) return false;
+  const paths = raw.split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+  if (paths.length === 0) return false;
+  return paths.every((p) => isNonOntologyPath(p, projectRoot));
 }
 
 function looksOntologyAffecting(value: unknown): boolean {
@@ -1169,6 +1241,8 @@ export const __test__ = {
   evaluatePreMutationImpactGate,
   protectedMutationClassForPromptGate,
   allStagedPathsNonOntology,
+  allPushRangePathsNonOntology,
+  resolvePushRangeBaseRef,
   isNonOntologyPath,
 };
 

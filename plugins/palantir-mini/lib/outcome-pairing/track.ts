@@ -17,6 +17,7 @@
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
+import { assertWriteWithinDeclaredSet } from "../fs-atomic";
 import type {
   OutcomePairingDeclaration,
   OutcomePairingRid,
@@ -176,6 +177,7 @@ export function writeOpenMarker(
   };
   const markerPath = path.join(pairsDir, `${pairRid}.json`);
   try {
+    assertWriteWithinDeclaredSet(markerPath);
     fs.writeFileSync(markerPath, JSON.stringify(decl, null, 2), "utf8");
     return markerPath;
   } catch {
@@ -212,6 +214,7 @@ export function closeOpenMarker(
         latencyMs: Date.parse(whenIso) - Date.parse(decl.createdAt),
       },
     };
+    assertWriteWithinDeclaredSet(openMarker);
     fs.writeFileSync(openMarker, JSON.stringify(updated, null, 2), "utf8");
     return openMarker;
   } catch {
@@ -251,6 +254,7 @@ export function writeClosedMarker(
   };
   const markerPath = path.join(pairsDir, `${pairRid}.json`);
   try {
+    assertWriteWithinDeclaredSet(markerPath);
     fs.writeFileSync(markerPath, JSON.stringify(decl, null, 2), "utf8");
     return markerPath;
   } catch {
