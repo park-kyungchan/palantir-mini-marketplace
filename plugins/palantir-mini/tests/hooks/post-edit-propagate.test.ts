@@ -1,6 +1,10 @@
 // palantir-mini v0 — post-edit-propagate hook tests (v3.3.0 N3 wave 1)
-// Coverage: ontology-vs-non-ontology classification, edit_committed event emission,
-// missing file_path graceful, malformed payload graceful, message contract.
+// Coverage: ontology-vs-non-ontology classification, drift_detected (stale_codegen)
+// event emission, missing file_path graceful, malformed payload graceful, message contract.
+//
+// F1b — a schema-source FILE edit emits a drift signal (codegen potentially stale),
+// NOT edit_committed (which is reserved to the governed commit path, ssot/palantir
+// approval-and-lineage). These assertions track that retype.
 
 import { test, expect, describe, beforeEach, afterEach } from "bun:test";
 import * as fs from "fs";
@@ -54,20 +58,22 @@ describe("post-edit-propagate hook", () => {
     expect(fs.existsSync(eventsPathFor(root))).toBe(false);
   });
 
-  test("schemas/ontology/ file → edit_committed event emitted", async () => {
+  test("schemas/ontology/ file → drift_detected (stale_codegen) event emitted", async () => {
     const root = setupRoot("onto-schemas");
+    const fp = "/home/x/.claude/schemas/ontology/primitives/foo.ts";
     const out = await postEditPropagate({
       tool_name: "Edit",
-      tool_input: { file_path: "/home/x/.claude/schemas/ontology/primitives/foo.ts" },
+      tool_input: { file_path: fp },
       cwd: root,
     });
-    expect(out.message).toContain("edit_committed event appended");
+    expect(out.message).toContain("drift_detected");
     const events = readEvents(eventsPathFor(root));
     expect(events.length).toBe(1);
-    expect(events[0]!.type).toBe("edit_committed");
+    expect(events[0]!.type).toBe("drift_detected");
+    expect(events[0]!.payload).toEqual({ driftType: "stale_codegen", affectedObjectType: fp });
   });
 
-  test("project ontology/*.ts → edit_committed payload references file", async () => {
+  test("project ontology/*.ts → drift_detected payload references file", async () => {
     const root = setupRoot("onto-project");
     const fp = "/repo/projects/palantir-math/ontology/entities.ts";
     await postEditPropagate({
@@ -77,9 +83,8 @@ describe("post-edit-propagate hook", () => {
     });
     const events = readEvents(eventsPathFor(root));
     const evt = events[0]!;
-    expect((evt.payload as { actionTypeRid: string }).actionTypeRid).toBe("PostToolUse:Write");
-    const appliedEdits = (evt.payload as { appliedEdits: { rid: string }[] }).appliedEdits;
-    expect(appliedEdits[0]!.rid).toBe(fp);
+    expect(evt.type).toBe("drift_detected");
+    expect(evt.payload).toEqual({ driftType: "stale_codegen", affectedObjectType: fp });
   });
 
   test("missing file_path → non-ontology classification", async () => {
@@ -106,15 +111,17 @@ describe("post-edit-propagate hook", () => {
     expect(out.message).toContain("non-ontology");
   });
 
-  test("MultiEdit ontology file → edit_committed with PostToolUse:MultiEdit", async () => {
+  test("MultiEdit ontology file → drift_detected referencing the edited file", async () => {
     const root = setupRoot("multiedit");
+    const fp = "/x/ontology/types.ts";
     await postEditPropagate({
       tool_name: "MultiEdit",
-      tool_input: { file_path: "/x/ontology/types.ts" },
+      tool_input: { file_path: fp },
       cwd: root,
     });
     const events = readEvents(eventsPathFor(root));
-    expect((events[0]!.payload as { actionTypeRid: string }).actionTypeRid).toBe("PostToolUse:MultiEdit");
+    expect(events[0]!.type).toBe("drift_detected");
+    expect(events[0]!.payload).toEqual({ driftType: "stale_codegen", affectedObjectType: fp });
   });
 
   test("non-ts ontology dir file → not classified (regex requires .ts)", async () => {

@@ -7,6 +7,14 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.28.0] - 2026-06-23
+
+### Fixed — F1b: ActionType = sole write-back commit gate (closes the F1-partial invariant)
+- **Reserved commit-provenance guard relocated to the shared hook `emit()` choke.** Extracted `RESERVED_PROVENANCE_TYPES` + `validateReservedProvenanceType` into `lib/event-log/reserved-provenance.ts`, now imported by BOTH `bridge/handlers/emit-event.ts` (the F1 MCP-boundary guard) and `scripts/log.ts emit()` (new backstop). No hook — present or future — can forge `edit_committed`/`submission_criteria_failed`; the governed commit path (`lib/actions/commit.ts`, which bypasses `emit()` and calls `appendEventAtomic` directly) is unaffected.
+- **`hooks/post-edit-propagate.ts` retyped** from a forged `edit_committed` (unregistered `actionTypeRid:"PostToolUse:<tool>"`, empty submission criteria, file-path as primitive rid) to `drift_detected{driftType:"stale_codegen", affectedObjectType:<filePath>}` — the honest signal for an ungoverned schema-source edit (codegen now potentially stale), routed to the actively-consumed drift lane. `edit_committed` now originates ONLY from the governed ActionType commit. Grounds: `ssot/palantir/ontology/approval-and-lineage.md` (exactly one write-back boundary).
+- Tests: rewrote `tests/hooks/post-edit-propagate.test.ts` (drift assertions); added `tests/scripts/log.test.ts` choke tests + `tests/lib/event-log/reserved-provenance.test.ts`.
+- Deferred follow-up: the `fold-snapshot` read-side presence→registration hardening — 0 production effect post-retype (every real `edit_committed` already carries a registered rid).
+
 ## [7.27.0] - 2026-06-22 — sole-commit-gate closure + guard over-match defense + fail-closed resume + auditable gate refusal + cross-lens mutation alignment + skill→tool regex/ref remediation + MANIFEST packageVersion sync
 
 ### Fixed
