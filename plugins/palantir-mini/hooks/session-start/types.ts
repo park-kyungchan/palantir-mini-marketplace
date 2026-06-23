@@ -9,6 +9,13 @@ export interface HookPayload {
 }
 
 export interface HookResult {
-  additionalContext?: string;
-  message:            string;
+  message:             string;
+  // SessionStart additionalContext is honored by Claude ONLY at
+  // hookSpecificOutput.additionalContext (nested, hookEventName "SessionStart").
+  // A top-level additionalContext is silently dropped by the runtime, so the
+  // fold-trigger (and every other contextLines entry) MUST ride nested here.
+  hookSpecificOutput?: {
+    hookEventName:     "SessionStart";
+    additionalContext: string;
+  };
 }

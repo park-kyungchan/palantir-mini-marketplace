@@ -55,11 +55,15 @@ agent declaration.
 
    While it runs, the engine writes `<id>.request.json` files into that dir and
    BLOCKS until a `<id>.response.txt` (or `<id>.error.txt`) appears. For each
-   request file, READ its `{system,user,schema}`, produce the extraction answer
-   the request asks for (RAW nodes/edges JSON per the `schema` hint — structure is
-   re-validated downstream by the engine's Zod, so return your best text answer),
-   and WRITE it to `<id>.response.txt` in the SAME dir. The engine then merges,
-   stamps lineage, writes `graph.json` + the `manifest.json.foldedSessions`
+   request file, READ its `{system,user,schema}` and produce the extraction answer
+   the request asks for. **`<id>.response.txt` MUST contain ONLY the raw JSON object
+   `{"nodes":[...],"edges":[...]}` conforming to the request's `schema` — no prose,
+   no commentary, no Markdown code fences, nothing before the opening `{` or after
+   the closing `}`.** A prose-wrapped or fenced answer risks collapsing the chunk to
+   an empty extraction; emit the bare JSON object only. (The engine's Zod re-validates
+   downstream and self-heals once, but the response you write must already be that
+   JSON object.) WRITE it to `<id>.response.txt` in the SAME dir. The engine then
+   merges, stamps lineage, writes `graph.json` + the `manifest.json.foldedSessions`
    completion marker itself, and prints `{ verdicts, summary }` JSON to stdout.
 
    (If a request cannot be answered, write `<id>.error.txt` so the engine drops

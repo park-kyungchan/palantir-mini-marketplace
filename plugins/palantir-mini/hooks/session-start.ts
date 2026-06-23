@@ -308,8 +308,21 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
     );
   }
 
+  // FIX-FOLD-WIRING: Claude honors SessionStart additionalContext ONLY at
+  // hookSpecificOutput.additionalContext (nested, hookEventName "SessionStart").
+  // The generic dispatcher (scripts/run.ts) serializes this return verbatim, so a
+  // TOP-LEVEL additionalContext field is silently dropped and the second-brain
+  // fold loop never closes. Mirror the WORKING UserPromptSubmit shape from
+  // prompt-front-door-capture.ts and ride contextLines via the nested object.
   return {
     message: `palantir-mini: session_started event appended at ${epath}`,
-    ...(contextLines.length > 0 ? { additionalContext: contextLines.join(" ") } : {}),
+    ...(contextLines.length > 0
+      ? {
+          hookSpecificOutput: {
+            hookEventName: "SessionStart" as const,
+            additionalContext: contextLines.join(" "),
+          },
+        }
+      : {}),
   };
 }

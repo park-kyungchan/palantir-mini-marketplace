@@ -117,10 +117,14 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     markPending(root, { sessionId, transcriptPath: `/x/${sessionId}.jsonl`, bookmarkedAt: "x", runtime: "monitor" });
 
     const result = await sessionStart({ cwd: root, session_id: "live-sess" });
-    expect(typeof result.additionalContext).toBe("string");
-    expect(result.additionalContext).toContain("[second-brain]");
-    expect(result.additionalContext).toContain(sessionId);
-    expect(result.additionalContext).toContain(root);
+    // FIX-FOLD-WIRING: the fold-trigger rides nested at
+    // hookSpecificOutput.additionalContext (hookEventName "SessionStart"); a
+    // top-level additionalContext would be silently dropped by Claude.
+    expect(result.hookSpecificOutput?.hookEventName).toBe("SessionStart");
+    expect(typeof result.hookSpecificOutput?.additionalContext).toBe("string");
+    expect(result.hookSpecificOutput?.additionalContext).toContain("[second-brain]");
+    expect(result.hookSpecificOutput?.additionalContext).toContain(sessionId);
+    expect(result.hookSpecificOutput?.additionalContext).toContain(root);
   });
 
   test("fold trigger fires WITHOUT eager env (P1 eager-gate fix regression guard)", async () => {
@@ -133,9 +137,10 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     markPending(root, { sessionId, transcriptPath: `/x/${sessionId}.jsonl`, bookmarkedAt: "x", runtime: "monitor" });
 
     const result = await sessionStart({ cwd: root, session_id: "live-sess" });
-    expect(typeof result.additionalContext).toBe("string");
-    expect(result.additionalContext).toContain("[second-brain]");
-    expect(result.additionalContext).toContain(sessionId);
+    expect(result.hookSpecificOutput?.hookEventName).toBe("SessionStart");
+    expect(typeof result.hookSpecificOutput?.additionalContext).toBe("string");
+    expect(result.hookSpecificOutput?.additionalContext).toContain("[second-brain]");
+    expect(result.hookSpecificOutput?.additionalContext).toContain(sessionId);
   });
 
   test("a session already in foldedSessions is NOT named (listPending exclusion)", async () => {
@@ -150,7 +155,7 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     );
 
     const result = await sessionStart({ cwd: root, session_id: "live-sess" });
-    const ctx = result.additionalContext ?? "";
+    const ctx = result.hookSpecificOutput?.additionalContext ?? "";
     expect(ctx).not.toContain(sessionId);
   });
 
@@ -167,7 +172,7 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     setEnv(root);
 
     const result = await sessionStart({ cwd: root, session_id: "live-sess" });
-    const ctx = result.additionalContext ?? "";
+    const ctx = result.hookSpecificOutput?.additionalContext ?? "";
     expect(ctx).not.toContain("[second-brain]");
   });
 });

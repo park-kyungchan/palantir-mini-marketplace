@@ -7,6 +7,19 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.29.0] - 2026-06-23
+
+### Fixed — FIX-FOLD-WIRING (bd-016): SessionStart fold-trigger now reaches the Claude runtime
+- **SessionStart hook emits its second-brain fold-trigger via the NESTED `hookSpecificOutput.additionalContext`** (with `hookEventName: "SessionStart"`) instead of a top-level `additionalContext` key. Claude Code silently dropped the top-level key, so the model-driven fold auto-dispatch **never closed on the Claude runtime across 7.26.0–7.28.0** — the symptom was an empty self-ontology graph, 0 fold events, and 121 bookmarks accruing with no fold ever firing. Moving the trigger into the documented nested shape restores the auto-dispatch (`hooks/session-start.ts`, `hooks/session-start/types.ts`).
+- **Subagent structured-output seam hardened** (`agents/second-brain-fold.md`): `SubagentLlmClient` now coerces the subagent's JSON output rather than letting prose collapse the result to an empty graph, so a fold that does run produces a populated graph instead of silently emptying it.
+- Tests: the masking unit test was corrected to assert the **nested** `hookSpecificOutput.additionalContext` shape (`tests/hooks/session-start.test.ts`, `tests/hooks/session-start-stale-cleanup.test.ts`).
+
+### Added — bd-015: pm-self-engineering exemption lane for the mutation-auth gate
+- **A pm-source NON-ontology edit is now exempt from the harness-upstream mutation-auth block ONLY when an explicit per-session structured opt-in marker is active** (`.palantir-mini/session/pm-self-engineering-optin/<session_id>.json`). The pm root is content-anchored on `.ssot-authority.json` (`kind: palantir-mini-workflow-authority`), so the exemption resolves the canonical plugin source rather than a path heuristic (`lib/ontology-engineering-workflow/pm-self-engineering-exempt.ts`, NEW; `hooks/ontology-engineering-workflow-enforcement-gate.ts`).
+- **Ontology-operation mutations stay gated** — the ActionType-sole-commit-gate is intact; only pm-self-engineering NON-ontology edits with an active opt-in marker pass. The lane is **fail-closed** (no marker / unresolved root ⇒ blocked) and **audited** (`pm_self_engineering_exempt`).
+- Variant-(ii) deny-message clarification added so the blocked path explains the missing opt-in marker.
+- Tests: `tests/hooks/ontology-engineering-workflow-enforcement-gate.test.ts`.
+
 ## [7.28.0] - 2026-06-23
 
 ### Fixed — F1b: ActionType = sole write-back commit gate (closes the F1-partial invariant)

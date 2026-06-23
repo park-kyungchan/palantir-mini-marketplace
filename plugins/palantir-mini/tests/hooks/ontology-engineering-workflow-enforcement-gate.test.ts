@@ -429,4 +429,228 @@ describe("ontology-engineering workflow enforcement hook", () => {
     expect(result.decision).toBe("block");
     expect(result.reason).toContain("mutation requires approved SIC and DTC");
   });
+
+  // --- bd-015 variant-(i): pm-self-engineering exemption (non-ontology pm-source
+  // edit, with an EXPLICIT per-session structured opt-in). The exemption lives in
+  // the protectedSurfaceMutation && !mutationAuthorized branch, so each test gives
+  // FDE provenance (writeWorkflowState(false) sets fdeSessionId/Ref) to clear the
+  // provenance deny first. The pm-plugin ROOT is content-anchored on a
+  // .ssot-authority.json whose kind === "palantir-mini-workflow-authority". ---
+
+  const PM_SELF_ENGINEERING_SESSION = "sess-pm-self-eng";
+
+  /**
+   * Build a pm-plugin-source ROOT: a dir carrying a `.ssot-authority.json` with
+   * kind "palantir-mini-workflow-authority". When `withOptIn`, also drop the
+   * per-session opt-in marker under <pmRoot>/.palantir-mini/session/
+   * pm-self-engineering-optin/<sessionId>.json. Returns the absolute pmRoot.
+   */
+  function makePmRoot(
+    opts: { withOptIn: boolean; sessionId?: string; authorityKind?: string; authorityRaw?: string } = { withOptIn: true },
+  ): string {
+    const pmRoot = path.join(projectRoot, "marketplace/plugins/palantir-mini");
+    fs.mkdirSync(pmRoot, { recursive: true });
+    const authorityPath = path.join(pmRoot, ".ssot-authority.json");
+    if (opts.authorityRaw !== undefined) {
+      fs.writeFileSync(authorityPath, opts.authorityRaw);
+    } else {
+      fs.writeFileSync(
+        authorityPath,
+        JSON.stringify({ kind: opts.authorityKind ?? "palantir-mini-workflow-authority", version: "1.7.0" }),
+      );
+    }
+    if (opts.withOptIn) {
+      const sid = opts.sessionId ?? PM_SELF_ENGINEERING_SESSION;
+      const optinDir = path.join(pmRoot, ".palantir-mini/session/pm-self-engineering-optin");
+      fs.mkdirSync(optinDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(optinDir, `${sid}.json`),
+        JSON.stringify({ kind: "pm-self-engineering-optin", sessionId: sid, enabledAt: "2026-06-23T00:00:00.000Z", enabledBy: "operator" }),
+      );
+    }
+    return pmRoot;
+  }
+
+  function selfEngEdit(filePath: string, sessionId = PM_SELF_ENGINEERING_SESSION) {
+    return assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      session_id: sessionId,
+      tool_name: "Edit",
+      tool_input: { file_path: filePath },
+    });
+  }
+
+  test("EXEMPT T1: Edit hooks/second-brain-fold.ts (non-ontology pm-source, opt-in active) PASSES", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: true });
+    const result = selfEngEdit(path.join(pmRoot, "hooks/second-brain-fold.ts"));
+    expect(result.decision).toBe("continue");
+    expect(result.message).toContain("pm-self-engineering exemption");
+  });
+
+  test("EXEMPT T2: Edit lib/event-log/read/fold-snapshot.ts PASSES (non-protected pm-source — not blocked)", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: true });
+    // lib/event-log/ is NOT in PROTECTED_SURFACE_MARKERS and is not an ontology
+    // path-class, so the gate never enters the mutation branch — it CONTINUES at the
+    // early skip. The exemption is a no-op here; what matters is the edit PASSES.
+    const result = selfEngEdit(path.join(pmRoot, "lib/event-log/read/fold-snapshot.ts"));
+    expect(result.decision).toBe("continue");
+  });
+
+  test("EXEMPT T3: MultiEdit bridge/handlers/emit-event.ts + scripts/log.ts PASSES (non-protected pm-source)", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: true });
+    // Neither bridge/handlers/emit-event.ts nor scripts/log.ts is a protected
+    // surface marker; the call CONTINUES at the early skip (not blocked).
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      session_id: PM_SELF_ENGINEERING_SESSION,
+      tool_name: "MultiEdit",
+      tool_input: {
+        edits: [
+          { file_path: path.join(pmRoot, "bridge/handlers/emit-event.ts") },
+          { file_path: path.join(pmRoot, "scripts/log.ts") },
+        ],
+      },
+    });
+    expect(result.decision).toBe("continue");
+  });
+
+  test("EXEMPT T4: MultiEdit two non-ontology pm files PASSES", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: true });
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      session_id: PM_SELF_ENGINEERING_SESSION,
+      tool_name: "MultiEdit",
+      tool_input: {
+        edits: [
+          { file_path: path.join(pmRoot, "lib/lead-intent/a.ts") },
+          { file_path: path.join(pmRoot, "lib/context-engineering/b.ts") },
+        ],
+      },
+    });
+    expect(result.decision).toBe("continue");
+    expect(result.message).toContain("pm-self-engineering exemption");
+  });
+
+  test("EXEMPT T5: Write to hooks/hooks.json (config, not ontology) PASSES", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: true });
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      session_id: PM_SELF_ENGINEERING_SESSION,
+      tool_name: "Write",
+      tool_input: { file_path: path.join(pmRoot, "hooks/hooks.json"), content: "{}" },
+    });
+    expect(result.decision).toBe("continue");
+    expect(result.message).toContain("pm-self-engineering exemption");
+  });
+
+  test("BLOCK B1: Edit runtime-overlay/schemas-snapshot/ontology/self/hook.objecttype.ts (/ontology/ class) still BLOCKS", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: true });
+    const result = selfEngEdit(
+      path.join(pmRoot, "runtime-overlay/schemas-snapshot/ontology/self/hook.objecttype.ts"),
+    );
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("BLOCK B2: Write under .palantir-mini/<primitive> still BLOCKS", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: true });
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      session_id: PM_SELF_ENGINEERING_SESSION,
+      tool_name: "Write",
+      tool_input: {
+        file_path: path.join(pmRoot, ".palantir-mini/object-type/foo.ts"),
+        content: "x",
+      },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("BLOCK B3: other-project ontology path while cwd=marketplace still BLOCKS", () => {
+    writeWorkflowState(false);
+    makePmRoot({ withOptIn: true });
+    // Target is an external project's ontology class, NOT under the pm root.
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      session_id: PM_SELF_ENGINEERING_SESSION,
+      tool_name: "Edit",
+      tool_input: { file_path: path.join(projectRoot, "projects/other/ontology/object-type/x.ts") },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("BLOCK B4: MultiEdit mixing a pm file + an external ontology file still BLOCKS", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: true });
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      session_id: PM_SELF_ENGINEERING_SESSION,
+      tool_name: "MultiEdit",
+      tool_input: {
+        edits: [
+          { file_path: path.join(pmRoot, "hooks/second-brain-fold.ts") },
+          { file_path: path.join(projectRoot, "projects/other/ontology/object-type/x.ts") },
+        ],
+      },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("BLOCK B5: path containing 'palantir-mini' with NO .ssot-authority.json ancestor still BLOCKS", () => {
+    writeWorkflowState(false);
+    // A bare 'palantir-mini' substring path with no authority file: the
+    // content-anchored walk finds no pm root ⇒ no exemption. It also trips the
+    // PROTECTED_SURFACE_MARKERS substring, so it stays in the mutation deny.
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      session_id: PM_SELF_ENGINEERING_SESSION,
+      tool_name: "Edit",
+      tool_input: {
+        file_path: path.join(projectRoot, ".claude/plugins/palantir-mini/hooks/x.ts"),
+      },
+    });
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("BLOCK B6 regression: an authorized (mutationAuthorized true) ontology edit still PASSES via the normal path", () => {
+    writeWorkflowState(true);
+    const result = assessOntologyEngineeringWorkflowHook({
+      cwd: projectRoot,
+      tool_name: "Edit",
+      tool_input: {
+        file_path: path.join(projectRoot, ".claude/plugins/palantir-mini/hooks/hooks.json"),
+      },
+    });
+    expect(result.decision).toBe("continue");
+    // The normal mutationAuthorized path — NOT the self-engineering exemption.
+    expect(result.additionalContext).toContain("mutationAuthorized=true");
+    expect(result.message).not.toContain("pm-self-engineering exemption");
+  });
+
+  test("OPT-IN REQUIRED: opt-in ABSENT ⇒ Edit hooks/second-brain-fold.ts DENIES", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: false });
+    const result = selfEngEdit(path.join(pmRoot, "hooks/second-brain-fold.ts"));
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
+
+  test("T-FC fail-closed: malformed .ssot-authority.json ⇒ DENY (no exemption)", () => {
+    writeWorkflowState(false);
+    const pmRoot = makePmRoot({ withOptIn: true, authorityRaw: "{ this is not valid json" });
+    const result = selfEngEdit(path.join(pmRoot, "hooks/second-brain-fold.ts"));
+    expect(result.decision).toBe("block");
+    expect(result.reason).toContain("mutation requires approved SIC and DTC");
+  });
 });
