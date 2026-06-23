@@ -11,7 +11,7 @@ description: >
   never reach.
 tools: Bash, Read, mcp__plugin_palantir-mini_palantir-mini__emit_event
 model: inherit
-maxTurns: 8
+maxTurns: 15
 memory: user
 memoryLayers: ["semantic", "episodic"]
 outputContractExempt:
@@ -94,17 +94,23 @@ agent declaration.
    The server auto-fills the 5-dim header (eventId/when/atopWhich/throughWhich/
    byWhom) and auto-grades. Do NOT change the event-type schema.
 
-3. **Clear the pending bookmark** (the engine already wrote the completion marker;
-   you only clear the "needs attention" queue):
+3. **Clear the pending bookmark** (the engine already wrote the authoritative
+   completion marker in `manifest.json.foldedSessions`; this only clears the
+   separate "needs attention" queue so the next SessionStart stops re-detecting).
+   The CLI lives under the palantir-mini plugin root, not `<projectRoot>`. Resolve
+   it deterministically in ONE Bash call — prefer `$CLAUDE_PLUGIN_ROOT`, else the
+   newest cached install (no version pin) — and run the clear in the same call:
 
    ```
-   bun run <projectRoot>/<plugin>/lib/second-brain/pending-fold-cli.ts clear <projectRoot> <sessionId>
+   CLI="$( [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "$CLAUDE_PLUGIN_ROOT/lib/second-brain/pending-fold-cli.ts" ] \
+     && echo "$CLAUDE_PLUGIN_ROOT/lib/second-brain/pending-fold-cli.ts" \
+     || ls -t "$HOME"/.claude/plugins/cache/*/palantir-mini/*/lib/second-brain/pending-fold-cli.ts 2>/dev/null | head -1 )"
+   bun run "$CLI" clear <projectRoot> <sessionId>
    ```
 
-   (`<plugin>` = the palantir-mini plugin root, available as `${CLAUDE_PLUGIN_ROOT}`
-   in hook context; from inside this agent, resolve it from the plugin install path
-   or fall back to leaving the marker — the next SessionStart re-detects, which is
-   safe.)
+   This is best-effort: the CLI always exits 0, and if the marker is left behind the
+   next SessionStart re-detects (idempotent, never re-folds — `listPending` excludes
+   already-folded sessions). Do NOT spend extra turns retrying a non-zero clear.
 
 4. **Return a bounded summary** — counts only (verdicts emitted, nodes/edges from
    the summary, chunks skipped/failed). NEVER return the graph.
@@ -125,3 +131,11 @@ DISPATCH — the adapter-boundary principle (ssot/palantir).
 - Emit through the MCP tool only; never append to events.jsonl directly.
 - Best-effort + idempotent: if the session was already folded the engine returns
   `skipped` (empty verdicts) — just clear the bookmark and report 0 emitted.
+- **Complete in ONE dispatch (budget: `maxTurns` 15).** The whole fold is four
+  bounded phases — engine run (step 1) → one `emit_event` per verdict + the summary
+  (step 2) → one bookmark-clear Bash call (step 3) → bounded summary (step 4). Serve
+  the engine's file-backed LLM requests promptly so step 1 does not eat the budget;
+  never re-run the engine after it prints `{ verdicts, summary }`. If you ever
+  approach the turn limit, finish the remaining `emit_event` calls FIRST (the
+  governed writes are the deliverable); the bookmark-clear is the only safely
+  skippable step (next SessionStart re-detects).

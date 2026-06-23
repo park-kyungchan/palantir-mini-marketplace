@@ -58,9 +58,9 @@ function proposalRecord(p: EditProposedEnvelope, commit?: EditCommittedEnvelope)
       ? `dr-${p.sequence}-${commit.sequence}`
       : `dr-${p.sequence}`,
     // DATA — applied edits when committed (what actually landed), else the staged edits.
-    data: (cp?.appliedEdits as readonly OntologyEdit[] | undefined) ?? p.payload.hypotheticalEdits ?? [],
+    data: (cp?.appliedEdits as readonly OntologyEdit[] | undefined) ?? p.payload?.hypotheticalEdits ?? [],
     logic: {
-      functionName: p.payload.functionName,
+      functionName: p.payload?.functionName,
       reasoning:    p.withWhat?.reasoning,
       proposedSeq:  p.sequence,
     },
@@ -82,19 +82,19 @@ function proposalRecord(p: EditProposedEnvelope, commit?: EditCommittedEnvelope)
 function commitOnlyRecord(c: EditCommittedEnvelope): DecisionRecord {
   return {
     decisionId: `dr-c${c.sequence}`,
-    data: (c.payload.appliedEdits as readonly OntologyEdit[] | undefined) ?? [],
+    data: (c.payload?.appliedEdits as readonly OntologyEdit[] | undefined) ?? [],
     // Logic side is empty — the commit arrived without an observed proposal in
     // this stream window (e.g. a register edit committed directly, or a proposal
     // that rotated out of the read window).
     logic: { reasoning: c.withWhat?.reasoning },
     action: {
-      actionTypeRid: c.payload.actionTypeRid,
+      actionTypeRid: c.payload?.actionTypeRid,
       committed:     true,
       committedSeq:  c.sequence,
     },
     security: {
       actor:                    c.byWhom?.identity,
-      submissionCriteriaPassed: c.payload.submissionCriteriaPassed,
+      submissionCriteriaPassed: c.payload?.submissionCriteriaPassed,
       atopWhich:                c.atopWhich === undefined ? undefined : String(c.atopWhich),
     },
     when:      c.when,
@@ -127,11 +127,11 @@ export function foldDecisionRecords(events: readonly EventEnvelope[]): DecisionR
     if (ev.type === "edit_committed") {
       const sid = sessionOf(ev) ?? "";
       const q = openProposals.get(sid) ?? [];
-      const committedRids = ridSet(ev.payload.appliedEdits as readonly OntologyEdit[] | undefined);
+      const committedRids = ridSet(ev.payload?.appliedEdits as readonly OntologyEdit[] | undefined);
       // Claim the most-recent proposal whose staged edits cover the committed set.
       let matchIdx = -1;
       for (let i = q.length - 1; i >= 0; i--) {
-        if (stagedCovers(ridSet(q[i]!.payload.hypotheticalEdits), committedRids)) {
+        if (stagedCovers(ridSet(q[i]!.payload?.hypotheticalEdits), committedRids)) {
           matchIdx = i;
           break;
         }

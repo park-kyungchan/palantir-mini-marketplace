@@ -151,7 +151,12 @@ import { FDE_FILL_SEQUENCE, advanceFDEFillSequence } from "../../lib/semantic-in
 import {
   NINE_AXIS_SIC_SEQUENCE,
   advanceNineAxisSicSequence,
+  advanceNineAxisSicBatch,
   nineAxisSicReadinessIssues,
+} from "../../lib/semantic-intent/nine-axis-sic-fill-sequence";
+import type {
+  NineAxisBatchInput,
+  NineAxisBatchResult,
 } from "../../lib/semantic-intent/nine-axis-sic-fill-sequence";
 import type {
   SicAxis,
@@ -294,6 +299,25 @@ export interface SemanticIntentGateInput {
    * turn (source = "user"); it never auto-fills the axis.
    */
   readonly proposedAxisDraft?: NineAxisProposedDraft;
+  /**
+   * P1-7-wire (ADDITIVE) — BATCH-mode 9-axis fill. When present, the handler fills
+   * MULTIPLE 9-axis turns (the intent turn and/or any subset of the 9 axes) in ONE
+   * gate round-trip via `advanceNineAxisSicBatch`, instead of N sequential single-axis
+   * `turn`/`turnUserInput` calls. This makes the first-class batched fill sequence
+   * runtime-reachable through the MCP gate.
+   *
+   * Each axis answer carries `answer` (user-sourced free-text, recorded byte-identically
+   * to a per-turn `turnUserInput`) OR `notApplicable: true` (user-sourced waiver,
+   * mirroring `turnNotApplicable`); `intent` fills T0. A full batch (intent + all 9 axes)
+   * reaches the same `isNineAxisSicComplete` / finalization as 10 sequential per-turn calls.
+   *
+   * STRICT-per-axis FALLBACK: when `nineAxisBatch` is ABSENT, the existing single-axis
+   * `turn` path is byte-identical to pre-change. The batch path engages ONLY on the
+   * nine-axis-sic policy (absent fillPolicy — the W3d-2b default — or explicit
+   * "nine-axis-sic"); on any other fillPolicy `nineAxisBatch` is ignored. A populated
+   * `nineAxisBatch` takes precedence over `turn` for the nine-axis-sic policy.
+   */
+  readonly nineAxisBatch?: NineAxisBatchInput;
   /**
    * P3 — response shaping. 'turn' (default): fillResult + active card + blocked count inline,
    * heavy readiness bodies + full semanticConversationState relocated to overflow.fullPath.
@@ -511,6 +535,18 @@ export interface SemanticIntentGateResult {
    * Backward compat: absent fillPolicy or SIC-only fillPolicy → undefined.
    */
   dtcFillResult?: DtcSemanticIntentFillResult;
+  /**
+   * P1-7-wire (ADDITIVE) — present when `nineAxisBatch` was supplied on the nine-axis-sic
+   * policy. Carries the batch outcome: `appliedTurns` (the turn indices filled this call,
+   * ascending) and `fillComplete` (== isNineAxisSicComplete). The accumulated contract
+   * rides on `fillResult.contract` (the batch synthesizes a `fillResult` whose
+   * `appliedTurn` is the LAST turn applied), so persistence/contract-ref machinery is
+   * shared with the per-turn path. Absent ⇒ no batch was requested (byte-identical legacy).
+   */
+  nineAxisBatchResult?: {
+    appliedTurns: readonly number[];
+    fillComplete: boolean;
+  };
   /** Deterministic resolver output for source-system term consistency, when requested. */
   semanticConsistencyResult?: SemanticConsistencyResolverOutput;
   /**
@@ -2306,7 +2342,137 @@ export async function semanticIntentGate(
   let fillResult: SemanticIntentFillResult | undefined;
   let fdeFillResult: FDESemanticIntentFillResult | undefined;
   let dtcFillResult: DtcSemanticIntentFillResult | undefined;
-  if (typeof input.turn === "number") {
+  let nineAxisBatchResult: { appliedTurns: readonly number[]; fillComplete: boolean } | undefined;
+
+  // ---------------------------------------------------------------------------
+  // P1-7-wire (ADDITIVE) — BATCH 9-axis fill. Makes the first-class
+  // `advanceNineAxisSicBatch` runtime-reachable: fill the intent turn and/or any
+  // subset of the 9 axes in ONE gate round-trip instead of N sequential single-axis
+  // `turn` calls. Engages ONLY on the nine-axis-sic policy (absent fillPolicy — the
+  // W3d-2b default — or explicit "nine-axis-sic"). When `nineAxisBatch` is ABSENT the
+  // whole block is skipped and the strict per-axis `turn` path below is byte-identical.
+  // A populated `nineAxisBatch` takes precedence over `turn` for this policy.
+  // ---------------------------------------------------------------------------
+  const batchPolicyEligible =
+    input.fillPolicy === undefined || input.fillPolicy === "nine-axis-sic";
+  if (input.nineAxisBatch !== undefined && batchPolicyEligible) {
+    const baseContract = input.semanticIntentContract ?? draftContracts?.semanticIntent;
+    if (baseContract) {
+      try {
+        const batch: NineAxisBatchResult = advanceNineAxisSicBatch(
+          baseContract,
+          input.nineAxisBatch,
+        );
+        const advanced = batch.contract as SicWithFillFields;
+        // The synthesized fillResult anchors to the LAST applied turn so the contract
+        // rides through persistence/projection exactly like a per-turn fillResult.
+        const lastTurn =
+          batch.appliedTurns.length > 0
+            ? batch.appliedTurns[batch.appliedTurns.length - 1]!
+            : 0;
+        const descriptor = NINE_AXIS_SIC_SEQUENCE[lastTurn]!;
+        const nextDescriptor =
+          lastTurn < NINE_AXIS_SIC_SEQUENCE.length - 1
+            ? NINE_AXIS_SIC_SEQUENCE[lastTurn + 1]
+            : undefined;
+        const issues = nineAxisSicReadinessIssues(advanced);
+        const fillIncomplete =
+          !batch.fillComplete && batch.appliedTurns.length > 0
+            ? "nine_axis_sic_batch_incomplete: 9-axis readiness is incomplete after batch (" +
+              issues.map((i) => i.field).join(", ") +
+              ")."
+            : undefined;
+
+        // Lineage: a batch fill is a single round-trip that advances multiple turns.
+        try {
+          await emit({
+            type: "validation_phase_completed",
+            payload: {
+              passed: true,
+              errorClass: "nine_axis_sic_batch_advanced",
+              fillPolicy: "nine-axis-sic",
+              appliedTurns: batch.appliedTurns,
+              fillSequenceLength: advanced.fillSequence?.length ?? 0,
+              fillComplete: batch.fillComplete,
+              contractId: advanced.contractId,
+              projectRoot: input.project,
+              promptId: input.promptId,
+              sessionId: input.sessionId,
+            } as Record<string, unknown>,
+            toolName: "pm_semantic_intent_gate",
+            cwd: input.project,
+            reasoning:
+              `pm_semantic_intent_gate nine-axis-sic BATCH advanced — ` +
+              `appliedTurns=[${batch.appliedTurns.join(",")}] fillComplete=${batch.fillComplete}; ` +
+              `contractId=${advanced.contractId}`,
+            hypothesis:
+              "A batched 9-axis fill composes the SAME per-axis transform as N sequential " +
+              "per-turn calls, reaching the same isNineAxisSicComplete readiness in one round-trip.",
+            memoryLayers: ["semantic", "procedural"],
+          });
+        } catch {
+          // Non-fatal emit.
+        }
+
+        // Finalization emit — mirror the per-turn T9 finalization so the
+        // contract-finalized lineage row fires when a batch completes the fill.
+        if (batch.fillComplete) {
+          try {
+            await emit({
+              type: "validation_phase_completed",
+              payload: {
+                passed: true,
+                errorClass: "semantic_intent_contract_finalized",
+                contractId: advanced.contractId,
+                verdict: "filled",
+                fillSequenceLength: advanced.fillSequence?.length ?? 0,
+                fillComplete: true,
+                rawIntent: advanced.rawIntent,
+                fillPolicy: "nine-axis-sic",
+                appliedTurns: batch.appliedTurns,
+                projectRoot: input.project,
+                promptId: input.promptId,
+                sessionId: input.sessionId,
+              } as Record<string, unknown>,
+              toolName: "pm_semantic_intent_gate",
+              cwd: input.project,
+              reasoning:
+                `pm_semantic_intent_gate: SemanticIntentContract finalized after 9-axis BATCH fill; ` +
+                `contractId=${advanced.contractId} — all 9 axes + intent filled in one round-trip`,
+              hypothesis:
+                "A complete 9-axis batch yields a contract with intent + all axes filled, " +
+                "enabling downstream gate assessment under the W3d-2b default-nine-axis policy.",
+              memoryLayers: ["semantic", "procedural"],
+            });
+          } catch {
+            // Non-fatal emit.
+          }
+        }
+
+        const turnCard = nineAxisTurnCard(lastTurn);
+        const nextTurnCard = nextDescriptor ? nineAxisTurnCard(lastTurn + 1) : undefined;
+        fillResult = {
+          appliedTurn: lastTurn,
+          question: descriptor.question,
+          contract: advanced,
+          fillComplete: batch.fillComplete,
+          ...(fillIncomplete ? { fillIncomplete } : {}),
+          ...(nextDescriptor ? { nextQuestion: nextDescriptor.question } : {}),
+          turnCard,
+          ...(nextTurnCard ? { nextTurnCard } : {}),
+        };
+        nineAxisBatchResult = {
+          appliedTurns: batch.appliedTurns,
+          fillComplete: batch.fillComplete,
+        };
+      } catch (err) {
+        // Non-fatal — absence of nineAxisBatchResult indicates the batch was not applied.
+        void err;
+      }
+    }
+  }
+
+  if (nineAxisBatchResult === undefined && typeof input.turn === "number") {
     // ---------------------------------------------------------------------------
     // ADDITIVE: DTC path — fires BEFORE SIC/FDE branch.
     // Only engaged when fillPolicy is "dtc-turn-fill" or "ontology-dtc-build".
@@ -2984,6 +3150,7 @@ export async function semanticIntentGate(
     ...(fillResultProjected ? { fillResult: fillResultProjected } : {}),
     ...(fdeFillResultProjected ? { fdeFillResult: fdeFillResultProjected } : {}),
     ...(dtcFillResult ? { dtcFillResult } : {}),
+    ...(nineAxisBatchResult ? { nineAxisBatchResult } : {}),
     ...(semanticConsistencyResult ? { semanticConsistencyResult } : {}),
   };
 }

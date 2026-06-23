@@ -7,6 +7,27 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.31.0] - 2026-06-23 — residual wiring completions (P1-7-wire, P1-13-wire, fold-ergonomics)
+
+Activates the production wiring for three seams shipped at the lib level in 7.30.0 (which were intentionally left as tracked follow-ups), plus a fold-agent ergonomics fix from the live #22 finding. No new lib capability — these entries make the 7.30.0 seams runtime-reachable. Per-turn / default paths are byte-identical when the new additive inputs are absent.
+
+### Added — P1-7-wire (batched 9-axis fill reachable through the MCP gate)
+- **`advanceNineAxisSicBatch` (first-class batched multi-axis 9-axis fill, added 7.30.0 but unreachable) is now invoked by the `pm_semantic_intent_gate` MCP handler** via an additive `nineAxisBatch` input + `nineAxisBatchResult` output (`bridge/handlers/pm-semantic-intent-gate.ts`). A single gate round-trip can fill the intent turn and/or any subset of the 9 axes instead of N sequential single-axis `turn` calls; a full batch reaches the same `isNineAxisSicComplete` / finalization as 10 per-turn calls. The MCP schema declares the new field (`bridge/mcp-server.ts`). Engages ONLY on the nine-axis-sic policy (absent `fillPolicy` — the default — or explicit `"nine-axis-sic"`); **when `nineAxisBatch` is absent the per-turn `turn` path is byte-identical to pre-change** (`tests/bridge/handlers/pm-semantic-intent-gate-nine-axis-policy.test.ts`, `tests/bridge/mcp-server-schema.test.ts`, fingerprint golden refreshed).
+
+### Added — P1-13-wire (bound DecisionRecord gets a production consumer)
+- **The bound `DecisionRecord` (Data + Logic + Action + Security, added 7.30.0 as an opt-in projection with zero production consumers) is now folded into the `replay_lineage` read** (`bridge/handlers/replay-lineage.ts`, dispatched via `pm_substrate_query` mode=lineage). `foldDecisionRecords` runs over the SAME filtered stream that feeds `derivedState`/`lineageGraph`, surfacing each `edit_proposed`⇄`edit_committed` pair as ONE bound decision (`Logic⇄Action+Data+Security`) on a new additive `decisionRecords` field. Pure read, non-breaking: empty `[]` on a propose/commit-free window (`tests/bridge/handlers/replay-lineage-decision-records.test.ts`, NEW).
+- **`decision-record.ts` payload access hardened** with optional chaining (`p.payload?.…`, `c.payload?.…`) so the projection tolerates payload-less legacy rows instead of throwing.
+
+### Changed — fold-ergonomics (second-brain-fold agent)
+- **`agents/second-brain-fold.md` `maxTurns` raised 8 → 15 and the contract streamlined** — from the live #22 finding that the agent ran out of turns. The bookmark-clear step now uses a deterministic plugin-root CLI resolver (`$CLAUDE_PLUGIN_ROOT` else newest cached install, no version pin), and the contract is restated as one-dispatch fold completing emit + bookmark-clear + summary. The governed MCP `emit_event` path is preserved (no direct events.jsonl append); bookmark-clear is the only safely-skippable step (next SessionStart re-detects, idempotent).
+
+### Known follow-ups (tracked, non-blocking)
+- (a) Batched-fill provenance currently hardcodes `source="user"` in `advanceNineAxisSicBatch` — derive per-turn source like the single-turn path.
+- (b) The `replay-lineage` `decisionRecords` output is unbounded — add a bound.
+- (c) Reconcile CORE rule-10 "blocks non-conformant compaction" wording with P3-3's flag-and-continue behavior.
+- (d) Correct the [7.30.0] P2-1 "transactionally coupled / advance together or not at all" wording — `store.ts` does two sequential writes, not an atomic transaction.
+- (e) P1-4's declared-write-set guard covers only the atomic-write routers (not the broader call-site surface).
+
 ## [7.30.0] - 2026-06-23 — C-stage backlog close-out (18 items)
 
 Closes the C-stage backlog accumulated on top of 7.29.0. Items are grouped by cluster. Where a capability is **introduced at the lib level but its production wiring is intentionally a tracked follow-up**, that is called out explicitly — the entry ships the seam, not the end-to-end activation.
