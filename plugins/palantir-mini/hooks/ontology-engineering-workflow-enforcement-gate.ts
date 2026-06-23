@@ -18,6 +18,7 @@ import {
   reverifySourceMutationApprovalAgainstEnvelope,
   type SourceMutationApprovalRecord,
 } from "../lib/ontology-engineering-workflow";
+import { assessPmSelfEngineeringExempt } from "../lib/ontology-engineering-workflow/pm-self-engineering-exempt";
 import { PromptFrontDoorStore } from "../lib/prompt-front-door/store";
 import { buildOntologyEngineeringResponseTemplateContext } from "../lib/ontology-engineering-response-template";
 import { pathIsProjectOntologyClass } from "../lib/project/ontology-path-class";
@@ -213,7 +214,7 @@ function containsOntologyEngineeringMarker(payload: HookPayload): boolean {
 //
 // This is the load-bearing surface-text-vs-state fix: the block decision is made on
 // the RESOLVED write target, not on the VOCABULARY of free-text adapter fields.
-function resolveWriteTargetPaths(payload: HookPayload): string[] {
+function resolveWriteTargetPaths(payload: HookPayload, lowercase = true): string[] {
   const input = payload.tool_input ?? {};
   const raw = new Set<string>();
 
@@ -244,7 +245,7 @@ function resolveWriteTargetPaths(payload: HookPayload): string[] {
 
   // Resolve abs under the live cwd / project root so relative + ~ forms still match.
   const cwd = payload.cwd ?? process.cwd();
-  return [...raw].map((p) => resolveWriteTargetAbs(p, cwd));
+  return [...raw].map((p) => resolveWriteTargetAbs(p, cwd, lowercase));
 }
 
 // Parse the RESOLVED write-target token(s) from a Bash command. Mirrors the
@@ -325,12 +326,16 @@ function extractBashWriteTargets(command: string): string[] {
   return targets;
 }
 
-function resolveWriteTargetAbs(filePath: string, cwd: string): string {
+function resolveWriteTargetAbs(filePath: string, cwd: string, lowercase = true): string {
   const home = process.env.HOME ?? "/home/palantirkc";
   let abs = filePath;
   if (filePath.startsWith("~/")) abs = path.resolve(home, filePath.slice(2));
   else if (!path.isAbsolute(filePath)) abs = path.resolve(cwd, filePath);
-  return normalize(abs); // existing normalize(): backslash->slash + lowercase
+  // Default: normalize() = backslash->slash + lowercase (for the substring marker /
+  // path-class string matches). lowercase=false preserves the ON-DISK case so the
+  // caller can perform filesystem reads (bd-015 content-anchored .ssot-authority walk)
+  // on a case-sensitive filesystem.
+  return lowercase ? normalize(abs) : abs.replace(/\\/g, "/");
 }
 
 function targetsProtectedSurface(payload: HookPayload): boolean {
@@ -623,10 +628,68 @@ export function assessOntologyEngineeringWorkflowHook(
         ].filter((part) => part.length > 0).join("\n\n"),
       };
     }
+
+    // bd-015 variant-(i) — ADDITIVE pm-self-engineering exemption. Fires ONLY when
+    // engineering pm ON ITS OWN SOURCE (every target under the SAME content-anchored
+    // pm-plugin ROOT — `.ssot-authority.json` kind=palantir-mini-workflow-authority),
+    // with NO ontology surface among the targets (no /ontology/ path-class, nothing
+    // under a `.palantir-mini/` ontology-state dir), AND an EXPLICIT per-session
+    // structured opt-in active (NOT a prompt substring — bd-004 avoided). Allow-only;
+    // fails closed — any read/walk error ⇒ exempt:false ⇒ the deny below stands. The
+    // ontology write-back boundary (ssot/palantir approval-and-lineage two-layer
+    // Security; ActionType-sole-commit-gate) is UNTOUCHED: genuine ontology mutations
+    // never reach here (clause B excludes them) and keep going through the DTC gate.
+    // Case-PRESERVING abs targets (lowercase=false): the predicate does filesystem
+    // reads (the content-anchored .ssot-authority walk + opt-in marker) which must
+    // use the on-disk case on a case-sensitive filesystem. Its string-class checks
+    // lowercase internally, so substring matching is unaffected.
+    const selfEngineering = assessPmSelfEngineeringExempt(
+      resolveWriteTargetPaths(payload, /* lowercase */ false),
+      payload.session_id,
+    );
+    if (selfEngineering.exempt) {
+      try {
+        void emit({
+          type: "validation_phase_completed",
+          payload: {
+            passed: true,
+            advisory: true,
+            exemptKind: "pm_self_engineering_exempt",
+            phase: "runtime",
+            tool: payload.tool_name ?? "unknown",
+            decision: "continue",
+            pmRoot: selfEngineering.pmRoot,
+            targets: selfEngineering.targets,
+          } as Record<string, unknown>,
+          toolName: "ontology-engineering-workflow-enforcement-gate",
+          cwd: resolveProjectRoot(payload),
+          sessionId: payload.session_id,
+          reasoning:
+            `pm-self-engineering exemption FIRED (pm_self_engineering_exempt): ${selfEngineering.reason} ` +
+            `[pmRoot=${selfEngineering.pmRoot ?? "?"}; targets=${selfEngineering.targets.join(", ")}; tool=${payload.tool_name ?? "unknown"}]`,
+          memoryLayers: ["semantic", "procedural"],
+        }).catch(() => {
+          // Best-effort — audit emit failure never changes the allow verdict.
+        });
+      } catch {
+        // Best-effort — synchronous throw never changes the allow verdict.
+      }
+      return {
+        message: "palantir-mini: ontology-engineering workflow gate OK - pm-self-engineering exemption (non-ontology pm-source edit, explicit per-session opt-in)",
+        decision: "continue",
+        additionalContext: [
+          `pmSelfEngineeringExempt=granted; ${selfEngineering.reason}`,
+          `pmRoot=${selfEngineering.pmRoot ?? "?"}; targets=[${selfEngineering.targets.join(", ")}]`,
+          responseTemplateContext(payload),
+        ].join("\n\n"),
+      };
+    }
+
     return deny(
       "Ontology Engineering workflow mutation requires approved SIC and DTC workflow state",
       "The current workflow state must have mutationAuthorized=true before edits to hooks, gate/router handlers, workflow libraries, skills, or managed-settings surfaces proceed.\n" +
-        "Runbook: docs/altitude1-runtime-guide/BROWSE.md (match your blocker string -> read ONE slice). For this blocker: Stage 05 (dtc-fill) -> Stage 06 (envelope-advance).",
+        "This deny ALSO covers the engineer-pm / pm-self-engineering lane (editing pm's OWN source with pm OFF): a non-ontology pm-source edit is exempted ONLY with the explicit per-session pm-self-engineering opt-in marker present; ANY ontology surface (/ontology/ path-class or a .palantir-mini/ state path) stays blocked here regardless of opt-in and must go through SIC/DTC.\n" +
+        "Runbook: docs/altitude1-runtime-guide/BROWSE.md (match your blocker string -> read ONE slice). For this blocker: Stage 05 (dtc-fill) -> Stage 06 (envelope-advance); for the pm-self-engineering lane, set the opt-in marker first.",
       "oe_workflow_mutation_unauthorized",
       payload,
     );

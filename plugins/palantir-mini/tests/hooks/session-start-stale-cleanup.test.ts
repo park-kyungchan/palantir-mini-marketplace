@@ -111,7 +111,9 @@ describe("session-start integration", () => {
     process.env.CLEAN_STATE = "1";
 
     const res = await sessionStart({ cwd: tmpRoot, session_id: "s1" });
-    expect(res.additionalContext).toContain("CLEAN_STATE=1 applied");
+    // FIX-FOLD-WIRING: contextLines now ride nested at
+    // hookSpecificOutput.additionalContext (Claude drops top-level on SessionStart).
+    expect(res.hookSpecificOutput?.additionalContext).toContain("CLEAN_STATE=1 applied");
 
     const ds = JSON.parse(fs.readFileSync(path.join(tmpRoot, "ontology-state", "ds.json"), "utf8"));
     expect(ds.primitives).toEqual([]);
@@ -123,7 +125,7 @@ describe("session-start integration", () => {
     seedStateFile(tmpRoot, "ds.json", JSON.stringify({ primitives: [{ id: "ghost" }] }));
 
     const res = await sessionStart({ cwd: tmpRoot, session_id: "s2" });
-    expect(res.additionalContext).toContain("stale prior-session state detected");
+    expect(res.hookSpecificOutput?.additionalContext).toContain("stale prior-session state detected");
 
     const ds = JSON.parse(fs.readFileSync(path.join(tmpRoot, "ontology-state", "ds.json"), "utf8"));
     expect(ds.primitives).toEqual([{ id: "ghost" }]);
@@ -158,8 +160,9 @@ describe("session-start integration", () => {
     const events = readEvents(eventsPathFor(tmpRoot));
     expect(events.some((e) => e.type === "stale_state_warning")).toBe(false);
     expect(events.some((e) => e.type === "session_started")).toBe(true);
-    if (res.additionalContext) {
-      expect(res.additionalContext).not.toContain("stale prior-session state detected");
+    const ctx = res.hookSpecificOutput?.additionalContext;
+    if (ctx) {
+      expect(ctx).not.toContain("stale prior-session state detected");
     }
   });
 });
