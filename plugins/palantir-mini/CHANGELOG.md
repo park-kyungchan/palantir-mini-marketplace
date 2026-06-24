@@ -7,6 +7,22 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.33.0] - 2026-06-24 — EFFORT-A deferred follow-ups + EFFORT B fold-arc scalability redesign (pm side)
+
+Closes the EFFORT-A deferred items and lands the pm half of the EFFORT B fold-arc scalability redesign. The fold **engine** half (in-script CLI extraction, per-batch NDJSON emission, govern-only writes) lands in the **harness-upstream** repo as a separate PR — the two PRs are an atomic pair and MUST be installed together.
+
+### Changed — EFFORT-A deferred follow-ups
+- **Batch-N/A provenance split** — provenance handling separated for the batch / not-applicable path so a missing batch context no longer collapses into the default provenance.
+- **(e)-residual strict-mode test hygiene** — tightened the residual strict-mode write-set test fixtures so `PALANTIR_MINI_WRITE_SET_STRICT=1` stays green.
+
+### Added — EFFORT B fold-arc scalability redesign (pm side)
+- **`governedBatches` bump CLI** — a foldedsessions bump CLI that advances the governed-batches bookmark, with a **manifest two-writer lock** so a concurrent runtime writer cannot corrupt the manifest (`lib/second-brain/foldedsessions-bump-cli.ts`).
+- **Pending-fold lifecycle bookmark** — the bump CLI records a lifecycle bookmark in the pending-fold state so a partially-governed fold can resume deterministically.
+- **Gated `1c0831f7`-unstick CLI** — a guarded CLI that clears the stuck `1c0831f7` pending-fold bookmark (`lib/second-brain/foldedsessions-unstick-cli.ts`, `tests/lib/second-brain/foldedsessions-unstick-cli.test.ts`).
+- **`second-brain-fold` agent rewritten to NDJSON streaming** with the **`--subagent` dispatch flip** (the dispatch path now drops the `--subagent` flag) to consume the engine's per-batch NDJSON stream (`agents/second-brain-fold.md`).
+
+> **Atomic-pair note:** the fold ENGINE half (in-script CLI extraction, per-batch NDJSON, govern-only) ships in the **harness-upstream** repo (separate PR). pm 7.33.0 and that engine PR must be installed together.
+
 ## [7.32.0] - 2026-06-23 — EFFORT A cleanup follow-ups (a–g) + bd-017 push/PR de-floor
 
 Closes the 7.31.0 "Known follow-ups" backlog plus bd-012 and bd-017. Items (a), (b), (e) retire tracked follow-ups from 7.31.0; (d) corrects a 7.30.0 doc wording; (f) and (g) close standing bottleneck cases. Default / per-turn paths stay byte-identical when the new additive inputs/env flags are absent. ((c) rule-10 wording reconciliation landed in the user-global `~/.claude/rules/CORE.md`, outside this repo.)
