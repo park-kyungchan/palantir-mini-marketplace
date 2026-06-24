@@ -73,6 +73,50 @@ function writeManifest(p: string, manifest: Manifest): void {
   fs.renameSync(tmp, p);
 }
 
+/* ------------------------------ manifest two-writer lock (W3 §residual-3) ------------------------------ *
+ * BYTE-PARALLEL to second-brain/src/store.ts withManifestLock: the ENGINE (harness repo) and this
+ * BUMP-CLI (pm repo) RMW the SAME manifest from different processes. Both honor the SAME ephemeral
+ * lockfile (`<manifestPath>.lock`) so their read→mutate→write critical sections serialize and a
+ * concurrent disjoint-field RMW cannot lost-update. Best-effort + FAIL-OPEN: if the lock can't be
+ * acquired within LOCK_MAX_WAIT_MS the section runs unlocked (degrades to the prior unlocked RMW,
+ * never hangs). Always releases a lock it took. Kept self-contained (no cross-repo import).
+ * --------------------------------------------------------------------------- */
+const LOCK_STALE_MS = 10_000;
+const LOCK_SPIN_MS = 15;
+const LOCK_MAX_WAIT_MS = 3_000;
+
+function sleepSyncMs(ms: number): void {
+  const end = Date.now() + ms;
+  while (Date.now() < end) { /* spin */ }
+}
+
+export function withManifestLock<T>(lockTarget: string, fn: () => T): T {
+  const lockPath = `${lockTarget}.lock`;
+  let held = false;
+  const deadline = Date.now() + LOCK_MAX_WAIT_MS;
+  while (Date.now() < deadline) {
+    try {
+      const fd = fs.openSync(lockPath, "wx"); // atomic create-or-fail; EEXIST if held
+      fs.writeFileSync(fd, `${process.pid}@${new Date().toISOString()}\n`, "utf8");
+      fs.closeSync(fd);
+      held = true;
+      break;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "EEXIST") break; // unexpected → proceed unlocked
+      try {
+        const age = Date.now() - fs.statSync(lockPath).mtimeMs;
+        if (age > LOCK_STALE_MS) { fs.unlinkSync(lockPath); continue; } // reclaim stale lock
+      } catch { /* vanished → retry */ }
+      sleepSyncMs(LOCK_SPIN_MS);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    if (held) { try { fs.unlinkSync(lockPath); } catch { /* already gone */ } }
+  }
+}
+
 /**
  * A record is a lifecycle marker the bump-CLI may advance IFF it is an in-progress lifecycle
  * record. An OLD write-once marker (no status) is governed-complete by back-compat and is
@@ -105,38 +149,43 @@ export interface BumpResult {
  */
 export function bumpGoverned(root: string, sessionId: string, toBatchIndex?: number): BumpResult {
   const p = manifestPath(root);
-  const manifest = readManifest(p);
-  const folded = manifest.foldedSessions;
-  const rec = folded?.[sessionId];
+  // TWO-WRITER LOCK (W3 §residual-3): serialize the read→mutate→write critical section against
+  // the engine's concurrent marker write. The manifest is RE-READ INSIDE the lock so a stale
+  // pre-lock snapshot can never clobber an engine write that landed while we waited.
+  return withManifestLock(p, () => {
+    const manifest = readManifest(p);
+    const folded = manifest.foldedSessions;
+    const rec = folded?.[sessionId];
 
-  if (!rec || typeof rec !== "object") return { changed: false, reason: "no-record" };
-  if (!("status" in (rec as Record<string, unknown>))) {
-    return { changed: false, reason: "old-no-status" };
-  }
-  if (!isAdvanceableInProgress(rec)) {
-    // status present but not in-progress → already governed-complete
-    return { changed: false, reason: "already-complete" };
-  }
+    if (!rec || typeof rec !== "object") return { changed: false, reason: "no-record" };
+    if (!("status" in (rec as Record<string, unknown>))) {
+      return { changed: false, reason: "old-no-status" };
+    }
+    if (!isAdvanceableInProgress(rec)) {
+      // status present but not in-progress → already governed-complete
+      return { changed: false, reason: "already-complete" };
+    }
 
-  // Mutate ONLY the governed field of THIS record (disjoint from the engine's fields).
-  const cur = typeof rec.governedBatches === "number" ? rec.governedBatches : 0;
-  const next = toBatchIndex !== undefined ? Math.max(cur, toBatchIndex + 1) : cur + 1;
-  rec.governedBatches = next;
+    // Mutate ONLY the governed field of THIS record (disjoint from the engine's fields).
+    const cur = typeof rec.governedBatches === "number" ? rec.governedBatches : 0;
+    const next = toBatchIndex !== undefined ? Math.max(cur, toBatchIndex + 1) : cur + 1;
+    rec.governedBatches = next;
 
-  // Flip to governed-complete on counter agreement (the shared predicate).
-  let flipped = false;
-  if (
-    rec.governedBatches === rec.graphBatchesPersisted &&
-    rec.graphBatchesPersisted === rec.totalBatches
-  ) {
-    rec.status = "governed-complete";
-    rec.foldedAt = new Date().toISOString();
-    flipped = true;
-  }
+    // Flip to governed-complete on counter agreement (the shared predicate).
+    let flipped = false;
+    if (
+      rec.governedBatches === rec.graphBatchesPersisted &&
+      rec.graphBatchesPersisted === rec.totalBatches
+    ) {
+      rec.status = "governed-complete";
+      rec.foldedAt = new Date().toISOString();
+      flipped = true;
+    }
 
-  // folded is non-null here (rec came from it); write the FULL manifest back atomically.
-  writeManifest(p, manifest);
-  return { changed: true, reason: "bumped", governedBatches: next, flipped };
+    // folded is non-null here (rec came from it); write the FULL manifest back atomically.
+    writeManifest(p, manifest);
+    return { changed: true, reason: "bumped", governedBatches: next, flipped };
+  });
 }
 
 if (import.meta.main) {
