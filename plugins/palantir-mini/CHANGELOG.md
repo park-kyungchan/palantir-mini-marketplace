@@ -7,6 +7,18 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.34.0] - 2026-06-24 — bd-018 RESOLVED: fold governed-emit via in-process Path-B CLI
+
+Resolves bd-018 — the second-brain fold's governed emit (`resolution_verdict` / `memory_fold_committed`) was BLOCKED because the MCP `emit_event` tool is HIDDEN under the live altitude-2 MCP profile (it is internal telemetry; altitude-2 exposes studio-core + altitude-2-read only), so the `second-brain-fold` agent could never land its governed verdicts. The fix routes the governed emit through a NEW in-process Path-B emit CLI instead of the altitude-2-hidden MCP tool. **pm-source only** (the fold ENGINE in harness-upstream is untouched), so this entry installs **standalone** — it is NOT an atomic-pair (unlike 7.33.0).
+
+### Fixed — bd-018 (fold governed-emit unblocked)
+- **NEW Path-B emit CLI** routes each batch's verdicts + the summary event through pm's in-process `scripts/log.ts` `emit()` (Path B) instead of the MCP `emit_event` tool, which is hidden under the live altitude-2 MCP profile (`lib/second-brain/foldedsessions-emit-cli.ts`, paired test `lib/second-brain/foldedsessions-emit-cli.test.ts`).
+- **`second-brain-fold` agent repointed** to the emit CLI — drops the `mcp__plugin_palantir-mini_palantir-mini__emit_event` tool from its `tools:` list and `bun`-runs the CLI for each per-verdict emit + the final `memory_fold_committed` summary (`agents/second-brain-fold.md`).
+- **5-dim parity preserved** — the CLI builds the full 5-dim envelope via the in-process `emit()` with REAL runtime identity and explicit `memoryLayers`; `propagationDepth` is omitted to match the prior MCP path.
+- **PROVEN end-to-end** by the `1c0831f7` govern-only repair: 67 `resolution_verdict` + 1 `memory_fold_committed` events landed and the governed lifecycle marker advanced to `governed-complete`.
+
+> **Standalone note:** unlike 7.33.0, this is **pm-only** with no paired harness-upstream engine change — it installs on its own.
+
 ## [7.33.0] - 2026-06-24 — EFFORT-A deferred follow-ups + EFFORT B fold-arc scalability redesign (pm side)
 
 Closes the EFFORT-A deferred items and lands the pm half of the EFFORT B fold-arc scalability redesign. The fold **engine** half (in-script CLI extraction, per-batch NDJSON emission, govern-only writes) lands in the **harness-upstream** repo as a separate PR — the two PRs are an atomic pair and MUST be installed together.
