@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { findSemanticRootForks } from "../plugins/palantir-mini/scripts/verify-no-semantic-root-fork";
+import { CANONICAL, TARGETS, getAtPath } from "./marketplace-version-fields";
 
 const REPOSITORY_ROOT = resolve(import.meta.dir, "..");
 const PLUGIN_ROOT = join(REPOSITORY_ROOT, "plugins", "palantir-mini");
@@ -40,44 +41,34 @@ function main(): void {
     errors.push(`${finding.path}: ${finding.message}`);
   }
 
-  type VersionedManifest = {
-    version?: string;
-    metadata?: { version?: string };
-    plugins?: Array<{ version?: string }>;
-  };
-  const canonicalPlugin = JSON.parse(
-    readFileSync(join(PLUGIN_ROOT, ".claude-plugin", "plugin.json"), "utf8"),
-  ) as VersionedManifest;
-  const canonical = canonicalPlugin.version;
+  // Version-field integrity: iterate the SHARED CANONICAL + TARGETS set so the
+  // checked fields and the fields sync-marketplace-version.ts writes can never
+  // drift apart. (marketplace-version-fields.ts is the single definition.)
+  const canonical = getAtPath(
+    JSON.parse(readFileSync(join(REPOSITORY_ROOT, CANONICAL.file), "utf8")),
+    CANONICAL.jsonPath,
+  );
   if (typeof canonical !== "string") {
-    errors.push("plugins/palantir-mini/.claude-plugin/plugin.json is missing a string version");
+    errors.push(`${CANONICAL.file}[${CANONICAL.jsonPath}] is missing a string version`);
   } else {
-    const checkVersion = (filePath: string, jsonPath: string, found: unknown): void => {
-      const rel = relative(REPOSITORY_ROOT, filePath);
+    for (const ref of TARGETS) {
+      const found = getAtPath(
+        JSON.parse(readFileSync(join(REPOSITORY_ROOT, ref.file), "utf8")),
+        ref.jsonPath,
+      );
       assert(
         found === canonical,
-        `version mismatch: ${rel}[${jsonPath}] ${found} != ${canonical}`,
+        `version mismatch: ${ref.file}[${ref.jsonPath}] ${found} != ${canonical}`,
         errors,
       );
-    };
-    const rootMarketplace = join(REPOSITORY_ROOT, ".claude-plugin", "marketplace.json");
-    const pluginMarketplace = join(PLUGIN_ROOT, ".claude-plugin", "marketplace.json");
-    const codexManifest = join(PLUGIN_ROOT, ".codex-plugin", "plugin.json");
-    const packageManifest = join(PLUGIN_ROOT, "package.json");
-    for (const marketplacePath of [rootMarketplace, pluginMarketplace]) {
-      const manifest = JSON.parse(readFileSync(marketplacePath, "utf8")) as VersionedManifest;
-      checkVersion(marketplacePath, ".metadata.version", manifest.metadata?.version);
-      checkVersion(marketplacePath, ".plugins[0].version", manifest.plugins?.[0]?.version);
-      checkVersion(marketplacePath, ".version", manifest.version);
     }
-    const codex = JSON.parse(readFileSync(codexManifest, "utf8")) as VersionedManifest;
-    checkVersion(codexManifest, ".version", codex.version);
-    const pkg = JSON.parse(readFileSync(packageManifest, "utf8")) as VersionedManifest;
-    checkVersion(packageManifest, ".version", pkg.version);
   }
 
   if (errors.length > 0) {
     for (const error of errors) console.error(`[marketplace-integrity] ${error}`);
+    console.error(
+      "[marketplace-integrity] run `bun run ci/sync-marketplace-version.ts` to auto-sync all version fields to canonical.",
+    );
     process.exit(1);
   }
   console.log("[marketplace-integrity] OK: marketplace root and plugin source authority are intact");
