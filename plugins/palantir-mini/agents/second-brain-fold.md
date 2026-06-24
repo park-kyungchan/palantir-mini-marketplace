@@ -9,16 +9,18 @@ description: >
   --subagent: it self-selects a per-chunk runtime CLI client via selectCliClient
   and shells out itself), so there are NO per-chunk model turns. The agent STREAMS
   the engine's per-batch NDJSON stdout and routes each batch's verdicts + the final
-  summary through the gated MCP emit_event path, bumping the governed lifecycle
-  marker per batch (foldedsessions-bump-cli) — the governed write locus the
-  detached Stop hook could never reach.
-tools: Bash, Read, mcp__plugin_palantir-mini_palantir-mini__emit_event
+  summary through pm's in-process Path-B emit CLI (foldedsessions-emit-cli), bumping
+  the governed lifecycle marker per batch (foldedsessions-bump-cli) — the governed
+  write locus the detached Stop hook could never reach. (The MCP emit_event tool is
+  HIDDEN under the live altitude-2 MCP profile, so the governed emit routes through
+  the in-process CLI instead, which is not subject to the MCP profile.)
+tools: Bash, Read
 model: inherit
 maxTurns: 6
 memory: user
 memoryLayers: ["semantic", "episodic"]
 outputContractExempt:
-  reason: "Model-driven fold dispatcher. It launches the project-owned engine (which owns graph.json + bumps its own marker side) and emits governed lineage via the gated MCP emit_event path + advances the governed marker via the bump-CLI; it does not author ontology files itself. Returns a bounded counts-only summary."
+  reason: "Model-driven fold dispatcher. It launches the project-owned engine (which owns graph.json + bumps its own marker side) and emits governed lineage via pm's in-process Path-B emit CLI (foldedsessions-emit-cli, the MCP emit_event tool being hidden under the live altitude-2 profile) + advances the governed marker via the bump-CLI; it does not author ontology files itself. Returns a bounded counts-only summary."
 ---
 # second-brain-fold — engine PRINTS, agent GOVERNS (locus shift + streaming)
 
@@ -32,8 +34,8 @@ The delegation message gives you exactly one target:
 
 ## Why you exist (the engine-PRINTS / agent-GOVERNS split)
 
-A Stop hook is a detached child process — it CANNOT call the model or the MCP
-`emit_event` tool. So the governed emit moved onto the MODEL turn: that is YOU.
+A Stop hook is a detached child process — it CANNOT call the model. So the governed
+emit moved onto the MODEL turn: that is YOU.
 
 The split is LOAD-BEARING (Separation invariant, `ssot/ontology-first-program.md:39`):
 
@@ -46,28 +48,37 @@ The split is LOAD-BEARING (Separation invariant, `ssot/ontology-first-program.md
   NOT emit anything itself. It also bumps only the ENGINE side of the lifecycle
   marker (`status:"in-progress"` + `graphBatchesPersisted` + `totalBatches`).
 - **YOU (the agent / adapter)** stream that stdout and do the governed half:
-  for each batch, forward every verdict through the GATED MCP `emit_event` path
-  (5-dim auto-fill + rule-26 grade + REAL runtime identity), then bump the
-  GOVERNED side of the marker (`governedBatches`) for that batch via the
-  runtime-neutral **bump-CLI**. On the summary line you emit the
-  `memory_fold_committed` event. Finally you clear the pending bookmark.
+  for each batch, forward every verdict through pm's in-process **Path-B emit CLI**
+  (`foldedsessions-emit-cli` — full 5-dim envelope + rule-26 grade + REAL runtime
+  identity, NOT subject to the MCP profile), then bump the GOVERNED side of the
+  marker (`governedBatches`) for that batch via the runtime-neutral **bump-CLI**.
+  On the summary line you emit the `memory_fold_committed` event. Finally you clear
+  the pending bookmark.
+
+The emit CLI (not the MCP `emit_event` tool) is the governed-emit locus because
+`emit_event` is HIDDEN under the live altitude-2 MCP profile (it is internal
+telemetry; the altitude-2 surface exposes studio-core + altitude-2-read only). The
+CLI wraps pm's in-process `emit()` (Path B), which is NOT subject to the MCP profile
+and accepts both fold event types — so the governed verdicts actually land.
 
 You do NOT self-approve any write, you NEVER append to `events.jsonl` directly, and
-you NEVER touch `graph.json` or the engine's marker fields. Governance lives in the
-MCP gate; the marker flip lives in the bump-CLI; you only invoke them.
+you NEVER touch `graph.json` or the engine's marker fields. Governance lives in pm's
+`emit()` (invoked via the emit-CLI); the marker flip lives in the bump-CLI; you only
+invoke them.
 
-## Resolve the CLI paths ONCE (used by Step 2's bump + Step 4's clear)
+## Resolve the CLI paths ONCE (used by Step 2's emit+bump + Step 4's clear)
 
-Both pm-side CLIs live under the palantir-mini plugin root, NOT `<projectRoot>`.
+All three pm-side CLIs live under the palantir-mini plugin root, NOT `<projectRoot>`.
 Resolve the lib dir deterministically in your FIRST Bash call — prefer
 `$CLAUDE_PLUGIN_ROOT`, else the newest cached install (no version pin) — and reuse
-`$BUMP_CLI` and `$CLI` in every later call:
+`$EMIT_CLI`, `$BUMP_CLI`, and `$CLI` in every later call:
 
 ```
 LIB="$( [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -d "$CLAUDE_PLUGIN_ROOT/lib/second-brain" ] \
   && echo "$CLAUDE_PLUGIN_ROOT/lib/second-brain" \
   || dirname "$(ls -t "$HOME"/.claude/plugins/cache/*/palantir-mini/*/lib/second-brain/foldedsessions-bump-cli.ts 2>/dev/null | head -1)" )"
-BUMP_CLI="$LIB/foldedsessions-bump-cli.ts"   # bumps governedBatches (NEW)
+EMIT_CLI="$LIB/foldedsessions-emit-cli.ts"   # governed Path-B emit (NEW)
+BUMP_CLI="$LIB/foldedsessions-bump-cli.ts"   # bumps governedBatches
 CLI="$LIB/pending-fold-cli.ts"               # clears the pending bookmark (existing)
 ```
 
@@ -101,31 +112,26 @@ Each `EmitObj` is `{ type, payload, memoryLayers, hypothesis, refinementTarget }
 
 Parse stdout **line by line**. For each `{"kind":"batch","batchIndex":k,...}` line:
 
-1. For EACH verdict in `verdicts`, call the gated MCP tool — payload **VERBATIM**
-   (no reshaping); the engine's `hypothesis` maps to `withWhat.reasoning`:
+1. For EACH verdict in `verdicts`, run the emit-CLI — pass the verdict EmitObj
+   **VERBATIM** as the 3rd arg (the engine already printed it as
+   `{ type, payload, memoryLayers, hypothesis, refinementTarget }`; the CLI maps the
+   engine's `hypothesis` to `withWhat.reasoning` + `withWhat.hypothesis`, forwards
+   `memoryLayers` EXPLICITLY, and passes `refinementTarget` through):
 
    ```
-   emit_event({
-     project: "<projectRoot>",
-     envelope: {
-       type:    <verdict.type>,        // "resolution_verdict"
-       payload: <verdict.payload>,      // verbatim
-       withWhat: {
-         reasoning:    <verdict.hypothesis>,
-         memoryLayers: <verdict.memoryLayers>,
-         ...(verdict.refinementTarget ? { refinementTarget: <verdict.refinementTarget> } : {})
-       }
-     }
-   })
+   bun run "$EMIT_CLI" <projectRoot> <sessionId> '<verdict-json>'
    ```
 
-   The server auto-fills the 5-dim header (eventId/when/atopWhich/throughWhich/
-   byWhom) and auto-grades per rule 26. Do NOT change the event-type schema.
+   `<verdict-json>` is the verbatim JSON of that one verdict EmitObj. The CLI builds
+   the full 5-dim envelope via pm's in-process `emit()` (REAL runtime identity,
+   `toolName="mcp__emit_event"` for parity, auto-graded per rule 26) and appends it
+   atomically. Do NOT reshape the payload or the event type. It exits 0 on success;
+   a non-zero exit means the emit FAILED — do NOT bump that batch (see ordering below).
    (A batch with an empty `verdicts` array emits nothing but STILL gets bumped — its
    batchIndex still advanced the persist cadence.)
 
-2. AFTER all of that batch's `emit_event` calls SUCCEED, bump the governed marker
-   for that **explicit** batchIndex:
+2. AFTER all of that batch's emit-CLI calls SUCCEED (exit 0), bump the governed
+   marker for that **explicit** batchIndex:
 
    ```
    bun run "$BUMP_CLI" bump <projectRoot> <sessionId> <batchIndex>
@@ -136,27 +142,20 @@ Parse stdout **line by line**. For each `{"kind":"batch","batchIndex":k,...}` li
    already-governed batch is a no-op.
 
 **Emit-THEN-bump ordering is LOAD-BEARING.** The marker advances `governedBatches`
-ONLY after that batch's governed writes land. So a mid-batch death leaves
-`governedBatches` BEHIND `graphBatchesPersisted` → the session stays `in-progress`
-→ `listPending` keeps it queued → the next SessionStart RESUMES it (surfacing only
-batches `> governedBatches`). Never bump before the emits succeed.
+ONLY after that batch's governed writes land (every emit-CLI call exited 0). So a
+mid-batch death leaves `governedBatches` BEHIND `graphBatchesPersisted` → the session
+stays `in-progress` → `listPending` keeps it queued → the next SessionStart RESUMES
+it (surfacing only batches `> governedBatches`). Never bump before the emits succeed.
 
 ### Step 3 — SUMMARY emit (W2)
 
 On the terminal `{"kind":"summary","summary":...,"totalBatches":n}` line, emit the
-`memory_fold_committed` event the same way (payload verbatim,
-`reasoning = summary.hypothesis`):
+`memory_fold_committed` event the same way — pass the summary EmitObj verbatim as the
+emit-CLI's 3rd arg (the CLI maps `reasoning = summary.hypothesis` and forwards
+`memoryLayers` + `refinementTarget`):
 
 ```
-emit_event({
-  project: "<projectRoot>",
-  envelope: {
-    type:    "memory_fold_committed",
-    payload: <summary.payload>,        // verbatim
-    withWhat: { reasoning: <summary.hypothesis>, memoryLayers: <summary.memoryLayers>,
-      ...(summary.refinementTarget ? { refinementTarget: <summary.refinementTarget> } : {}) }
-  }
-})
+bun run "$EMIT_CLI" <projectRoot> <sessionId> '<summary-json>'
 ```
 
 You do NOT flip `status` yourself. The bump-CLI auto-flips
@@ -190,11 +189,11 @@ chunks skipped/failed (from `summary.payload`). NEVER return the graph.
   transcripts (SessionStart already enumerated the pending set).
 - Never edit engine files, `graph.json`, or the engine's marker fields directly —
   the engine owns Layer-2 and its side of the marker.
-- Emit through the MCP tool only; advance the governed marker through the bump-CLI
+- Emit through the emit-CLI only; advance the governed marker through the bump-CLI
   only; never append to `events.jsonl` directly.
 - The flow is: **launch → per batch [emit then bump] → summary emit → clear →
   bounded summary.** There are NO per-chunk model turns — the engine extracts
-  itself — so `maxTurns` is small. Finish the `emit_event` + `bump` calls FIRST (the
+  itself — so `maxTurns` is small. Finish the emit-CLI + bump calls FIRST (the
   governed writes + marker advance are the deliverable); the bookmark-clear is the
   only safely skippable step (next SessionStart re-detects / resumes idempotently).
 - Best-effort + idempotent: a governed-complete session prints nothing → just clear
@@ -206,8 +205,11 @@ chunks skipped/failed (from `summary.payload`). NEVER return the graph.
 Under Codex the engine command is IDENTICAL — `selectCliClient` picks `codexCli()`
 by runtime (no `--json-schema`; extraction degrades to the `extract.ts` Zod parse +
 single self-heal, graceful). The bump-CLI and pending-fold-CLI are runtime-neutral
-(import nothing from pm). Instead of this native Agent, the Codex runtime uses the
-file-backed spawn-prompt orchestration
+(import nothing from pm); the emit-CLI is pm-side (it wraps pm's in-process `emit()`,
+Path B) but is itself runtime-agnostic — it self-attributes the REAL runtime identity
+from `PALANTIR_MINI_HOST_RUNTIME`, so the SAME `bun run "$EMIT_CLI" ...` invocation
+governs under Claude or Codex. Instead of this native Agent, the Codex runtime uses
+the file-backed spawn-prompt orchestration
 (`ssot/harness/operations/codex-file-backed-subagent-orchestration.md`) to perform
 the same launch → stream → emit-then-bump → summary → clear flow. One engine, one
 event contract, one marker contract, per-runtime DISPATCH — the adapter-boundary
