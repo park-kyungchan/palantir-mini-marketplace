@@ -17,8 +17,15 @@ import { readEvents } from "../../../lib/event-log/read";
 import type { EventEnvelope } from "../../../lib/event-log/types";
 
 function tmpEventsPath(label: string): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), `pm-timing-${label}-`));
-  return path.join(dir, "events.jsonl");
+  // Root the events path inside a `.palantir-mini/session/` subtree (mirroring the
+  // production layout) so the append.ts declared-write-set guard sees an in-set
+  // target. Without this, `PALANTIR_MINI_WRITE_SET_STRICT=1` makes the guard abort
+  // the write and these envelope-shape assertions see 0 events. Matches the
+  // quarantine.test.ts strict-mode fixture pattern.
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), `pm-timing-${label}-`));
+  const sessionDir = path.join(root, ".palantir-mini", "session");
+  fs.mkdirSync(sessionDir, { recursive: true });
+  return path.join(sessionDir, "events.jsonl");
 }
 
 describe("now / elapsedMs", () => {

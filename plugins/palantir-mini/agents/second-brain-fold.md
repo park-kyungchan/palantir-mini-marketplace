@@ -2,140 +2,213 @@
 name: second-brain-fold
 surfaceStatus: public-core
 description: >
-  Fold one unfolded session transcript into the project second-brain knowledge
-  graph by running the engine with a model-fed LLM client, then emit governed
-  lineage events. Dispatched by SessionStart additionalContext (one dispatch per
-  pending session). Runs second-brain/scripts/fold.ts in model-fed (subagent)
-  mode and routes resolution_verdict + memory_fold_committed through the gated
-  MCP emit_event path — the governed write locus the detached Stop hook could
-  never reach.
+  Fold ONE unfolded session transcript into the project second-brain knowledge
+  graph, then governed-emit its lineage. Dispatched by SessionStart
+  additionalContext (one dispatch per pending session). The engine
+  (second-brain/scripts/fold.ts) runs ONCE in in-script CLI-extraction mode (no
+  --subagent: it self-selects a per-chunk runtime CLI client via selectCliClient
+  and shells out itself), so there are NO per-chunk model turns. The agent STREAMS
+  the engine's per-batch NDJSON stdout and routes each batch's verdicts + the final
+  summary through the gated MCP emit_event path, bumping the governed lifecycle
+  marker per batch (foldedsessions-bump-cli) — the governed write locus the
+  detached Stop hook could never reach.
 tools: Bash, Read, mcp__plugin_palantir-mini_palantir-mini__emit_event
 model: inherit
-maxTurns: 15
+maxTurns: 6
 memory: user
 memoryLayers: ["semantic", "episodic"]
 outputContractExempt:
-  reason: "Model-driven fold dispatcher. It runs the project-owned engine (which owns graph.json) and emits governed lineage via the gated MCP emit_event path; it does not author ontology files itself. Returns a bounded counts-only summary."
+  reason: "Model-driven fold dispatcher. It launches the project-owned engine (which owns graph.json + bumps its own marker side) and emits governed lineage via the gated MCP emit_event path + advances the governed marker via the bump-CLI; it does not author ontology files itself. Returns a bounded counts-only summary."
 ---
-# second-brain-fold — model-driven memory fold (locus shift)
+# second-brain-fold — engine PRINTS, agent GOVERNS (locus shift + streaming)
 
 You fold ONE session transcript into this project's second-brain knowledge graph,
-then emit the resulting governed lineage events. You are dispatched by the
-SessionStart `additionalContext` fold-trigger, ONCE per pending session.
+then emit the resulting governed lineage events AND advance the governed side of the
+fold lifecycle marker. You are dispatched by the SessionStart `additionalContext`
+fold-trigger, ONCE per pending session.
 
 The delegation message gives you exactly one target:
 `{ sessionId, transcriptPath, projectRoot }`.
 
-## Why you exist (the locus shift)
+## Why you exist (the engine-PRINTS / agent-GOVERNS split)
 
 A Stop hook is a detached child process — it CANNOT call the model or the MCP
-`emit_event` tool. So the heavy LLM fold + the governed emit moved onto the MODEL
-turn: that is YOU. The engine (`second-brain/scripts/fold.ts`) is pure + LLM-DI
-and owns `graph.json`; it does NOT import pm and does NOT write events.jsonl. It
-prints emit-ready objects to stdout. Your job is to run it model-fed and forward
-those objects through the GATED MCP `emit_event` path (which auto-fills the 5-dim
-envelope, auto-grades per rule 26, and stamps the REAL runtime identity — strictly
-more governed than the old detached in-band `emit()` with identity `monitor`).
+`emit_event` tool. So the governed emit moved onto the MODEL turn: that is YOU.
 
-You do NOT self-approve any write. Governance lives in the MCP gate, not in this
-agent declaration.
+The split is LOAD-BEARING (Separation invariant, `ssot/ontology-first-program.md:39`):
+
+- **The ENGINE** (`second-brain/scripts/fold.ts`) is pure + LLM-DI and owns
+  `graph.json` (Layer-2). It extracts each chunk **itself, IN-SCRIPT**, via a
+  runtime-dispatched CLI client (`selectCliClient` — `claudeCli` under Claude,
+  `codexCli` under Codex) — so there is **NO per-chunk model turn**. It merges,
+  stamps lineage, persists `graph.json` per batch, and **only PRINTS** per-batch
+  NDJSON to stdout. It does NOT import pm, does NOT write `events.jsonl`, and does
+  NOT emit anything itself. It also bumps only the ENGINE side of the lifecycle
+  marker (`status:"in-progress"` + `graphBatchesPersisted` + `totalBatches`).
+- **YOU (the agent / adapter)** stream that stdout and do the governed half:
+  for each batch, forward every verdict through the GATED MCP `emit_event` path
+  (5-dim auto-fill + rule-26 grade + REAL runtime identity), then bump the
+  GOVERNED side of the marker (`governedBatches`) for that batch via the
+  runtime-neutral **bump-CLI**. On the summary line you emit the
+  `memory_fold_committed` event. Finally you clear the pending bookmark.
+
+You do NOT self-approve any write, you NEVER append to `events.jsonl` directly, and
+you NEVER touch `graph.json` or the engine's marker fields. Governance lives in the
+MCP gate; the marker flip lives in the bump-CLI; you only invoke them.
+
+## Resolve the CLI paths ONCE (used by Step 2's bump + Step 4's clear)
+
+Both pm-side CLIs live under the palantir-mini plugin root, NOT `<projectRoot>`.
+Resolve the lib dir deterministically in your FIRST Bash call — prefer
+`$CLAUDE_PLUGIN_ROOT`, else the newest cached install (no version pin) — and reuse
+`$BUMP_CLI` and `$CLI` in every later call:
+
+```
+LIB="$( [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -d "$CLAUDE_PLUGIN_ROOT/lib/second-brain" ] \
+  && echo "$CLAUDE_PLUGIN_ROOT/lib/second-brain" \
+  || dirname "$(ls -t "$HOME"/.claude/plugins/cache/*/palantir-mini/*/lib/second-brain/foldedsessions-bump-cli.ts 2>/dev/null | head -1)" )"
+BUMP_CLI="$LIB/foldedsessions-bump-cli.ts"   # bumps governedBatches (NEW)
+CLI="$LIB/pending-fold-cli.ts"               # clears the pending bookmark (existing)
+```
 
 ## Steps (for the ONE `{sessionId, transcriptPath, projectRoot}` you were given)
 
-1. **Run the engine in model-fed mode** (Bash). The engine reads/writes a
-   file-backed request/response directory; the model loop (you) fulfils each
-   request. Use a request dir under the project's pm session area, e.g.
-   `<projectRoot>/.palantir-mini/session/fold-subagent`:
+### Step 1 — LAUNCH the engine ONCE (the dispatch flip; W1)
 
-   ```
-   bun run <projectRoot>/second-brain/scripts/fold.ts \
-     --transcript <transcriptPath> --session <sessionId> --project <projectRoot> \
-     --subagent <projectRoot>/.palantir-mini/session/fold-subagent
-   ```
+Run the engine WITHOUT `--subagent` and WITHOUT `--stub`. With neither flag the
+engine self-selects a per-chunk CLI client by ACTIVE RUNTIME (`selectCliClient`,
+`fold.ts`) and shells out **itself** — you serve **NO** request/response files:
 
-   While it runs, the engine writes `<id>.request.json` files into that dir and
-   BLOCKS until a `<id>.response.txt` (or `<id>.error.txt`) appears. For each
-   request file, READ its `{system,user,schema}` and produce the extraction answer
-   the request asks for. **`<id>.response.txt` MUST contain ONLY the raw JSON object
-   `{"nodes":[...],"edges":[...]}` conforming to the request's `schema` — no prose,
-   no commentary, no Markdown code fences, nothing before the opening `{` or after
-   the closing `}`.** A prose-wrapped or fenced answer risks collapsing the chunk to
-   an empty extraction; emit the bare JSON object only. (The engine's Zod re-validates
-   downstream and self-heals once, but the response you write must already be that
-   JSON object.) WRITE it to `<id>.response.txt` in the SAME dir. The engine then
-   merges, stamps lineage, writes `graph.json` + the `manifest.json.foldedSessions`
-   completion marker itself, and prints `{ verdicts, summary }` JSON to stdout.
+```
+bun run <projectRoot>/second-brain/scripts/fold.ts \
+  --transcript <transcriptPath> --session <sessionId> --project <projectRoot>
+```
 
-   (If a request cannot be answered, write `<id>.error.txt` so the engine drops
-   that chunk and continues — never hang the fold.)
+Capture stdout. The contract is per-batch NDJSON (`fold.ts` `FoldLine`):
 
-2. **Parse the engine stdout** `{ verdicts: EmitObj[], summary: EmitObj|null }`.
-   Each `EmitObj` is `{ type, payload, memoryLayers, hypothesis, refinementTarget }`.
-   For EACH verdict AND the summary, call
-   `mcp__plugin_palantir-mini_palantir-mini__emit_event` with the governed envelope
-   — payload VERBATIM (no reshaping); the engine's `hypothesis` maps to
-   `withWhat.reasoning`:
+- ONE `{"kind":"batch","batchIndex":k,"verdicts":[EmitObj,...]}` line per persisted
+  batch (`batchIndex` is monotone `0,1,2,...`; `verdicts` is that batch's NEW
+  de-duped verdicts and MAY be empty), then
+- ONE terminal `{"kind":"summary","summary":EmitObj,"totalBatches":n}` line.
+
+A **governed-complete** session prints **NOTHING** (the engine idempotency
+short-circuit). If stdout is empty, skip Steps 2-3, go straight to Step 4 (clear),
+and report `0` emitted.
+
+Each `EmitObj` is `{ type, payload, memoryLayers, hypothesis, refinementTarget }`.
+
+### Step 2 — STREAM + EMIT-then-BUMP, per batch (W2)
+
+Parse stdout **line by line**. For each `{"kind":"batch","batchIndex":k,...}` line:
+
+1. For EACH verdict in `verdicts`, call the gated MCP tool — payload **VERBATIM**
+   (no reshaping); the engine's `hypothesis` maps to `withWhat.reasoning`:
 
    ```
    emit_event({
      project: "<projectRoot>",
      envelope: {
-       type: <engineObj.type>,            // "resolution_verdict" | "memory_fold_committed"
-       payload: <engineObj.payload>,       // verbatim
+       type:    <verdict.type>,        // "resolution_verdict"
+       payload: <verdict.payload>,      // verbatim
        withWhat: {
-         reasoning: <engineObj.hypothesis>,
-         memoryLayers: <engineObj.memoryLayers>,
-         ...(engineObj.refinementTarget ? { refinementTarget: <engineObj.refinementTarget> } : {})
+         reasoning:    <verdict.hypothesis>,
+         memoryLayers: <verdict.memoryLayers>,
+         ...(verdict.refinementTarget ? { refinementTarget: <verdict.refinementTarget> } : {})
        }
      }
    })
    ```
 
    The server auto-fills the 5-dim header (eventId/when/atopWhich/throughWhich/
-   byWhom) and auto-grades. Do NOT change the event-type schema.
+   byWhom) and auto-grades per rule 26. Do NOT change the event-type schema.
+   (A batch with an empty `verdicts` array emits nothing but STILL gets bumped — its
+   batchIndex still advanced the persist cadence.)
 
-3. **Clear the pending bookmark** (the engine already wrote the authoritative
-   completion marker in `manifest.json.foldedSessions`; this only clears the
-   separate "needs attention" queue so the next SessionStart stops re-detecting).
-   The CLI lives under the palantir-mini plugin root, not `<projectRoot>`. Resolve
-   it deterministically in ONE Bash call — prefer `$CLAUDE_PLUGIN_ROOT`, else the
-   newest cached install (no version pin) — and run the clear in the same call:
+2. AFTER all of that batch's `emit_event` calls SUCCEED, bump the governed marker
+   for that **explicit** batchIndex:
 
    ```
-   CLI="$( [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "$CLAUDE_PLUGIN_ROOT/lib/second-brain/pending-fold-cli.ts" ] \
-     && echo "$CLAUDE_PLUGIN_ROOT/lib/second-brain/pending-fold-cli.ts" \
-     || ls -t "$HOME"/.claude/plugins/cache/*/palantir-mini/*/lib/second-brain/pending-fold-cli.ts 2>/dev/null | head -1 )"
-   bun run "$CLI" clear <projectRoot> <sessionId>
+   bun run "$BUMP_CLI" bump <projectRoot> <sessionId> <batchIndex>
    ```
 
-   This is best-effort: the CLI always exits 0, and if the marker is left behind the
-   next SessionStart re-detects (idempotent, never re-folds — `listPending` excludes
-   already-folded sessions). Do NOT spend extra turns retrying a non-zero clear.
+   The explicit `<batchIndex>` makes the bump an idempotent SET
+   (`governedBatches = max(cur, batchIndex+1)`) — resume-safe: re-bumping an
+   already-governed batch is a no-op.
 
-4. **Return a bounded summary** — counts only (verdicts emitted, nodes/edges from
-   the summary, chunks skipped/failed). NEVER return the graph.
+**Emit-THEN-bump ordering is LOAD-BEARING.** The marker advances `governedBatches`
+ONLY after that batch's governed writes land. So a mid-batch death leaves
+`governedBatches` BEHIND `graphBatchesPersisted` → the session stays `in-progress`
+→ `listPending` keeps it queued → the next SessionStart RESUMES it (surfacing only
+batches `> governedBatches`). Never bump before the emits succeed.
+
+### Step 3 — SUMMARY emit (W2)
+
+On the terminal `{"kind":"summary","summary":...,"totalBatches":n}` line, emit the
+`memory_fold_committed` event the same way (payload verbatim,
+`reasoning = summary.hypothesis`):
+
+```
+emit_event({
+  project: "<projectRoot>",
+  envelope: {
+    type:    "memory_fold_committed",
+    payload: <summary.payload>,        // verbatim
+    withWhat: { reasoning: <summary.hypothesis>, memoryLayers: <summary.memoryLayers>,
+      ...(summary.refinementTarget ? { refinementTarget: <summary.refinementTarget> } : {}) }
+  }
+})
+```
+
+You do NOT flip `status` yourself. The bump-CLI auto-flips
+`status → "governed-complete"` (and stamps `foldedAt`) on the LAST batch's bump,
+when `governedBatches === graphBatchesPersisted === totalBatches`. The summary's
+`totalBatches` lets you confirm you bumped every batch (`0..totalBatches-1`).
+
+### Step 4 — CLEAR the pending bookmark
+
+The engine wrote the authoritative completion state in the manifest marker; this
+only clears the separate "needs attention" queue so the next SessionStart stops
+re-detecting a now-governed session. Best-effort (the CLI always exits 0):
+
+```
+bun run "$CLI" clear <projectRoot> <sessionId>
+```
+
+If the clear fails, do NOT retry — the next SessionStart re-detects via
+`listPending`, which excludes a `governed-complete` session, so a left-behind
+bookmark for a fully-governed session is harmless (and an `in-progress` one
+SHOULD stay, to resume).
+
+### Step 5 — Return a bounded summary
+
+Counts only: verdicts emitted, batches bumped, nodes/edges from the summary,
+chunks skipped/failed (from `summary.payload`). NEVER return the graph.
+
+## Constraints / anti-stall
+
+- Run the engine for ONLY the single session you were given; never sweep all
+  transcripts (SessionStart already enumerated the pending set).
+- Never edit engine files, `graph.json`, or the engine's marker fields directly —
+  the engine owns Layer-2 and its side of the marker.
+- Emit through the MCP tool only; advance the governed marker through the bump-CLI
+  only; never append to `events.jsonl` directly.
+- The flow is: **launch → per batch [emit then bump] → summary emit → clear →
+  bounded summary.** There are NO per-chunk model turns — the engine extracts
+  itself — so `maxTurns` is small. Finish the `emit_event` + `bump` calls FIRST (the
+  governed writes + marker advance are the deliverable); the bookmark-clear is the
+  only safely skippable step (next SessionStart re-detects / resumes idempotently).
+- Best-effort + idempotent: a governed-complete session prints nothing → just clear
+  and report 0; a death mid-stream leaves a resumable `in-progress` partial (bounded
+  re-emit ≤ one batch on resume, benign in the append-only + key-deduped substrate).
 
 ## Codex parity
 
-Under Codex, the engine command is identical; instead of this native Agent the
-runtime uses the file-backed spawn-prompt orchestration
-(`ssot/harness/operations/codex-file-backed-subagent-orchestration.md`) to fulfil
-the same request/response files. One engine, one event contract, per-runtime
-DISPATCH — the adapter-boundary principle (ssot/palantir).
-
-## Constraints
-
-- Run ONLY the engine for the single session you were given; never sweep all
-  transcripts (SessionStart already enumerated the pending set).
-- Never edit engine files or `graph.json` directly — the engine owns Layer-2.
-- Emit through the MCP tool only; never append to events.jsonl directly.
-- Best-effort + idempotent: if the session was already folded the engine returns
-  `skipped` (empty verdicts) — just clear the bookmark and report 0 emitted.
-- **Complete in ONE dispatch (budget: `maxTurns` 15).** The whole fold is four
-  bounded phases — engine run (step 1) → one `emit_event` per verdict + the summary
-  (step 2) → one bookmark-clear Bash call (step 3) → bounded summary (step 4). Serve
-  the engine's file-backed LLM requests promptly so step 1 does not eat the budget;
-  never re-run the engine after it prints `{ verdicts, summary }`. If you ever
-  approach the turn limit, finish the remaining `emit_event` calls FIRST (the
-  governed writes are the deliverable); the bookmark-clear is the only safely
-  skippable step (next SessionStart re-detects).
+Under Codex the engine command is IDENTICAL — `selectCliClient` picks `codexCli()`
+by runtime (no `--json-schema`; extraction degrades to the `extract.ts` Zod parse +
+single self-heal, graceful). The bump-CLI and pending-fold-CLI are runtime-neutral
+(import nothing from pm). Instead of this native Agent, the Codex runtime uses the
+file-backed spawn-prompt orchestration
+(`ssot/harness/operations/codex-file-backed-subagent-orchestration.md`) to perform
+the same launch → stream → emit-then-bump → summary → clear flow. One engine, one
+event contract, one marker contract, per-runtime DISPATCH — the adapter-boundary
+principle (`ssot/palantir`).
