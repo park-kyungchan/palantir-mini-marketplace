@@ -33,6 +33,37 @@ export function pendingFoldPath(root: string): string {
   return path.join(root, "second-brain", "pending-fold.json");
 }
 
+/**
+ * True IFF the transcript's FIRST line parses to {type:"queue-operation"} — the
+ * fold engine's CLI-extraction byproducts (NOT real Claude sessions). SessionStart
+ * uses this to exclude such files from the detect set so the fold engine does not
+ * self-feed (a queue-operation transcript would otherwise be back-filled pending and
+ * re-trigger a fold, whose own CLI run writes another queue-operation transcript...).
+ *
+ * Best-effort: reads only the first ~2KB (openSync/readSync) and parses the first
+ * line. On ANY read/parse error returns FALSE — a real session is NEVER dropped on
+ * error; only a positively-identified queue-operation row is excluded.
+ */
+export function isQueueOperationTranscript(file: string): boolean {
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(file, "r");
+    const buf = Buffer.alloc(2048);
+    const bytes = fs.readSync(fd, buf, 0, buf.length, 0);
+    const head = buf.toString("utf8", 0, bytes);
+    const firstLine = head.split("\n", 1)[0]?.trim();
+    if (!firstLine) return false;
+    const obj = JSON.parse(firstLine) as { type?: unknown };
+    return obj?.type === "queue-operation";
+  } catch {
+    return false;
+  } finally {
+    if (fd !== undefined) {
+      try { fs.closeSync(fd); } catch { /* best-effort */ }
+    }
+  }
+}
+
 /** best-effort; {pending:{}} on absent/invalid */
 export function readPendingFold(p: string): PendingFoldFile {
   if (!fs.existsSync(p)) return { pending: {} };
