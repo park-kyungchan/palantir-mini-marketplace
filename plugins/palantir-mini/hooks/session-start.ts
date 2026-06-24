@@ -37,7 +37,7 @@ import {
   detectStaleState,
 } from "./session-start/state-files";
 import { liveBranch } from "./session-start/branch";
-import { markPending, listPending, type PendingFoldEntry } from "../lib/second-brain/pending-fold";
+import { markPending, listPending, isQueueOperationTranscript, type PendingFoldEntry } from "../lib/second-brain/pending-fold";
 import {
   detectNativeSubagentCapability,
   type NativeSubagentCapability,
@@ -236,7 +236,11 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
           .readdirSync(projectsDir)
           .filter((f) => f.endsWith(".jsonl"))
           .map((f) => ({ sessionId: f.slice(0, -".jsonl".length), file: path.join(projectsDir, f) }))
-          .filter((t) => !(t.sessionId in folded));
+          .filter((t) => !(t.sessionId in folded))
+          // Exclude the fold engine's own CLI-extraction byproducts (first line
+          // {type:"queue-operation"}) so detect never self-feeds. Best-effort: a
+          // read/parse error returns false → a real session is never dropped.
+          .filter((t) => !isQueueOperationTranscript(t.file));
 
         for (const t of transcripts) {
           if (t.sessionId in alreadyPending) continue;

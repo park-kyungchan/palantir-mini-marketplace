@@ -7,6 +7,14 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.35.0] - 2026-06-24 — bd-021: detector excludes queue-operation extraction byproducts
+
+Resolves bd-021 — the second-brain SessionStart detector now **excludes `type:"queue-operation"` transcripts** (fold-engine CLI-extraction byproducts) via a new `isQueueOperationTranscript` helper, stopping the self-feeding detection loop. A 127-session drain had created ~496 noise transcripts that were mis-detected as unfolded sessions, so the detector was re-flagging its own fold-engine byproducts and feeding them back into the detection queue.
+
+### Fixed — bd-021 (detector self-feeding loop)
+- **`isQueueOperationTranscript` helper** added to the pending-fold lib — classifies `type:"queue-operation"` transcripts (the fold engine's CLI-extraction byproducts) so they are excluded from unfolded-session detection (`lib/second-brain/pending-fold.ts`, paired test `lib/second-brain/pending-fold.test.ts`).
+- **SessionStart detector repointed** to skip queue-operation transcripts via the new helper, ending the self-feeding loop where the detector re-detected its own fold-engine byproducts (`hooks/session-start.ts`).
+
 ## [7.34.0] - 2026-06-24 — bd-018 RESOLVED: fold governed-emit via in-process Path-B CLI
 
 Resolves bd-018 — the second-brain fold's governed emit (`resolution_verdict` / `memory_fold_committed`) was BLOCKED because the MCP `emit_event` tool is HIDDEN under the live altitude-2 MCP profile (it is internal telemetry; altitude-2 exposes studio-core + altitude-2-read only), so the `second-brain-fold` agent could never land its governed verdicts. The fix routes the governed emit through a NEW in-process Path-B emit CLI instead of the altitude-2-hidden MCP tool. **pm-source only** (the fold ENGINE in harness-upstream is untouched), so this entry installs **standalone** — it is NOT an atomic-pair (unlike 7.33.0).
