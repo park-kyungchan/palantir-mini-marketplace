@@ -163,6 +163,39 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     expect(result.hookSpecificOutput?.additionalContext).toContain(sessionId);
   });
 
+  test("A2-prior line is pushed UNCONDITIONALLY (eager flag OFF) — Sink-1 READ", async () => {
+    const { root } = seed();
+    // Deliberately do NOT set PALANTIR_MINI_SESSION_START_EAGER — A2-prior must
+    // still fire (mirrors the unconditional second-brain fold-detect push).
+    process.env.PALANTIR_MINI_PROJECT = root;
+    const epath = path.join(root, ".palantir-mini", "session", "events.jsonl");
+    process.env.PALANTIR_MINI_EVENTS_FILE = epath;
+    process.env.PALANTIR_MINI_EVENTS_FILE_FORCE = "1";
+    delete process.env.PALANTIR_MINI_SESSION_START_EAGER;
+
+    // A freshly-emitted T2 lead_decision that promotion has NOT yet graded T3+.
+    // The A2-prior BY-TYPE branch must still surface it NEXT session.
+    fs.writeFileSync(
+      epath,
+      JSON.stringify({
+        when: "2026-06-25T00:00:00.000Z",
+        atopWhich: "x",
+        throughWhich: { sessionId: "s", toolName: "t", cwd: root },
+        byWhom: { identity: "claude-code" },
+        sequence: 1,
+        type: "lead_decision",
+        valueGrade: "T2",
+        withWhat: { reasoning: "delegate STAGE 4 to opus subagent" },
+      }) + "\n",
+      "utf8",
+    );
+
+    const result = await sessionStart({ cwd: root, session_id: "live-sess" });
+    const ctx = result.hookSpecificOutput?.additionalContext ?? "";
+    expect(ctx).toContain("[A2-prior]");
+    expect(ctx).toContain("lead_decision");
+  });
+
   test("a session already in foldedSessions is NOT named (listPending exclusion)", async () => {
     const { root, sessionId } = seed();
     setEnv(root);

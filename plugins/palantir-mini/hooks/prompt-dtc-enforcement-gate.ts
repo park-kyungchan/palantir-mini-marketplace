@@ -19,6 +19,7 @@ import * as path from "node:path";
 import { execSync } from "node:child_process";
 import { emit } from "../scripts/log";
 import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
+import { pathIsProjectOntologyClass } from "../lib/project/ontology-path-class";
 import { readCurrentFDEOntologyEngineeringSession } from "../lib/fde-ontology-engineering/session-store";
 import {
   PROMPT_RUNTIMES,
@@ -32,6 +33,7 @@ import {
 } from "../lib/lead-intent/contracts";
 import {
   verifyDtcBuildApprovalAgainstEnvelope,
+  verifyDeliveryApprovalAgainstEnvelope,
   type VerifyDtcBuildApprovalResult,
 } from "../lib/lead-intent/dtc-build-approval";
 import { evaluateProjectScopeConformance } from "../lib/lead-intent/project-scope-policy";
@@ -62,6 +64,7 @@ import {
 import {
   gateModeFromEnv,
   resolveEffectiveGateMode,
+  AUTHORIZED_DELIVERY_CLASSES,
   type ProjectGateMode,
   type ProtectedMutationClass,
 } from "../lib/governance/effective-gate-mode";
@@ -219,7 +222,8 @@ function protectedMutationClassForPromptGate(
 
   const normalizedName = toolName(payload).toLowerCase();
   if (normalizedName === "bash" && mutating) {
-    const command = String(payload.tool_input?.command ?? "").toLowerCase();
+    const rawCommand = String(payload.tool_input?.command ?? "");
+    const command = rawCommand.toLowerCase();
     if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(command)) {
       // bd-017: a `gh pr` whose ENTIRE pushed/PR RANGE is non-ontology drops from the
       // `pull-request` floor (blocking) to `generic-mutation` (scoped floor). An
@@ -227,11 +231,16 @@ function protectedMutationClassForPromptGate(
       // BLOCKING). The range — not the staged set — is the change being shipped.
       return allPushRangePathsNonOntology(projectRoot) ? "generic-mutation" : "pull-request";
     }
-    if (/\bgit\s+commit\b/.test(command)) {
+    if (isGitSubcommand(command, "commit")) {
       // D-i: a `git commit` whose ENTIRE staged set is non-ontology drops from the
       // `commit` floor (blocking) to `generic-mutation` (scoped floor). An empty /
       // unresolvable / MIXED staged set stays `commit` (conservative, BLOCKING).
-      return allStagedPathsNonOntology(projectRoot) ? "generic-mutation" : "commit";
+      // bd-019: honor `git -C <other-repo>` / `--work-tree` so a cross-repo commit is
+      // evaluated against the repo it actually mutates, not the session CWD. The
+      // subcommand detector also tolerates git's global options (`-C <dir>`, `-c k=v`,
+      // `--git-dir`, `--work-tree`, …) sitting between `git` and `commit`.
+      const targetRepo = resolveGitTargetRepo(rawCommand, projectRoot);
+      return allStagedPathsNonOntology(projectRoot, targetRepo) ? "generic-mutation" : "commit";
     }
     if (/\b(git\s+push|npm\s+publish|bun\s+publish|release|deploy)\b/.test(command)) {
       // bd-017: a `git push` (and publish/release/deploy) whose ENTIRE pushed RANGE
@@ -371,6 +380,17 @@ function scopedBlockingFileReason(filePath: string, projectRoot: string): string
   if (/^projects\/[^/]+\/src\/generated\//.test(rel)) {
     return `generated project surface: ${rel}`;
   }
+  // SECURITY (path-predicate unification) — fold in the CANONICAL project-ontology
+  // path-class predicate (object-type(s)/, link-type(s)/, action-type(s)/,
+  // interface-type(s)/, shared-propert(y|ies)/, and any-case ontology/). The narrow
+  // `/^projects\/[^/]+\/ontology\//` rule above only catches one case-sensitive
+  // single-dir layout, so ontology-class siblings (`projects/<p>/object-types/…`) and
+  // case-variants (`…/ONTOLOGY/…`) leaked through as "non-ontology" → A2-eligible.
+  // pathIsProjectOntologyClass lowercases + matches the full class family, closing the
+  // bypass for ALL consumers of this predicate (the A2 write-set screen, the
+  // staged/push-range de-floors, and the scoped-blocking advisory). Reuses the one
+  // definition (no re-implementation).
+  if (pathIsProjectOntologyClass(rel)) return `project ontology surface: ${rel}`;
   return undefined;
 }
 
@@ -385,7 +405,83 @@ function isNonOntologyPath(filePath: string, projectRoot: string): boolean {
   const rel = normalizeSurfacePath(filePath, projectRoot);
   if (rel.startsWith(".palantir-mini/") || rel === ".palantir-mini") return false;
   if (rel.includes("schemas/ontology/")) return false;
+  // SECURITY (path-predicate unification) — defense-in-depth hard floor for the
+  // CANONICAL project-ontology path-class family (case-insensitive). This is also
+  // covered by scopedBlockingFileReason below, but pinning it here keeps the floor
+  // robust to any later refactor of the advisory predicate and mirrors the existing
+  // `.palantir-mini/` / `schemas/ontology/` hard returns.
+  if (pathIsProjectOntologyClass(rel)) return false;
   return scopedBlockingFileReason(filePath, projectRoot) === undefined;
+}
+
+/**
+ * bd-019 — true IFF `command` (lowercased) invokes `git <subcommand>`, tolerating
+ * git's GLOBAL options between `git` and the subcommand. Git accepts options like
+ * `-C <dir>`, `-c <name>=<value>`, `--git-dir[=]<dir>`, `--work-tree[=]<dir>`,
+ * `--namespace <n>`, `-p`/`--paginate`/`--no-pager`/`--bare`/`--no-replace-objects`
+ * before the subcommand, so a bare `\bgit\s+commit\b` misses `git -C <dir> commit`
+ * (the cross-repo case) and mis-floors it to `external-command`. This walks the tokens
+ * after `git`, skipping a global option (and its value when the option takes one) until
+ * the first non-option token, which is the subcommand.
+ */
+function isGitSubcommand(command: string, subcommand: string): boolean {
+  // Global options that consume the FOLLOWING token as their value. `command` is
+  // lowercased, so `-C` (path) and `-c` (config) collapse to `-c` — both take a value,
+  // so subcommand detection is correct either way (path resolution uses the raw command).
+  const VALUE_OPTS = new Set(["-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
+  const tokens = command.trim().split(/\s+/);
+  let i = 0;
+  // require a leading `git` (allow an absolute/relative path ending in /git)
+  if (!(tokens[i] === "git" || /(?:^|\/)git$/.test(tokens[i] ?? ""))) return false;
+  i++;
+  while (i < tokens.length) {
+    const tok = tokens[i];
+    if (tok === undefined) break;
+    if (!tok.startsWith("-")) return tok === subcommand; // first non-option = subcommand
+    // `--opt=value` carries its value inline; `-c`/`--git-dir`/… consume the next token.
+    if (tok.includes("=")) {
+      i++;
+    } else if (VALUE_OPTS.has(tok)) {
+      i += 2;
+    } else {
+      i++;
+    }
+  }
+  return false;
+}
+
+/**
+ * bd-019 — resolve the repo a `git` command actually mutates, honoring git's global
+ * `-C <dir>` and `--work-tree[=]<dir>` options (which precede the subcommand). A
+ * `git -C <other-repo> commit` mutates `<other-repo>`, NOT the session CWD, so the
+ * staged-set de-floor must inspect THAT repo's staged set — otherwise the session-CWD
+ * repo's empty/unrelated staged set hits the unresolvable→conservative-BLOCKING
+ * default and over-blocks a legitimately all-non-ontology cross-repo commit.
+ *
+ * Parses from the RAW (non-lowercased) command — filesystem paths are case-sensitive.
+ * `-C` and `--work-tree` name the working tree the staged check + path normalization
+ * use; relative targets resolve against the session CWD. `--git-dir` alone (no
+ * `--work-tree`) does not redirect the working tree, so it is not used as the root.
+ * Returns the session `projectRoot` when no working-tree override is present.
+ */
+function resolveGitTargetRepo(rawCommand: string, projectRoot: string): string {
+  let target: string | undefined;
+  // `git -C <dir>` (repeatable; git applies them cumulatively — last one wins for the
+  // effective cwd, matching git's own left-to-right resolution).
+  const cMatches = [...rawCommand.matchAll(/(?:^|\s)-C\s+("[^"]+"|'[^']+'|\S+)/g)];
+  for (const m of cMatches) {
+    const raw = m[1];
+    if (raw === undefined) continue;
+    const v = raw.replace(/^["']|["']$/g, "");
+    target = path.isAbsolute(v) ? v : path.resolve(target ?? projectRoot, v);
+  }
+  // `--work-tree[=]<dir>` overrides the working tree the staged set is read against.
+  const wt = rawCommand.match(/(?:^|\s)--work-tree(?:=|\s+)("[^"]+"|'[^']+'|\S+)/);
+  if (wt && wt[1] !== undefined) {
+    const v = wt[1].replace(/^["']|["']$/g, "");
+    target = path.isAbsolute(v) ? v : path.resolve(target ?? projectRoot, v);
+  }
+  return target ?? projectRoot;
 }
 
 /**
@@ -394,12 +490,16 @@ function isNonOntologyPath(filePath: string, projectRoot: string): boolean {
  * `generic-mutation` (scoped-blocking floor only). CONSERVATIVE on every failure
  * path: a throw OR an empty staged set returns `false` (do NOT exempt). A MIXED
  * staged set (any ontology surface) returns `false`, keeping the commit blocking.
+ *
+ * bd-019: `targetRepo` (the `git -C`/`--work-tree` target, else `projectRoot`) is the
+ * repo the staged set is read from AND the root staged paths are normalized against,
+ * so a cross-repo `git -C <other-repo> commit` is evaluated on the repo it mutates.
  */
-function allStagedPathsNonOntology(projectRoot: string): boolean {
+function allStagedPathsNonOntology(projectRoot: string, targetRepo: string = projectRoot): boolean {
   let raw: string;
   try {
     raw = execSync("git diff --cached --name-only", {
-      cwd: projectRoot,
+      cwd: targetRepo,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
@@ -408,7 +508,7 @@ function allStagedPathsNonOntology(projectRoot: string): boolean {
   }
   const staged = raw.split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
   if (staged.length === 0) return false;
-  return staged.every((p) => isNonOntologyPath(p, projectRoot));
+  return staged.every((p) => isNonOntologyPath(p, targetRepo));
 }
 
 /**
@@ -522,6 +622,64 @@ function isCrossCuttingIntentRouter(payload: HookPayload): boolean {
     input.complexityHint === "cross-cutting" &&
     (looksOntologyAffecting(input.intent) || looksOntologyAffecting(input.scopePaths))
   );
+}
+
+/**
+ * A2 SECURITY GUARD — true ONLY when the operation is POSITIVELY PROVEN to be a
+ * non-ontology delivery action, so the A2 authorized-delivery early-return may grant
+ * a PASS. FAIL-CLOSED: any miss / throw / empty / MIXED / unresolvable write-set
+ * returns false (the gate then keeps its floor and denies).
+ *
+ * The class membership (`mutationClass !== 'ontology-write' && AUTHORIZED_DELIVERY_CLASSES.has`)
+ * is NECESSARY but NOT SUFFICIENT — ontology writes do NOT all classify as
+ * `ontology-write` (a `commit_edits`/Edit/Write/pm_intent_router over ontology paths
+ * de-floors to `commit`/`generic-mutation`), so a class-only A2 pass leaks them. This
+ * guard re-proves the operation is non-ontology by BOTH the tool classifier AND the
+ * resolved write-set, reusing the SAME conservative predicates the de-floor uses.
+ */
+function isProvenNonOntologyDelivery(
+  payload: HookPayload,
+  mutationClass: ProtectedMutationClass,
+  projectRoot: string,
+): boolean {
+  // (a) class membership — necessary but not sufficient.
+  if (mutationClass === "ontology-write") return false;
+  if (!AUTHORIZED_DELIVERY_CLASSES.has(mutationClass)) return false;
+
+  const classification = classifyHookTool(payload);
+  // (b) classifier must NOT flag the tool as ontology-affecting (rejects
+  //     commit_edits / apply_edit_function / ontology_context_query mutations).
+  if (classification.isOntologyAffectingForSelectiveBlocking) return false;
+  // (c) NOT an ontology cross-cutting pm_intent_router dispatch.
+  if (isCrossCuttingIntentRouter(payload)) return false;
+  // (d) defense-in-depth: NOT a commit_edits operation (already excluded by (b)).
+  if (classification.operation === "commit_edits") return false;
+
+  // (e) the WRITE-SET must be RESOLVED and entirely non-ontology, per mutationClass —
+  //     mirroring the branch logic protectedMutationClassForPromptGate used to derive
+  //     the class. Empty / unresolvable / MIXED → NOT proven → false (conservative).
+  const normalizedName = toolName(payload).toLowerCase();
+  if (normalizedName === "bash") {
+    const rawCommand = String(payload.tool_input?.command ?? "");
+    const command = rawCommand.toLowerCase();
+    if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(command)) {
+      return allPushRangePathsNonOntology(projectRoot);
+    }
+    if (isGitSubcommand(command, "commit")) {
+      return allStagedPathsNonOntology(projectRoot, resolveGitTargetRepo(rawCommand, projectRoot));
+    }
+    if (/\b(git\s+push|npm\s+publish|bun\s+publish|release|deploy)\b/.test(command)) {
+      return allPushRangePathsNonOntology(projectRoot);
+    }
+    // Any other bash command reaching here is not a proven delivery surface.
+    return false;
+  }
+
+  // Catch-all (generic-mutation for Edit/Write/MultiEdit/NotebookEdit and any non-bash
+  // tool): the resolved target set must be NON-EMPTY and EVERY path non-ontology.
+  const targets = collectTargetFiles(payload);
+  if (targets.length === 0) return false;
+  return targets.every((p) => isNonOntologyPath(p, projectRoot));
 }
 
 function assessScopedBlockingSurface(
@@ -670,9 +828,44 @@ async function assessDtcBuildApprovalForGate(
   });
 }
 
+/**
+ * A2 authorized-delivery lane — the PreToolUse mirror of
+ * {@link assessDtcBuildApprovalForGate}, but routed through the DELIVERY verifier
+ * ({@link verifyDeliveryApprovalAgainstEnvelope}) so the surface half of the
+ * intent gate is merge/PR/ship/push/release rather than DTC-build. Re-verifies the
+ * caller-supplied user-approval envelope pointer against the hook-captured
+ * PromptEnvelope, FAIL-CLOSED, via the SAME unforgeable read-time core. Returns
+ * `undefined` when the caller supplied NO approval inputs (so the gate behaves
+ * byte-identically to legacy — no delivery acceptance branch taken).
+ */
+async function assessDeliveryApprovalForGate(
+  projectRoot: string,
+  payload: HookPayload,
+): Promise<VerifyDtcBuildApprovalResult | undefined> {
+  const input = payload.tool_input ?? {};
+  const suppliedQuote = input.userApprovalQuote?.trim();
+  const suppliedPromptId = input.userApprovalPromptId?.trim();
+  const suppliedPromptHash = input.userApprovalPromptHash?.trim();
+  if (!suppliedQuote && !suppliedPromptId && !suppliedPromptHash) {
+    return undefined;
+  }
+  const sessionId = input.sessionId ?? payload.session_id;
+  const promptId = suppliedPromptId ?? input.promptId?.trim() ?? "";
+  const promptHash = suppliedPromptHash ?? input.promptHash?.trim() ?? "";
+  return verifyDeliveryApprovalAgainstEnvelope({
+    projectRoot,
+    promptId,
+    promptHash,
+    userQuote: suppliedQuote ?? "",
+    sessionId,
+    runtime: detectRuntime(payload),
+  });
+}
+
 async function assessPromptDtc(
   projectRoot: string,
   payload: HookPayload,
+  mutationClass?: ProtectedMutationClass,
 ): Promise<GateAssessment> {
   const store = new PromptFrontDoorStore({ projectRoot });
   const envelope = await readCurrentEnvelope(store, payload);
@@ -710,6 +903,37 @@ async function assessPromptDtc(
         "Prompt-front-door continuity failed: " +
         continuity.issues.map((issue) => `${issue.field}: ${issue.message}`).join("; "),
     };
+  }
+
+  // A2 authorized-delivery lane (SECURITY-CRITICAL) — computed AFTER continuity (so
+  // the same promptId/promptHash anchor governs it) and BEFORE the
+  // semantic_contract_required reject. Eligibility is NOT mere class membership: the
+  // A2 PASS is granted ONLY when isProvenNonOntologyDelivery PROVES the operation is
+  // non-ontology by BOTH the tool classifier AND the resolved write-set — never merely
+  // `!== 'ontology-write'`. This closes the bypass where a commit_edits / Edit / Write /
+  // pm_intent_router over ontology paths de-floors to `commit`/`generic-mutation` (NOT
+  // `ontology-write`) and would otherwise slip an ontology write through the delivery
+  // lane. The A1 ontology-write DTC gate is never relaxed. When a re-verified, on-turn,
+  // unforgeable user-approval envelope authorizes a PROVEN non-ontology delivery action,
+  // the gate PASSES-WITH-AUDIT: it returns ok here, but the caller's emitGateAssessment
+  // still fires for the audit row. A delivery action does not require an inline approved
+  // SIC/DTC pair — the human who approved the merge/PR IS that authorization.
+  if (
+    mutationClass !== undefined &&
+    isProvenNonOntologyDelivery(payload, mutationClass, projectRoot)
+  ) {
+    const deliveryApproval = await assessDeliveryApprovalForGate(projectRoot, payload);
+    if (deliveryApproval?.authorized === true) {
+      return {
+        ok: true,
+        errorClass: "authorized_delivery",
+        envelope,
+        userApprovalAuthorized: true,
+        reason:
+          "Delivery action authorized by a re-verified user-approval envelope " +
+          `(authorized-delivery; mutationClass=${mutationClass}) with promptHash continuity.`,
+      };
+    }
   }
 
   // Improvement #3 (ADDITIVE) — re-verify a caller-supplied user-approval envelope
@@ -1029,12 +1253,13 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
   const mutating = isMutatingCandidate(p);
   const projectRoot = resolveProjectRoot(p);
   const mutationClass = protectedMutationClassForPromptGate(p, mutating, projectRoot);
+  const explicitMode = hasExplicitGateMode();
   const effectiveGateMode = resolveEffectiveGateMode({
     requestedMode,
     mutationClass,
+    hasExplicitGateMode: explicitMode,
   });
   const mode = effectiveGateMode.effectiveMode;
-  const explicitMode = hasExplicitGateMode();
   const cwdProjectRoot = findProjectRoot(p.cwd ?? process.cwd());
   // A stray `.palantir-mini` marker at $HOME or a temp dir must not arm the gate
   // under HOME/tmp (canonical exclusion — supersedes the former TMPDIR-only check,
@@ -1114,7 +1339,7 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
     const scopedBlocking = assessScopedBlockingSurface(p, projectRoot);
     if (!isOntologyAffecting) {
       if (mutating && scopedBlocking.scoped) {
-        const assessment = await assessPromptDtc(projectRoot, p);
+        const assessment = await assessPromptDtc(projectRoot, p, mutationClass);
         await emitGateAssessment(p, projectRoot, mode, mutating, assessment, false, scopedBlocking);
         if (assessment.ok) {
           return { message: "palantir-mini: prompt-DTC gate OK (selective-blocking scoped advisory)" };
@@ -1148,7 +1373,7 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
       };
     }
     // Cache miss — run full gate assessment and block
-    const assessment = await assessPromptDtc(projectRoot, p);
+    const assessment = await assessPromptDtc(projectRoot, p, mutationClass);
     await emitGateAssessment(p, projectRoot, mode, mutating, assessment, true, scopedBlocking);
 
     if (assessment.ok) {
@@ -1179,7 +1404,7 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
   }
 
   const scopedBlocking = assessScopedBlockingSurface(p, projectRoot);
-  const assessment = await assessPromptDtc(projectRoot, p);
+  const assessment = await assessPromptDtc(projectRoot, p, mutationClass);
   const willDeny =
     mode === "blocking" || (mode === "scoped-blocking" && scopedBlocking.scoped);
   await emitGateAssessment(p, projectRoot, mode, mutating, assessment, willDeny, scopedBlocking);
@@ -1188,6 +1413,19 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
     return { message: "palantir-mini: prompt-DTC gate OK" };
   }
 
+  // A2 — for a delivery-class blocker (merge/PR/commit/release/push, NEVER
+  // ontology-write) the blunt MODE=off escape is DEAD (off is strengthen-only on a
+  // delivery floor), so swap that escape line for the authorized-delivery
+  // instruction (the unforgeable per-turn user-approval envelope). The A1 runbook
+  // pointer (the legacy SIC/DTC build path) is RETAINED for every blocker — it is
+  // the other way to clear a delivery action without an approval envelope.
+  const isDeliveryClassBlocker =
+    mutationClass !== undefined &&
+    mutationClass !== "ontology-write" &&
+    AUTHORIZED_DELIVERY_CLASSES.has(mutationClass);
+  const escapeLine = isDeliveryClassBlocker
+    ? "Authorize delivery: re-issue this tool call with userApprovalQuote (a verbatim substring of your approving turn — e.g. \"merge the PR\") + userApprovalPromptId/userApprovalPromptHash. It is re-verified fail-closed against the hook-captured prompt (15-min TTL, this turn only); a blunt MODE=off does NOT clear a delivery action."
+    : "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables only this prompt-DTC gate.";
   const reason = [
     `Prompt-DTC gate ${mode.toUpperCase()} for ${toolName(p)} in ${projectRoot}.`,
     scopedBlocking.scoped
@@ -1198,7 +1436,7 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
     "Allowed while pending: read-only inspection, pm_semantic_intent_gate, contract approval/completion tools, and emit_event.",
     "Pass condition: current prompt envelope state digital_twin_approved + approved prompt-local contract refs + promptHash continuity.",
     runbookPointerForAssessment(assessment),
-    "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables only this prompt-DTC gate.",
+    escapeLine,
   ].join("\n");
 
   if (willDeny) return denyResult(reason);
@@ -1243,7 +1481,11 @@ export const __test__ = {
   allStagedPathsNonOntology,
   allPushRangePathsNonOntology,
   resolvePushRangeBaseRef,
+  resolveGitTargetRepo,
+  isGitSubcommand,
   isNonOntologyPath,
+  isProvenNonOntologyDelivery,
+  isCrossCuttingIntentRouter,
 };
 
 // OE-1 (T3): CLI entry — makes this gate runnable as a live hooks.json PreToolUse

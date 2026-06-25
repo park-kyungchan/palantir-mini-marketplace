@@ -74,13 +74,41 @@ describe("isQueueOperationTranscript", () => {
     expect(isQueueOperationTranscript(p)).toBe(false);
   });
 
-  test("a queue-operation row longer than 2KB on the first line is still detected (header within 2KB)", () => {
+  test("EXCLUDES a queue-operation row whose first line is FAR longer than 2KB (whole-line read)", () => {
     const dir = tmpDir();
     const p = path.join(dir, "big-qop.jsonl");
-    // type appears early; padding pushes the rest past 2KB but the parseable prefix
-    // is what matters — JSON.parse needs the WHOLE first line, so keep the line < 2KB.
-    const obj = { type: "queue-operation", note: "x".repeat(500) };
+    // The whole first line must be read+parsed. An 8KB note pushes the first line well
+    // past the old 2KB cap; the grown read parses it and excludes the row. Under the
+    // old Buffer.alloc(2048) cap the truncated prefix failed JSON.parse → row NOT
+    // excluded → fold engine re-detected its own byproduct (the bug this fixes).
+    const obj = { type: "queue-operation", op: "extract", note: "x".repeat(8192) };
     fs.writeFileSync(p, JSON.stringify(obj) + "\n", "utf8");
+    expect(JSON.stringify(obj).length).toBeGreaterThan(2048); // guard: line really is >2KB
     expect(isQueueOperationTranscript(p)).toBe(true);
+  });
+
+  test("INCLUDES a normal session whose first line is >2KB (large user row not mis-excluded)", () => {
+    const dir = tmpDir();
+    const p = path.join(dir, "big-user.jsonl");
+    // A real session row larger than 2KB must still parse to its real type and NOT be
+    // excluded — the whole-line read must not flip a non-queue-operation row.
+    const obj = { type: "user", message: { role: "user", content: "y".repeat(8192) } };
+    fs.writeFileSync(p, JSON.stringify(obj) + "\n", "utf8");
+    expect(JSON.stringify(obj).length).toBeGreaterThan(2048);
+    expect(isQueueOperationTranscript(p)).toBe(false);
+  });
+
+  test("EXCLUDES a >2KB queue-operation first line that is FOLLOWED by more lines", () => {
+    const dir = tmpDir();
+    const p = path.join(dir, "big-qop-multiline.jsonl");
+    // The newline terminating the >2KB first line lands in a later chunk; only the
+    // first line is parsed, trailing lines are ignored.
+    const file = writeTranscript(
+      dir,
+      "big-qop-multiline.jsonl",
+      { type: "queue-operation", op: "extract", note: "z".repeat(8192) },
+      [{ type: "user", content: "ignored — only first line matters" }],
+    );
+    expect(isQueueOperationTranscript(file)).toBe(true);
   });
 });

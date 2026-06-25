@@ -376,7 +376,13 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  process.stderr.write(`replay-promote-grades: FATAL: ${String(err)}\n`);
-  process.exit(1);
-});
+// Only run the CLI when invoked directly (`bun run scripts/replay-promote-grades.ts`),
+// never as an import side-effect — the t4-promotion-trigger Stop hook imports
+// replayPromoteGrades() and must control invocation itself (rule 10 §append-only:
+// no unintended promotion appends on import).
+if (import.meta.main) {
+  main().catch((err) => {
+    process.stderr.write(`replay-promote-grades: FATAL: ${String(err)}\n`);
+    process.exit(1);
+  });
+}

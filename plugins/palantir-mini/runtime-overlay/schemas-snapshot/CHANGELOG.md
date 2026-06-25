@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.93.0 — 2026-06-25 (Lead-decision governed-emit event type — P3 / Path-B)
+
+Additive MINOR (rule 08 — one new event-type discriminator registered in the lineage axis; ADDITIVE only, no existing discriminator/field/export is removed or retyped, so every legacy producer/consumer stays byte-compatible).
+
+### Added — Lead-decision governed event type (`ontology/lineage/event-types.ts`)
+
+- `EVENT_TYPE_NAMES` + `EVENT_TYPE_REGISTRY` gain `lead_decision` (`primaryDomain: "learn"`), the 87th event discriminator (was 86). This is the GOVERNED Layer-1 event for a LEAD orchestration decision (delegate / pick approach / refine hypothesis), emitted via the in-process Path-B `emit()` (the MCP `emit_event` tool is HIDDEN under the altitude-2 profile). **USER/LEAD decision:** a NEW `lead_decision` type — clean separation from the fold's `resolution_verdict` — so the Lead's decisions stay separable from fold output; the `a2-prior` fold-verdict BY-TYPE branch (`lib/runtime-overlay/a2-prior.ts`) already whitelists `lead_decision`, so a freshly-emitted T2/T3 row surfaces NEXT session by TYPE before any promotion grades it. The self-Ontology seed drift guard tracks it: `ontology/self/event-envelope.objecttype.ts` `EVENT_ENVELOPE_INSTANCES` gains the member (86 → 87) and `tests/ontology/self/event-envelope-registration.test.ts` `EXPECTED_EVENT_ENVELOPE_COUNT` advances 86 → 87. Paired non-snapshot edits land the runtime envelope (`lib/event-log/types.ts` `LeadDecisionEnvelope` + union member + `isLeadDecision` guard + optional `EventSnapshot` counter field, and `lib/event-log/read/fold-snapshot.ts` one counting `case` branch) and the Path-B emit CLI (`lib/lead-intent/lead-decision-emit-cli.ts`, paired/dogfood test `tests/lib/lead-intent/lead-decision-emit-cli.test.ts`). Grade: the authoritative grader `autoGradeEnvelope` (`bridge/handlers/emit-event.ts`) grades on FIELD PRESENCE — a `lead_decision` carrying `withWhat.memoryLayers` + a B-axis signal (`withWhat.hypothesis` or `lineageRefs`) grades ≥ T2, and reaches T3 when it ALSO carries `withWhat.refinementTarget`; the emit CLI maps the `decisionJson` fields onto exactly those `withWhat` slots. Additive + backward-compatible — no consumer that switches on the existing discriminators breaks.
+
 ## v1.92.0 — 2026-06-22 (second-brain memory-fold governed event types — P0.4r)
 
 Additive MINOR (rule 08 — two new event-type discriminators registered in the lineage axis; ADDITIVE only, no existing discriminator/field/export is removed or retyped, so every legacy producer/consumer stays byte-compatible). One additive optional envelope field (`envelopeRev`) lands in the same bump; see the §Added — `envelopeRev` block below.

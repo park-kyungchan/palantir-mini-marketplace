@@ -107,6 +107,8 @@ export const EVENT_TYPE_NAMES = [
   // v1.92 — second-brain memory-fold governed event types (P0.4r)
   "resolution_verdict",
   "memory_fold_committed",
+  // 7.36.0 — P3 Lead-decision governed-emit (Path-B); clean separation from fold output.
+  "lead_decision",
 ] as const;
 
 export type EventTypeName = typeof EVENT_TYPE_NAMES[number];
@@ -557,6 +559,17 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
   memory_fold_committed: {
     name: "memory_fold_committed",
     description: "The session-end memory fold committed a derived Layer-2 graph.json projection (node/edge counts) for a session. Advisory, non-gating; emitted via the gated emit_event MCP path (rule 27). Payload: { graphPath, nodeCount, edgeCount, sessionId }.",
+    primaryDomain: "learn",
+  },
+  // 7.36.0 — P3 Lead-decision governed-emit (Path-B). A Lead orchestration
+  // verdict (delegate / pick approach / refine hypothesis) landed into events.jsonl
+  // via the in-process scripts/log.ts emit() (Path B), NOT the altitude-2-hidden MCP
+  // emit_event tool. Distinct type from the fold's resolution_verdict so the Lead's
+  // decisions stay cleanly separable from fold output. Grades ≥T2 (T3 when it carries
+  // withWhat.refinementTarget). Payload: { decision }.
+  lead_decision: {
+    name: "lead_decision",
+    description: "A Lead orchestration decision (e.g. delegate to a subagent / pick an approach / refine a hypothesis) recorded as a governed Layer-1 audit event via the in-process Path-B emit() (the MCP emit_event tool is hidden under the altitude-2 profile). Carries withWhat.reasoning + withWhat.refinementTarget + memoryLayers so it grades ≥T2 (T3 with refinementTarget), and surfaces NEXT session via the a2-prior fold-verdict BY-TYPE branch. Payload: { decision }.",
     primaryDomain: "learn",
   },
 });

@@ -79,6 +79,34 @@ const DTC_BUILD_SURFACE_MARKERS: readonly RegExp[] = [
 ];
 
 /**
+ * Authorized-delivery-surface markers (A2 lane — second half of the co-occurrence
+ * requirement for the delivery gate). These signal the user is approving a delivery
+ * action — merge / PR / ship / push / release / 머지·병합·배포·푸시 — as opposed to
+ * the DTC-build surface above. Kept deliberately coarse, mirroring
+ * {@link DTC_BUILD_SURFACE_MARKERS}: the gate's own mutation-class scoping carries
+ * the precision; this is only the INTENT half. Reuses the SAME approval-verb +
+ * negation guards as the DTC-build path (no parallel trust surface).
+ */
+const DELIVERY_SURFACE_MARKERS: readonly RegExp[] = [
+  // `merge` as the git-action sense — NOT "merge conflict" (incidental lexicon).
+  /\bmerge\b(?!\s+conflict)/i,
+  // `pull request`, and a boundary-safe UPPERCASE `PR` (case-SENSITIVE so it does not
+  // match "prepare"/"approve"); the bare lowercase `\bpr\b` was too collision-prone.
+  /\bpull request\b/i,
+  /\bPR\b/,
+  /\bship\b/i,
+  // `push` only in a git/branch context (co-occurring origin/remote/branch/main/to),
+  // so an incidental "push the deadline" does not count as a delivery marker.
+  /\bpush\b[^.\n]*\b(origin|remote|branch|main|master|to)\b/i,
+  // `release` as the ship sense — NOT "release notes" (incidental lexicon).
+  /\brelease\b(?!\s+notes)/i,
+  /머지/,
+  /병합/,
+  /배포/,
+  /푸시/,
+];
+
+/**
  * Negation guard. If ANY of these fire anywhere in the excerpt, the approval verb
  * half is voided: a negated directive ("don't build", "하지 마", "안 돼", "금지")
  * must NEVER clear the gate even when a build-surface marker co-occurs. Mirrors the
@@ -111,6 +139,30 @@ export function excerptExpressesDtcBuildApproval(promptExcerpt: string): boolean
   const hasSurfaceMarker = DTC_BUILD_SURFACE_MARKERS.some((re) => re.test(excerpt));
   const hasNegation = NEGATION_PATTERNS.some((re) => re.test(excerpt));
   return hasApprovalVerb && hasSurfaceMarker && !hasNegation;
+}
+
+/**
+ * A2 delivery-lane mirror of {@link excerptExpressesDtcBuildApproval}. Returns true
+ * iff the captured `promptExcerpt` contains BOTH an approval verb AND a
+ * DELIVERY-surface marker AND no negation. Reuses the SAME approval-verb and
+ * negation lexicons; only the surface half differs (delivery vs DTC-build). The
+ * model-supplied `userQuote` is NOT consulted here; only the hook-captured excerpt is.
+ */
+export function excerptExpressesDeliveryApproval(promptExcerpt: string): boolean {
+  const excerpt = promptExcerpt; // case handled per-pattern (i-flag / unicode)
+  // BOUNDED WINDOW: require an approval verb AND a delivery marker to CO-OCCUR within
+  // the SAME clause/sentence segment, not merely anywhere in the turn. Split on
+  // sentence/clause boundaries `[.!?;\n]+` (deliberately NOT on `:` — "Proceed: push to
+  // origin." must stay one segment so the verb and marker do not separate). The
+  // negation guard stays GLOBAL (a negation anywhere in the turn voids the approval).
+  const segments = collapseWhitespace(excerpt).split(/[.!?;\n]+/);
+  const hasNegation = NEGATION_PATTERNS.some((re) => re.test(excerpt));
+  const coOccur = segments.some(
+    (seg) =>
+      APPROVAL_VERB_PATTERNS.some((v) => v.test(seg)) &&
+      DELIVERY_SURFACE_MARKERS.some((m) => m.test(seg)),
+  );
+  return coOccur && !hasNegation;
 }
 
 /**
@@ -158,6 +210,14 @@ interface CoreVerifyArgs {
   readonly userQuote: string;
   readonly approvedAt?: string; // present only at re-verify (TTL anchor)
   readonly nowMs: number;
+  /**
+   * Co-occurrence predicate run against the verbatim excerpt at check #4. Defaults
+   * to the DTC-build predicate so existing callers stay byte-identical; the A2
+   * delivery lane injects {@link excerptExpressesDeliveryApproval}. Both share the
+   * SAME envelope/hash/substring/freshness/TTL/negation core — only the surface
+   * half of the intent gate differs (no parallel trust path).
+   */
+  readonly excerptApproves?: (promptExcerpt: string) => boolean;
 }
 
 /**
@@ -192,12 +252,15 @@ function coreVerify(args: CoreVerifyArgs): { ok: true } | { ok: false; reason: s
         "userQuote is not a substring of envelope.promptExcerpt (quote past the 240-char cut fails closed)",
     };
   }
-  // 4. approval-verb + DTC-build-surface CO-OCCUR in the excerpt itself, no negation.
-  if (!excerptExpressesDtcBuildApproval(args.envelope.promptExcerpt)) {
+  // 4. approval-verb + surface-marker CO-OCCUR in the excerpt itself, no negation.
+  //    Surface predicate defaults to DTC-build; the A2 delivery lane injects the
+  //    delivery predicate. Same core, different surface half (no parallel path).
+  const excerptApproves = args.excerptApproves ?? excerptExpressesDtcBuildApproval;
+  if (!excerptApproves(args.envelope.promptExcerpt)) {
     return {
       ok: false,
       reason:
-        "envelope.promptExcerpt lacks approval-verb + DTC-build-surface co-occurrence (or carries a negation)",
+        "envelope.promptExcerpt lacks approval-verb + delivery/DTC-build-surface co-occurrence (or carries a negation)",
     };
   }
   // 5. Turn binding — promptId is the CURRENT pointer, or the immediately-previous
@@ -302,6 +365,84 @@ export async function verifyDtcBuildApprovalAgainstEnvelope(
   return {
     authorized: true,
     reason: "re-verified against captured envelope (fresh, on-current-turn, build-approved)",
+    approvalRef,
+  };
+}
+
+/**
+ * A2 READ-TIME verifier for the AUTHORIZED-DELIVERY lane (merge / PR / commit /
+ * release / push). Structurally identical to
+ * {@link verifyDtcBuildApprovalAgainstEnvelope}: it re-loads the hook-captured
+ * envelope for `(sessionId, promptId)` and runs the SAME `coreVerify`
+ * (promptHash-bind + userQuote-substring + pointer-freshness + 15-min TTL +
+ * NEGATION guard) — only the check-#4 surface predicate is the delivery one
+ * (injected via `excerptApproves`). On success, mints a {@link StructuredApprovalRef}
+ * with `approvalSurface: "authorized-delivery"`.
+ *
+ * Any failure ⇒ `{ authorized: false, reason }` (default = not authorized). The
+ * model can never write a PromptEnvelope, so the verdict is unforgeable.
+ */
+export async function verifyDeliveryApprovalAgainstEnvelope(
+  input: VerifyDtcBuildApprovalInput,
+): Promise<VerifyDtcBuildApprovalResult> {
+  const nowMs = input.nowMs ?? Date.now();
+  const store = input.envelopeStore ?? defaultStore(input.projectRoot);
+
+  if (!input.promptId?.trim()) return { authorized: false, reason: "promptId is required" };
+  if (!input.promptHash?.trim()) return { authorized: false, reason: "promptHash is required" };
+
+  const sessionId = input.sessionId?.trim();
+  if (!sessionId) {
+    return { authorized: false, reason: "sessionId is required to locate the captured envelope" };
+  }
+
+  const envelope = await store.readEnvelope(sessionId, input.promptId);
+  if (envelope === null) {
+    return {
+      authorized: false,
+      reason: "captured PromptEnvelope not found for promptId (LLM cannot create one)",
+    };
+  }
+
+  const runtime = input.runtime ?? envelope.runtime;
+  const pointer = await store.readCurrentPointer(runtime, sessionId);
+
+  const verdict = coreVerify({
+    envelope,
+    pointer,
+    promptHash: input.promptHash,
+    userQuote: input.userQuote,
+    nowMs,
+    excerptApproves: excerptExpressesDeliveryApproval,
+  });
+  if (!verdict.ok) return { authorized: false, reason: verdict.reason };
+
+  const approvedAt = new Date(nowMs).toISOString();
+  const approvalRef: StructuredApprovalRef = createUserApprovalRef({
+    promptId: envelope.promptId,
+    promptHash: envelope.promptHash,
+    sessionId,
+    runtime,
+    userVisibleSummary: "authorized-delivery dispatch authorization (merge/PR/commit/release/push)",
+    userAnswer: input.userQuote,
+    approvalSurface: "authorized-delivery",
+    approvedAt,
+  });
+
+  // Defense in depth: the minted ref must itself pass the fail-closed validator.
+  const refIssues = validateApprovalRefValue("deliveryApprovalRef", approvalRef);
+  if (refIssues.length > 0) {
+    return {
+      authorized: false,
+      reason: `minted approvalRef failed validation: ${refIssues
+        .map((issue) => issue.message)
+        .join("; ")}`,
+    };
+  }
+
+  return {
+    authorized: true,
+    reason: "re-verified against captured envelope (fresh, on-current-turn, delivery-approved)",
     approvalRef,
   };
 }

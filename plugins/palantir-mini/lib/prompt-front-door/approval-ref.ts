@@ -9,7 +9,8 @@ export type ApprovalSurface =
   | "digital-twin-change"
   | "prompt-boundary-field"
   | "developer-source-mutation"
-  | "technology-recommendation";
+  | "technology-recommendation"
+  | "authorized-delivery";
 
 export interface StructuredApprovalRef {
   readonly schemaVersion: typeof APPROVAL_REF_SCHEMA_VERSION;
@@ -112,7 +113,8 @@ export function validateApprovalRefValue(
     ref.approvalSurface !== "digital-twin-change" &&
     ref.approvalSurface !== "prompt-boundary-field" &&
     ref.approvalSurface !== "developer-source-mutation" &&
-    ref.approvalSurface !== "technology-recommendation"
+    ref.approvalSurface !== "technology-recommendation" &&
+    ref.approvalSurface !== "authorized-delivery"
   ) {
     issues.push({
       field: `${field}.approvalSurface`,

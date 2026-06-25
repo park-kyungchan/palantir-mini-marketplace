@@ -1,6 +1,6 @@
 {
   "name": "palantir-mini",
-  "version": "7.35.0",
+  "version": "7.36.0",
   "private": true,
   "type": "module",
   "imports": {
@@ -16,7 +16,10 @@
     "mcp-server": "bun run bridge/mcp-server.ts",
     "gen:skill-docs": "bun run scripts/gen-skill-docs.ts",
     "skill:check": "bun run scripts/gen-skill-docs.ts --dry-run && bun run scripts/slim-skill-frontmatter.ts --dry-run",
-    "skill:slim-frontmatter": "bun run scripts/slim-skill-frontmatter.ts"
+    "skill:slim-frontmatter": "bun run scripts/slim-skill-frontmatter.ts",
+    "promote:grades": "bun run scripts/replay-promote-grades.ts",
+    "promote:grades:dry": "bun run scripts/replay-promote-grades.ts --dry-run",
+    "emit:lead-decision": "bun run lib/lead-intent/lead-decision-emit-cli.ts"
   },
   "dependencies": {
     "convex": "^1.27.3",
