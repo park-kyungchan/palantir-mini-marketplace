@@ -40,18 +40,36 @@ export function pendingFoldPath(root: string): string {
  * self-feed (a queue-operation transcript would otherwise be back-filled pending and
  * re-trigger a fold, whose own CLI run writes another queue-operation transcript...).
  *
- * Best-effort: reads only the first ~2KB (openSync/readSync) and parses the first
- * line. On ANY read/parse error returns FALSE — a real session is NEVER dropped on
- * error; only a positively-identified queue-operation row is excluded.
+ * Best-effort: reads the WHOLE first line in bounded chunks (openSync/readSync,
+ * growing until a newline is seen or EOF) and parses it. A 2KB-capped read silently
+ * mis-classified a queue-operation row whose first line exceeded 2KB — the truncated
+ * prefix failed JSON.parse, the row was NOT excluded, and the fold engine re-detected
+ * its own byproduct. On ANY read/parse error returns FALSE — a real session is NEVER
+ * dropped on error; only a positively-identified queue-operation row is excluded.
  */
 export function isQueueOperationTranscript(file: string): boolean {
   let fd: number | undefined;
   try {
     fd = fs.openSync(file, "r");
-    const buf = Buffer.alloc(2048);
-    const bytes = fs.readSync(fd, buf, 0, buf.length, 0);
-    const head = buf.toString("utf8", 0, bytes);
-    const firstLine = head.split("\n", 1)[0]?.trim();
+    const CHUNK = 4096;
+    const chunk = Buffer.alloc(CHUNK);
+    let firstLine = "";
+    let offset = 0;
+    // Grow the read until the first newline lands in the accumulated text or EOF.
+    // No fixed cap: a queue-operation header line >2KB still parses + excludes.
+    for (;;) {
+      const bytes = fs.readSync(fd, chunk, 0, CHUNK, offset);
+      if (bytes <= 0) break;
+      offset += bytes;
+      const newlineIdx = chunk.indexOf(0x0a, 0); // 0x0a = "\n"
+      if (newlineIdx >= 0 && newlineIdx < bytes) {
+        firstLine += chunk.toString("utf8", 0, newlineIdx);
+        break;
+      }
+      firstLine += chunk.toString("utf8", 0, bytes);
+      if (bytes < CHUNK) break; // short read ⇒ EOF, no newline (single-line file)
+    }
+    firstLine = firstLine.trim();
     if (!firstLine) return false;
     const obj = JSON.parse(firstLine) as { type?: unknown };
     return obj?.type === "queue-operation";

@@ -15,7 +15,7 @@ import {
   EVENT_ENVELOPE_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_EVENT_ENVELOPE_COUNT = 86;
+const EXPECTED_EVENT_ENVELOPE_COUNT = 87;
 
 test("self EventEnvelope ObjectType is registered with eventId identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(EVENT_ENVELOPE_OBJECT_TYPE_RID);

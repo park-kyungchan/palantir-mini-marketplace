@@ -145,7 +145,7 @@ ontology-affecting prompts receive a contract-required fail-closed response.
 
 - `PALANTIR_MINI_DTC_EVAL_REFS_BYPASS=1` — skip typed-ref validation gate in bridge-sig-gate / validator. Emits `dtc_eval_refs_bypass_invoked`.
 - `PALANTIR_MINI_ROUTER_FAIL_CLOSED_BYPASS=1` — skip router fail-closed path; router uses legacy routing basis. Emits `router_fail_closed_bypass_invoked`.
-- `PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off|advisory|selective-blocking|scoped-blocking|blocking` — controls `prompt-dtc-enforcement-gate` only when that hook is invoked directly or explicitly re-registered. The active `hooks/hooks.json` registry does not attach Prompt-DTC to PreToolUse.
+- `PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off|advisory|selective-blocking|scoped-blocking|blocking` — sets the env DEFAULT (floor) for `prompt-dtc-enforcement-gate`, which **IS wired LIVE on PreToolUse** (`hooks/hooks.json`, `policyRef` `hook-step:pretool-prompt-dtc-write-gate`). This env var is NOT the whole control: `resolveEffectiveGateMode` RAISES the effective mode to `blocking` for the `ontology-write` mutation class regardless of this default, so an ontology-affecting mutation is hard-gated even with `MODE=off` — the FLOOR (per-mutation-class minimum), not the env var, is the real control. `MODE=off` only relaxes NON-protected mutation classes; it does not disable the ontology-write block. The env var is read from the **session** env at hook invocation, so it is **not mid-session toggleable** — changing it needs `/reload-plugins` (the actual off-switch for the whole gate is disabling the plugin / `/reload-plugins` with pm OFF). `PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1` bypasses non-protected classes (also session-bound).
 
 ## FDE Ontology Engineering Session
 

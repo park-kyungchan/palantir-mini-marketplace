@@ -260,6 +260,8 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
       // v1.92 — second-brain memory-fold governed events (P0.4r)
       case "resolution_verdict":                snapshot.resolution_verdict = (snapshot.resolution_verdict ?? 0) + 1; break;
       case "memory_fold_committed":             snapshot.memory_fold_committed = (snapshot.memory_fold_committed ?? 0) + 1; break;
+      // 7.36.0 — P3 Lead-decision governed-emit (Path-B)
+      case "lead_decision":                     snapshot.lead_decision = (snapshot.lead_decision ?? 0) + 1; break;
       default: {
         const _exhaustive: never = ev;
         void _exhaustive;

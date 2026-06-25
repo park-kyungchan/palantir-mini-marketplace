@@ -1217,6 +1217,24 @@ export type MemoryFoldCommittedEnvelope = EventEnvelopeBase & {
   };
 };
 
+// ─── 7.36.0 — P3 Lead-decision governed-emit (Path-B) ──────────────────────
+//
+// A Lead orchestration verdict (delegate / pick approach / refine hypothesis)
+// landed into events.jsonl via the in-process scripts/log.ts emit() (Path B),
+// NOT the altitude-2-hidden MCP emit_event tool. Distinct type from the fold's
+// resolution_verdict (clean separation — the Lead's decisions stay separable
+// from fold output). The decision-grade fields (reasoning / refinementTarget /
+// memoryLayers) live in the 5-dim envelope's withWhat, not the payload, so the
+// payload carries only the decision STRING; the a2-prior fold-verdict BY-TYPE
+// branch (lib/runtime-overlay/a2-prior.ts) surfaces it NEXT session.
+export type LeadDecisionEnvelope = EventEnvelopeBase & {
+  type: "lead_decision";
+  payload: {
+    /** The Lead's decision, one line (e.g. "delegate STAGE 4 to an opus subagent"). */
+    decision: string;
+  };
+};
+
 // ─── The discriminated union ───────────────────────────────────────────────
 export type EventEnvelope =
   | EditProposedEnvelope
@@ -1308,7 +1326,9 @@ export type EventEnvelope =
   | UniversalOntologyEntryTransitionedEnvelope
   // v1.92 — second-brain memory-fold governed events (P0.4r)
   | ResolutionVerdictEnvelope
-  | MemoryFoldCommittedEnvelope;
+  | MemoryFoldCommittedEnvelope
+  // 7.36.0 — P3 Lead-decision governed-emit (Path-B)
+  | LeadDecisionEnvelope;
 
 export type EventType = EventEnvelope["type"];
 
@@ -1343,6 +1363,8 @@ export const isUniversalOntologyEntryTransitioned = (e: EventEnvelope): e is Uni
 // v1.92 — second-brain memory-fold governed events (P0.4r)
 export const isResolutionVerdict    = (e: EventEnvelope): e is ResolutionVerdictEnvelope    => e.type === "resolution_verdict";
 export const isMemoryFoldCommitted  = (e: EventEnvelope): e is MemoryFoldCommittedEnvelope  => e.type === "memory_fold_committed";
+// 7.36.0 — P3 Lead-decision governed-emit (Path-B)
+export const isLeadDecision         = (e: EventEnvelope): e is LeadDecisionEnvelope         => e.type === "lead_decision";
 
 // ─── Snapshot type produced by foldToSnapshot (prim-data-04 SnapshotManifest) ─
 
@@ -1461,6 +1483,8 @@ export interface EventSnapshot {
   // v1.92 — second-brain memory-fold governed events (P0.4r)
   resolution_verdict?:                number;
   memory_fold_committed?:             number;
+  // 7.36.0 — P3 Lead-decision governed-emit (Path-B)
+  lead_decision?:                     number;
   // O-2 — register→commit→materialize→read loop closure. Projection of committed
   // applyRegister* edits into a readable typed-primitive collection (fold-snapshot.ts).
   // FOLD-1 — each bucket entry carries the registered rid PLUS the committed

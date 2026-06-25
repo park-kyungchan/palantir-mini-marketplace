@@ -1,53 +1,34 @@
 // palantir-mini — t4-promotion-trigger hook (sprint-062 W2-α)
 // Fires on: Stop (Claude Code session end)
 //
-// PURPOSE: At session end, scan the recent events.jsonl tail (last N=100 events).
-// For any event with valueGrade === "T4", auto-call apply_refinement_target
-// with dryRun=true to surface promotion candidates.
-// Lead reviews the dry-run digest via pm_recap.
-// Explicit Lead-issued dryRun=false invocation (separate user prompt) finalizes.
+// PURPOSE: At session end, run the offline grade-promotion replay over the
+// project's events.jsonl. This closes Sink-2: T1→T2→T3 promotions that were
+// never finalized are appended as NEW promotedFrom rows (append-only), so
+// graded value does not silently expire at session end.
 //
-// This hook NEVER commits changes — dryRun is always forced to true.
-// The hook surface intent: ensure T4 events don't silently expire without
-// triggering the refinement promotion circuit.
+// The replay is append-only + idempotent (promotedFrom dedup via the effective
+// grade index): a 2nd consecutive run promotes 0 and writes no duplicates.
+//
+// SOLO-DEV CEILING: this trigger drives T1→T2→T3 only. It never calls
+// promoteT3ToT4 and never injects a kLlmConsensus marker — T4 stays
+// gated-but-correct (single-vendor input cannot self-attest dual-vendor
+// canonical consensus). T3→T4 remains a deliberate, separately-evidenced step.
+//
+// This hook is advisory (Stop, async) — it never blocks session end.
+//
+// Bypass: PALANTIR_MINI_PROMOTE_DISABLE=1 (audited via
+//   value_grade_promotion_bypass on validation_phase_completed).
 //
 // Authority:
-//   rule 26 v1.3.0 §Substrate routing — T4 → shared-core/promotions/ candidate
+//   rule 26 v1.3.0 §Substrate routing — graded value routed by replay
 //   sprint-062 W2-α plan §t4-promotion-trigger
-//   rule 10 v2.2.0 §append-only invariant (read-only at tail)
+//   rule 10 v2.2.0 §append-only invariant
 
 import * as fs from "fs";
 import * as path from "path";
 import { emit } from "../scripts/log";
-import { readEvents } from "../lib/event-log/read";
-import type { EventEnvelope } from "../lib/event-log/types";
-// apply-refinement-target handler was removed (Wave 2 lib rationalization).
-// Stub returns a no-op result so the hook can still log T4 event counts
-// without attempting to promote; Lead can invoke promotion manually.
-type ApplyRefinementTargetResult = {
-  applied: number;
-  skipped: number;
-  failed: number;
-  perTargetEvidence: Array<{
-    verdict: string;
-    refinementTarget: { kind: string; rid: string };
-    simulatorScore?: number;
-    eventCount: number;
-    reason?: string;
-  }>;
-};
-
-async function applyRefinementTarget(
-  _args: { project: string; events: unknown[]; dryRun: boolean; promotionTier: string },
-): Promise<ApplyRefinementTargetResult> {
-  // Handler removed — return zero-count result; manual Lead action required.
-  return { applied: 0, skipped: _args.events.length, failed: 0, perTargetEvidence: [] };
-}
-
-// ─── Configuration ────────────────────────────────────────────────────────────
-
-/** Number of tail events to scan for T4 candidates. */
-const TAIL_SCAN_LIMIT = 100;
+import { replayPromoteGrades } from "../scripts/replay-promote-grades";
+import { reflectMemoryToCache } from "../lib/runtime-overlay/memory-reflect";
 
 // ─── Hook input shape (Stop stdin) ───────────────────────────────────────────
 
@@ -73,17 +54,6 @@ function resolveProject(payload: StopPayload): string {
   );
 }
 
-/**
- * Filter the last N events for valueGrade === "T4".
- */
-function extractT4Events(events: EventEnvelope[], limit: number): EventEnvelope[] {
-  // Take last `limit` events (tail)
-  const tail = events.slice(-limit);
-  return tail.filter((ev) => {
-    return (ev as EventEnvelope & { valueGrade?: string }).valueGrade === "T4";
-  });
-}
-
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -102,6 +72,28 @@ async function main(): Promise<void> {
   const project = resolveProject(payload);
   const cwd     = project;
 
+  // ─── Bypass path (audited) ──────────────────────────────────────────────────
+  if (process.env.PALANTIR_MINI_PROMOTE_DISABLE === "1") {
+    process.stderr.write(
+      `[t4-promotion-trigger] bypassed (PALANTIR_MINI_PROMOTE_DISABLE=1)\n`,
+    );
+    await emit({
+      type:    "validation_phase_completed",
+      payload: {
+        phase:      "post_write",
+        passed:     true,
+        errorClass: "value_grade_promotion_bypass",
+      },
+      toolName:     "t4-promotion-trigger",
+      cwd,
+      sessionId:    payload.session_id,
+      identity:     "monitor",
+      reasoning:    "t4-promotion-trigger: bypass via PALANTIR_MINI_PROMOTE_DISABLE=1",
+      memoryLayers: ["episodic", "procedural"],
+    }).catch(() => { /* best-effort emit */ });
+    process.exit(0);
+  }
+
   // Read events.jsonl
   const eventsPath = path.join(project, ".palantir-mini", "session", "events.jsonl");
   if (!fs.existsSync(eventsPath)) {
@@ -109,33 +101,14 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const allEvents  = readEvents(eventsPath);
-  const t4Events   = extractT4Events(allEvents, TAIL_SCAN_LIMIT);
-
-  if (t4Events.length === 0) {
-    // No T4 events in tail — emit informational and exit
-    process.stderr.write(
-      `[t4-promotion-trigger] No T4 events in last ${TAIL_SCAN_LIMIT} tail events. Nothing to promote.\n`,
-    );
-    process.exit(0);
-  }
-
-  process.stderr.write(
-    `[t4-promotion-trigger] Found ${t4Events.length} T4 events in tail (of ${allEvents.length} total). Running dry-run promotion check...\n`,
-  );
-
-  // Run apply_refinement_target with dryRun=true (ALWAYS — this hook never commits)
-  let result: ApplyRefinementTargetResult;
+  // Run the offline grade-promotion replay (append-only + idempotent).
+  // T1→T2→T3 only — promoteT3ToT4 is never invoked here (solo-dev ceiling).
+  let result: Awaited<ReturnType<typeof replayPromoteGrades>>;
   try {
-    result = await applyRefinementTarget({
-      project,
-      events:        t4Events,
-      dryRun:        true,  // FORCED — this hook only previews, never commits
-      promotionTier: "shared-core",
-    });
+    result = await replayPromoteGrades({ projectRoot: project, dryRun: false });
   } catch (err) {
     process.stderr.write(
-      `[t4-promotion-trigger] apply_refinement_target error: ${String(err)}\n`,
+      `[t4-promotion-trigger] replayPromoteGrades error: ${String(err)}\n`,
     );
     // Emit failure event (best-effort)
     await emit({
@@ -143,50 +116,60 @@ async function main(): Promise<void> {
       payload: {
         phase:      "post_write",
         passed:     false,
-        errorClass: "t4_promotion_trigger_error",
+        errorClass: "value_grade_promotion_error",
       },
       toolName:     "t4-promotion-trigger",
       cwd,
-      reasoning:    `t4-promotion-trigger: apply_refinement_target threw: ${String(err)}`,
-      memoryLayers: ["episodic"],
+      sessionId:    payload.session_id,
+      identity:     "monitor",
+      reasoning:    `t4-promotion-trigger: replayPromoteGrades threw: ${String(err)}`,
+      memoryLayers: ["episodic", "procedural"],
     }).catch(() => { /* best-effort emit */ });
     process.exit(0);
   }
 
+  const { promotedCount, byTransition } = result;
+
   // Build Lead recap digest (written to stderr for Lead pm_recap visibility)
   const digest = [
-    `\n[t4-promotion-trigger] SESSION-END T4 PROMOTION DIGEST`,
-    `  T4 events scanned: ${t4Events.length} (of last ${TAIL_SCAN_LIMIT})`,
-    `  apply_refinement_target result:`,
-    `    applied (dry-run):  ${result.applied}`,
-    `    skipped:            ${result.skipped}`,
-    `    failed:             ${result.failed}`,
-    `  Per-target evidence:`,
-    ...result.perTargetEvidence.map((e) =>
-      `    [${e.verdict}] ${e.refinementTarget.kind}::${e.refinementTarget.rid}` +
-      ` | score=${e.simulatorScore ?? "n/a"}` +
-      ` | events=${e.eventCount}` +
-      (e.reason ? ` | ${e.reason}` : ""),
-    ),
-    `\n  To finalize promotion: call apply_refinement_target({ project, dryRun: false }) from Lead prompt.`,
-    `  Rule 26 §Substrate routing T4 → shared-core/promotions/ candidate.`,
+    `\n[t4-promotion-trigger] SESSION-END VALUE-GRADE PROMOTION DIGEST`,
+    `  promoted (appended rows): ${promotedCount}`,
+    `  by transition:`,
+    `    T1→T2: ${byTransition.t1ToT2}`,
+    `    T2→T3: ${byTransition.t2ToT3}`,
+    `    T3→T4: ${byTransition.t3ToT4}`,
+    `  Rule 26 §Substrate routing — promotion rows are append-only (originals unchanged).`,
   ].join("\n");
 
   process.stderr.write(digest + "\n");
 
-  // Emit summary event for pm_recap
+  // Emit ONE summary event for pm_recap (in-band emit; emit_event stays hidden).
   await emit({
     type:    "validation_phase_completed",
     payload: {
       phase:      "post_write",
-      passed:     result.applied > 0 || result.failed === 0,
-      errorClass: "t4_promotion_trigger_completed",
+      passed:     true,
+      errorClass: "value_grade_promotion_completed",
     },
-    toolName:    "t4-promotion-trigger",
+    toolName:     "t4-promotion-trigger",
     cwd,
-    reasoning:   `t4-promotion-trigger session-end scan complete. t4Events=${t4Events.length} applied(dry)=${result.applied} skipped=${result.skipped} failed=${result.failed}. Lead should review digest and call apply_refinement_target(dryRun=false) to commit.`,
+    sessionId:    payload.session_id,
+    identity:     "monitor",
+    reasoning:    `t4-promotion-trigger session-end replay complete. promoted=${promotedCount} t1ToT2=${byTransition.t1ToT2} t2ToT3=${byTransition.t2ToT3} t3ToT4=${byTransition.t3ToT4} (append-only + idempotent).`,
     memoryLayers: ["episodic", "procedural"],
   });
+
+  // ─── Sink-1 WRITE: reflect prior digest to the pm-owned cache file ──────────
+  // Best-effort, isolated try/catch — never affects the Stage-2 promotion path
+  // or session-end continuation. Writes a hash-gated digest into the dedicated
+  // .palantir-mini/cache/memory-prior.md (the curated MEMORY.md is untouched).
+  try {
+    await reflectMemoryToCache(project);
+  } catch (err) {
+    process.stderr.write(
+      `[t4-promotion-trigger] reflectMemoryToCache error: ${String(err)}\n`,
+    );
+  }
 
   // Advisory hook — always continue (Stop hooks are non-blocking)
   process.stdout.write(JSON.stringify({ continue: true }) + "\n");

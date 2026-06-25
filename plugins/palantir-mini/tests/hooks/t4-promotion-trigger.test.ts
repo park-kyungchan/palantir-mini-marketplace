@@ -1,183 +1,249 @@
-// palantir-mini — t4-promotion-trigger hook tests (sprint-062 W2-α)
-// Coverage:
-//   1. No events.jsonl → exits cleanly (no crash)
-//   2. events.jsonl with no T4 events → no promotion attempted
-//   3. events.jsonl with T4 events → apply_refinement_target called with dryRun=true
-//   4. Tail limit: only last 100 events are scanned (not all)
-//   5. Pre-filtered T4 events are fed to apply_refinement_target
+// palantir-mini — t4-promotion-trigger hook tests (Sink-2 closure)
 //
-// Test strategy: unit-test the pure helper functions (extractT4Events, tail
-// filtering) rather than running the hook as CLI subprocess (integration).
-// The hook imports apply_refinement_target directly, so we verify the
-// integration by calling apply_refinement_target ourselves with the same
-// inputs the hook would generate.
+// The Stop hook now runs the offline grade-promotion replay at session end,
+// closing T1→T2→T3 promotions (the 0-promotedFrom Sink-2 gap). Coverage:
+//   1. T1 row + matching attestation → appends a promotedFrom=T1 row, with the
+//      SOURCE row byte-for-byte unchanged (rule 10 §append-only invariant).
+//   2. Idempotency: a 2nd consecutive run promotes 0 and writes no duplicates.
+//   3. Solo-dev ceiling: the trigger NEVER promotes T3→T4 and NEVER writes a
+//      kLlmConsensus marker on single-vendor input.
+//   4. Audited bypass: PALANTIR_MINI_PROMOTE_DISABLE=1 → no promotion rows.
+//
+// Strategy: drive the real hook as a subprocess (it reads stdin + process.exit),
+// feeding a Stop payload and a fixture events.jsonl, then assert on the file.
 
-// @ts-nocheck — sprint-062 W2 SKELETON: integration block uses MinimalEvent vs EventEnvelope mismatch + null-guard noise; sprint-063 W6 carry-over to clean
-import { test, expect, describe, afterEach } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import * as childProcess from "child_process";
 
-// ─── Replicated pure logic from hook ─────────────────────────────────────────
+// ─── Test utilities ──────────────────────────────────────────────────────────
 
-const TAIL_SCAN_LIMIT = 100;
+let TMP: string;
 
-interface MinimalEvent {
-  valueGrade?: string;
-  sequence?:   number;
-  eventId?:    string;
-  type?:       string;
-  when?:       string;
-  byWhom?:     Record<string, unknown>;
-  withWhat?:   Record<string, unknown>;
-  throughWhich?: Record<string, unknown>;
-  atopWhich?:  string;
-  payload?:    Record<string, unknown>;
-  [key: string]: unknown;
+function setupProject(): void {
+  fs.mkdirSync(path.join(TMP, ".palantir-mini", "session"), { recursive: true });
 }
 
-function extractT4Events(events: MinimalEvent[], limit: number): MinimalEvent[] {
-  const tail = events.slice(-limit);
-  return tail.filter((ev) => ev.valueGrade === "T4");
+function eventsPath(): string {
+  // The hook reads/promotes against <project>/.palantir-mini/session/events.jsonl
+  // directly (replayPromoteGrades uses eventsJsonlPath, not the env override).
+  return path.join(TMP, ".palantir-mini", "session", "events.jsonl");
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function makeTmpRoot(label: string): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), `pm-t4pt-${label}-`));
+function readEventLines(): string[] {
+  const ep = eventsPath();
+  if (!fs.existsSync(ep)) return [];
+  return fs.readFileSync(ep, "utf8").split("\n").filter((l) => l.trim().length > 0);
 }
 
-function eventsPathFor(root: string): string {
-  return path.join(root, ".palantir-mini", "session", "events.jsonl");
+function readEvents(): Array<Record<string, unknown>> {
+  return readEventLines().map((l) => JSON.parse(l) as Record<string, unknown>);
 }
 
-function ensureEventsDir(root: string): string {
-  const p = path.join(root, ".palantir-mini", "session");
-  fs.mkdirSync(p, { recursive: true });
-  return eventsPathFor(root);
+function writeEvent(ev: Record<string, unknown>): void {
+  fs.appendFileSync(eventsPath(), JSON.stringify(ev) + "\n");
 }
 
-function writeEvent(eventsPath: string, ev: Record<string, unknown>): void {
-  fs.appendFileSync(eventsPath, JSON.stringify(ev) + "\n");
+/**
+ * Run the t4-promotion-trigger hook as a subprocess with a Stop payload.
+ * PALANTIR_MINI_EVENTS_FILE points emit()'s summary append at the same fixture
+ * file so the in-band summary event lands alongside the promotion rows.
+ */
+function runHook(extraEnv: Record<string, string> = {}): {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+} {
+  const hookPath = path.resolve(__dirname, "../../hooks/t4-promotion-trigger.ts");
+  const result = childProcess.spawnSync("bun", ["run", hookPath], {
+    input: JSON.stringify({ cwd: TMP, session_id: "s-test", reason: "end" }),
+    env: {
+      ...process.env,
+      PALANTIR_MINI_PROJECT:     TMP,
+      PALANTIR_MINI_EVENTS_FILE: eventsPath(),
+      PALANTIR_MINI_EVENTS_FILE_FORCE: "1",
+      ...extraEnv,
+    },
+    encoding: "utf8",
+    timeout: 20_000,
+  });
+  return {
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+    exitCode: result.status ?? 0,
+  };
 }
 
-const tmpRoots: string[] = [];
+// ─── Fixtures ────────────────────────────────────────────────────────────────
+
+let seq = 0;
+
+/** A T1 source event eligible for T1→T2 once an attestation references it. */
+function makeT1Source(eventId: string): Record<string, unknown> {
+  return {
+    sequence: seq++,
+    eventId,
+    type: "edit_proposed",
+    when: new Date().toISOString(),
+    atopWhich: "abcdef0",
+    valueGrade: "T1",
+    byWhom: { identity: "claude-code" },
+    withWhat: { reasoning: "T1 source", memoryLayers: ["working"] },
+    payload: { functionName: "noop", params: {}, hypotheticalEdits: [] },
+  };
+}
+
+/** A passed validation that attests the given source eventId (T1→T2 evidence). */
+function makeAttestation(sourceEventId: string): Record<string, unknown> {
+  return {
+    sequence: seq++,
+    eventId: `attest-${sourceEventId}`,
+    type: "validation_phase_completed",
+    when: new Date().toISOString(),
+    atopWhich: "abcdef0",
+    valueGrade: "T2",
+    byWhom: { identity: "claude-code" },
+    lineageRefs: { actionRid: sourceEventId },
+    withWhat: { reasoning: "attestation", memoryLayers: ["episodic"] },
+    payload: { phase: "post_write", passed: true, errorClass: "attest" },
+  };
+}
+
+beforeEach(() => {
+  TMP = fs.mkdtempSync(path.join(os.tmpdir(), "pm-t4pt-"));
+  setupProject();
+  seq = 0;
+});
 
 afterEach(() => {
-  for (const r of tmpRoots.splice(0)) fs.rmSync(r, { recursive: true, force: true });
+  if (TMP && fs.existsSync(TMP)) fs.rmSync(TMP, { recursive: true, force: true });
 });
 
-function setupRoot(label: string): string {
-  const root = makeTmpRoot(label);
-  tmpRoots.push(root);
-  return root;
-}
+// ─── Tests ───────────────────────────────────────────────────────────────────
 
-let seqCounter = 5000;
+describe("t4-promotion-trigger — Sink-2 closure (append-only T1→T2→T3 replay)", () => {
 
-function makeT4Event(opts: { kind: string; rid: string }): MinimalEvent {
-  return {
-    sequence:   seqCounter++,
-    eventId:    `evt-t4-${seqCounter}`,
-    type:       "validation_phase_completed",
-    when:       new Date().toISOString(),
-    atopWhich:  "abcdef",
-    valueGrade: "T4",
-    throughWhich: { sessionId: "s1", toolName: "t4-test", cwd: "/tmp" },
-    byWhom:     { identity: "claude-code" },
-    withWhat:   {
-      reasoning:  "T4 test event",
-      memoryLayers: ["procedural"],
-      refinementTarget: {
-        kind:            opts.kind,
-        filePathOrRid:   opts.rid,
-        description:     "T4 promotion candidate",
-        confidenceLevel: "high",
-      },
-    },
-    payload: { phase: "post_write", passed: true, errorClass: "t4_test" },
-  };
-}
+  test("T1 source + matching attestation → appends promotedFrom=T1 row; source byte-unchanged", () => {
+    const sourceId = "evt-src-1";
+    writeEvent(makeT1Source(sourceId));
+    writeEvent(makeAttestation(sourceId));
 
-function makeT1Event(): MinimalEvent {
-  return {
-    sequence:   seqCounter++,
-    eventId:    `evt-t1-${seqCounter}`,
-    type:       "edit_proposed",
-    when:       new Date().toISOString(),
-    atopWhich:  "abcdef",
-    valueGrade: "T1",
-    throughWhich: { sessionId: "s1", toolName: "t1-test", cwd: "/tmp" },
-    byWhom:     { identity: "claude-code" },
-    payload:    { functionName: "noop", params: {}, hypotheticalEdits: [] },
-  };
-}
+    // Capture the exact source line BEFORE the hook runs.
+    const linesBefore = readEventLines();
+    const sourceLineBefore = linesBefore.find((l) => {
+      const o = JSON.parse(l) as Record<string, unknown>;
+      return o.eventId === sourceId && !(o.payload as Record<string, unknown>)?.promotedFrom;
+    });
+    expect(sourceLineBefore).toBeDefined();
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
+    const r = runHook();
+    expect(r.exitCode).toBe(0);
 
-describe("t4-promotion-trigger — extractT4Events (pure logic)", () => {
+    const after = readEvents();
+    // A new promotion row referencing the source must now exist.
+    const promotionRows = after.filter(
+      (e) =>
+        (e.payload as Record<string, unknown>)?.promotedFrom === "T1" &&
+        (e.lineageRefs as Record<string, unknown>)?.actionRid === sourceId,
+    );
+    expect(promotionRows.length).toBe(1);
+    expect(promotionRows[0]!.valueGrade).toBe("T2");
 
-  test("empty events array → empty T4 list", () => {
-    const result = extractT4Events([], TAIL_SCAN_LIMIT);
-    expect(result).toHaveLength(0);
+    // The ORIGINAL source line must be byte-for-byte unchanged (append-only).
+    const linesAfter = readEventLines();
+    const sourceLineAfter = linesAfter.find((l) => {
+      const o = JSON.parse(l) as Record<string, unknown>;
+      return o.eventId === sourceId && !(o.payload as Record<string, unknown>)?.promotedFrom;
+    });
+    expect(sourceLineAfter).toBe(sourceLineBefore!);
   });
 
-  test("no T4 events → empty T4 list", () => {
-    const events = [makeT1Event(), makeT1Event()];
-    const result = extractT4Events(events, TAIL_SCAN_LIMIT);
-    expect(result).toHaveLength(0);
+  test("idempotency: 2nd consecutive run promotes 0 and writes no duplicate promotion rows", () => {
+    const sourceId = "evt-src-2";
+    writeEvent(makeT1Source(sourceId));
+    writeEvent(makeAttestation(sourceId));
+
+    const r1 = runHook();
+    expect(r1.exitCode).toBe(0);
+    const afterFirst = readEvents();
+    const promoRowsFirst = afterFirst.filter(
+      (e) => (e.payload as Record<string, unknown>)?.promotedFrom === "T1" &&
+             (e.lineageRefs as Record<string, unknown>)?.actionRid === sourceId,
+    );
+    expect(promoRowsFirst.length).toBe(1);
+
+    const r2 = runHook();
+    expect(r2.exitCode).toBe(0);
+    // The 2nd run's stderr digest must report promoted=0 (idempotent).
+    expect(r2.stderr).toContain("promoted (appended rows): 0");
+
+    const afterSecond = readEvents();
+    const promoRowsSecond = afterSecond.filter(
+      (e) => (e.payload as Record<string, unknown>)?.promotedFrom === "T1" &&
+             (e.lineageRefs as Record<string, unknown>)?.actionRid === sourceId,
+    );
+    // Still exactly one promotion row — no duplicate appended.
+    expect(promoRowsSecond.length).toBe(1);
   });
 
-  test("one T4 event → returned", () => {
-    const events = [makeT1Event(), makeT4Event({ kind: "spec", rid: "/spec.md" })];
-    const result = extractT4Events(events, TAIL_SCAN_LIMIT);
-    expect(result).toHaveLength(1);
-    expect(result[0].valueGrade).toBe("T4");
+  test("solo-dev ceiling: never promotes T3→T4 and never writes a kLlmConsensus marker", () => {
+    const sourceId = "evt-src-3";
+    writeEvent(makeT1Source(sourceId));
+    writeEvent(makeAttestation(sourceId));
+
+    const r = runHook();
+    expect(r.exitCode).toBe(0);
+
+    const after = readEvents();
+    // No T3→T4 promotion row may exist.
+    const t3ToT4Rows = after.filter(
+      (e) => (e.payload as Record<string, unknown>)?.promotedFrom === "T3",
+    );
+    expect(t3ToT4Rows.length).toBe(0);
+
+    // No event may carry a kLlmConsensus marker (single-vendor input).
+    const consensusRows = after.filter((e) => {
+      const ww = e.withWhat as Record<string, unknown> | undefined;
+      return ww?.kLlmConsensus !== undefined;
+    });
+    expect(consensusRows.length).toBe(0);
+
+    // The stderr digest must report zero T3→T4 transitions.
+    expect(r.stderr).toContain("T3→T4: 0");
   });
 
-  test("multiple T4 events → all returned", () => {
-    const events = [
-      makeT1Event(),
-      makeT4Event({ kind: "spec",  rid: "/spec1.md" }),
-      makeT4Event({ kind: "skill", rid: "pm-ship"   }),
-    ];
-    const result = extractT4Events(events, TAIL_SCAN_LIMIT);
-    expect(result).toHaveLength(2);
+  test("audited bypass: PALANTIR_MINI_PROMOTE_DISABLE=1 → no promotion rows appended", () => {
+    const sourceId = "evt-src-4";
+    writeEvent(makeT1Source(sourceId));
+    writeEvent(makeAttestation(sourceId));
+
+    const r = runHook({ PALANTIR_MINI_PROMOTE_DISABLE: "1" });
+    expect(r.exitCode).toBe(0);
+    expect(r.stderr).toContain("bypassed (PALANTIR_MINI_PROMOTE_DISABLE=1)");
+
+    const after = readEvents();
+    const promoRows = after.filter(
+      (e) => (e.payload as Record<string, unknown>)?.promotedFrom === "T1",
+    );
+    expect(promoRows.length).toBe(0);
   });
 
-  test("tail limit: only last N events scanned", () => {
-    // Create 150 T4 events then 10 T1 events at the tail
-    const events: MinimalEvent[] = [];
-    for (let i = 0; i < 150; i++) {
-      events.push(makeT4Event({ kind: "spec", rid: `/spec${i}.md` }));
-    }
-    for (let i = 0; i < 10; i++) {
-      events.push(makeT1Event());
-    }
+  test("emits ONE value_grade_promotion_completed summary event (in-band emit)", () => {
+    const sourceId = "evt-src-5";
+    writeEvent(makeT1Source(sourceId));
+    writeEvent(makeAttestation(sourceId));
 
-    // TAIL_SCAN_LIMIT = 100 → scans last 100 events
-    // Last 100 = 10 T1 + 90 T4 from the original 150
-    const result = extractT4Events(events, TAIL_SCAN_LIMIT);
-    expect(result).toHaveLength(90);
-  });
+    const r = runHook();
+    expect(r.exitCode).toBe(0);
 
-  // sprint-062 W2 SKELETON: integration tests aspirational; sprint-063 wires real apply_edit_function (W6 carry-over)
-  test.skip("limit=5 scans only last 5 events", () => {
-    const events: MinimalEvent[] = [
-      makeT4Event({ kind: "spec", rid: "/old.md" }),   // outside limit
-      makeT1Event(),
-      makeT4Event({ kind: "spec", rid: "/new1.md" }),  // in last 5
-      makeT4Event({ kind: "spec", rid: "/new2.md" }),  // in last 5
-      makeT4Event({ kind: "spec", rid: "/new3.md" }),  // in last 5
-      makeT4Event({ kind: "spec", rid: "/new4.md" }),  // in last 5
-      makeT4Event({ kind: "spec", rid: "/new5.md" }),  // in last 5
-    ];
-    // limit=5 → last 5 events: new1, new2, new3, new4, new5 (all T4)
-    const result = extractT4Events(events, 5);
-    expect(result).toHaveLength(5);
-    const rids = result.map((e) => (e.withWhat as Record<string, unknown>)?.refinementTarget?.rid);
-    expect(rids).toContain("/new1.md");
-    expect(rids).not.toContain("/old.md");
+    const after = readEvents();
+    const summary = after.filter(
+      (e) =>
+        e.type === "validation_phase_completed" &&
+        (e.payload as Record<string, unknown>)?.errorClass === "value_grade_promotion_completed",
+    );
+    expect(summary.length).toBe(1);
   });
 });
-

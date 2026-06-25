@@ -1176,6 +1176,158 @@ describe("D-i path-aware commit floor (mutationClass)", () => {
   });
 });
 
+// bd-019 (cross-repo `git -C` commit) — bd-010's de-floor resolved the staged set from
+// the SESSION-CWD repo, so a `git -C <other-repo> commit` was evaluated against the
+// wrong repo (session-CWD staged set empty/unrelated → unresolvable→conservative
+// BLOCKING) and over-blocked a legitimately all-non-ontology cross-repo commit. The fix
+// parses `-C <dir>` / `--work-tree` and resolves the staged set from the TARGET repo,
+// falling back to the session CWD when no override is present.
+describe("bd-019 cross-repo `git -C` commit floor (mutationClass)", () => {
+  const repoRoots: string[] = [];
+
+  afterEach(() => {
+    for (const r of repoRoots.splice(0)) fs.rmSync(r, { recursive: true, force: true });
+  });
+
+  function git(root: string, ...args: string[]): string {
+    return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  }
+
+  function initGitRepo(prefix = "pm-dtc-gate-bd019-"): string {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+    repoRoots.push(root);
+    git(root, "init", "-q");
+    git(root, "config", "user.email", "t@t.test");
+    git(root, "config", "user.name", "test");
+    fs.writeFileSync(path.join(root, "anchor.txt"), "v1\n");
+    git(root, "add", "anchor.txt");
+    git(root, "commit", "-q", "-m", "base");
+    return root;
+  }
+
+  function stage(root: string, relPath: string, content = "x\n"): void {
+    const abs = path.join(root, relPath);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, content);
+    git(root, "add", "--", relPath);
+  }
+
+  // PAIRED TEST (bd-019): a `git -C <other-repo>` all-non-ontology commit de-floors,
+  // even though the SESSION-CWD repo has nothing (or unrelated/ontology) staged.
+  test("git -C <other-repo> commit, target ALL-non-ontology → generic-mutation (session CWD repo is empty)", () => {
+    const sessionRepo = initGitRepo("pm-dtc-gate-bd019-session-");
+    const targetRepo = initGitRepo("pm-dtc-gate-bd019-target-");
+    // Session CWD repo: NOTHING staged (its staged set is empty → bd-010 alone would
+    // hit the conservative BLOCKING default).
+    // Target repo: an all-non-ontology staged set.
+    stage(targetRepo, "second-brain/x.md");
+    stage(targetRepo, "_workspace/y.md");
+    const cls = __test__.protectedMutationClassForPromptGate(
+      {
+        cwd: sessionRepo,
+        tool_name: "Bash",
+        tool_input: { command: `git -C ${targetRepo} commit -m wip` },
+      },
+      true,
+      sessionRepo, // gate's projectRoot = session CWD (the WRONG repo without the fix)
+    );
+    expect(cls).toBe("generic-mutation");
+    expect(cls).not.toBe("commit");
+  });
+
+  test("git -C <other-repo> commit, target MIXED staged set → commit (blocking)", () => {
+    const sessionRepo = initGitRepo("pm-dtc-gate-bd019-session-");
+    const targetRepo = initGitRepo("pm-dtc-gate-bd019-target-");
+    stage(targetRepo, "schemas/ontology/primitives/foo.ts", "export const FOO = 1;\n");
+    stage(targetRepo, "second-brain/x.md");
+    const cls = __test__.protectedMutationClassForPromptGate(
+      {
+        cwd: sessionRepo,
+        tool_name: "Bash",
+        tool_input: { command: `git -C ${targetRepo} commit -m wip` },
+      },
+      true,
+      sessionRepo,
+    );
+    expect(cls).toBe("commit");
+  });
+
+  test("git -C <other-repo> commit, target EMPTY staged set → commit (conservative)", () => {
+    const sessionRepo = initGitRepo("pm-dtc-gate-bd019-session-");
+    const targetRepo = initGitRepo("pm-dtc-gate-bd019-target-");
+    // Session repo has an all-non-ontology staged set; without the `-C` fix the gate
+    // would wrongly de-floor off the SESSION repo. With the fix it reads the empty
+    // TARGET repo and stays conservative.
+    stage(sessionRepo, "second-brain/x.md");
+    const cls = __test__.protectedMutationClassForPromptGate(
+      {
+        cwd: sessionRepo,
+        tool_name: "Bash",
+        tool_input: { command: `git -C ${targetRepo} commit -m wip` },
+      },
+      true,
+      sessionRepo,
+    );
+    expect(cls).toBe("commit");
+  });
+
+  test("git commit with NO -C override resolves the session CWD repo (fallback unchanged)", () => {
+    const sessionRepo = initGitRepo("pm-dtc-gate-bd019-session-");
+    stage(sessionRepo, "second-brain/x.md");
+    const cls = __test__.protectedMutationClassForPromptGate(
+      { cwd: sessionRepo, tool_name: "Bash", tool_input: { command: "git commit -m wip" } },
+      true,
+      sessionRepo,
+    );
+    expect(cls).toBe("generic-mutation");
+  });
+
+  test("git --work-tree <other-repo> commit, target ALL-non-ontology → generic-mutation", () => {
+    const sessionRepo = initGitRepo("pm-dtc-gate-bd019-session-");
+    const targetRepo = initGitRepo("pm-dtc-gate-bd019-target-");
+    stage(targetRepo, "docs/a.md");
+    const cls = __test__.protectedMutationClassForPromptGate(
+      {
+        cwd: sessionRepo,
+        tool_name: "Bash",
+        tool_input: {
+          command: `git --git-dir=${targetRepo}/.git --work-tree=${targetRepo} commit -m wip`,
+        },
+      },
+      true,
+      sessionRepo,
+    );
+    expect(cls).toBe("generic-mutation");
+  });
+
+  test("isGitSubcommand tolerates git global options before the subcommand", () => {
+    expect(__test__.isGitSubcommand("git commit -m x", "commit")).toBe(true);
+    expect(__test__.isGitSubcommand("git -c /repo/other commit -m x", "commit")).toBe(true); // -C lowercased to -c
+    expect(__test__.isGitSubcommand("git --git-dir=/gd --work-tree=/wt commit", "commit")).toBe(true);
+    expect(__test__.isGitSubcommand("git -c user.name=x commit", "commit")).toBe(true);
+    expect(__test__.isGitSubcommand("git --no-pager commit", "commit")).toBe(true);
+    expect(__test__.isGitSubcommand("git push origin main", "commit")).toBe(false);
+    expect(__test__.isGitSubcommand("git status", "commit")).toBe(false);
+    expect(__test__.isGitSubcommand("gh pr create", "commit")).toBe(false);
+  });
+
+  test("resolveGitTargetRepo parses -C / --work-tree, falls back to session CWD", () => {
+    const root = "/home/u/sess";
+    expect(__test__.resolveGitTargetRepo("git commit -m x", root)).toBe(root);
+    expect(__test__.resolveGitTargetRepo("git -C /repo/other commit -m x", root)).toBe(
+      "/repo/other",
+    );
+    // relative -C resolves against the session CWD
+    expect(__test__.resolveGitTargetRepo("git -C ../sibling commit", root)).toBe(
+      path.resolve(root, "../sibling"),
+    );
+    // --work-tree overrides the working tree
+    expect(
+      __test__.resolveGitTargetRepo("git --work-tree=/wt --git-dir=/gd commit", root),
+    ).toBe("/wt");
+  });
+});
+
 // bd-017 (push/PR de-floor) — extend bd-010's path-aware classifier from the `commit`
 // class to the `release` (git push) and `pull-request` (gh pr) classes. The change set
 // is the PUSHED RANGE (upstream..HEAD), not the staged set — a push of already-committed

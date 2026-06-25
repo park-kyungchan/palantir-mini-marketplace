@@ -38,6 +38,7 @@ import {
 } from "./session-start/state-files";
 import { liveBranch } from "./session-start/branch";
 import { markPending, listPending, isQueueOperationTranscript, type PendingFoldEntry } from "../lib/second-brain/pending-fold";
+import { a2PriorContextLine } from "../lib/runtime-overlay/a2-prior";
 import {
   detectNativeSubagentCapability,
   type NativeSubagentCapability,
@@ -267,6 +268,21 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
     }
   } catch (err) {
     process.stderr.write(`[session-start] second-brain detect skipped: ${(err as Error).message}\n`);
+  }
+
+  // Sink-1 READ (A2-prior): surface the prior session's high-signal verdicts as ONE
+  // compact additionalContext line. Pushed UNCONDITIONALLY (independent of eagerContext),
+  // mirroring the second-brain fold-detect push above — the A2 consumption point must
+  // fire every SessionStart so a fresh T2 lead_decision surfaces NEXT session BY TYPE
+  // before any promotion grades it. Tail-only + read-only + best-effort: an empty/missing
+  // log yields "" (not pushed) and a read error never breaks session-start.
+  try {
+    const a2line = a2PriorContextLine(epath);
+    if (a2line.length > 0) {
+      contextLines.push(a2line);
+    }
+  } catch (err) {
+    process.stderr.write(`[session-start] a2-prior skipped: ${(err as Error).message}\n`);
   }
 
   if (cleanRequested) {

@@ -165,6 +165,8 @@ export const EVENT_ENVELOPE_INSTANCES: readonly EventEnvelopeInstance[] = [
   // v1.92 — second-brain memory-fold governed event types (P0.4r).
   { eventType: "resolution_verdict" },
   { eventType: "memory_fold_committed" },
+  // 7.36.0 — P3 Lead-decision governed-emit (Path-B).
+  { eventType: "lead_decision" },
 ];
 
 // Register the EventEnvelope ObjectType (the type). The 86 instances above are data the
