@@ -1,5 +1,4 @@
 {
-  "description": "Codex-native hook entrypoints for palantir-mini. Codex must not parse hooks/hooks.json directly because that shared workflow-intent registry can contain non-Codex fields and file-glob matchers. These regex-safe entrypoints delegate to lib/codex/codex-hook-adapter.ts, which live-reads hooks/hooks.json. SessionStart, UserPromptSubmit, and PreToolUse are mounted for Codex prompt-front-door continuity and protected mutation governance. PreToolUse remains bounded by prompt opt-out capture, read-only/review-artifact classification, and fail-closed governance hook tests.",
   "hooks": {
     "SessionStart": [
       {
@@ -10,8 +9,7 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: SessionStart"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ],
     "PermissionRequest": [
@@ -24,8 +22,7 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PermissionRequest"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ],
     "PreToolUse": [
@@ -38,8 +35,7 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PreToolUse"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ],
     "PostToolUse": [
@@ -52,8 +48,7 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PostToolUse"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ],
     "PreCompact": [
@@ -65,8 +60,7 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PreCompact"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ],
     "PostCompact": [
@@ -78,8 +72,7 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: PostCompact"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ],
     "SubagentStart": [
@@ -92,8 +85,7 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: SubagentStart"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ],
     "SubagentStop": [
@@ -106,8 +98,7 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: SubagentStop"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -119,8 +110,7 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: UserPromptSubmit"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ],
     "Stop": [
@@ -132,10 +122,8 @@
             "timeout": 225,
             "statusMessage": "palantir-mini Codex adapter: Stop"
           }
-        ],
-        "surfaceStatus": "public-core"
+        ]
       }
     ]
-  },
-  "surfaceStatusSchemaVersion": "palantir-mini/surface-status/v1"
+  }
 }
