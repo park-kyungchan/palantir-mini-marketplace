@@ -10,17 +10,6 @@ const CODEX_RUNTIME_EVIDENCE_PATH = join(PLUGIN_ROOT, "contracts", "runtime-evid
 const TSCONFIG_PATH = join(PLUGIN_ROOT, "tsconfig.json");
 const CLAUDE_ONLY_EVENTS = ["TaskCreated", "TaskCompleted", "TeammateIdle"] as const;
 const UNMOUNTED_CODEX_EVENTS = [] as const;
-const SURFACE_STATUS_VALUES = [
-  "public-core",
-  "protected-default-off",
-  "dev-only",
-  "docs-only",
-  "internal",
-  "deprecated-candidate",
-  "archived",
-] as const;
-const SURFACE_STATUS_VALUE_SET = new Set<string>(SURFACE_STATUS_VALUES);
-
 type HookConfig = {
   type?: string;
   command?: string;
@@ -29,12 +18,10 @@ type HookConfig = {
 
 type HookGroup = {
   matcher?: string;
-  surfaceStatus?: string;
   hooks?: HookConfig[];
 };
 
 type HooksDocument = {
-  surfaceStatusSchemaVersion?: string;
   hooks?: Record<string, HookGroup[]>;
 };
 
@@ -55,16 +42,11 @@ describe("Codex plugin hook entrypoints", () => {
     expect(manifest.hooks).toBe("./hooks/codex-hooks.json");
   });
 
-  test("Codex hook registry uses only regex-safe matchers and adapter commands", () => {
-    const doc = readJson<HooksDocument & { description?: string }>(CODEX_HOOKS_PATH);
+  test("Codex hook registry uses only Codex loader fields and adapter commands", () => {
+    const doc = readJson<HooksDocument>(CODEX_HOOKS_PATH);
     const events = Object.keys(doc.hooks ?? {}).sort();
 
-    expect(doc.description).toContain("entrypoints");
-    expect(doc.description).toContain("delegate");
-    expect(doc.description).toContain("live-reads hooks/hooks.json");
-    expect(doc.description).toContain("SessionStart, UserPromptSubmit, and PreToolUse are mounted");
-    expect(doc.description).toContain("protected mutation governance");
-    expect(doc.surfaceStatusSchemaVersion).toBe("palantir-mini/surface-status/v1");
+    expect(Object.keys(doc).sort()).toEqual(["hooks"]);
 
     expect(events).toEqual([
       "PermissionRequest",
@@ -81,12 +63,14 @@ describe("Codex plugin hook entrypoints", () => {
 
     for (const groups of Object.values(doc.hooks ?? {})) {
       for (const group of groups) {
+        expect(Object.keys(group).sort()).toEqual(
+          group.matcher === undefined ? ["hooks"] : ["hooks", "matcher"],
+        );
         const matcher = group.matcher;
         expect(matcher?.includes("**/")).not.toBe(true);
         if (matcher && matcher !== "*") {
           expect(() => new RegExp(matcher)).not.toThrow();
         }
-        expect(SURFACE_STATUS_VALUE_SET.has(group.surfaceStatus ?? "")).toBe(true);
       }
     }
 
