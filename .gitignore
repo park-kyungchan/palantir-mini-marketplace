@@ -4,6 +4,9 @@
 # On-disk files are preserved; this only stops git from tracking them.
 .palantir-mini/session/
 .palantir-mini/harness/
+.palantir-mini/mcp-response-overflow/
+.palantir-mini/structured-output-overflow/
+node_modules/
 
 # local-only marketplace docs (user 2026-06-09)
 /AGENTS.md
