@@ -312,13 +312,17 @@ describe("Step 7 — enforcement gate code paths", () => {
     const src = fs.readFileSync(hookPath, "utf8");
     expect(src).toContain("selective-blocking");
     expect(src).toContain("PALANTIR_MINI_PROMPT_DTC_GATE_MODE");
-    expect(src).toContain("checkSicCacheForSelectiveBlocking");
+    // checkSicCacheForSelectiveBlocking lives in the impl module post-gate-split (thin entry delegates to it).
+    const implPath = path.join(PLUGIN_ROOT, "hooks", "gates", "prompt-dtc-enforcement-gate.impl.ts");
+    const implSrc = fs.readFileSync(implPath, "utf8");
+    expect(implSrc).toContain("checkSicCacheForSelectiveBlocking");
   });
 
   test("enforcement gate source has contract_required emit path", () => {
-    const hookPath = path.join(PLUGIN_ROOT, "hooks", "prompt-dtc-enforcement-gate.ts");
-    const src = fs.readFileSync(hookPath, "utf8");
-    expect(src).toContain("contract_required");
+    // contract_required emit path lives in the impl module post-gate-split (thin entry delegates to it).
+    const implPath = path.join(PLUGIN_ROOT, "hooks", "gates", "prompt-dtc-enforcement-gate.impl.ts");
+    const implSrc = fs.readFileSync(implPath, "utf8");
+    expect(implSrc).toContain("contract_required");
   });
 });
 
