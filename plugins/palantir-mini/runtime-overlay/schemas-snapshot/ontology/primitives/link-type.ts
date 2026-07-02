@@ -18,6 +18,7 @@
  */
 
 import type { ObjectTypeRid } from "./object-type";
+import type { PrimitiveSemantics, PrimitiveStatus, PrimitiveProvenance } from "./primitive-semantics";
 
 export type LinkTypeRid = string & { readonly __brand: "LinkTypeRid" };
 
@@ -62,6 +63,18 @@ export interface PlainLinkTypeDeclaration {
   readonly backing?: LinkBacking;
   /** Set only when the link crosses an ontology boundary (PF-3). Optional, additive. */
   readonly crossOntologyBoundary?: CrossOntologyBoundary;
+  /**
+   * Business-meaning payload preserved from the candidate this LinkType was
+   * elevated from (W2 — closes the core lossy-copy bug: LinkTypeCandidate.
+   * businessMeaning was previously DROPPED by register-accepted.ts).
+   * LinkTypeCandidate.businessMeaning -> semantics.businessMeaning;
+   * LinkTypeCandidate.evidenceRefs -> semantics.evidenceRefs.
+   */
+  readonly semantics?: PrimitiveSemantics;
+  /** Foundry-equivalent lifecycle status. Absent = "active". */
+  readonly status?: PrimitiveStatus;
+  /** Audit record of the candidate->registered elevation. */
+  readonly provenance?: PrimitiveProvenance;
 }
 
 /** Object-Backed LinkType — link carries its own properties */
@@ -83,6 +96,12 @@ export interface ObjectBackedLinkTypeDeclaration {
     readonly type: string;
     readonly optional?: boolean;
   }>;
+  /** Business-meaning payload preserved from the candidate this LinkType was elevated from (W2). See PlainLinkTypeDeclaration.semantics. */
+  readonly semantics?: PrimitiveSemantics;
+  /** Foundry-equivalent lifecycle status. Absent = "active". */
+  readonly status?: PrimitiveStatus;
+  /** Audit record of the candidate->registered elevation. */
+  readonly provenance?: PrimitiveProvenance;
 }
 
 export type LinkTypeDeclaration =

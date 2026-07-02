@@ -498,3 +498,17 @@ export { FDE_PANEL_SCHEMA_VERSION } from "./fde-panel";
 // Import via shared-core; never import this path directly from consumer
 // projects (rule 08 authority chain).
 export * from "./event-envelope";
+
+// --- v1.85 PrimitiveSemantics/PrimitiveStatus/PrimitiveProvenance (W2 —
+//     candidate->registered elevation lossy-copy closure) ---
+// Shared, optional, additive fields attached to ObjectTypeDeclaration,
+// LinkTypeDeclaration, ActionTypeDeclaration, AIPLogicFunctionDeclaration
+// (Function), and RoleDeclaration: `semantics?: PrimitiveSemantics`,
+// `status?: PrimitiveStatus` (absent = "active"), `provenance?:
+// PrimitiveProvenance`. Closes the gap where the ontology-engineering-
+// workflow elevation pipeline (register-accepted.ts) dropped candidate
+// business-meaning fields (whyItMayMatter/businessMeaning/operationalIntent/
+// evidenceRefs/evaluatorKind/invokingActorScopeRef) on candidate->registered
+// promotion. Import via shared-core; never import this path directly from
+// consumer projects (rule 08 authority chain).
+export * from "./primitive-semantics";

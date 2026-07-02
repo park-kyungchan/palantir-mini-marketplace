@@ -129,6 +129,15 @@ export type OntologyEdit =
       // link's cardinality when the register seam threaded it. Absent on legacy edits.
       srcCardinality?: "one" | "many";
       dstCardinality?: "one" | "many";
+      // W2 (feat/cartography-and-model-policy) — elevation as status transition,
+      // not a lossy copy. `semantics.businessMeaning` closes the CORE bug this
+      // task fixes: LinkTypeCandidate.businessMeaning was previously dropped
+      // entirely on candidate->registered elevation. Optional + additive —
+      // legacy edits (pre-W2) omit these and fold into a semantics/status/
+      // provenance-free declaration exactly as before.
+      semantics?: { businessMeaning?: string; whyItMayMatter?: string; evidenceRefs?: readonly string[] };
+      status?: "experimental" | "active" | "deprecated";
+      provenance?: { candidateId?: string; sicRef?: string; promotedAt?: string; byWhom?: string };
     }
   | { kind: "interface"; rid: string; interfaceName: string };
 

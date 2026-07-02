@@ -157,6 +157,12 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
                 linkName: edit.linkName,
                 ...(edit.srcCardinality !== undefined ? { srcCardinality: edit.srcCardinality } : {}),
                 ...(edit.dstCardinality !== undefined ? { dstCardinality: edit.dstCardinality } : {}),
+                // W2 — elevation as status transition: semantics/status/provenance
+                // survive into the FOLD-1 LinkType declaration when the register
+                // seam threaded them. Present-only so legacy folds are byte-identical.
+                ...(edit.semantics !== undefined ? { semantics: edit.semantics } : {}),
+                ...(edit.status !== undefined ? { status: edit.status } : {}),
+                ...(edit.provenance !== undefined ? { provenance: edit.provenance } : {}),
               },
             });
           } else if (edit.kind === "object") {
