@@ -55,6 +55,7 @@ import type {
   ActionTypeCandidate,
   FunctionCandidate,
   RoleCandidate,
+  PropertyCandidate,
   ChatbotContextCandidate,
 } from "../fde-ontology-engineering/types";
 import { projectPrimitiveRid } from "../actions/project-primitive-rid";
@@ -296,6 +297,44 @@ export function mapRoleCandidateToDeclaration(
 }
 
 /**
+ * PropertyCandidate → registered Property declaration (the 6th elevation
+ * kind — W2 remediation parity closure). whyItMayMatter → semantics.
+ * whyItMayMatter; evidenceRefs → semantics.evidenceRefs (same treatment as
+ * ObjectType/Role, since PropertyCandidate's own doc comment frames
+ * `whyItMayMatter` the same way). `ownerRid` is resolved by the caller
+ * (registerAcceptedCandidates) via the combined name->rid map BEFORE this
+ * mapper runs — see the "Properties" registration pass below — and threaded
+ * in as part of the same declaration bag so it survives alongside semantics/
+ * status/provenance rather than being assembled ad hoc at the call site.
+ */
+export function mapPropertyCandidateToDeclaration(
+  candidate: PropertyCandidate,
+  ctx: ElevationProvenanceContext,
+  ownerRid: string | undefined,
+): Record<string, unknown> {
+  return {
+    plainName: candidate.plainName,
+    ownerObjectName: candidate.ownerObjectName,
+    ownerRid,
+    dataType: candidate.dataType,
+    // ingest-widening: thread column-level access-security (readableBy) into
+    // the Property declaration so it SURVIVES into the FOLD-1 declaration the
+    // same way the ActionType's submissionCriteria does. Present-only so
+    // legacy folds (no access-security) stay byte-identical.
+    ...(candidate.readableBy !== undefined ? { readableBy: candidate.readableBy } : {}),
+    candidateId: candidate.candidateId,
+    evidenceRefs: candidate.evidenceRefs,
+    ...backingSourceRefOf(candidate),
+    semantics: {
+      whyItMayMatter: candidate.whyItMayMatter,
+      evidenceRefs: candidate.evidenceRefs,
+    },
+    status: "active",
+    ...provenanceFor(candidate.candidateId, ctx),
+  };
+}
+
+/**
  * LinkTypeCandidate → registered LinkType semantics/status/provenance bag.
  * businessMeaning → semantics.businessMeaning (THE CORE BUG this task closes:
  * LinkTypeCandidate.businessMeaning was previously dropped entirely — the
@@ -458,6 +497,12 @@ export async function registerAcceptedCandidates(
   }
 
   // ── 5) Properties (an ObjectType's stored field; owner resolved AFTER objects) ──
+  // W2 remediation — PropertyCandidate is the 6th elevation kind; previously
+  // registered via an inline declaration bag that DROPPED whyItMayMatter and
+  // never attached semantics/status/provenance (unlike the other 5 kinds).
+  // Now routed through the pure, exported mapPropertyCandidateToDeclaration()
+  // so it reaches the same semantic-preservation parity as ObjectType/
+  // LinkType/ActionType/Function/Role.
   for (const candidate of session.propertyCandidates ?? []) {
     const rid =
       candidate.declaredRid ?? projectPrimitiveRid(projectRoot, "property", candidate.plainName);
@@ -472,20 +517,7 @@ export async function registerAcceptedCandidates(
       "pm.actions.ontology.applyRegisterProperty",
       {
         rid,
-        declaration: {
-          plainName: candidate.plainName,
-          ownerObjectName: candidate.ownerObjectName,
-          ownerRid,
-          dataType: candidate.dataType,
-          // ingest-widening: thread column-level access-security (readableBy) into
-          // the Property declaration so it SURVIVES into the FOLD-1 declaration the
-          // same way the ActionType's submissionCriteria does. Present-only so
-          // legacy folds (no access-security) stay byte-identical.
-          ...(candidate.readableBy !== undefined ? { readableBy: candidate.readableBy } : {}),
-          candidateId: candidate.candidateId,
-          evidenceRefs: candidate.evidenceRefs,
-          ...backingSourceRefOf(candidate),
-        },
+        declaration: mapPropertyCandidateToDeclaration(candidate, provenanceCtx, ownerRid),
       },
     );
     edits.push(...e);

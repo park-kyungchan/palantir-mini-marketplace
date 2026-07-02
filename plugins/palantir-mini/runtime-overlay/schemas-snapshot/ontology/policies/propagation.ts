@@ -86,53 +86,19 @@ export const BACKWARD_PROP_V0: BackwardPropPolicy = Object.freeze({
   ],
 });
 
-/**
- * Emission contract: when does each BackwardProp event fire?
- * Consumed by the events-5d-gate hook + audit_events_5d_conformance handler.
- */
-export interface BackwardPropEmissionContract {
-  /** Event type name (matches lineage/event-types.ts) */
-  readonly eventType:
-    | "refinement_proposed"
-    | "review_decision"
-    | "impact_edge_registered";
-  /** Human-readable trigger description */
-  readonly firesWhen: string;
-  /** Which step in the BackwardProp policy emits this event */
-  readonly stepNumber: number;
-  /** Required payload fields beyond the 5 Decision Lineage dimensions */
-  readonly requiredPayloadFields: ReadonlyArray<string>;
-}
-
-export const BACKWARD_PROP_V1_EMISSIONS: ReadonlyArray<BackwardPropEmissionContract> =
-  Object.freeze([
-    {
-      eventType: "refinement_proposed",
-      firesWhen:
-        "Step 4 — replay_lineage yields a candidate ontology/validation refinement. Persists proposal instead of inbox-only delivery.",
-      stepNumber: 4,
-      requiredPayloadFields: ["proposalId", "targetPrimitiveRid", "rationale"],
-    },
-    {
-      eventType: "review_decision",
-      firesWhen:
-        "Step 5 — ontologist accepts, rejects, or defers a proposal. Makes the review itself part of the lineage.",
-      stepNumber: 5,
-      requiredPayloadFields: ["proposalId", "decision", "reviewerIdentity"],
-    },
-    {
-      eventType: "impact_edge_registered",
-      firesWhen:
-        "Any step — a new ImpactEdge is added to the Context Engineering graph (cross-cuts BackwardProp traversal).",
-      stepNumber: 0,
-      requiredPayloadFields: ["edgeRid", "fromRid", "toRid", "edgeKind"],
-    },
-  ]);
+// Sprint-cartography W1 vocabulary seal removed "refinement_proposed",
+// "review_decision", and "impact_edge_registered" (none were ever promoted to
+// EVENT_TYPE_NAMES / EventType — no typed payload, no live emitter). The
+// BackwardPropEmissionContract interface + BACKWARD_PROP_V1_EMISSIONS table
+// (which enumerated exactly those three names) are removed rather than
+// retyped: a repo-wide grep found zero consumers importing either symbol, and
+// no currently-valid event name semantically fits "emission contract for a
+// removed event". See ontology/lineage/event-types.ts EVENT_TYPE_NAMES (SoT).
 
 /**
  * BackwardProp v1 — closes the two non-durable gaps in v0 by routing
  * refinement proposals and ontologist reviews through dedicated LEARN-domain
- * events. See BACKWARD_PROP_V1_EMISSIONS for the per-event emission contract.
+ * events.
  *
  * Authority chain:
  *   rules/03-forward-backward-propagation.md

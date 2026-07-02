@@ -69,9 +69,12 @@ export interface ImpactGraph {
   readonly edges: ReadonlyArray<ImpactEdgeDeclaration>;
 }
 
-export interface EdgeEventEmitter {
-  (eventType: "impact_edge_registered", payload: ImpactEdgeDeclaration): void;
-}
+// Sprint-cartography W1 vocabulary seal removed "impact_edge_registered" (never
+// promoted to EVENT_TYPE_NAMES / EventType — no typed payload, no live emitter
+// instantiation anywhere in the registry). The EdgeEventEmitter hook is removed
+// rather than retyped: no currently-valid event name semantically fits an
+// edge-registration signal, and register() never had a real caller passing
+// `emit`. See ontology/lineage/event-types.ts EVENT_TYPE_NAMES (SoT).
 
 /**
  * Registry + graph walker. v0 stores edges in plain Maps keyed by source
@@ -82,7 +85,7 @@ export class ImpactEdgeRegistry {
   private readonly forward = new Map<string, ImpactEdgeDeclaration[]>();
   private readonly backward = new Map<string, ImpactEdgeDeclaration[]>();
 
-  register(edge: ImpactEdgeDeclaration, emit?: EdgeEventEmitter): void {
+  register(edge: ImpactEdgeDeclaration): void {
     this.byRid.set(edge.rid, edge);
     const fwd = this.forward.get(edge.fromRid) ?? [];
     fwd.push(edge);
@@ -90,7 +93,6 @@ export class ImpactEdgeRegistry {
     const bwd = this.backward.get(edge.toRid) ?? [];
     bwd.push(edge);
     this.backward.set(edge.toRid, bwd);
-    emit?.("impact_edge_registered", edge);
   }
 
   get(rid: ImpactEdgeRid): ImpactEdgeDeclaration | undefined {

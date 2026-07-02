@@ -19,6 +19,7 @@ import {
   mapActionTypeCandidateToDeclaration,
   mapFunctionCandidateToDeclaration,
   mapRoleCandidateToDeclaration,
+  mapPropertyCandidateToDeclaration,
   chatbotContextLineagePayload,
   type ElevationProvenanceContext,
 } from "../../../lib/ontology-engineering-workflow/register-accepted";
@@ -140,6 +141,35 @@ describe("elevation as status transition — per-candidate-kind semantic preserv
     expect(decl.status).toBe("active");
   });
 
+  test("PropertyCandidate: whyItMayMatter + evidenceRefs -> semantics; status=active; provenance populated (the 6th elevation kind — was previously registered via an inline block that DROPPED whyItMayMatter)", () => {
+    const candidate = {
+      candidateId: "property:score",
+      plainName: "score",
+      ownerObjectName: "Submission",
+      dataType: "Integer",
+      whyItMayMatter: "the rubric-derived numeric grade a teacher finalizes",
+      evidenceRefs: ["evidence://score-1", "evidence://score-2"],
+    };
+    const decl = mapPropertyCandidateToDeclaration(candidate, FIXED_CTX, "rid:pm:object/submission");
+    expect(decl.semantics).toEqual({
+      whyItMayMatter: candidate.whyItMayMatter,
+      evidenceRefs: candidate.evidenceRefs,
+    });
+    expect(decl.status).toBe("active");
+    expect(decl.provenance).toEqual({
+      candidateId: candidate.candidateId,
+      promotedAt: FIXED_CTX.promotedAt,
+      byWhom: FIXED_CTX.byWhom,
+      sicRef: FIXED_CTX.sicRef,
+    });
+    // Legacy fields (pre-remediation) still present — additive, not replaced.
+    expect(decl.plainName).toBe(candidate.plainName);
+    expect(decl.ownerObjectName).toBe(candidate.ownerObjectName);
+    expect(decl.ownerRid).toBe("rid:pm:object/submission");
+    expect(decl.dataType).toBe(candidate.dataType);
+    expect(decl.evidenceRefs).toEqual(candidate.evidenceRefs);
+  });
+
   test("ChatbotContextCandidate: DELIBERATE lineage-only capture (documented scope decision, not an oversight) — no registration path, content preserved via chatbotContextLineagePayload()", () => {
     const candidate = {
       candidateId: "chatbot:tutor-context",
@@ -218,6 +248,47 @@ describe("registerAcceptedCandidates — full round-trip through the real edit-f
     expect(linkEdit!.semantics?.businessMeaning).toBe("A links to B for the fixture");
     expect(linkEdit!.status).toBe("active");
     expect(linkEdit!.provenance?.candidateId).toBe("link:a-to-b");
+  });
+
+  test("Property round-trip: whyItMayMatter survives onto the registered edit's semantics field; ownerRid resolved via the combined name->rid map (the 6th elevation kind — was previously an inline block that dropped it)", async () => {
+    const session: FDEOntologyEngineeringSession = {
+      ...baseSession(),
+      objectCandidates: [
+        { candidateId: "object:submission", plainName: "Submission", whyItMayMatter: "the graded artifact", evidenceRefs: ["e:submission"] },
+      ],
+      propertyCandidates: [
+        {
+          candidateId: "property:score",
+          plainName: "score",
+          ownerObjectName: "Submission",
+          dataType: "Integer",
+          whyItMayMatter: "the rubric-derived numeric grade a teacher finalizes",
+          evidenceRefs: ["evidence://score-1"],
+        },
+      ],
+    };
+    const { edits, registered } = await registerAcceptedCandidates({
+      session,
+      projectRoot: PROJECT_ROOT,
+      sicRef: "sic:property-round-trip",
+      byWhom: "test-agent",
+    });
+    expect(registered.properties.length).toBe(1);
+    const propertyEdit = edits.find(
+      (e) => (e as { kind?: string }).kind === "object" &&
+        (e as { properties?: Record<string, unknown> }).properties?.primitiveKind === "Property",
+    ) as { properties?: Record<string, unknown> } | undefined;
+    expect(propertyEdit).toBeDefined();
+    const semantics = propertyEdit!.properties?.semantics as Record<string, unknown> | undefined;
+    expect(semantics?.whyItMayMatter).toBe("the rubric-derived numeric grade a teacher finalizes");
+    expect(propertyEdit!.properties?.status).toBe("active");
+    const provenance = propertyEdit!.properties?.provenance as Record<string, unknown> | undefined;
+    expect(provenance?.candidateId).toBe("property:score");
+    expect(provenance?.sicRef).toBe("sic:property-round-trip");
+    // ownerRid resolved against the combined name->rid map built from the
+    // already-registered Submission ObjectType candidate above.
+    expect(typeof propertyEdit!.properties?.ownerRid).toBe("string");
+    expect(propertyEdit!.properties?.ownerRid).not.toBe("");
   });
 
   test("ChatbotContextCandidate round-trip: chatbotContextLineage result field carries content; NOT registered as a primitive", async () => {

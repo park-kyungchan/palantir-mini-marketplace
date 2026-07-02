@@ -23,6 +23,7 @@ import {
   mapActionTypeCandidateToDeclaration,
   mapFunctionCandidateToDeclaration,
   mapRoleCandidateToDeclaration,
+  mapPropertyCandidateToDeclaration,
   chatbotContextLineagePayload,
 } from "../../../../lib/ontology-engineering-workflow/register-accepted";
 
@@ -48,6 +49,7 @@ describe("evaluateSemanticLoss — regression proof (synthetic LOSSY mapper goes
       mapActionTypeCandidateToDeclaration,
       mapFunctionCandidateToDeclaration,
       mapRoleCandidateToDeclaration,
+      mapPropertyCandidateToDeclaration,
       chatbotContextLineagePayload,
     };
     const result = evaluateSemanticLoss(lossyFns);
@@ -67,6 +69,7 @@ describe("evaluateSemanticLoss — regression proof (synthetic LOSSY mapper goes
       mapActionTypeCandidateToDeclaration,
       mapFunctionCandidateToDeclaration,
       mapRoleCandidateToDeclaration,
+      mapPropertyCandidateToDeclaration,
       chatbotContextLineagePayload,
     };
     const result = evaluateSemanticLoss(lossyFns);
@@ -87,6 +90,7 @@ describe("evaluateSemanticLoss — regression proof (synthetic LOSSY mapper goes
         // evaluatorKind / invokingActorScopeRef intentionally omitted (regression).
       }),
       mapRoleCandidateToDeclaration,
+      mapPropertyCandidateToDeclaration,
       chatbotContextLineagePayload,
     };
     const result = evaluateSemanticLoss(lossyFns);

@@ -251,7 +251,10 @@ export const FOUR_DIM_LIFECYCLE_EVENT_TYPES = [
   "inbox_cleaned",
   "subagent_state_validation",
   "agent_frontmatter_validated",
-  "session_drift_check_completed",
+  // Sprint-cartography W1 vocabulary seal removed "session_drift_check_completed"
+  // (never promoted to EVENT_TYPE_NAMES / EventType — no typed payload). Its
+  // FOUR_DIM_LIFECYCLE_POLICIES mapping is array-derived below, so removing the
+  // name here also removes the policy entry with no separate edit needed.
   "skill_started",
 ] as const;
 

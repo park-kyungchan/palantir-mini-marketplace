@@ -43,6 +43,7 @@ import {
   mapActionTypeCandidateToDeclaration,
   mapFunctionCandidateToDeclaration,
   mapRoleCandidateToDeclaration,
+  mapPropertyCandidateToDeclaration,
   chatbotContextLineagePayload,
   type ElevationProvenanceContext,
 } from "../../../lib/ontology-engineering-workflow/register-accepted";
@@ -52,6 +53,7 @@ import type {
   ActionTypeCandidate,
   FunctionCandidate,
   RoleCandidate,
+  PropertyCandidate,
   ChatbotContextCandidate,
 } from "../../../lib/fde-ontology-engineering/types";
 
@@ -110,6 +112,15 @@ const SYNTHETIC_ROLE: RoleCandidate = {
   evidenceRefs: ["fixture://evidence/role"],
 };
 
+const SYNTHETIC_PROPERTY: PropertyCandidate = {
+  candidateId: "property:semantic-loss-fixture",
+  plainName: "semanticLossFixtureProperty",
+  ownerObjectName: "SemanticLossFixtureObject",
+  dataType: "String",
+  whyItMayMatter: "fixture-property-why-it-may-matter",
+  evidenceRefs: ["fixture://evidence/property"],
+};
+
 const SYNTHETIC_CHATBOT: ChatbotContextCandidate = {
   candidateId: "chatbot:semantic-loss-fixture",
   plainName: "SemanticLossFixtureChatbotContext",
@@ -132,6 +143,7 @@ export interface SemanticLossMappingFunctions {
   mapActionTypeCandidateToDeclaration: typeof mapActionTypeCandidateToDeclaration;
   mapFunctionCandidateToDeclaration: typeof mapFunctionCandidateToDeclaration;
   mapRoleCandidateToDeclaration: typeof mapRoleCandidateToDeclaration;
+  mapPropertyCandidateToDeclaration: typeof mapPropertyCandidateToDeclaration;
   chatbotContextLineagePayload: typeof chatbotContextLineagePayload;
 }
 
@@ -141,6 +153,7 @@ const REAL_MAPPING_FUNCTIONS: SemanticLossMappingFunctions = {
   mapActionTypeCandidateToDeclaration,
   mapFunctionCandidateToDeclaration,
   mapRoleCandidateToDeclaration,
+  mapPropertyCandidateToDeclaration,
   chatbotContextLineagePayload,
 };
 
@@ -244,6 +257,22 @@ export function evaluateSemanticLoss(
     }
   }
 
+  // ── Property: whyItMayMatter -> semantics.whyItMayMatter (the 6th elevation kind — W2 remediation). ──
+  {
+    const decl = fns.mapPropertyCandidateToDeclaration(SYNTHETIC_PROPERTY, FIXED_CTX, "rid:pm:object/semantic-loss-fixture-object");
+    const checks: Array<[string, boolean]> = [
+      ["semantics.whyItMayMatter", containsField(decl, ["semantics", "whyItMayMatter"], SYNTHETIC_PROPERTY.whyItMayMatter)],
+      ["semantics.evidenceRefs", containsField(decl, ["semantics", "evidenceRefs"], SYNTHETIC_PROPERTY.evidenceRefs)],
+      ["status", containsField(decl, ["status"], "active")],
+      ["provenance.candidateId", containsField(decl, ["provenance", "candidateId"], SYNTHETIC_PROPERTY.candidateId)],
+      ["ownerRid", containsField(decl, ["ownerRid"], "rid:pm:object/semantic-loss-fixture-object")],
+    ];
+    for (const [label, ok] of checks) {
+      const key = `Property.${label}`;
+      if (ok) compliant.push(key); else violations.push(`${key}: expected field not found on mapPropertyCandidateToDeclaration() output — the 6th elevation kind this remediation closes`);
+    }
+  }
+
   // ── ChatbotContext: lineage-only capture (STATIC/structural fallback — see file doc comment). ──
   {
     const lineage = fns.chatbotContextLineagePayload(SYNTHETIC_CHATBOT);
@@ -265,7 +294,7 @@ export function evaluateSemanticLoss(
   return {
     status: isPass ? "pass" : "fail",
     details: isPass
-      ? `all ${total} semantic-field-preservation checks pass across ObjectType/LinkType/ActionType/Function/Role/ChatbotContext elevation mapping`
+      ? `all ${total} semantic-field-preservation checks pass across ObjectType/LinkType/ActionType/Function/Role/Property/ChatbotContext elevation mapping`
       : `${violations.length}/${total} semantic-field-preservation checks FAILED (candidate->registered elevation is dropping fields): ` +
         violations.join("; "),
     total,

@@ -7,6 +7,7 @@
 import * as path from "path";
 import { readEvents, foldToSnapshot } from "../../lib/event-log/read";
 import type { EventSnapshot, RegisteredPrimitiveEntry } from "../../lib/event-log/types";
+import { primitiveStatusOrDefault } from "#schemas/ontology/primitives/primitive-semantics";
 
 type Domain = "data" | "logic" | "action" | "security" | "learn" | "all";
 
@@ -87,6 +88,30 @@ function scopedBuckets(domain: Domain, kind: BucketName | undefined): ReadonlyAr
 }
 
 /**
+ * Normalize a registered primitive's `declaration.status` through the
+ * documented `primitiveStatusOrDefault()` guarantee (absent ⇒ "active") —
+ * F6 remediation: this is the real read path get_ontology serves to every
+ * MCP caller, so it is the canonical enforcement site for the "absent=active"
+ * contract instead of leaving it a vacuous, uncalled helper. Entries without
+ * a `declaration` bag (legacy folds) pass through unchanged.
+ */
+function withNormalizedStatus(entry: RegisteredPrimitiveEntry): RegisteredPrimitiveEntry {
+  if (entry.declaration === undefined) return entry;
+  const rawStatus = (entry.declaration as { status?: unknown }).status;
+  const normalized =
+    rawStatus === "experimental" || rawStatus === "active" || rawStatus === "deprecated"
+      ? rawStatus
+      : undefined;
+  return {
+    ...entry,
+    declaration: {
+      ...entry.declaration,
+      status: primitiveStatusOrDefault(normalized),
+    },
+  };
+}
+
+/**
  * Build a registeredPrimitives object that keeps only the in-scope buckets;
  * out-of-scope buckets are emptied (NOT removed) so the shape is stable for
  * consumers that read all six bucket names.
@@ -98,7 +123,7 @@ function scopeRegisteredPrimitives(
   const empty: RegisteredPrimitiveEntry[] = [];
   const keepSet = new Set(keep);
   const pick = (b: BucketName): RegisteredPrimitiveEntry[] =>
-    keepSet.has(b) ? (source?.[b] ?? []) : empty;
+    keepSet.has(b) ? (source?.[b] ?? []).map(withNormalizedStatus) : empty;
   return {
     objectTypes: pick("objectTypes"),
     linkTypes:   pick("linkTypes"),

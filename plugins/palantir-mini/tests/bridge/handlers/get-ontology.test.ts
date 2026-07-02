@@ -181,4 +181,39 @@ describe("getOntology", () => {
       expect(data.counts.properties).toBe(1);
     });
   });
+
+  // ── F6 — primitiveStatusOrDefault() wired into the real read path ─────────
+  describe("declaration.status normalization (absent ⇒ \"active\")", () => {
+    test("a registered primitive with no explicit status is normalized to 'active'", async () => {
+      const project = makeTmpProject([
+        makeEvent(1, "edit_committed", {
+          actionTypeRid: "pm.self.ontology/action-type/commit-edits",
+          appliedEdits: [
+            { kind: "object", rid: "rid:obj/no-status", properties: { primitiveKind: "ObjectType", plainName: "NoStatus" } },
+          ],
+          submissionCriteriaPassed: [],
+        }),
+      ]);
+      const reg = (await getOntology({ project, domain: "all" })).snapshot.registeredPrimitives!;
+      expect(reg.objectTypes.length).toBe(1);
+      expect((reg.objectTypes[0]!.declaration as Record<string, unknown>).status).toBe("active");
+    });
+
+    test("an explicit status value passes through unchanged", async () => {
+      const project = makeTmpProject([
+        makeEvent(1, "edit_committed", {
+          actionTypeRid: "pm.self.ontology/action-type/commit-edits",
+          appliedEdits: [
+            { kind: "object", rid: "rid:obj/deprecated", properties: { primitiveKind: "ObjectType", plainName: "Deprecated", status: "deprecated" } },
+            { kind: "object", rid: "rid:obj/experimental", properties: { primitiveKind: "ObjectType", plainName: "Experimental", status: "experimental" } },
+          ],
+          submissionCriteriaPassed: [],
+        }),
+      ]);
+      const reg = (await getOntology({ project, domain: "all" })).snapshot.registeredPrimitives!;
+      const byRid = new Map(reg.objectTypes.map((e) => [e.rid, e]));
+      expect((byRid.get("rid:obj/deprecated")!.declaration as Record<string, unknown>).status).toBe("deprecated");
+      expect((byRid.get("rid:obj/experimental")!.declaration as Record<string, unknown>).status).toBe("experimental");
+    });
+  });
 });
