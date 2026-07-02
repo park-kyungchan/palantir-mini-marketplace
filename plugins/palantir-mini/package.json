@@ -15,6 +15,8 @@
     "version:check": "bun run ../../ci/verify-marketplace-integrity.ts",
     "mcp-server": "bun run bridge/mcp-server.ts",
     "gen:skill-docs": "bun run scripts/gen-skill-docs.ts",
+    "gen:cartography": "bun run scripts/gen-cartography.ts",
+    "check:cartography": "bun run scripts/gen-cartography.ts --check",
     "skill:check": "bun run scripts/gen-skill-docs.ts --dry-run && bun run scripts/slim-skill-frontmatter.ts --dry-run",
     "skill:slim-frontmatter": "bun run scripts/slim-skill-frontmatter.ts",
     "promote:grades": "bun run scripts/replay-promote-grades.ts",
