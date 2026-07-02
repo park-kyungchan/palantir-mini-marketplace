@@ -16,9 +16,10 @@ disable-model-invocation: false
 > Note: `model:` param is NEVER passed at Agent spawn — frontmatter `model:` is the single source of truth (Model policy). [Applied — defect #2 fix, 2026-04-19]
 
 This skill replaces ad-hoc orchestration with a rigorous, observable protocol
-derived from proven Ontology-Driven sessions. The Lead (Opus) never codes directly
+derived from proven Ontology-Driven sessions. The Lead never codes directly
 unless fixing cross-cutting issues between phases. All execution is delegated to
-parallel opus subagents with exclusive file ownership.
+parallel Sonnet subagents — spawned at maximum reasoning effort per the
+Sonnet-only subagent model policy — with exclusive file ownership.
 
 palantir-mini is the substrate — every phase gate emits events, every task
 dispatch flows through plugin MCP, and every session is replayable via
@@ -382,7 +383,7 @@ mcp__palantir-mini__emit_event({
 
 ## Phase 5: EXECUTE — Parallel Agents with Phase Gates
 
-**Purpose**: Spawn opus implementer subagents per phase, gate between phases.
+**Purpose**: Spawn Sonnet implementer subagents per phase, gate between phases.
 
 ### Spawn Pattern
 ```

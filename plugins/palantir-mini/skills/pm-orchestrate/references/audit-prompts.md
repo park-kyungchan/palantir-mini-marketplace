@@ -13,6 +13,8 @@ Spawn all 4 agents in a SINGLE message (parallel background execution).
 ## DATA Domain Agent
 
 ```
+[Operate at maximum reasoning effort — be thorough, verify your own work.]
+
 You are analyzing the DATA domain for drift, dead code, and bottlenecks.
 
 Context: This project uses an ontology-first architecture where `{ONTOLOGY_PATH}/data.ts`
@@ -45,6 +47,8 @@ Report findings as:
 ## LOGIC Domain Agent
 
 ```
+[Operate at maximum reasoning effort — be thorough, verify your own work.]
+
 You are analyzing the LOGIC domain for drift, dead code, and bottlenecks.
 
 Context: `{ONTOLOGY_PATH}/logic.ts` declares linkTypes, queries, derivedProperties,
@@ -76,6 +80,8 @@ Report findings as: DRIFT / DEAD CODE / BOTTLENECK / CLEAN
 ## ACTION Domain Agent
 
 ```
+[Operate at maximum reasoning effort — be thorough, verify your own work.]
+
 You are analyzing the ACTION domain for drift, dead code, and bottlenecks.
 
 Context: `{ONTOLOGY_PATH}/action.ts` declares mutations, webhooks, and automations.
@@ -109,6 +115,8 @@ Report findings as: DRIFT / DEAD CODE / BOTTLENECK / CLEAN
 ## LEARN + Runtime Agent
 
 ```
+[Operate at maximum reasoning effort — be thorough, verify your own work.]
+
 You are analyzing LEARN infrastructure, Runtime layer, and detecting dead code.
 
 Tasks (research only, do NOT edit files):
@@ -138,6 +146,8 @@ Report findings as: DRIFT / DEAD CODE / BOTTLENECK / CLEAN
 ## CODEGEN Agent
 
 ```
+[Operate at maximum reasoning effort — be thorough, verify your own work.]
+
 You are analyzing the codegen pipeline for correctness and completeness.
 
 Context: The project uses ontology-driven code generation from

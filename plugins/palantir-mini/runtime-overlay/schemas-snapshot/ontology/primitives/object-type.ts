@@ -21,6 +21,8 @@
  * @purpose ObjectType primitive (prim-data-02)
  */
 
+import type { PrimitiveSemantics, PrimitiveStatus, PrimitiveProvenance } from "./primitive-semantics";
+
 export type ObjectTypeRid = string & { readonly __brand: "ObjectTypeRid" };
 
 export const objectTypeRid = (s: string): ObjectTypeRid => s as ObjectTypeRid;
@@ -63,6 +65,22 @@ export interface ObjectTypeDeclaration {
   readonly branchable?: boolean;
   /** Markings or policy tags applied at object-type level. */
   readonly markingRids?: readonly string[];
+  /**
+   * Business-meaning payload preserved from the candidate this ObjectType was
+   * elevated from (W2 — candidate->registered elevation lossy-copy closure).
+   * ObjectTypeCandidate.whyItMayMatter -> semantics.whyItMayMatter;
+   * ObjectTypeCandidate.evidenceRefs -> semantics.evidenceRefs. Optional +
+   * additive — absent on primitives registered before this shape existed.
+   */
+  readonly semantics?: PrimitiveSemantics;
+  /**
+   * Foundry-equivalent lifecycle status. Absent = "active" (see
+   * primitiveStatusOrDefault() in primitive-semantics.ts). Every primitive
+   * elevated by register-accepted.ts is stamped "active" at registration time.
+   */
+  readonly status?: PrimitiveStatus;
+  /** Audit record of the candidate->registered elevation, when this ObjectType came from a candidate. */
+  readonly provenance?: PrimitiveProvenance;
 }
 
 /** Registry helper — v0 minimal registry via plain Map */

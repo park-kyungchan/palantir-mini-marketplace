@@ -18,3 +18,5 @@ jobs:
         run: bun run ci/verify-marketplace-integrity.ts
       - name: Typecheck
         run: cd plugins/palantir-mini && (bun install --frozen-lockfile || bun install) && bun run typecheck
+      - name: Check cartography drift
+        run: cd plugins/palantir-mini && bun run check:cartography

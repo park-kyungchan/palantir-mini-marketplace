@@ -1046,6 +1046,11 @@ async function handleRegister(
     session,
     projectRoot: root,
     alreadyRegistered,
+    // W2 — thread the re-verified minted approved-SIC ref + host runtime identity
+    // into PrimitiveProvenance so the elevation audit record names WHICH SIC
+    // authorized it and WHO/WHAT performed it (never a fabricated literal).
+    sicRef: persistedSnapshot.contractId,
+    byWhom: resolveHostRuntimeIdentity(),
   });
 
   if (edits.length === 0) {
@@ -1338,6 +1343,10 @@ async function handleRegisterRebind(
     projectRoot: root,
     alreadyRegistered,
     reElevateAlreadyRegistered: true,
+    // W2 — same provenance threading as handleRegister (re-bind is still a
+    // governed elevation; the re-verified minted SIC + host identity apply here too).
+    sicRef: persistedSnapshot.contractId,
+    byWhom: resolveHostRuntimeIdentity(),
   });
 
   if (edits.length === 0) {

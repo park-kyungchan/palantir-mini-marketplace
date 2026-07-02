@@ -653,7 +653,7 @@ export async function gradeDigitalTwinChangeContract(
       // Until then, use a type cast to allow the plain string literal event type.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await emit({
-        type: "dtc_grader_runtime_gap" as any,
+        type: "dtc_grader_runtime_gap",
         toolName: "gradeDigitalTwinChangeContract",
         cwd: context.projectPath,
         sessionId: context.sessionId,
@@ -668,7 +668,7 @@ export async function gradeDigitalTwinChangeContract(
           projectPath: context.projectPath,
           promptId: context.promptId,
           sessionId: context.sessionId,
-        } as any,
+        },
       });
     } catch {
       // Silently ignore emit failure — grading result is still valid

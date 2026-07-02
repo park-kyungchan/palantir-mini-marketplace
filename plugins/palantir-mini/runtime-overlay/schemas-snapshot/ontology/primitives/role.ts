@@ -33,6 +33,8 @@
  * @purpose Role primitive (principal -> resource grant; GOVERNANCE/ACTORS gap)
  */
 
+import type { PrimitiveSemantics, PrimitiveStatus, PrimitiveProvenance } from "./primitive-semantics";
+
 export type RoleRid = string & { readonly __brand: "RoleRid" };
 
 export const roleRid = (s: string): RoleRid => s as RoleRid;
@@ -65,6 +67,16 @@ export interface RoleDeclaration {
   readonly grantedResourceRids: ReadonlyArray<string>;
   /** Permission verbs the principal may exercise over the granted resources. */
   readonly permissions: ReadonlyArray<PermissionVerb>;
+  /**
+   * Business-meaning payload preserved from the candidate this Role was
+   * elevated from (W2). RoleCandidate.whyItMayMatter -> semantics.
+   * whyItMayMatter; RoleCandidate.evidenceRefs -> semantics.evidenceRefs.
+   */
+  readonly semantics?: PrimitiveSemantics;
+  /** Foundry-equivalent lifecycle status. Absent = "active". */
+  readonly status?: PrimitiveStatus;
+  /** Audit record of the candidate->registered elevation. */
+  readonly provenance?: PrimitiveProvenance;
 }
 
 export class RoleRegistry {

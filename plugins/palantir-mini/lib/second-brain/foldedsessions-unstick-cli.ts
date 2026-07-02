@@ -88,7 +88,7 @@ function countSessionNodes(root: string, sessionId: string): number {
 
 export type UnstickReason =
   | "no-record"          // marker absent → nothing to unstick
-  | "already-lifecycle"  // already a status-bearing (in-progress or governed-complete) record → no-op
+  | "already-lifecycle"  // already a status-bearing (pending/in-progress/governed-complete) record → no-op
   | "no-session-nodes"   // graph has 0 nodes for this session → nothing to govern-only
   | "not-confirmed"      // --confirm withheld → dry-run, no mutation
   | "unstuck";           // flipped OLD write-once → in-progress
@@ -125,7 +125,7 @@ export function unstickMarker(root: string, sessionId: string, confirm: boolean)
 
     if (!rec || typeof rec !== "object") return { changed: false, reason: "no-record" };
     // ONLY an OLD write-once marker (no `status` field) is unstick-able. A status-bearing record
-    // (in-progress already unstuck, or governed-complete genuinely done) is left untouched.
+    // (pending / in-progress already unstuck / governed-complete genuinely done) is left untouched.
     if ("status" in (rec as Record<string, unknown>)) {
       return { changed: false, reason: "already-lifecycle" };
     }

@@ -17,6 +17,8 @@
  * @purpose ActionType primitive (prim-action-01, prim-action-02)
  */
 
+import type { PrimitiveSemantics, PrimitiveStatus, PrimitiveProvenance } from "./primitive-semantics";
+
 export type ActionTypeRid = string & { readonly __brand: "ActionTypeRid" };
 
 export const actionTypeRid = (s: string): ActionTypeRid => s as ActionTypeRid;
@@ -94,6 +96,17 @@ export interface Tier1DeclarativeAction {
   readonly objectSetConstraint?: string;
   readonly branchPolicy?: "live-only" | "branch-required" | "branch-optional";
   readonly validateOnlySupported?: boolean;
+  /**
+   * Business-meaning payload preserved from the candidate this ActionType was
+   * elevated from (W2). ActionTypeCandidate.operationalIntent ->
+   * semantics.businessMeaning; ActionTypeCandidate.evidenceRefs ->
+   * semantics.evidenceRefs.
+   */
+  readonly semantics?: PrimitiveSemantics;
+  /** Foundry-equivalent lifecycle status. Absent = "active". */
+  readonly status?: PrimitiveStatus;
+  /** Audit record of the candidate->registered elevation. */
+  readonly provenance?: PrimitiveProvenance;
 }
 
 export interface Tier2FunctionBackedAction {
@@ -113,6 +126,12 @@ export interface Tier2FunctionBackedAction {
   readonly branchPolicy?: "live-only" | "branch-required" | "branch-optional";
   readonly validateOnlySupported?: boolean;
   readonly sideEffects?: readonly ("webhook" | "notification" | "external-api" | "dataset-write")[];
+  /** Business-meaning payload preserved from the candidate this ActionType was elevated from (W2). See Tier1DeclarativeAction.semantics. */
+  readonly semantics?: PrimitiveSemantics;
+  /** Foundry-equivalent lifecycle status. Absent = "active". */
+  readonly status?: PrimitiveStatus;
+  /** Audit record of the candidate->registered elevation. */
+  readonly provenance?: PrimitiveProvenance;
 }
 
 export type ActionTypeDeclaration =

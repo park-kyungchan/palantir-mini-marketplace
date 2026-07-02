@@ -56,6 +56,7 @@ import type { NodeRecord, EdgeRecord, NodeRid, EdgeRid } from "../types";
 import { readEvents } from "../../event-log/read";
 import { foldToSnapshot } from "../../event-log/read/fold-snapshot";
 import type { RegisteredPrimitiveEntry } from "../../event-log/types";
+import { primitiveStatusOrDefault } from "#schemas/ontology/primitives/primitive-semantics";
 
 // ─── Local payload interface (Option A — no shared-core import) ───────────────
 
@@ -68,8 +69,24 @@ interface RegisteredPrimitivePayload {
   readonly lastIndexed: string;
   /** The registered-primitive kind: ObjectType / LinkType / ActionType / Function / Role / Property. */
   readonly primitiveKind: string;
-  /** The committed declaration (FOLD-1) — projected edit properties; may be absent on legacy folds. */
+  /**
+   * The committed declaration (FOLD-1) — projected edit properties; may be
+   * absent on legacy folds. `declaration.status`, when the declaration is
+   * present, is normalized through `primitiveStatusOrDefault()` (F6 — absent
+   * ⇒ "active") so graph consumers (impact_query / ontology_context_query)
+   * never have to re-apply the default themselves.
+   */
   readonly declaration?: Record<string, unknown>;
+}
+
+/** Applies the documented absent⇒"active" status default to a declaration bag. */
+function withNormalizedStatus(declaration: Record<string, unknown>): Record<string, unknown> {
+  const rawStatus = (declaration as { status?: unknown }).status;
+  const normalized =
+    rawStatus === "experimental" || rawStatus === "active" || rawStatus === "deprecated"
+      ? rawStatus
+      : undefined;
+  return { ...declaration, status: primitiveStatusOrDefault(normalized) };
 }
 
 /** Edge payload for a registered LinkType (src → dst). */
@@ -146,7 +163,7 @@ export async function indexRegisteredPrimitives(
         projectRoot,
         lastIndexed: nowIso,
         primitiveKind: kind,
-        ...(entry.declaration !== undefined ? { declaration: entry.declaration } : {}),
+        ...(entry.declaration !== undefined ? { declaration: withNormalizedStatus(entry.declaration) } : {}),
       };
       nodes.push({ rid: nodeRid(entry.rid), kind, value: payload });
     }

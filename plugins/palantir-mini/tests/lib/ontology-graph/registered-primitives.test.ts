@@ -101,6 +101,52 @@ describe("IMPACT-1 — registered-primitives indexer", () => {
     expect(fragment.nodes.length).toBe(0);
     expect(fragment.edges.length).toBe(0);
   });
+
+  // ── F6 — primitiveStatusOrDefault() wired into the indexer read path ──────
+  describe("declaration.status normalization (absent \u21d2 \"active\")", () => {
+    test("a registered primitive with no explicit status is normalized to 'active'", async () => {
+      const { root, objA } = seedRegistered();
+      const fragment = await indexRegisteredPrimitives(root, { nowIso: "2026-06-10T00:00:00Z" });
+      const alpha = fragment.nodes.find((n) => (n.rid as unknown as string) === objA);
+      expect((alpha?.value as { declaration?: { status?: string } })?.declaration?.status).toBe("active");
+    });
+
+    test("an explicit status value passes through unchanged", async () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "pm-impact1-status-"));
+      tmpDirs.push(root);
+      const sessionDir = path.join(root, ".palantir-mini", "session");
+      fs.mkdirSync(sessionDir, { recursive: true });
+      const rid = "rid:pm:object/deprecated-thing";
+      const row = JSON.stringify({
+        eventId: "evt-1",
+        sequence: 1,
+        type: "edit_committed",
+        when: new Date().toISOString(),
+        payload: {
+          actionTypeRid: "pm.self.ontology/action-type/commit-edits",
+          appliedEdits: [
+            { kind: "object", rid, properties: { primitiveKind: "ObjectType", plainName: "DeprecatedThing", status: "deprecated" } },
+          ],
+          submissionCriteriaPassed: [],
+        },
+        timestamp: new Date().toISOString(),
+        atopWhich: { commitSha: "abc" },
+        throughWhich: { sessionId: "s", toolName: "t", cwd: "c" },
+        byWhom: { agentName: "test", identity: "claude-code" },
+        decision: {
+          atopWhich: { commitSha: "abc" },
+          throughWhich: { surface: "test", tool: "test" },
+          byWhom: { agent: "test", identity: "claude-code" },
+          withWhat: { reasoning: "F6 explicit-status passthrough fixture" },
+        },
+      });
+      fs.writeFileSync(path.join(sessionDir, "events.jsonl"), row + "\n");
+
+      const fragment = await indexRegisteredPrimitives(root, { nowIso: "2026-06-10T00:00:00Z" });
+      const node = fragment.nodes.find((n) => (n.rid as unknown as string) === rid);
+      expect((node?.value as { declaration?: { status?: string } })?.declaration?.status).toBe("deprecated");
+    });
+  });
 });
 
 describe("IMPACT-1 — registered rid is reachable through the orchestrated graph", () => {

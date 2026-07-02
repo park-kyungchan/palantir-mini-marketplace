@@ -42,6 +42,7 @@ import commitEditsHandler from "../../bridge/handlers/commit-edits";
 import getOntology from "../../bridge/handlers/get-ontology";
 import { COMMIT_EDITS_ACTION_TYPE_RID } from "../../runtime-overlay/schemas-snapshot/ontology/self/action-types";
 import type { OntologyEngineeringRegisterResult } from "./types";
+import { resolveHostRuntimeIdentity } from "../runtime/identity";
 
 export interface ElevateInput {
   readonly projectRoot: string;
@@ -82,6 +83,23 @@ export interface ElevateResult {
   readonly sic: { readonly contractRef?: string };
   readonly register?: OntologyEngineeringRegisterResult;
   readonly note?: string;
+  /**
+   * W2 — ChatbotContextCandidate lineage-only capture (deliberate scope
+   * decision, not an oversight): ChatbotContextCandidate has NO registration
+   * path (no ObjectType/LinkType/ActionType/Function/Role shape fits its
+   * application-state need), so this flow does NOT build a new registration
+   * path for it. Instead its content is preserved here — in the elevation
+   * event/result payload — so it is at least captured in lineage. Present
+   * whenever `register` ran (empty array when the session had no chatbot
+   * context candidates).
+   */
+  readonly chatbotContextLineage?: readonly {
+    readonly candidateId: string;
+    readonly plainName: string;
+    readonly applicationStateNeed: string;
+    readonly retrievalContextNeed?: string;
+    readonly evidenceRefs: readonly string[];
+  }[];
 }
 
 /**
@@ -129,7 +147,8 @@ function independentReadinessProfile(
 async function registerStep(
   session: FDEOntologyEngineeringSession,
   projectRoot: string,
-): Promise<OntologyEngineeringRegisterResult> {
+  sicRef: string | undefined,
+): Promise<OntologyEngineeringRegisterResult & { chatbotContextLineage: ElevateResult["chatbotContextLineage"] }> {
   const snapshot = (await getOntology({ project: projectRoot })).snapshot.registeredPrimitives;
   // FOLD-1: bucket entries are now { rid, declaration? } — project to bare rids
   // for the idempotency set.
@@ -142,10 +161,15 @@ async function registerStep(
     ...(snapshot?.properties ?? []),
   ].map((e) => e.rid));
 
-  const { edits, registered, skipped } = await registerAcceptedCandidates({
+  const { edits, registered, skipped, chatbotContextLineage } = await registerAcceptedCandidates({
     session,
     projectRoot,
     alreadyRegistered,
+    // W2 — the SIC that authorized THIS elevation (contractRef, minted above)
+    // + the host runtime identity, threaded into every registered primitive's
+    // PrimitiveProvenance.
+    sicRef,
+    byWhom: resolveHostRuntimeIdentity(),
   });
 
   if (edits.length === 0) {
@@ -154,6 +178,7 @@ async function registerStep(
       registered: { objectTypes: [], actionTypes: [], functions: [], linkTypes: [], roles: [], properties: [] },
       skipped,
       invalidReason: "nothing to register: no new accepted candidates (all already registered or none present)",
+      chatbotContextLineage,
     };
   }
 
@@ -169,6 +194,7 @@ async function registerStep(
     skipped,
     commitResult,
     lint: lintFindingsForSession(session),
+    chatbotContextLineage,
   };
 }
 
@@ -257,7 +283,7 @@ export async function elevateOntologyFromSource(input: ElevateInput): Promise<El
   };
   writeFDEOntologyEngineeringSessionSnapshot(gradedSession);
 
-  const register = await registerStep(gradedSession, projectRoot);
+  const { chatbotContextLineage, ...register } = await registerStep(gradedSession, projectRoot, contractRef);
 
   return {
     phase: "elevated",
@@ -265,5 +291,6 @@ export async function elevateOntologyFromSource(input: ElevateInput): Promise<El
     lint,
     sic,
     register,
+    chatbotContextLineage,
   };
 }

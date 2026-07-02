@@ -16,6 +16,8 @@
  * @purpose @stable — AIPLogicFunction primitive (prim-logic-03, v1.0)
  */
 
+import type { PrimitiveSemantics, PrimitiveStatus, PrimitiveProvenance } from "./primitive-semantics";
+
 export type AIPLogicFunctionRid = string & { readonly __brand: "AIPLogicFunctionRid" };
 
 export const aipLogicFunctionRid = (s: string): AIPLogicFunctionRid => s as AIPLogicFunctionRid;
@@ -59,6 +61,35 @@ export interface AIPLogicFunctionDeclaration {
     readonly captureToolCalls?: boolean;
     readonly lineageRefsRequired?: boolean;
   };
+  /**
+   * Business-meaning payload preserved from the candidate this Function was
+   * elevated from (W2). FunctionCandidate.logicIntent -> semantics.
+   * businessMeaning; FunctionCandidate.evidenceRefs -> semantics.evidenceRefs.
+   */
+  readonly semantics?: PrimitiveSemantics;
+  /** Foundry-equivalent lifecycle status. Absent = "active". */
+  readonly status?: PrimitiveStatus;
+  /** Audit record of the candidate->registered elevation. */
+  readonly provenance?: PrimitiveProvenance;
+  /**
+   * AIP-Logic block model (DP-2), preserved from FunctionCandidate.evaluatorKind
+   * (W2 — least-lossy home decision: dedicated field alongside semantics/
+   * provenance rather than folding into the free-form `semantics.businessMeaning`
+   * string, since evaluatorKind is a closed literal union the registered
+   * declaration should keep machine-readable, not prose-flattened).
+   * `pure-evaluator` persists nothing; `routes-through-apply-action` writes
+   * back ONLY via an ActionType (never a side door).
+   */
+  readonly evaluatorKind?: "pure-evaluator" | "routes-through-apply-action";
+  /**
+   * Preserved from FunctionCandidate.invokingActorScopeRef (W2): a RoleRid (or
+   * unresolved candidateId ref) whose GOVERNANCE scope this function's tool
+   * calls inherit. Kept as a dedicated field (not folded into `semantics`) for
+   * the same machine-readability reason as `evaluatorKind` — governance
+   * tooling resolves this ref against ROLE_REGISTRY, which a free-form string
+   * blob would make brittle.
+   */
+  readonly invokingActorScopeRef?: string;
 }
 
 export class AIPLogicFunctionRegistry {

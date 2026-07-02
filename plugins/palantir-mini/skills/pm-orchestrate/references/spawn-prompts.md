@@ -8,11 +8,12 @@ Each agent gets exclusive file ownership to prevent conflicts.
 ## Core Principle
 
 Every spawn prompt MUST include:
-1. **EXCLUSIVE ownership declaration** — "You are editing {FILE}. No other agent will touch it."
-2. **Context from DECIDE phase** — what the user chose to delete/keep/modify
-3. **Specific changes** — not vague instructions, but exact entity/function names
-4. **Explicit KEEP list** — what NOT to touch (prevents over-eager cleanup)
-5. **Verification command** — "After edits, verify with {VALIDATION_CMD}"
+1. **Reasoning-effort directive (mandatory first line)** — "[Operate at maximum reasoning effort — be thorough, verify your own work.]"
+2. **EXCLUSIVE ownership declaration** — "You are editing {FILE}. No other agent will touch it."
+3. **Context from DECIDE phase** — what the user chose to delete/keep/modify
+4. **Specific changes** — not vague instructions, but exact entity/function names
+5. **Explicit KEEP list** — what NOT to touch (prevents over-eager cleanup)
+6. **Verification command** — "After edits, verify with {VALIDATION_CMD}"
 
 ---
 
@@ -23,7 +24,9 @@ Agent({
   subagent_type: "implementer",
   name: "impl-{filename-without-ext}",
   run_in_background: true,
-  prompt: `You are editing {ABSOLUTE_FILE_PATH}. You have EXCLUSIVE ownership
+  prompt: `[Operate at maximum reasoning effort — be thorough, verify your own work.]
+
+You are editing {ABSOLUTE_FILE_PATH}. You have EXCLUSIVE ownership
 of this file — no other agent will touch it.
 
 ## Context
@@ -58,7 +61,9 @@ Agent({
   subagent_type: "implementer",
   name: "impl-{layer}-{filename}",
   run_in_background: true,
-  prompt: `You are editing {ABSOLUTE_FILE_PATH}. You have EXCLUSIVE ownership.
+  prompt: `[Operate at maximum reasoning effort — be thorough, verify your own work.]
+
+You are editing {ABSOLUTE_FILE_PATH}. You have EXCLUSIVE ownership.
 
 ## Context
 The ontology layer has been cleaned. These entities/mutations/queries no longer
@@ -93,7 +98,9 @@ Agent({
   subagent_type: "implementer",
   name: "impl-src-cleanup",
   run_in_background: true,
-  prompt: `You are cleaning up {SRC_DIRECTORY}/ to remove all references to
+  prompt: `[Operate at maximum reasoning effort — be thorough, verify your own work.]
+
+You are cleaning up {SRC_DIRECTORY}/ to remove all references to
 deleted features. The ontology and backend layers have already been cleaned.
 
 ## What Was Deleted

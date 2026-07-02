@@ -211,6 +211,14 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
   try {
     const enginePath = path.join(root, "second-brain", "scripts", "fold.ts");
     if (fs.existsSync(enginePath)) {
+      // MIGRATION (W3): fold forward any surviving legacy pending-fold.json queue file
+      // into manifest.json.foldedSessions BEFORE reading/writing pending state below.
+      // Idempotent — a no-op when the legacy file is absent or already migrated.
+      try {
+        const { migrateLegacyPendingFile } = await import("../lib/second-brain/pending-fold");
+        migrateLegacyPendingFile(root);
+      } catch { /* best-effort */ }
+
       const slug = path.resolve(root).split(path.sep).join("-");
       const projectsDir = path.join(os.homedir(), ".claude", "projects", slug);
       if (fs.existsSync(projectsDir)) {
@@ -225,14 +233,12 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
           }
         } catch { /* best-effort — treat as nothing folded */ }
 
-        // Back-fill: bookmark any unfolded transcript not already pending (covers
-        // crash-before-Stop). Deterministic — no engine, no LLM.
-        let alreadyPending: Record<string, PendingFoldEntry> = {};
-        try {
-          const { readPendingFold, pendingFoldPath } = await import("../lib/second-brain/pending-fold");
-          alreadyPending = readPendingFold(pendingFoldPath(root)).pending;
-        } catch { /* best-effort */ }
-
+        // Back-fill: bookmark any unfolded transcript with NO manifest.foldedSessions
+        // record at all (covers crash-before-Stop). Deterministic — no engine, no LLM.
+        // markPending() itself is idempotent + precedence-safe (never regresses an
+        // existing "pending"/"in-progress"/"governed-complete"/legacy record), so no
+        // separate "already pending" pre-check is needed here anymore (W3 single
+        // manifest authority collapses that into markPending's own precedence rule).
         const transcripts = fs
           .readdirSync(projectsDir)
           .filter((f) => f.endsWith(".jsonl"))
@@ -244,7 +250,6 @@ export default async function sessionStart(payload: unknown): Promise<HookResult
           .filter((t) => !isQueueOperationTranscript(t.file));
 
         for (const t of transcripts) {
-          if (t.sessionId in alreadyPending) continue;
           try {
             markPending(root, {
               sessionId:      t.sessionId,

@@ -31,6 +31,8 @@ import { checkWorkflowResponseTemplate } from "./pm-plugin-self-check/check-work
 import { checkDeletionReadiness } from "./pm-plugin-self-check/check-deletion-readiness";
 import { checkSchemasSnapshotManifest } from "./pm-plugin-self-check/check-schemas-snapshot-manifest";
 import { checkHookSeed } from "./pm-plugin-self-check/check-hook-seed";
+import { checkAgentModelPolicy } from "./pm-plugin-self-check/check-agent-model-policy";
+import { checkSemanticLoss } from "./pm-plugin-self-check/check-semantic-loss";
 import { DEPRECATION_MAP } from "./_deprecation-map";
 import { gitHeadSha as resolveGitHeadSha } from "../../lib/git/head-sha";
 import { auditSurfaceContracts } from "../../lib/surface/audit";
@@ -67,6 +69,8 @@ const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {
   "managed-settings": ["managed-settings"],
   "surface-contracts": ["surface-contracts"],
   "hook-seed": ["hook-seed"],
+  "agent-model-policy": ["agent-model-policy"],
+  "semantic-loss": ["semantic-loss"],
   release: [
     "schema-pin",
     "codegen-headers",
@@ -83,6 +87,8 @@ const CHECKS_BY_MODE: Record<PmPluginSelfCheckMode, readonly string[]> = {
     "deletion-readiness",
     "schemas-snapshot-manifest",
     "hook-seed",
+    "agent-model-policy",
+    "semantic-loss",
   ],
 };
 
@@ -104,6 +110,8 @@ const ALL_CHECKS = [
   "deletion-readiness",
   "schemas-snapshot-manifest",
   "hook-seed",
+  "agent-model-policy",
+  "semantic-loss",
 ] as const;
 
 function modeFromArgs(mode: PmPluginSelfCheckArgs["mode"]): PmPluginSelfCheckMode {
@@ -132,6 +140,8 @@ function statusFor(
     case "deletion-readiness": return result.deletionReadinessResult.status;
     case "schemas-snapshot-manifest": return result.schemasSnapshotManifestResult.status;
     case "hook-seed": return result.hookSeedResult.status;
+    case "agent-model-policy": return result.agentModelPolicyResult.status;
+    case "semantic-loss": return result.semanticLossResult.status;
     default: return "skipped";
   }
 }
@@ -181,6 +191,8 @@ export async function pmPluginSelfCheck(
   const deletionReadinessResult = checkDeletionReadiness();
   const schemasSnapshotManifestResult = checkSchemasSnapshotManifest();
   const hookSeedResult = checkHookSeed();
+  const agentModelPolicyResult = checkAgentModelPolicy();
+  const semanticLossResult = checkSemanticLoss();
 
   // In-band runtime-identity self-report (additive; always populated regardless
   // of mode). Answers "what pm version is running?" in ONE tool call.
@@ -218,6 +230,8 @@ export async function pmPluginSelfCheck(
       deletionReadinessResult,
       schemasSnapshotManifestResult,
       hookSeedResult,
+      agentModelPolicyResult,
+      semanticLossResult,
       overallStatus: "pass",
     }, check))
     .some((status) => status === "fail") ? "fail" : "pass";
@@ -251,6 +265,8 @@ export async function pmPluginSelfCheck(
     deletionReadinessResult,
     schemasSnapshotManifestResult,
     hookSeedResult,
+    agentModelPolicyResult,
+    semanticLossResult,
     overallStatus,
     removedToolAdvisories,
   };
@@ -262,7 +278,7 @@ export async function pmPluginSelfCheck(
     toolName: "pm_plugin_self_check",
     cwd: project,
     agentName: args.agentName,
-    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} skillToolDecls=${skillToolDeclarationsResult.status} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} workflowResponseTemplate=${workflowResponseTemplateResult.status} workflowFamilyReleaseGate=${workflowFamilyReleaseGateResult.status} workflowFamilyReleaseFindings=${workflowFamilyReleaseGateResult.findings.length} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} schemasSnapshotManifest=${schemasSnapshotManifestResult.status} hookSeed=${hookSeedResult.status} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length} runtimeVersion=${runtimeIdentity.version}`,
+    reasoning: `pm_plugin_self_check completed: mode=${mode} overall=${overallStatus} activeChecks=${activeChecks.join(",")} schemaPin=${schemaPinResult.status} ruleAudit=${ruleAuditResult.status} agents=${declaredAgentsResult.total} skills=${declaredSkillsResult.total} skillToolDecls=${skillToolDeclarationsResult.status} consumerPeerDep=${consumerPeerDepResult.status} mcp=${mcpToolsRegistrationResult.status} hooks=${hookRegistryResult.status} managedSettings=${managedSettingsResult.status} projectSkillOntology=${projectSkillOntologyResult.status} workflowResponseTemplate=${workflowResponseTemplateResult.status} workflowFamilyReleaseGate=${workflowFamilyReleaseGateResult.status} workflowFamilyReleaseFindings=${workflowFamilyReleaseGateResult.findings.length} surfaceContracts=${surfaceContractAuditResult.status} surfaceContractsMissing=${surfaceContractAuditResult.missingContractCount} schemasSnapshotManifest=${schemasSnapshotManifestResult.status} hookSeed=${hookSeedResult.status} agentModelPolicy=${agentModelPolicyResult.status} semanticLoss=${semanticLossResult.status} primitive-advisories=${primitiveSeedAdvisories.agents.filesystemOnly.length + primitiveSeedAdvisories.agents.seedOnly.length + primitiveSeedAdvisories.skills.filesystemOnly.length + primitiveSeedAdvisories.skills.seedOnly.length} runtimeVersion=${runtimeIdentity.version}`,
     hypothesis:
       "Substrate health aggregation provides a single-call readiness signal before Phase 2 migration steps execute.",
   });

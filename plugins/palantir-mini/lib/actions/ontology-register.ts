@@ -51,6 +51,14 @@ export interface ApplyRegisterLinkTypeParams {
   /** OE-11: endpoint cardinalities (first-class `Cardinality`), threaded into the edit so they survive into the FOLD-1 declaration. Optional + additive. */
   readonly srcCardinality?: "one" | "many";
   readonly dstCardinality?: "one" | "many";
+  /**
+   * W2 — elevation as status transition. `semantics.businessMeaning` closes the
+   * core lossy-copy bug (LinkTypeCandidate.businessMeaning was previously
+   * dropped). Optional + additive; legacy callers omit these.
+   */
+  readonly semantics?: { businessMeaning?: string; whyItMayMatter?: string; evidenceRefs?: readonly string[] };
+  readonly status?: "experimental" | "active" | "deprecated";
+  readonly provenance?: { candidateId?: string; sicRef?: string; promotedAt?: string; byWhom?: string };
 }
 
 export interface ApplyRegisterActionTypeParams {
@@ -105,6 +113,11 @@ export function applyRegisterLinkType(params: ApplyRegisterLinkTypeParams): Onto
       // (back-compatible — legacy callers omit them and the declaration stays cardinality-free).
       ...(params.srcCardinality !== undefined ? { srcCardinality: params.srcCardinality } : {}),
       ...(params.dstCardinality !== undefined ? { dstCardinality: params.dstCardinality } : {}),
+      // W2: semantics/status/provenance survive onto the native kind:"link" edit
+      // (present-only — legacy callers omit these and the edit stays byte-identical).
+      ...(params.semantics !== undefined ? { semantics: params.semantics } : {}),
+      ...(params.status !== undefined ? { status: params.status } : {}),
+      ...(params.provenance !== undefined ? { provenance: params.provenance } : {}),
     },
   ];
 }

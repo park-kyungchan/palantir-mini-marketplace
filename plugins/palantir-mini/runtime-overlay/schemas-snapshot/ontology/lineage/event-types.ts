@@ -35,7 +35,6 @@ export const EVENT_TYPE_NAMES = [
   "inbox_cleaned",
   "subagent_state_validation",
   "agent_frontmatter_validated",
-  "session_drift_check_completed",
   "impact_graph_initialized",
   "auto_spawn_requested",
   "skill_started",
@@ -43,20 +42,9 @@ export const EVENT_TYPE_NAMES = [
   "learning_captured",
   "retro_emitted",
   "plan_reviewed",
-  "ontology_registered",
-  "capability_token_issued",
-  "schema_locked",
   "scenario_created",
-  "pr_body_generated",
-  "session_complete",
   "doc_drift_detected",
-  "refinement_proposed",
-  "review_decision",
-  "impact_edge_registered",
-  "outcome_evaluated",
-  "edits_computed_dry_run",
   "session_resumed",
-  "semantic_frontmatter_validated",
   "research_library_refreshed",
   "research_library_pruned",
   "claude_code_version_checked",
@@ -68,7 +56,6 @@ export const EVENT_TYPE_NAMES = [
   "semantic_manifest_refreshed",
   "semantic_change_plan_emitted",
   "semantic_drift_audited",
-  "diff_semantic_impact_computed",
   // v1.14 harness events (6) — Prithvi Rajasekaran 3-agent harness lifecycle
   "harness_agent_spawned",
   "sprint_contract_negotiated",
@@ -79,11 +66,6 @@ export const EVENT_TYPE_NAMES = [
   // v1.15 — D4 fix: split feedback_loop close from open for cleaner Decision Lineage
   "feedback_loop_closed",
   // v1.16 retire/deprecate/ultrareview lifecycle events — palantir-mini v2.1.0 tombstone substrate
-  "skill_retired",
-  "agent_retired",
-  "primitive_deprecated",
-  "pedagogy_contract_resolved",
-  "ultrareview_completed",
   // v1.23 W1 + W2 — Planner output meta-rubric + Evaluator strictness probe (palantir-mini v2.18.0 bundle)
   "planner_output_graded",
   "evaluator_strictness_probe",
@@ -109,6 +91,25 @@ export const EVENT_TYPE_NAMES = [
   "memory_fold_committed",
   // 7.36.0 — P3 Lead-decision governed-emit (Path-B); clean separation from fold output.
   "lead_decision",
+  // Sprint-cartography W1 — vocabulary/union drift closure: 14 typed EventEnvelope
+  // variants existed in lib/event-log/types.ts with real emit sites but had never been
+  // added to this canonical vocabulary list. Promoted here to close the reverse-direction
+  // drift gap found by the bidirectional compile-time assertion in
+  // lib/event-log/vocabulary-assertions.ts.
+  "dtc_fill_turn_advanced",
+  "digital_twin_contract_finalized",
+  "dtc_grading_completed",
+  "dtc_grader_runtime_gap",
+  "dtc_eval_refs_bypass_invoked",
+  "source_mutation_approval_granted",
+  "source_mutation_approval_denied",
+  "drift_rebind_envelope_advanced",
+  "workflow_trace_opened",
+  "workflow_trace_transitioned",
+  "workflow_trace_closed",
+  "workflow_trace_leak_detected",
+  "pre_mutation_governance_decided",
+  "skill_invocation_suggested",
 ] as const;
 
 export type EventTypeName = typeof EVENT_TYPE_NAMES[number];
@@ -246,11 +247,6 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
     description: "Agent frontmatter validation scanned agent files and recorded conformance counts.",
     primaryDomain: "logic",
   },
-  session_drift_check_completed: {
-    name: "session_drift_check_completed",
-    description: "A session-start drift check completed and recorded a lightweight status signal.",
-    primaryDomain: "learn",
-  },
   impact_graph_initialized: {
     name: "impact_graph_initialized",
     description: "The impact graph substrate was initialized for a project root and backing database path.",
@@ -286,34 +282,9 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
     description: "A plan artifact was reviewed by a reviewer agent and approved or rejected.",
     primaryDomain: "learn",
   },
-  ontology_registered: {
-    name: "ontology_registered",
-    description: "A new primitive or ontology declaration was registered via pm-ontology-register.",
-    primaryDomain: "action",
-  },
-  capability_token_issued: {
-    name: "capability_token_issued",
-    description: "A CapabilityToken was issued to a holder for a scoped set of operations.",
-    primaryDomain: "security",
-  },
-  schema_locked: {
-    name: "schema_locked",
-    description: "The schema surface was locked for a release; no further structural edits permitted until unlock.",
-    primaryDomain: "action",
-  },
   scenario_created: {
     name: "scenario_created",
     description: "A ScenarioSandbox was spawned for isolated what-if analysis.",
-    primaryDomain: "learn",
-  },
-  pr_body_generated: {
-    name: "pr_body_generated",
-    description: "A pull request body was generated from events.jsonl lineage by the /ship skill.",
-    primaryDomain: "action",
-  },
-  session_complete: {
-    name: "session_complete",
-    description: "A session was formally completed via /ship; emitted after PR merge or explicit completion signal.",
     primaryDomain: "learn",
   },
   doc_drift_detected: {
@@ -321,40 +292,10 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
     description: "detect-doc-drift found a stale reference (missing file, wrong version, dead symbol) in a tracked document.",
     primaryDomain: "learn",
   },
-  refinement_proposed: {
-    name: "refinement_proposed",
-    description: "BackwardProp closed a loop — runtime evidence produced a proposed refinement to ontology or validation.",
-    primaryDomain: "learn",
-  },
-  review_decision: {
-    name: "review_decision",
-    description: "An ontologist accepted, rejected, or deferred a proposed refinement.",
-    primaryDomain: "learn",
-  },
-  impact_edge_registered: {
-    name: "impact_edge_registered",
-    description: "A new ImpactEdge was added to the Context Engineering graph substrate.",
-    primaryDomain: "learn",
-  },
-  outcome_evaluated: {
-    name: "outcome_evaluated",
-    description: "Outcomes-grader returned a rubric verdict (satisfied / needs_revision) for an agent pipeline work slice. Local mirror of Anthropic Managed Agents define_outcome.",
-    primaryDomain: "learn",
-  },
-  edits_computed_dry_run: {
-    name: "edits_computed_dry_run",
-    description: "An edit function computed OntologyEdit[] via compute_edits_dry_run MCP without committing. Tier-2 compute-only path.",
-    primaryDomain: "logic",
-  },
   session_resumed: {
     name: "session_resumed",
     description: "A session was resumed from an events.jsonl checkpoint (last_session_rid + last_sequence restored). Local mirror of Managed Agents durable Session resume.",
     primaryDomain: "learn",
-  },
-  semantic_frontmatter_validated: {
-    name: "semantic_frontmatter_validated",
-    description: "PreToolUse/PostToolUse hook validated a hand-written ontology/primitives/contracts/codegen file for semantic frontmatter (owner+purpose).",
-    primaryDomain: "logic",
   },
   research_library_refreshed: {
     name: "research_library_refreshed",
@@ -411,11 +352,6 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
     description: "semantic_drift_audit MCP handler returned a graph-integrity audit. Payload: audited RID count, remediation hint count, orthogonal to runtime gate_on_drift.",
     primaryDomain: "learn",
   },
-  diff_semantic_impact_computed: {
-    name: "diff_semantic_impact_computed",
-    description: "diff_semantic_impact MCP handler returned semantic superset of pre_sprint_diff. Payload includes affected semantic RID count + affected verification surfaces (tests, evals, docs, monitoring).",
-    primaryDomain: "learn",
-  },
   // v1.14 harness lifecycle events — Prithvi Rajasekaran 3-agent harness
   harness_agent_spawned: {
     name: "harness_agent_spawned",
@@ -454,31 +390,6 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
     primaryDomain: "logic",
   },
   // v1.16 retire/deprecate/ultrareview lifecycle — palantir-mini v2.1.0 substrate
-  skill_retired: {
-    name: "skill_retired",
-    description: "A palantir-mini plugin skill (commands/*.md) was moved to commands/.disabled/ as a tombstone. Payload captures skill id, rationale (evidence: 30d invocation count), and substitute. Decision Lineage preserved for BackwardProp replay of why a skill was removed.",
-    primaryDomain: "learn",
-  },
-  agent_retired: {
-    name: "agent_retired",
-    description: "A palantir-mini plugin agent (agents/*.md) was moved to agents/.disabled/ as a tombstone. Payload captures agent name, rationale (evidence: 30d spawn count), and substitute (Lead-direct / sibling agent / retired-entirely). Pairs with skill_retired for plugin-slimdown PRs.",
-    primaryDomain: "learn",
-  },
-  primitive_deprecated: {
-    name: "primitive_deprecated",
-    description: "An ontology primitive, MCP handler, or plugin surface was deprecated — either via .disabled/ tombstone or @deprecated JSDoc marker. Payload captures primitive id, deprecation mode (tombstone / jsdoc), removal window (e.g. next MINOR bump), and rationale. Consumer migration guidance recorded in CHANGELOG.",
-    primaryDomain: "learn",
-  },
-  pedagogy_contract_resolved: {
-    name: "pedagogy_contract_resolved",
-    description: "A PedagogyContract (v1.15 primitive) finished plug-in resolution — primary pedagogy applied first, supporting pedagogies in array order, each a pure (SceneTree, PedagogyParams) → SceneTree transform. Payload captures conceptId, bloomTarget resolved, final SceneTree hash, and any CognitiveLoadConstraint warnings. Enables BackwardProp replay of contract resolution decisions.",
-    primaryDomain: "learn",
-  },
-  ultrareview_completed: {
-    name: "ultrareview_completed",
-    description: "pm-ultrareview skill finished N parallel `claude -p` reviews of a target artifact (PR diff / file / branch). Payload captures N (reviewer count), per-review weighted scores, final consensus verdict, and per-reviewer rationale summaries. Fills the Decision Lineage gap in Anthropic's native /ultrareview command (which is session-scoped only).",
-    primaryDomain: "learn",
-  },
   // v1.23 — W1 Planner output meta-rubric (palantir-mini v2.18.0)
   planner_output_graded: {
     name: "planner_output_graded",
@@ -558,7 +469,7 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
   },
   memory_fold_committed: {
     name: "memory_fold_committed",
-    description: "The session-end memory fold committed a derived Layer-2 graph.json projection (node/edge counts) for a session. Advisory, non-gating; emitted via the gated emit_event MCP path (rule 27). Payload: { graphPath, nodeCount, edgeCount, sessionId }.",
+    description: "The session-end memory fold committed a derived Layer-2 graph.json projection (node/edge counts) for a session. Advisory, non-gating; emitted via the gated emit_event MCP path (rule 27). Payload: { graphPath, nodeCount, edgeCount, sessionId, fromStatus?, toStatus?, totalBatches?, foldedAt?, byWhom?, engineVersion? } — the fromStatus/toStatus/totalBatches/foldedAt/byWhom/engineVersion fields are W3 additive audit fields carrying the manifest.json.foldedSessions status transition + completing identity; all optional, back-compat with pre-W3 rows.",
     primaryDomain: "learn",
   },
   // 7.36.0 — P3 Lead-decision governed-emit (Path-B). A Lead orchestration
@@ -570,6 +481,78 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
   lead_decision: {
     name: "lead_decision",
     description: "A Lead orchestration decision (e.g. delegate to a subagent / pick an approach / refine a hypothesis) recorded as a governed Layer-1 audit event via the in-process Path-B emit() (the MCP emit_event tool is hidden under the altitude-2 profile). Carries withWhat.reasoning + withWhat.refinementTarget + memoryLayers so it grades ≥T2 (T3 with refinementTarget), and surfaces NEXT session via the a2-prior fold-verdict BY-TYPE branch. Payload: { decision }.",
+    primaryDomain: "learn",
+  },
+  // Sprint-cartography W1 — vocabulary/union drift closure (14 typed variants promoted
+  // from lib/event-log/types.ts; see EVENT_TYPE_NAMES tail comment above).
+  dtc_fill_turn_advanced: {
+    name: "dtc_fill_turn_advanced",
+    description: "Sprint 97 W1 DTC governance — a Digital Twin Contract fill turn advanced (dtcStep + advancedField). Payload: { dtcStep, advancedField, capturedRefs?, promptId? }.",
+    primaryDomain: "logic",
+  },
+  digital_twin_contract_finalized: {
+    name: "digital_twin_contract_finalized",
+    description: "Sprint 97 W1 DTC governance — a Digital Twin Contract reached a terminal T6 verdict (dtc-filled / dtc-rejected / dtc-aborted). Payload: { dtcRef, verdict, fillTurnCount, sessionId? }.",
+    primaryDomain: "action",
+  },
+  dtc_grading_completed: {
+    name: "dtc_grading_completed",
+    description: "Sprint 97 W1 DTC governance — a DTC finished rubric grading with an overall pass/fail/partial verdict and score. Payload: { dtcRef, verdict, score, criteriaCount, sprintRef? }.",
+    primaryDomain: "learn",
+  },
+  dtc_grader_runtime_gap: {
+    name: "dtc_grader_runtime_gap",
+    description: "Sprint 97 W1 DTC governance — a DTC grader criterion could not be dispatched under the current runtime (e.g. Codex cannot dispatch model/simulator criteria) and was skipped or fell back. Payload: { criterionId?, skippedCriteria?, runtime, reason?, fallback?, rubricId?, projectPath?, promptId?, sessionId? }.",
+    primaryDomain: "learn",
+  },
+  dtc_eval_refs_bypass_invoked: {
+    name: "dtc_eval_refs_bypass_invoked",
+    description: "Sprint 97 W1 DTC governance — an eval-refs bypass envvar was invoked to skip DTC evaluation reference checks. Audit precedent for the fast-path grant/denial pair below. Payload: { bypassEnvVar, context, bypassedRefs? }.",
+    primaryDomain: "security",
+  },
+  source_mutation_approval_granted: {
+    name: "source_mutation_approval_granted",
+    description: "Improvement #2 — a minted, LLM-unforgeable user-approval fast-path GRANT (identity=\"user\") authorizing a scoped, single-use, short-TTL source edit in lieu of the SIC/DTC ceremony. Payload: { approvalRef, approvedSourcePaths, promptId, promptHash, userQuoteHash, runtime? }.",
+    primaryDomain: "security",
+  },
+  source_mutation_approval_denied: {
+    name: "source_mutation_approval_denied",
+    description: "Improvement #2 — the fast-path approval verification failed at mint-time (no record written to the approval ledger; only this denial audit event is recorded). Payload: { invalidReason, promptId?, approvedSourcePaths? }.",
+    primaryDomain: "security",
+  },
+  drift_rebind_envelope_advanced: {
+    name: "drift_rebind_envelope_advanced",
+    description: "7.23.0 — a persisted, minted, approved SIC + DTC pair was re-bound to the CURRENT prompt envelope (a legitimate RESUME copying the minted approvalRefs forward; never mints, never bypasses). Payload: { promptId, promptHash, semanticIntentContractRef, digitalTwinChangeContractRef, approvedSicContractId, runtime? }.",
+    primaryDomain: "security",
+  },
+  workflow_trace_opened: {
+    name: "workflow_trace_opened",
+    description: "PR-10 OntologyWorkflowTrace lifecycle — a workflow trace was opened for a mode. Payload: { traceId, mode, refs }.",
+    primaryDomain: "learn",
+  },
+  workflow_trace_transitioned: {
+    name: "workflow_trace_transitioned",
+    description: "PR-10 OntologyWorkflowTrace lifecycle — a workflow trace transitioned between modes. Payload: { traceId, fromMode, toMode, refs }.",
+    primaryDomain: "learn",
+  },
+  workflow_trace_closed: {
+    name: "workflow_trace_closed",
+    description: "PR-10 OntologyWorkflowTrace lifecycle — a workflow trace closed with a terminal outcome (passed/failed/aborted). Payload: { traceId, mode, outcome, refs }.",
+    primaryDomain: "learn",
+  },
+  workflow_trace_leak_detected: {
+    name: "workflow_trace_leak_detected",
+    description: "PR-10 OntologyWorkflowTrace lifecycle — a workflow trace was detected as leaked (stale, past its expected close). Payload: { traceId, mode, lastEvent, updatedAt, ageMs }.",
+    primaryDomain: "learn",
+  },
+  pre_mutation_governance_decided: {
+    name: "pre_mutation_governance_decided",
+    description: "PR-11 PreMutationGovernance policy compiler — a mutation-gating decision was recorded (allowed/denied + rule applied + refs). Payload: { decisionId, toolName, targetFiles, allowed, reason, ruleApplied, refs }.",
+    primaryDomain: "security",
+  },
+  skill_invocation_suggested: {
+    name: "skill_invocation_suggested",
+    description: "v1.36 / sprint-025 / W1.8 — a hook emitted a persisted advisory recommending a /palantir-mini:pm-* skill invocation. Payload: { suggestedSkillSlug, suggestedByHook, triggerCondition, suggestionContext? }.",
     primaryDomain: "learn",
   },
 });

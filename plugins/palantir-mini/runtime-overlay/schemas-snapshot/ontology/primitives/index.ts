@@ -498,3 +498,27 @@ export { FDE_PANEL_SCHEMA_VERSION } from "./fde-panel";
 // Import via shared-core; never import this path directly from consumer
 // projects (rule 08 authority chain).
 export * from "./event-envelope";
+
+// --- v1.85 PrimitiveSemantics/PrimitiveStatus/PrimitiveProvenance (W2 —
+//     candidate->registered elevation lossy-copy closure) ---
+// Shared, optional, additive fields attached to ObjectTypeDeclaration,
+// LinkTypeDeclaration, ActionTypeDeclaration, AIPLogicFunctionDeclaration
+// (Function), and RoleDeclaration: `semantics?: PrimitiveSemantics`,
+// `status?: PrimitiveStatus` (absent = "active"), `provenance?:
+// PrimitiveProvenance`. Closes the gap where the ontology-engineering-
+// workflow elevation pipeline (register-accepted.ts) dropped candidate
+// business-meaning fields (whyItMayMatter/businessMeaning/operationalIntent/
+// evidenceRefs/evaluatorKind/invokingActorScopeRef) on candidate->registered
+// promotion. Import via shared-core; never import this path directly from
+// consumer projects (rule 08 authority chain).
+export * from "./primitive-semantics";
+
+// --- v1.87.0 SecondBrainGraph primitive (W3 — second-brain lane redesign) ---
+// Governed NDJSON verdict batch/summary interchange contract the plugin
+// actually consumes from the out-of-repo fold engine (second-brain/scripts/
+// fold.ts lives in the CONSUMER project). graph.json's own node/edge content
+// shape stays out-of-repo/non-governing (see file header §SCOPE DECISION); a
+// best-effort SecondBrainGraphEnvelope type is included for documentation only.
+// Backs palantir-mini lib/second-brain/graph-contract.ts's runtime validators,
+// wired into foldedsessions-emit-cli.ts's validate-before-commit gate.
+export * from "./second-brain-graph";

@@ -15,7 +15,7 @@ description: >
   HIDDEN under the live altitude-2 MCP profile, so the governed emit routes through
   the in-process CLI instead, which is not subject to the MCP profile.)
 tools: Bash, Read
-model: inherit
+model: sonnet
 maxTurns: 6
 memory: user
 memoryLayers: ["semantic", "episodic"]
@@ -23,6 +23,8 @@ outputContractExempt:
   reason: "Model-driven fold dispatcher. It launches the project-owned engine (which owns graph.json + bumps its own marker side) and emits governed lineage via pm's in-process Path-B emit CLI (foldedsessions-emit-cli, the MCP emit_event tool being hidden under the live altitude-2 profile) + advances the governed marker via the bump-CLI; it does not author ontology files itself. Returns a bounded counts-only summary."
 ---
 # second-brain-fold — engine PRINTS, agent GOVERNS (locus shift + streaming)
+
+Model policy: this agent runs on Sonnet at maximum reasoning effort. Think thoroughly before acting.
 
 You fold ONE session transcript into this project's second-brain knowledge graph,
 then emit the resulting governed lineage events AND advance the governed side of the
@@ -108,75 +110,104 @@ and report `0` emitted.
 
 Each `EmitObj` is `{ type, payload, memoryLayers, hypothesis, refinementTarget }`.
 
-### Step 2 — STREAM + EMIT-then-BUMP, per batch (W2)
+### Step 2 — STREAM + VALIDATE-then-EMIT-then-BUMP, per batch (W2, contract-gated per W3)
 
 Parse stdout **line by line**. For each `{"kind":"batch","batchIndex":k,...}` line:
 
-1. For EACH verdict in `verdicts`, run the emit-CLI — pass the verdict EmitObj
-   **VERBATIM** as the 3rd arg (the engine already printed it as
-   `{ type, payload, memoryLayers, hypothesis, refinementTarget }`; the CLI maps the
-   engine's `hypothesis` to `withWhat.reasoning` + `withWhat.hypothesis`, forwards
-   `memoryLayers` EXPLICITLY, and passes `refinementTarget` through):
+1. Run the emit-CLI's **`batch`** subcommand, passing the WHOLE batch line
+   **VERBATIM** as the 4th arg:
 
    ```
-   bun run "$EMIT_CLI" <projectRoot> <sessionId> '<verdict-json>'
+   bun run "$EMIT_CLI" batch <projectRoot> <sessionId> '<batch-line-json>'
    ```
 
-   `<verdict-json>` is the verbatim JSON of that one verdict EmitObj. The CLI builds
-   the full 5-dim envelope via pm's in-process `emit()` (REAL runtime identity,
-   `toolName="mcp__emit_event"` for parity, auto-graded per rule 26) and appends it
-   atomically. Do NOT reshape the payload or the event type. It exits 0 on success;
-   a non-zero exit means the emit FAILED — do NOT bump that batch (see ordering below).
-   (A batch with an empty `verdicts` array emits nothing but STILL gets bumped — its
-   batchIndex still advanced the persist cadence.)
+   The CLI validates the ENTIRE batch (every verdict's shape + payload) against the
+   governed contract (`lib/second-brain/graph-contract.ts`) BEFORE emitting anything.
+   An invalid batch is rejected — exit 2, actionable stderr naming the offending
+   field/expected/found/batchIndex — with **ZERO** verdicts emitted for it
+   (all-or-nothing per batch). Do NOT bump that batch on a non-zero exit; treat it
+   like any other emit failure (see ordering below) — do not attempt to patch/reshape
+   the batch yourself, surface the rejection in your bounded summary.
 
-2. AFTER all of that batch's emit-CLI calls SUCCEED (exit 0), bump the governed
-   marker for that **explicit** batchIndex:
+   On success the CLI emits every verdict in order (mapping the engine's `hypothesis`
+   to `withWhat.reasoning` + `withWhat.hypothesis`, forwarding `memoryLayers`
+   EXPLICITLY, passing `refinementTarget` through — same 5-dim parity as before) and
+   prints `{emitted:true, count, sequences:[...]}`. (A batch with an empty `verdicts`
+   array validates trivially and emits nothing but STILL gets bumped — its batchIndex
+   still advanced the persist cadence.)
+
+2. AFTER the batch's emit-CLI call SUCCEEDS (exit 0), bump the governed marker for
+   that **explicit** batchIndex, passing your resolved runtime identity as the 4th
+   `byWhom` arg (harmless on a non-flipping bump; stamped on the manifest marker ONLY
+   when this bump performs the in-progress → governed-complete flip):
 
    ```
-   bun run "$BUMP_CLI" bump <projectRoot> <sessionId> <batchIndex>
+   bun run "$BUMP_CLI" bump <projectRoot> <sessionId> <batchIndex> <byWhom>
    ```
 
    The explicit `<batchIndex>` makes the bump an idempotent SET
    (`governedBatches = max(cur, batchIndex+1)`) — resume-safe: re-bumping an
-   already-governed batch is a no-op.
+   already-governed batch is a no-op. `<byWhom>` is your resolved runtime identity
+   (the SAME value the emit-CLI self-resolves from `PALANTIR_MINI_HOST_RUNTIME`, e.g.
+   `"claude-code"`).
 
-**Emit-THEN-bump ordering is LOAD-BEARING.** The marker advances `governedBatches`
-ONLY after that batch's governed writes land (every emit-CLI call exited 0). So a
-mid-batch death leaves `governedBatches` BEHIND `graphBatchesPersisted` → the session
-stays `in-progress` → `listPending` keeps it queued → the next SessionStart RESUMES
-it (surfacing only batches `> governedBatches`). Never bump before the emits succeed.
+**Validate-THEN-emit-THEN-bump ordering is LOAD-BEARING.** The marker advances
+`governedBatches` ONLY after that batch's governed writes land (the emit-CLI call
+exited 0 — which itself only happens after the WHOLE batch passed contract
+validation). So a rejected or mid-batch-failed batch leaves `governedBatches` BEHIND
+`graphBatchesPersisted` → the session stays `in-progress` → `listPending` keeps it
+queued → the next SessionStart RESUMES it (surfacing only batches `> governedBatches`).
+Never bump before the emit succeeds; never let a validation failure corrupt an
+already-committed prior batch (each batch's validate+emit+bump is independent).
 
-### Step 3 — SUMMARY emit (W2)
+### Step 3 — SUMMARY validate-then-emit (W2, contract-gated + audit-stamped per W3)
 
-On the terminal `{"kind":"summary","summary":...,"totalBatches":n}` line, emit the
-`memory_fold_committed` event the same way — pass the summary EmitObj verbatim as the
-emit-CLI's 3rd arg (the CLI maps `reasoning = summary.hypothesis` and forwards
-`memoryLayers` + `refinementTarget`):
+On the terminal `{"kind":"summary","summary":...,"totalBatches":n}` line, run the
+emit-CLI's **`summary`** subcommand, passing the WHOLE summary line verbatim as the
+4th arg, plus your resolved identity + the transition you observed from the LAST
+batch's bump result as trailing args:
 
 ```
-bun run "$EMIT_CLI" <projectRoot> <sessionId> '<summary-json>'
+bun run "$EMIT_CLI" summary <projectRoot> <sessionId> '<summary-line-json>' <byWhom> in-progress governed-complete <foldedAt>
 ```
+
+The CLI validates the summary line against the governed contract FIRST (same
+all-or-nothing guarantee: a rejection emits nothing) — then, for a
+`memory_fold_committed` summary, ADDITIVELY enriches its payload with the W3 audit
+fields (`byWhom`, `fromStatus`, `toStatus`, `totalBatches`, `foldedAt` — none of the
+engine's original 4 payload fields are removed/renamed) before emitting via the same
+5-dim path as every other verdict. `<foldedAt>` is the `foldedAt` timestamp the LAST
+batch's bump-CLI call returned in its JSON `transition.foldedAt` field (omit the
+trailing args if you did not capture a transition — the summary still emits, just
+without the audit enrichment).
 
 You do NOT flip `status` yourself. The bump-CLI auto-flips
-`status → "governed-complete"` (and stamps `foldedAt`) on the LAST batch's bump,
-when `governedBatches === graphBatchesPersisted === totalBatches`. The summary's
+`status → "governed-complete"` (and stamps `foldedAt` + `byWhom`, atomically, in the
+SAME manifest write as the flip) on the LAST batch's bump, when
+`governedBatches === graphBatchesPersisted === totalBatches`. The summary's
 `totalBatches` lets you confirm you bumped every batch (`0..totalBatches-1`).
 
 ### Step 4 — CLEAR the pending bookmark
 
-The engine wrote the authoritative completion state in the manifest marker; this
-only clears the separate "needs attention" queue so the next SessionStart stops
-re-detecting a now-governed session. Best-effort (the CLI always exits 0):
+W3: `manifest.json.foldedSessions` is the SOLE persisted fold-state store (there is
+no separate pending-fold.json anymore). The bump-CLI's governed-complete flip in
+Step 2/3 already overwrote this session's record's `status` away from `"pending"`,
+so `clearPending` is normally a no-op by the time you reach this step — it exists as
+a defensive final call for the case where the fold produced ZERO batches (a
+governed-complete session that printed nothing at Step 1; see Constraints below),
+which never flips anything and would otherwise leave a stale `"pending"` record
+sitting in the manifest. Best-effort (the CLI always exits 0):
 
 ```
 bun run "$CLI" clear <projectRoot> <sessionId>
 ```
 
-If the clear fails, do NOT retry — the next SessionStart re-detects via
-`listPending`, which excludes a `governed-complete` session, so a left-behind
-bookmark for a fully-governed session is harmless (and an `in-progress` one
-SHOULD stay, to resume).
+`clearPending` only removes a record whose `status === "pending"` — it NEVER touches
+an `"in-progress"` or `"governed-complete"` record, so calling it here is always safe
+regardless of what Step 2/3 already did. If the clear fails, do NOT retry — the next
+SessionStart re-detects via `listPending`, which only lists `status:"pending"`
+records, so a left-behind bookmark for a fully-governed session is harmless (and an
+`in-progress` one SHOULD stay, to resume).
 
 ### Step 5 — Return a bounded summary
 

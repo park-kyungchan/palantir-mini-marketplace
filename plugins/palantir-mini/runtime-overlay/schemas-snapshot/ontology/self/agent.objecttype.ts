@@ -77,16 +77,16 @@ export interface AgentInstance {
  * governed lineage events; no `disallowedTools` forbid Write/Edit/NotebookEdit).
  */
 export const AGENT_INSTANCES: readonly AgentInstance[] = [
-  { agentId: "docs-researcher", tier: "opus", mutationCapability: "mutating" },
+  { agentId: "docs-researcher", tier: "sonnet", mutationCapability: "mutating" },
   { agentId: "hook-builder", tier: "sonnet", mutationCapability: "mutating" },
   { agentId: "implementer", tier: "sonnet", mutationCapability: "mutating" },
-  { agentId: "ontology-steward", tier: "opus", mutationCapability: "mutating" },
+  { agentId: "ontology-steward", tier: "sonnet", mutationCapability: "mutating" },
   { agentId: "plugin-maintainer", tier: "sonnet", mutationCapability: "mutating" },
   { agentId: "project-implementer", tier: "sonnet", mutationCapability: "mutating" },
   { agentId: "protocol-designer", tier: "sonnet", mutationCapability: "mutating" },
-  { agentId: "researcher", tier: "opus", mutationCapability: "read-only" },
-  { agentId: "second-brain-fold", tier: "inherit", mutationCapability: "mutating" },
-  { agentId: "verifier", tier: "opus", mutationCapability: "read-only" },
+  { agentId: "researcher", tier: "sonnet", mutationCapability: "read-only" },
+  { agentId: "second-brain-fold", tier: "sonnet", mutationCapability: "mutating" },
+  { agentId: "verifier", tier: "sonnet", mutationCapability: "read-only" },
 ];
 
 // Register the Agent ObjectType (the type). The 10 instances above are data the
