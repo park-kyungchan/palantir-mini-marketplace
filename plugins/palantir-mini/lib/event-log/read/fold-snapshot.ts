@@ -262,6 +262,12 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
       case "memory_fold_committed":             snapshot.memory_fold_committed = (snapshot.memory_fold_committed ?? 0) + 1; break;
       // 7.36.0 — P3 Lead-decision governed-emit (Path-B)
       case "lead_decision":                     snapshot.lead_decision = (snapshot.lead_decision ?? 0) + 1; break;
+      // Sprint-cartography W1 — vocabulary/union drift closure
+      case "doc_drift_detected":                snapshot.doc_drift_detected = (snapshot.doc_drift_detected ?? 0) + 1; break;
+      case "semantic_manifest_refreshed":       snapshot.semantic_manifest_refreshed = (snapshot.semantic_manifest_refreshed ?? 0) + 1; break;
+      case "semantic_drift_audited":            snapshot.semantic_drift_audited = (snapshot.semantic_drift_audited ?? 0) + 1; break;
+      case "semantic_change_plan_emitted":      snapshot.semantic_change_plan_emitted = (snapshot.semantic_change_plan_emitted ?? 0) + 1; break;
+      case "session_resumed":                   snapshot.session_resumed = (snapshot.session_resumed ?? 0) + 1; break;
       default: {
         const _exhaustive: never = ev;
         void _exhaustive;

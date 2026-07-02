@@ -2617,8 +2617,7 @@ export async function semanticIntentGate(
               // Non-fatal — emit dtc_grader_runtime_gap
               try {
                 await emit({
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  type: "dtc_grader_runtime_gap" as any,
+                  type: "dtc_grader_runtime_gap",
                   payload: {
                     runtime: input.runtime ?? "unknown",
                     skippedCriteria: [],
@@ -2626,8 +2625,8 @@ export async function semanticIntentGate(
                     projectPath: input.project,
                     promptId: input.promptId,
                     sessionId: input.sessionId,
-                    errorMessage: gradeErr instanceof Error ? gradeErr.message : String(gradeErr),
-                  } as Record<string, unknown>,
+                    reason: gradeErr instanceof Error ? gradeErr.message : String(gradeErr),
+                  },
                   toolName: "pm_semantic_intent_gate",
                   cwd: input.project,
                   reasoning:

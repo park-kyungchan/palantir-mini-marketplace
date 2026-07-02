@@ -113,12 +113,10 @@ export async function writeManifest(
   // doesn't exist yet (fresh project) — rule 10 append-only invariant preserved.
   try {
     const { emit } = await import("../../scripts/log");
-    // semantic_manifest_refreshed is a Wave 2 event type pending registration
-    // in lib/event-log/types.ts (lib/** is read-only for hook-builder; types.ts
-    // owner must add the variant). Cast to `any` to unblock the emit — the
-    // try/catch ensures this is non-fatal if the substrate rejects it.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (emit as any)({
+    // semantic_manifest_refreshed is a typed EventEnvelope variant (Sprint-cartography
+    // W1 vocabulary/union drift closure) — no cast needed. try/catch below ensures the
+    // emit stays non-fatal if the substrate rejects it (e.g. fresh project).
+    await emit({
       type: "semantic_manifest_refreshed",
       payload: {
         projectRoot,

@@ -148,7 +148,9 @@ export async function sessionResume(
   const emit_resume_event = args.emit_resume_event ?? false;
 
   if (emit_resume_event) {
-    const envelope = {
+    // session_resumed is a typed EventEnvelope variant (Sprint-cartography W1
+    // vocabulary/union drift closure) — no cast needed for the envelope shape.
+    const envelope: Omit<EventEnvelope, "sequence"> = {
       eventId: uniqueEventId() as unknown as EventId,
       when: new Date().toISOString(),
       atopWhich: gitHeadSha(args.project) as unknown as CommitSha,
@@ -165,7 +167,7 @@ export async function sessionResume(
         active_teammates: state.active_teammates,
         pending_task_count: state.pending_tasks.length,
       },
-    } as unknown as Omit<EventEnvelope, "sequence">;
+    };
 
     await appendEventAtomic(eventsPath, envelope);
   }

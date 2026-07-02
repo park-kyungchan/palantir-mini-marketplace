@@ -6,7 +6,8 @@
  *
  * Wave 3 W3.5. Orthogonal to gate_on_drift (which runs scripts).
  * This handler runs all 4 producers in Promise.all, derives alignment signals,
- * and emits semantic_drift_audited (Wave 3 event — `as any` per W2.10 precedent).
+ * and emits semantic_drift_audited (typed EventEnvelope variant — Sprint-cartography
+ * W1 vocabulary/union drift closure).
  */
 // Domain: LEARN | Authority: plan §Wave 3 · W3.5
 
@@ -159,7 +160,7 @@ export default async function semanticDriftAudit(
     auditedAt,
   };
 
-  // Emit event (non-fatal) — Wave 3 event type, `as any` per W2.10 precedent.
+  // Emit event (non-fatal) — typed EventEnvelope variant, no cast needed.
   try {
     await emit({
       type: "semantic_drift_audited",
@@ -177,7 +178,7 @@ export default async function semanticDriftAudit(
       reasoning: overallAligned
         ? `Semantic drift audit passed: ${findings.length} finding(s), no critical issues.`
         : `Semantic drift audit found critical issues: ${findings.filter((f) => f.severity === "critical").map((f) => f.message).join("; ")}`,
-    } as any); // Wave 3 event discriminator — schemas/ontology/lineage/event-types.ts extension deferred.
+    });
   } catch { /* non-fatal */ }
 
   return result;

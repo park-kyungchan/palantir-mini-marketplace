@@ -1235,6 +1235,96 @@ export type LeadDecisionEnvelope = EventEnvelopeBase & {
   };
 };
 
+// ─── Sprint-cartography W1 — vocabulary/union drift closure ───────────────
+//
+// The following 5 variants had a canonical vocabulary entry
+// (schemas-snapshot's EVENT_TYPE_NAMES) but no typed EventEnvelope member —
+// real emit sites / test fixtures existed (see git history for the
+// audit), so they are promoted to first-class typed variants here rather
+// than left to `as any` drift. Payload shapes are derived from the actual
+// observed fields at each real call site, not invented.
+
+/**
+ * Emitted by `bridge/handlers/propagation-audit-backward.ts` /
+ * `propagation-chain-health.ts` violation-classification heuristics when a
+ * doc-drift signal is observed. Payload shape derived from the real fixture
+ * occurrences in `tests/handlers/propagation-audit-backward.test.ts` and
+ * `tests/handlers/propagation-chain-health.test.ts`.
+ */
+export type DocDriftDetectedEnvelope = EventEnvelopeBase & {
+  type: "doc_drift_detected";
+  payload: {
+    driftDetected: boolean;
+    driftScore?: number;
+  };
+};
+
+/**
+ * Emitted by `lib/semantic-graph/manifest-writer.ts` (`writeManifest`) after
+ * persisting `<projectRoot>/.palantir-mini/semantic-manifest.json`. Was
+ * forced through with an `as any` cast pending this type's registration;
+ * payload fields derived from the real emit call.
+ */
+export type SemanticManifestRefreshedEnvelope = EventEnvelopeBase & {
+  type: "semantic_manifest_refreshed";
+  payload: {
+    projectRoot:    string;
+    nodeCount:      number;
+    edgeCount:      number;
+    producerCount:  number;
+  };
+};
+
+/**
+ * Emitted by `bridge/handlers/semantic-drift-audit.ts` after completing a
+ * 4-layer (ontology/codegen/runtime/verification) semantic drift audit. Was
+ * forced through with an `as any` cast pending this type's registration;
+ * payload fields derived from the real emit call.
+ */
+export type SemanticDriftAuditedEnvelope = EventEnvelopeBase & {
+  type: "semantic_drift_audited";
+  payload: {
+    project:            string;
+    ontologyNodes:      number;
+    codegenNodes:       number;
+    runtimeNodes:       number;
+    verificationNodes:  number;
+    findingCount:       number;
+    overallAligned:     boolean;
+  };
+};
+
+/**
+ * Canonical vocabulary entry for a semantic-change-plan emission. No
+ * production handler constructs this event yet (only a bare
+ * `{ type, payload: {} }` test fixture in
+ * `tests/handlers/propagation-chain-health.usage-axis.test.ts` exercises the
+ * type name for propagation-layer-activation tests), so the payload is kept
+ * as an open record rather than inventing fields that have not been observed
+ * anywhere in the codebase.
+ */
+export type SemanticChangePlanEmittedEnvelope = EventEnvelopeBase & {
+  type: "semantic_change_plan_emitted";
+  payload: Record<string, unknown>;
+};
+
+/**
+ * Emitted by `bridge/handlers/session_resume.ts` (`sessionResume`) when
+ * `emit_resume_event` is requested and a session is resumed from an
+ * events.jsonl checkpoint. Payload fields derived from the real emit call
+ * (previously constructed via `as unknown as Omit<EventEnvelope, "sequence">`).
+ */
+export type SessionResumedEnvelope = EventEnvelopeBase & {
+  type: "session_resumed";
+  payload: {
+    /** null when no prior `session_started` event exists in the log (fresh project). */
+    last_session_rid:    string | null;
+    last_sequence:       number;
+    active_teammates:    string[];
+    pending_task_count:  number;
+  };
+};
+
 // ─── The discriminated union ───────────────────────────────────────────────
 export type EventEnvelope =
   | EditProposedEnvelope
@@ -1328,7 +1418,13 @@ export type EventEnvelope =
   | ResolutionVerdictEnvelope
   | MemoryFoldCommittedEnvelope
   // 7.36.0 — P3 Lead-decision governed-emit (Path-B)
-  | LeadDecisionEnvelope;
+  | LeadDecisionEnvelope
+  // Sprint-cartography W1 — vocabulary/union drift closure
+  | DocDriftDetectedEnvelope
+  | SemanticManifestRefreshedEnvelope
+  | SemanticDriftAuditedEnvelope
+  | SemanticChangePlanEmittedEnvelope
+  | SessionResumedEnvelope;
 
 export type EventType = EventEnvelope["type"];
 
@@ -1365,6 +1461,13 @@ export const isResolutionVerdict    = (e: EventEnvelope): e is ResolutionVerdict
 export const isMemoryFoldCommitted  = (e: EventEnvelope): e is MemoryFoldCommittedEnvelope  => e.type === "memory_fold_committed";
 // 7.36.0 — P3 Lead-decision governed-emit (Path-B)
 export const isLeadDecision         = (e: EventEnvelope): e is LeadDecisionEnvelope         => e.type === "lead_decision";
+
+// Sprint-cartography W1 — vocabulary/union drift closure
+export const isDocDriftDetected            = (e: EventEnvelope): e is DocDriftDetectedEnvelope            => e.type === "doc_drift_detected";
+export const isSemanticManifestRefreshed   = (e: EventEnvelope): e is SemanticManifestRefreshedEnvelope   => e.type === "semantic_manifest_refreshed";
+export const isSemanticDriftAudited        = (e: EventEnvelope): e is SemanticDriftAuditedEnvelope        => e.type === "semantic_drift_audited";
+export const isSemanticChangePlanEmitted   = (e: EventEnvelope): e is SemanticChangePlanEmittedEnvelope   => e.type === "semantic_change_plan_emitted";
+export const isSessionResumed              = (e: EventEnvelope): e is SessionResumedEnvelope              => e.type === "session_resumed";
 
 // ─── Snapshot type produced by foldToSnapshot (prim-data-04 SnapshotManifest) ─
 
@@ -1485,6 +1588,12 @@ export interface EventSnapshot {
   memory_fold_committed?:             number;
   // 7.36.0 — P3 Lead-decision governed-emit (Path-B)
   lead_decision?:                     number;
+  // Sprint-cartography W1 — vocabulary/union drift closure
+  doc_drift_detected?:                number;
+  semantic_manifest_refreshed?:       number;
+  semantic_drift_audited?:            number;
+  semantic_change_plan_emitted?:      number;
+  session_resumed?:                   number;
   // O-2 — register→commit→materialize→read loop closure. Projection of committed
   // applyRegister* edits into a readable typed-primitive collection (fold-snapshot.ts).
   // FOLD-1 — each bucket entry carries the registered rid PLUS the committed
