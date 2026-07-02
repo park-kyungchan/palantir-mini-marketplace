@@ -2,7 +2,7 @@
 name: pm-cold-start-orchestrate
 category: core-workflow
 surfaceStatus: public-core
-description: "Auto-fired at SessionStart (via cold-start-browse-index-loader hook) — deep-injects..."
+description: "Manually invoked (or Lead-invoked) — deep-injects canonical research BROWSE+INDEX context..."
 allowed-tools: mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event Read Bash
 effort: high
 disable-model-invocation: false
@@ -12,8 +12,7 @@ disable-model-invocation: false
 
 ## When to use
 
-- **Auto-trigger**: `cold-start-browse-index-loader` SessionStart hook fires this skill automatically at each new session start (W2.B companion).
-- **Manual invocation**: `/palantir-mini:pm-cold-start-orchestrate` — re-injection mid-session when research context feels stale or truncated.
+- **Manual invocation**: `/palantir-mini:pm-cold-start-orchestrate` — re-injection mid-session when research context feels stale or truncated. No SessionStart auto-fire hook exists (the former companion hook was retired as an orphan — see CHANGELOG 6.132.0); this skill is invoked explicitly, either by the user or by the Lead.
 - **Phrase triggers**: "cold start", "deep injection", "orchestrate cold start", "inject canonical sources", "reload research context", "fresh context load".
 - **After `/clear`**: context compacted — call this to restore canonical research surface.
 
@@ -32,8 +31,8 @@ Four sequential phases. Phases 1-2 are read-only. Phase 3 is a dry-run audit. Ph
 Read the two global routing files that determine which evidence files to consult:
 
 ```
-Read({ file_path: "/home/palantirkc/.claude/research/BROWSE.md" })
-Read({ file_path: "/home/palantirkc/.claude/research/INDEX.md" })
+Read({ file_path: "~/.claude/research/BROWSE.md" })
+Read({ file_path: "~/.claude/research/INDEX.md" })
 ```
 
 These files declare the minimal read-set for any research query. They are the canonical entry points per rule 02 §Research retrieval ("BROWSE.md chooses the minimal read set; INDEX.md explains structure + provenance + authority boundaries").
@@ -43,10 +42,10 @@ These files declare the minimal read-set for any research query. They are the ca
 Read sub-directory routing files in parallel for the 4 research subdirectories:
 
 ```
-Read({ file_path: "/home/palantirkc/.claude/research/anthropic/BROWSE.md" })
-Read({ file_path: "/home/palantirkc/.claude/research/palantir-foundry/BROWSE.md" })
-Read({ file_path: "/home/palantirkc/.claude/research/palantir-vision/aipcon-devcon/BROWSE.md" })
-Read({ file_path: "/home/palantirkc/.claude/research/claude-code/BROWSE.md" })
+Read({ file_path: "~/.claude/research/anthropic/BROWSE.md" })
+Read({ file_path: "~/.claude/research/palantir-foundry/BROWSE.md" })
+Read({ file_path: "~/.claude/research/palantir-vision/aipcon-devcon/BROWSE.md" })
+Read({ file_path: "~/.claude/research/claude-code/BROWSE.md" })
 ```
 
 **Palantir 1차 자료 (5 canonical files)**:
@@ -71,22 +70,22 @@ Run 4 parallel dry-run refresh calls — read-only, no fetching:
 
 ```
 mcp__plugin_palantir-mini_palantir-mini__research_library_refresh({
-  libraryRoot: "/home/palantirkc/.claude/research/palantir-foundry",
+  libraryRoot: "~/.claude/research/palantir-foundry",
   dryRun: true,
   staleThresholdDays: 7
 })
 mcp__plugin_palantir-mini_palantir-mini__research_library_refresh({
-  libraryRoot: "/home/palantirkc/.claude/research/anthropic",
+  libraryRoot: "~/.claude/research/anthropic",
   dryRun: true,
   staleThresholdDays: 30
 })
 mcp__plugin_palantir-mini_palantir-mini__research_library_refresh({
-  libraryRoot: "/home/palantirkc/.claude/research/palantir-vision/aipcon-devcon",
+  libraryRoot: "~/.claude/research/palantir-vision/aipcon-devcon",
   dryRun: true,
   staleThresholdDays: 90
 })
 mcp__plugin_palantir-mini_palantir-mini__research_library_refresh({
-  libraryRoot: "/home/palantirkc/.claude/research/claude-code",
+  libraryRoot: "~/.claude/research/claude-code",
   dryRun: true,
   staleThresholdDays: 30
 })
@@ -167,7 +166,7 @@ Reminder: re-run `/palantir-mini:pm-cold-start-orchestrate` after `/clear` to re
 - Rule 02 v3.1.0 §Research retrieval — BROWSE.md-first minimal read set; `research/` AI-agent read-only SSoT.
 - Rule 26 v1.0.0 §Axis A3 (evidence-cited) — canonical source injection satisfies A3 for subsequent emit events.
 - `~/.claude/rules/CONTEXT.md §15 Glossary` — harness taxonomy; Palantir 1차 자료 source list.
-- Companion: `cold-start-browse-index-loader.ts` hook (W2.B) — auto-fires this skill at SessionStart.
+- Retired: the former SessionStart auto-fire companion hook (W2.B) was removed as an orphan (CHANGELOG 6.132.0) — this skill is now manually invocable only (see When to use).
 - Companion: `CanonicalSourceRegistry` schema primitive (W2.C) — typed registry that governs which files Phase 2 reads.
 - Companion skill: `/palantir-mini:pm-research audit` — deeper staleness report with per-source table.
 - Plan §3 Wave 2 W2.A — `~/.claude/plans/vast-giggling-mccarthy.md`.

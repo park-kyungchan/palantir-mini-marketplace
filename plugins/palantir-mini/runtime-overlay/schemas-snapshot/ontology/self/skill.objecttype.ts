@@ -11,7 +11,7 @@
  * surface drifts (a skill added/removed without updating this seed).
  *
  * Count provenance (LIVE-verified): `skills/` holds 46 directories; `_shared` is a
- * shared-fragment dir (not a skill), leaving EXACTLY 45 governed skills. Identity-only
+ * shared-fragment dir (not a skill), leaving EXACTLY 44 governed skills. Identity-only
  * here (slug primary key); richer per-skill descriptor metadata (name / surfaceStatus /
  * backingHandler) lives in each `SKILL.md` frontmatter, not duplicated in the seed.
  *
@@ -99,7 +99,6 @@ export const SKILL_INSTANCES: readonly SkillInstance[] = [
   { slug: "pm-research" },
   { slug: "pm-retro" },
   { slug: "pm-review" },
-  { slug: "pm-rule" },
   { slug: "pm-rule-audit" },
   { slug: "pm-rule-memory-prune" },
   { slug: "pm-self-test" },

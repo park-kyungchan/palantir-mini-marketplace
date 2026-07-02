@@ -5,7 +5,7 @@
  *   1. Live-repo green gate: checkSkillToolDeclarations() → pass, danglingRefs === []
  *      (this is the P1-10 completion gate — passes ONLY after the 18 dangling refs
  *      are remediated).
- *   2. skillCount pin (45 current SKILL.md files).
+ *   2. skillCount pin (44 current SKILL.md files).
  *   3. Pure classifier isolation: classifySkillTool returns null for a live tool,
  *      dangling-unknown for an unknown tool, dangling-removed (with replacement)
  *      for a dep-map tool.
@@ -38,7 +38,7 @@ describe("check-skill-tool-declarations (P1-11)", () => {
 
   test("2. skillCount pins to the current SKILL.md count", () => {
     const r = checkSkillToolDeclarations();
-    expect(r.skillCount).toBe(45);
+    expect(r.skillCount).toBe(44);
   });
 
   test("3. classifySkillTool — pure classifier isolation", () => {

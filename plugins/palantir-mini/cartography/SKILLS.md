@@ -11,7 +11,7 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-aip-agent-author | — | high | core-workflow / public-core | Author an AIPAgentDeclaration (Palantir AIP Chatbot Studio / AI FDE-style governed... |
 | pm-blueprint | — | medium | research / public-core | Generate a TechBlueprint for a new architecture question using a 7-agent research... |
 | pm-codegen | — | low | maintenance / public-core | Run palantir-mini codegen to regenerate <project>/src/generated/ from... |
-| pm-cold-start-orchestrate | — | high | core-workflow / public-core | Auto-fired at SessionStart (via cold-start-browse-index-loader hook) — deep-injects... |
+| pm-cold-start-orchestrate | — | high | core-workflow / public-core | Manually invoked (or Lead-invoked) — deep-injects canonical research BROWSE+INDEX context... |
 | pm-dirty-classify | — | small | maintenance / public-core | Manual triage of working-tree dirt via 4-axis classifier (auto-regen /... |
 | pm-dtc-fill | — | low | core-workflow / public-core | Turn-by-turn DTC (DigitalTwinChangeContract) fill conversation. Use after SIC... |
 | pm-eval-suite | — | high | maintenance / public-core | AIP-Evals lifecycle — author \| run \| compare modes over an EvaluationSuite (test cases + target + evaluator p… |
@@ -40,7 +40,6 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-research | — | medium | research / public-core | Research-library lifecycle — diff (local vs upstream drift) \| refresh (manifest-backed re-fetch) \| audit (man… |
 | pm-retro | — | — | research / public-core | Engineering retrospective. Aggregates session metrics from the palantir-mini... |
 | pm-review | — | — | core-workflow / public-core | Pre-landing PR review. Analyzes diff against the base branch for SQL safety, LLM... |
-| pm-rule ⚠️ | — | low | delete-candidate / deprecated-candidate | Fetch or enumerate Claude-local overlay rules from ~/.claude/rules/ via... |
 | pm-rule-audit | — | low | maintenance / public-core | Comprehensive rules/ health check via palantir-mini MCP. Detects T1/T2 bottleneck... |
 | pm-rule-memory-prune | — | medium | maintenance / public-core | Unified prune-candidate list combining pm_rule_audit (unused_rule_30d findings) +... |
 | pm-self-test | — | high | maintenance / public-core | End-to-end smoke test of the plugin-only substrate. Runs schema pin check, codegen... |
@@ -52,9 +51,3 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-verify | — | high | core-workflow / public-core | Run the palantir-mini validation pipeline against a project — executes Design +... |
 | pm-walk-analyze | — | medium | research / public-core | Mode B (Project Analysis): Walk real production ontology code for any registered project,... |
 | pm-walk-build | — | medium | research / public-core | Mode A (Small Block): Build ontology entities step by step using scene-based... |
-
-## Deprecated / Delete candidates
-
-| Name | Status | Description |
-|---|---|---|
-| pm-rule | deprecated-candidate | Fetch or enumerate Claude-local overlay rules from ~/.claude/rules/ via... |

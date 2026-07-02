@@ -153,6 +153,42 @@ ontology-affecting prompts receive a contract-required fail-closed response.
 
 Session snapshots are written under `<project>/.palantir-mini/session/fde-ontology-engineering/`. Turn records live beside the session under `turns/` and store `userMessageHash`, not raw prompt text, so 500+ turn conversations can be summarized and retrieved without replaying every raw user message into context. This layer is substrate only: it does not register a public MCP tool, hook, schema snapshot, or mutation authority.
 
+## SecondBrain Fold
+
+SecondBrain is one of the three core workflow lanes (LEARN). It folds a
+finished session's transcript into a project-owned knowledge graph without
+ever putting an LLM on the hot Stop path:
+
+1. **Stop-hook bookmark** — `hooks/second-brain-fold.ts` fires on `Stop`
+   (deterministic, fs-only, no LLM, never blocks) and writes a
+   `status:"pending"` bookmark for the session.
+2. **Single manifest authority** — `<project>/second-brain/manifest.json`'s
+   `foldedSessions` map is the SOLE persisted fold-lifecycle store (no
+   separate queue file). Each session's entry moves through the explicit
+   `status` literals `"pending"` -> `"in-progress"` (engine has persisted at
+   least one batch) -> `"governed-complete"` (governed emit fully landed), all
+   under one two-writer manifest lock.
+3. **SessionStart dispatch** — `hooks/session-start.ts` reads pending entries
+   and instructs the model to dispatch the `palantir-mini:second-brain-fold`
+   subagent (Agent tool) once per pending session; the subagent, not a hook,
+   does the actual LLM-driven extraction.
+4. **Schema-governed NDJSON fold contract** — the subagent streams per-batch
+   and summary NDJSON lines against the governed contract declared at
+   `runtime-overlay/schemas-snapshot/ontology/primitives/second-brain-graph.ts`
+   and validated at runtime by `lib/second-brain/graph-contract.ts`. Each
+   batch is validated in full BEFORE any verdict is emitted — all-or-nothing
+   per batch; a rejected batch emits nothing and is never bumped.
+5. **T-tier retention** — `lib/second-brain/retention.ts` plans compaction of
+   `governed-complete` markers; execution always APPENDS pruned markers to
+   `<project>/second-brain/manifest-archive.jsonl` (append-only) BEFORE
+   removing them from the live manifest, under the same manifest lock —
+   never a silent delete.
+
+`graph.json` content itself stays engine-side/out-of-repo: the plugin's
+contract expectation is that the fold engine independently owns `graph.json`'s
+own lifecycle. Full sequence: `cartography/DATAFLOW.md` section "SecondBrain fold
+sequence (W3 - single manifest authority)".
+
 ---
 
 ### Per-turn Overlay Stability
@@ -169,13 +205,13 @@ control plane first: `pm_rule_audit`, `pm_plugin_self_check`, and
 If one of those validators reports false drift because it is legacy, repair the
 validator rather than copying workaround text across every overlay.
 
-Legacy hooks such as `complex-task-detector`,
-`user-prompt-overlay-advisory`, `user-prompt-ontology-intent-extract`,
-`lead-model-availability-check`, `pre-delegation-check`,
-`lead-direct-edit-watch`, and `lead-git-operation-watch` remain useful
-direct compatibility and test helpers. They are not active Codex
-`SessionStart`/`UserPromptSubmit` registrations, are not prompt-front-door proof,
-and must not be treated as DTC approval.
+The hook surface is minimalism-governed (v6.132.0 orphan sweep and later): a
+hook file that is declared on disk but wired nowhere in `hooks/hooks.json` or
+`hooks/codex-hooks.json` is deleted, not kept around as a compatibility shim.
+Prompt-front-door continuity is proven only by the currently wired
+`prompt-front-door-capture` (Codex `UserPromptSubmit`) — never infer
+prompt-front-door proof or DTC approval from a hook name alone; check
+`hooks/hooks.json` / `hooks/codex-hooks.json` for live wiring first.
 
 ## Release-checked surface
 

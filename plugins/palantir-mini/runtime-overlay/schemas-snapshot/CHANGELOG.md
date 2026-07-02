@@ -8,6 +8,19 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.94.0 — 2026-07-02 (deprecated-skill retirement — pm-rule delete-candidate)
+
+Fix/cleanup MINOR (rule 08 — seed-data removal + description-only corrections; no primitive type, field, or export is added, removed, or retyped, so no consumer breaks). Precedent: dead-vocabulary removal shipped as MINOR in v1.84.0.
+
+### Removed — pm-rule skill seed (`ontology/seeds/skill-definitions.ts`)
+
+- Dropped the `{ slug: "pm-rule", ... }` row from `PLUGIN_SKILLS`. The skill self-flagged `category: "delete-candidate"` / `surfaceStatus: "deprecated-candidate"` in its own frontmatter; its live surface (`skills/pm-rule/`) was deleted in the paired plugin change. Callers should invoke `pm_rule_query({ byId })` directly — the hint strings in `hooks/value-grade-assigner.ts` and `scripts/rule-excerpt.ts` were updated in lockstep to drop the retired `/palantir-mini:pm-rule N` suggestion. `pm-rule-audit` and `pm-rule-memory-prune` seed rows are unaffected — they remain live, separately-invocable skills.
+
+### Changed — stale seed descriptions (`ontology/seeds/skill-definitions.ts`)
+
+- The top-of-file example comment (`invoked (e.g. ...)`) cited the now-deleted `pm-rule` skill; it now cites the still-existing `/palantir-mini:pm-rule-audit`.
+- The `pm-cold-start-orchestrate` seed description claimed a SessionStart auto-fire hook (`cold-start-browse-index-loader`) that no longer exists (removed as an orphan; see CHANGELOG 6.132.0 in the plugin's own history). The description now matches the skill's own frontmatter: manually invoked (or Lead-invoked), deep-injects canonical research BROWSE+INDEX context, no auto-fire hook.
+
 ## v1.93.0 — 2026-06-25 (Lead-decision governed-emit event type — P3 / Path-B)
 
 Additive MINOR (rule 08 — one new event-type discriminator registered in the lineage axis; ADDITIVE only, no existing discriminator/field/export is removed or retyped, so every legacy producer/consumer stays byte-compatible).

@@ -49,6 +49,24 @@ The plugin **source** SSoT (above) governs code, hooks, handlers, and manifests.
 
 Per canonical plan v2 §4 row 6.7 (sprint-134 PR 6.7; PHASE 6 FINAL PR).
 
+**SecondBrain fold data substrate** (fs-based, separate from the Convex split
+above):
+
+- `<project>/second-brain/manifest.json`'s `foldedSessions` map is the SOLE
+  fold-lifecycle authority (`"pending"` -> `"in-progress"` ->
+  `"governed-complete"`), written under one two-writer manifest lock.
+- `<project>/second-brain/manifest-archive.jsonl` is the append-only archive
+  for compacted markers; retention always archives-then-removes, never a
+  silent delete.
+- `<project>/second-brain/graph.json` CONTENT is engine-side / consumer-project
+  owned — NOT governed by this repo. This repo's contract expectation is
+  limited to the manifest lifecycle markers and the schema-governed NDJSON
+  fold interchange; it does not manage `graph.json`'s own lifecycle.
+- `events.jsonl` remains the lineage spine: governed fold verdicts land there
+  same as any other governed emit.
+- Full sequence: `cartography/DATAFLOW.md` section "SecondBrain fold sequence
+  (W3 — single manifest authority)".
+
 ## Research Snapshot Authority
 
 The plugin carries a portable research snapshot for plugin-only operation:
@@ -87,6 +105,7 @@ This document and `.ssot-authority.json` are the **SOURCE/WORKFLOW-authority** f
 
 ## Version History
 
+- v1.9.0 (2026-07-02): Added a "SecondBrain fold data substrate" subsection under "Data-layer Authority" naming `<project>/second-brain/manifest.json` `foldedSessions` as the sole fold-lifecycle authority, `manifest-archive.jsonl` as the append-only compaction archive, and `graph.json` content as engine-side/consumer-project-owned (not governed by this repo); `events.jsonl` remains the lineage spine. Cross-references `cartography/DATAFLOW.md`'s SecondBrain fold sequence section.
 - v1.8.0 (2026-06-15): Added a "Design Authority (external grounding)" section naming `harness-upstream/ssot/palantir/` as the runtime-neutral DESIGN-authority (the WHY behind 9-axis/SIC→DTC/OSDK-binding/lineage), explicitly distinct from this doc's SOURCE/WORKFLOW-authority and from the portable research-snapshot. Cross-references the new `designAuthority` field in the sibling `.ssot-authority.json` (which the sibling bumped to its own v1.7.0; doc and JSON versions are decoupled).
 - v1.7.0 (2026-06-15): Runtime-agnostic correction — Claude is an ACTIVE adapter via the directory-source marketplace install (`~/.claude/plugins/cache`), not a removed/contract-only surface. pm is runtime-NEUTRAL: one governed meaning, consumed by each runtime through its own generated binding. Codex + Claude both active; Gemini stays contract-only / `runtime_gap`. Added a `claude-code` row to the Consumer Runtime Map and generalized the consume invariant + install-support statement to both active adapters. (Does not rewrite the v1.6.1 historical entry, which was true on 2026-05-30.)
 - v1.5.0 (2026-05-25): Relocated canonical source authority to the private GitHub marketplace and demoted runtime caches to install payloads.

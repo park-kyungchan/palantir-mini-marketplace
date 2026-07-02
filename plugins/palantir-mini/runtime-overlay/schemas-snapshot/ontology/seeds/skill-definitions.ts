@@ -8,7 +8,7 @@
  * v1.27.0 ships LIGHTWEIGHT seeds (slug + scope + filePath + description
  * stub). Full frontmatter hydration via `pm-codegen` automation arrives in
  * v1.28.0+. Plugin skills are namespace-prefixed via the plugin's name when
- * invoked (e.g. `/palantir-mini:pm-rule`); the slug here is unprefixed.
+ * invoked (e.g. `/palantir-mini:pm-rule-audit`); the slug here is unprefixed.
  *
  * Authority chain:
  *   ~/.claude/plans/2026-04-25-harness/06-plugin-only-architecture.md §10.2
@@ -38,7 +38,7 @@ const PLUGIN_SKILLS: ReadonlyArray<{
   { slug: "pm-aip-agent-author",        description: "Author an AIPAgentDeclaration — ontology-connected product agent (Chatbot Studio / AI FDE / AIP Assist) with scoped tools + eval suites + deployment lifecycle" },
   { slug: "pm-blueprint",               description: "TechBlueprint generation via kosmos 7-agent Agent Teams research pipeline pattern" },
   { slug: "pm-codegen",                 description: "Run palantir-mini codegen to regenerate <project>/src/generated/ from schemas" },
-  { slug: "pm-cold-start-orchestrate",  description: "Auto-fired at SessionStart (cold-start-browse-index-loader hook) — deep-injects canonical research/BROWSE+INDEX context; also manually re-injectable mid-session" },
+  { slug: "pm-cold-start-orchestrate",  description: "Manually invoked (or Lead-invoked) — deep-injects canonical research BROWSE+INDEX context; no SessionStart auto-fire hook (the former companion hook was retired as an orphan)" },
   { slug: "pm-dirty-classify",          description: "Manual triage of working-tree dirt via 4-axis classifier (auto-regen / safe / review / block) — companion to session-start-dirty-classify + pre-pr-dirty-gate hooks" },
   { slug: "pm-dtc-fill",                description: "Turn-by-turn DTC (DigitalTwinChangeContract) fill conversation — runs after an approved SIC tied to an FDEOntologyEngineeringSession to build DATA/LOGIC/ACTION evidence" },
   { slug: "pm-eval-suite",              description: "AIP-Evals lifecycle — author | run | compare modes over an EvaluationSuite (test cases + target + evaluator policy, run dispatch, baseline-vs-candidate experiment decision)" },
@@ -66,7 +66,6 @@ const PLUGIN_SKILLS: ReadonlyArray<{
   { slug: "pm-research",                description: "Research-library lifecycle — diff (local vs upstream drift) | refresh (manifest-backed re-fetch) | audit (manifest staleness report) modes" },
   { slug: "pm-retro",                   description: "Engineering retrospective — aggregates session metrics from event log" },
   { slug: "pm-review",                  description: "Pre-landing PR review — analyzes diff against base for SQL safety / LLM trust / etc." },
-  { slug: "pm-rule",                    description: "Fetch or enumerate Claude-local overlay rules via pm_rule_query MCP" },
   { slug: "pm-rule-audit",              description: "Comprehensive rules/ health check via pm_rule_audit MCP" },
   { slug: "pm-rule-memory-prune",       description: "Unified prune-candidate list combining pm_rule_audit (unused_rule_30d) + stale-memory findings for rule 26 substrate housekeeping" },
   { slug: "pm-self-test",               description: "End-to-end smoke test of the plugin-only substrate — schema pin + codegen + harness + rule audit" },

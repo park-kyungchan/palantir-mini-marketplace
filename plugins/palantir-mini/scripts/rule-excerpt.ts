@@ -67,7 +67,7 @@ function placeholder(ruleId: number, reason: string): RuleExcerpt {
     slug: "",
     invariant: `(${reason})`,
     available: false,
-    renderedBlock: `=== RULE ${ruleId} INVARIANT ===\n(${reason})\n\nFor full text: pm_rule_query { byId: ${ruleId} } (or /palantir-mini:pm-rule ${ruleId})`,
+    renderedBlock: `=== RULE ${ruleId} INVARIANT ===\n(${reason})\n\nFor full text: pm_rule_query { byId: ${ruleId} }`,
   };
 }
 
@@ -76,7 +76,7 @@ function renderBlock(ruleId: number, slug: string, invariant: string): string {
     `=== RULE ${String(ruleId).padStart(2, "0")} — ${slug} ===`,
     invariant,
     ``,
-    `For full text: pm_rule_query { byId: ${ruleId} } (or /palantir-mini:pm-rule ${ruleId})`,
+    `For full text: pm_rule_query { byId: ${ruleId} }`,
   ].join("\n");
 }
 
