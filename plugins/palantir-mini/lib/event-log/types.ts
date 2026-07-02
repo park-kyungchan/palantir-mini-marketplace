@@ -1223,6 +1223,38 @@ export type MemoryFoldCommittedEnvelope = EventEnvelopeBase & {
     edgeCount:  number;
     /** Session whose transcript was folded. */
     sessionId:  string;
+    // ── W3 workstream C — atomic completion transition + audit fields ──────────
+    // ADDITIVE ONLY (no existing field above removed/renamed). Carries the
+    // manifest.json.foldedSessions[sessionId] status transition this event
+    // represents PLUS the audit identity of who performed it. All new fields are
+    // optional so every pre-W3 emitted row (and every existing consumer reading
+    // only the original 4 fields) stays valid without a migration.
+    //
+    // fromStatus/toStatus — the fold marker's status transition this commit event
+    // represents (e.g. "in-progress" -> "governed-complete"). Present when the
+    // emitting call site performed a tracked lifecycle transition (the
+    // foldedsessions-bump-cli.ts flip); absent for older/legacy emit call sites
+    // that never tracked a from/to pair.
+    fromStatus?: string;
+    toStatus?:   string;
+    /** Total batches the completed fold processed (mirrors the manifest marker's totalBatches). */
+    totalBatches?: number;
+    /** ISO timestamp the fold marker was stamped governed-complete (mirrors the manifest marker's foldedAt). */
+    foldedAt?: string;
+    /**
+     * Agent/runtime identity that performed the completion transition — the SAME
+     * identity resolved by resolveEmitIdentity()/byWhom.identity for this row
+     * (e.g. "claude-code"), duplicated into the payload so the audit trail is
+     * self-contained even for readers that only look at `payload` (not the full
+     * 5-dim envelope's byWhom).
+     */
+    byWhom?: string;
+    /**
+     * Fold engine version string, IF the engine reported one. The engine
+     * (second-brain/scripts/fold.ts) lives out-of-repo in the consumer project and
+     * may not always emit a version — optional, never required.
+     */
+    engineVersion?: string;
   };
 };
 

@@ -7,10 +7,12 @@
 //       forwardFoldOutput helper) end-to-end, pm-OFF.
 //   (b) SHIM FAIL-SAFE — the hook default export resolves to a { message } object and
 //       never throws when invoked against a tmp dir with NO second-brain/ engine.
-//   (c) DETERMINISTIC BOOKMARK (P1-2) — with a stub engine present + a transcript on
-//       disk, the Stop hook writes a pending-fold.json entry and does NOT spawn the
+//   (c) DETERMINISTIC BOOKMARK (W3) — with a stub engine present + a transcript on
+//       disk, the Stop hook writes a status:"pending" entry directly into
+//       manifest.json.foldedSessions[sessionId] (single manifest authority — no
+//       separate pending-fold.json write path anymore) and does NOT spawn the
 //       engine (graph.json never appears); the message says "bookmarked".
-//   (d) BYPASS — bypass envvar set → no pending-fold.json entry + audit event.
+//   (d) BYPASS — bypass envvar set → no manifest.foldedSessions entry + audit event.
 
 import { test, expect, describe, afterEach } from "bun:test";
 import * as fs from "fs";
@@ -18,7 +20,7 @@ import * as os from "os";
 import * as path from "path";
 import { emit } from "../../scripts/log";
 import secondBrainFold from "../../hooks/second-brain-fold";
-import { readPendingFold, pendingFoldPath } from "../../lib/second-brain/pending-fold";
+import { manifestPath } from "../../lib/second-brain/foldedsessions-bump-cli";
 
 const SECOND_BRAIN_FOLD_BYPASS = "PALANTIR_MINI_SECOND_BRAIN_FOLD_BYPASS";
 
@@ -162,8 +164,8 @@ describe("second-brain-fold — shim fail-safe", () => {
   });
 });
 
-describe("second-brain-fold — deterministic bookmark (P1-2)", () => {
-  test("with a stub engine + transcript, writes pending-fold.json and does NOT spawn the engine", async () => {
+describe("second-brain-fold — deterministic bookmark (W3 single manifest authority)", () => {
+  test("with a stub engine + transcript, writes status:\"pending\" into manifest.json.foldedSessions and does NOT spawn the engine", async () => {
     const tmpRoot = makeTmpProject();
     process.env.PALANTIR_MINI_EVENTS_FILE = path.join(tmpRoot, ".palantir-mini", "session", "events.jsonl");
     delete process.env[SECOND_BRAIN_FOLD_BYPASS];
@@ -172,17 +174,20 @@ describe("second-brain-fold — deterministic bookmark (P1-2)", () => {
     const result = await secondBrainFold({ cwd: tmpRoot, session_id: sessionId });
 
     expect(result.message).toContain("bookmarked");
-    // bookmark written for the session
-    const pf = readPendingFold(pendingFoldPath(tmpRoot));
-    expect(sessionId in pf.pending).toBe(true);
-    expect(pf.pending[sessionId]?.transcriptPath).toContain(sessionId + ".jsonl");
+    // bookmark written directly into manifest.json.foldedSessions (no separate pending-fold.json)
+    const manifest = JSON.parse(fs.readFileSync(manifestPath(tmpRoot), "utf8")) as {
+      foldedSessions?: Record<string, Record<string, unknown>>;
+    };
+    const rec = manifest.foldedSessions?.[sessionId];
+    expect(rec?.status).toBe("pending");
+    expect(rec?.transcriptPath as string).toContain(sessionId + ".jsonl");
     // engine was NOT spawned: no graph.json materialized
     expect(fs.existsSync(path.join(tmpRoot, "second-brain", "graph.json"))).toBe(false);
   });
 });
 
 describe("second-brain-fold — bypass", () => {
-  test("bypass envvar set → no pending-fold.json entry + audit event emitted", async () => {
+  test("bypass envvar set → no manifest.foldedSessions entry + audit event emitted", async () => {
     const tmpRoot = makeTmpProject();
     const eventsFile = path.join(tmpRoot, ".palantir-mini", "session", "events.jsonl");
     process.env.PALANTIR_MINI_EVENTS_FILE = eventsFile;
@@ -193,9 +198,14 @@ describe("second-brain-fold — bypass", () => {
     const result = await secondBrainFold({ cwd: tmpRoot, session_id: sessionId });
 
     expect(result.message).toContain(SECOND_BRAIN_FOLD_BYPASS);
-    // a bypassed session is never queued
-    const pf = readPendingFold(pendingFoldPath(tmpRoot));
-    expect(sessionId in pf.pending).toBe(false);
+    // a bypassed session is never queued: no manifest.json even created for it
+    const manifestP = manifestPath(tmpRoot);
+    if (fs.existsSync(manifestP)) {
+      const manifest = JSON.parse(fs.readFileSync(manifestP, "utf8")) as {
+        foldedSessions?: Record<string, unknown>;
+      };
+      expect(sessionId in (manifest.foldedSessions ?? {})).toBe(false);
+    }
     // audit event was emitted (bypass-budget-monitor counts it)
     const lines = fs
       .readFileSync(eventsFile, "utf8")

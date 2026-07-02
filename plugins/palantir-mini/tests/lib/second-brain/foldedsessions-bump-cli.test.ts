@@ -213,3 +213,43 @@ describe("bump-CLI — no-op cases (back-compat + already-complete)", () => {
     expect(r.reason).toBe("no-record");
   });
 });
+
+
+describe("bump-CLI (W3 workstream C) — atomic flip carries byWhom audit + transition metadata", () => {
+  test("the flip's transition result carries fromStatus/toStatus/foldedAt/byWhom together (ONE atomic write)", () => {
+    const root = makeTmpRoot();
+    writeManifest(root, { sid: engineMarker(1) });
+    const r = bumpGoverned(root, "sid", undefined, "claude-code");
+    expect(r.flipped).toBe(true);
+    expect(r.transition?.fromStatus).toBe("in-progress");
+    expect(r.transition?.toStatus).toBe("governed-complete");
+    expect(r.transition?.byWhom).toBe("claude-code");
+    expect(typeof r.transition?.foldedAt).toBe("string");
+    expect(r.transition?.totalBatches).toBe(1);
+
+    // the SAME identity landed in the manifest record, in the SAME write as the flip
+    const rec = readRec(root, "sid");
+    expect(rec.status).toBe("governed-complete");
+    expect(rec.byWhom).toBe("claude-code");
+    expect(rec.foldedAt).toBe(r.transition?.foldedAt);
+  });
+
+  test("a non-flipping bump omits `transition` even when byWhom is supplied", () => {
+    const root = makeTmpRoot();
+    writeManifest(root, { sid: engineMarker(3) }); // needs 3 bumps to flip
+    const r = bumpGoverned(root, "sid", undefined, "claude-code");
+    expect(r.flipped).toBe(false);
+    expect(r.transition).toBeUndefined();
+    // byWhom is NOT stamped on a non-flipping bump (only relevant at the flip)
+    expect(readRec(root, "sid").byWhom).toBeUndefined();
+  });
+
+  test("omitting byWhom on the flip still flips correctly, with no byWhom field stamped", () => {
+    const root = makeTmpRoot();
+    writeManifest(root, { sid: engineMarker(1) });
+    const r = bumpGoverned(root, "sid");
+    expect(r.flipped).toBe(true);
+    expect(r.transition?.byWhom).toBeUndefined();
+    expect(readRec(root, "sid").byWhom).toBeUndefined();
+  });
+});

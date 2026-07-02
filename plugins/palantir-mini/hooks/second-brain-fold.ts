@@ -16,6 +16,8 @@
 //
 // Logic (NO LLM, NO engine spawn):
 //   1. Find project root from cwd; skip if none (not a tracked project).
+//   1a. MIGRATION (W3): migrateLegacyPendingFile() — best-effort, idempotent forward
+//      migration of any surviving legacy pending-fold.json into manifest.json.foldedSessions.
 //   2. Gate on `.palantir-mini/` existing; skip if absent.
 //   3. ADDITIONAL gate: skip if <root>/second-brain/scripts/fold.ts is absent
 //      (no-op on projects without the engine).
@@ -25,14 +27,18 @@
 //   5. Resolve the session transcript path (~/.claude/projects/<slug>/<sessionId>.jsonl);
 //      skip if sessionId or the transcript file is missing.
 //   6. markPending(...) — deterministically bookmark this session for the
-//      model-driven fold (atomic fs write; no engine, no LLM).
+//      model-driven fold: writes status:"pending" directly into
+//      manifest.json.foldedSessions[sessionId] under the manifest two-writer lock
+//      (NO separate pending-fold.json write path anymore — W3 single manifest authority).
 //   7. Always returns { message } (Stop hook never blocks).
 //
 // forwardFoldOutput (below) is KEPT + EXPORTED as the version-fallback engine-stdout
 // -> Path-B helper (P2-9/F9). It is no longer called from the Stop path.
 //
-// Cross-ref: lib/second-brain/pending-fold.ts (the bookmark), hooks/session-start.ts
-//            (detect+inject), agents/second-brain-fold.md (the model-driven fold).
+// Cross-ref: lib/second-brain/pending-fold.ts (the bookmark — now a manifest.json.
+//            foldedSessions status:"pending" record, not a separate file),
+//            hooks/session-start.ts (detect+inject), agents/second-brain-fold.md
+//            (the model-driven fold).
 
 // @domain: LEARN
 
@@ -41,7 +47,7 @@ import * as os from "os";
 import * as path from "path";
 import { emit } from "../scripts/log";
 import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
-import { markPending } from "../lib/second-brain/pending-fold";
+import { markPending, migrateLegacyPendingFile } from "../lib/second-brain/pending-fold";
 import { resolveHostRuntimeIdentity } from "../lib/runtime/identity";
 
 /** Bypass envvar — turns this fold lane OFF for a project/session (audited). */
@@ -137,6 +143,14 @@ export default async function secondBrainFold(payload: unknown): Promise<HookRes
     if (!root) {
       return { message: "palantir-mini: second-brain-fold skipped (not a tracked project)" };
     }
+
+    // 1a. MIGRATION (W3): fold forward any surviving legacy pending-fold.json queue file
+    // into manifest.json.foldedSessions BEFORE this Stop hook writes its own bookmark.
+    // Idempotent — a no-op when the legacy file is absent or already migrated. Best-effort:
+    // migration failing must never block the deterministic bookmark below.
+    try {
+      migrateLegacyPendingFile(root);
+    } catch { /* best-effort */ }
 
     // 1b. A stray `.palantir-mini` marker at $HOME or a temp dir must not make HOME/tmp
     //     the fold target — that would write graph.json + emit governed lineage under the

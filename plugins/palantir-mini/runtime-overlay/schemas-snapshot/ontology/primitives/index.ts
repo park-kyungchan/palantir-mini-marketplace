@@ -512,3 +512,13 @@ export * from "./event-envelope";
 // promotion. Import via shared-core; never import this path directly from
 // consumer projects (rule 08 authority chain).
 export * from "./primitive-semantics";
+
+// --- v1.87.0 SecondBrainGraph primitive (W3 — second-brain lane redesign) ---
+// Governed NDJSON verdict batch/summary interchange contract the plugin
+// actually consumes from the out-of-repo fold engine (second-brain/scripts/
+// fold.ts lives in the CONSUMER project). graph.json's own node/edge content
+// shape stays out-of-repo/non-governing (see file header §SCOPE DECISION); a
+// best-effort SecondBrainGraphEnvelope type is included for documentation only.
+// Backs palantir-mini lib/second-brain/graph-contract.ts's runtime validators,
+// wired into foldedsessions-emit-cli.ts's validate-before-commit gate.
+export * from "./second-brain-graph";

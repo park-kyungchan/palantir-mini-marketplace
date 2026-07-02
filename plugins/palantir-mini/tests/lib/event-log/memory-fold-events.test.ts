@@ -113,3 +113,66 @@ describe("v1.92 — second-brain memory-fold envelope union extension", () => {
     expect(snap.memory_fold_committed ?? 0).toBe(0);
   });
 });
+
+
+describe("W3 workstream C — MemoryFoldCommittedEnvelope additive audit fields", () => {
+  test("the 4 original payload fields remain valid with NO new fields present (back-compat)", () => {
+    const ev = makeMemoryFoldCommitted(10);
+    expect(isMemoryFoldCommitted(ev)).toBe(true);
+    expect(ev.payload.fromStatus).toBeUndefined();
+    expect(ev.payload.toStatus).toBeUndefined();
+    expect(ev.payload.byWhom).toBeUndefined();
+    expect(ev.payload.engineVersion).toBeUndefined();
+    expect(ev.payload.totalBatches).toBeUndefined();
+    expect(ev.payload.foldedAt).toBeUndefined();
+  });
+
+  test("all new optional audit fields can be populated together", () => {
+    const ev: MemoryFoldCommittedEnvelope = {
+      ...makeBase(11),
+      type: "memory_fold_committed",
+      payload: {
+        graphPath: "/home/x/second-brain/graph.json",
+        nodeCount: 12,
+        edgeCount: 8,
+        sessionId: "sess-1",
+        fromStatus: "in-progress",
+        toStatus: "governed-complete",
+        totalBatches: 3,
+        foldedAt: "2026-07-02T00:00:00.000Z",
+        byWhom: "claude-code",
+        engineVersion: "0.1.0",
+      },
+    };
+    expect(isMemoryFoldCommitted(ev)).toBe(true);
+    if (isMemoryFoldCommitted(ev)) {
+      expect(ev.payload.fromStatus).toBe("in-progress");
+      expect(ev.payload.toStatus).toBe("governed-complete");
+      expect(ev.payload.totalBatches).toBe(3);
+      expect(ev.payload.foldedAt).toBe("2026-07-02T00:00:00.000Z");
+      expect(ev.payload.byWhom).toBe("claude-code");
+      expect(ev.payload.engineVersion).toBe("0.1.0");
+      // original 4 fields untouched
+      expect(ev.payload.nodeCount).toBe(12);
+      expect(ev.payload.edgeCount).toBe(8);
+      expect(ev.payload.sessionId).toBe("sess-1");
+      expect(ev.payload.graphPath).toBe("/home/x/second-brain/graph.json");
+    }
+  });
+
+  test("foldToSnapshot still counts an audit-enriched memory_fold_committed row the same way", () => {
+    const enriched: MemoryFoldCommittedEnvelope = {
+      ...makeBase(12),
+      type: "memory_fold_committed",
+      payload: {
+        graphPath: "/x/graph.json",
+        nodeCount: 1,
+        edgeCount: 0,
+        sessionId: "sess-2",
+        byWhom: "claude-code",
+      },
+    };
+    const snap = foldToSnapshot([enriched]);
+    expect(snap.memory_fold_committed).toBe(1);
+  });
+});

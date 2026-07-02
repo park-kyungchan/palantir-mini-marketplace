@@ -469,7 +469,7 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
   },
   memory_fold_committed: {
     name: "memory_fold_committed",
-    description: "The session-end memory fold committed a derived Layer-2 graph.json projection (node/edge counts) for a session. Advisory, non-gating; emitted via the gated emit_event MCP path (rule 27). Payload: { graphPath, nodeCount, edgeCount, sessionId }.",
+    description: "The session-end memory fold committed a derived Layer-2 graph.json projection (node/edge counts) for a session. Advisory, non-gating; emitted via the gated emit_event MCP path (rule 27). Payload: { graphPath, nodeCount, edgeCount, sessionId, fromStatus?, toStatus?, totalBatches?, foldedAt?, byWhom?, engineVersion? } — the fromStatus/toStatus/totalBatches/foldedAt/byWhom/engineVersion fields are W3 additive audit fields carrying the manifest.json.foldedSessions status transition + completing identity; all optional, back-compat with pre-W3 rows.",
     primaryDomain: "learn",
   },
   // 7.36.0 — P3 Lead-decision governed-emit (Path-B). A Lead orchestration

@@ -52,26 +52,67 @@ Both paths converge on the same writer: `scripts/log.ts`'s `emit()` builds the
    correlationId, agentId, toolName, commitSha, branchName, pullRequestNumber,
    evalSuiteId, evalRunId, affectedRid, refinementTarget).
 
-## SecondBrain fold sequence
+## SecondBrain fold sequence (W3 — single manifest authority)
+
+`<project>/second-brain/manifest.json`'s `foldedSessions` map is the SOLE
+persisted fold-state store — there is no separate `pending-fold.json` queue file
+anymore. Every session's state lives at `foldedSessions[sessionId]` under one of
+three explicit `status` literals: `"pending"` (bookmarked, not yet picked up),
+`"in-progress"` (engine has persisted ≥1 batch), `"governed-complete"` (governed
+emit fully landed). A ONE-TIME forward migration
+(`migrateLegacyPendingFile()` in `lib/second-brain/pending-fold.ts`) folds any
+surviving legacy `pending-fold.json` file into the manifest as `status:"pending"`
+(never clobbering an existing further-along record) then renames it to
+`pending-fold.json.migrated`; it is idempotent and is called from both the Stop
+hook and the pending-list read path.
 
 1. **Stop hook bookmark** — `hooks/second-brain-fold.ts` fires on `Stop`
    (deterministic, fs-only, NO LLM, never blocks). It resolves the project root,
-   gates on `.palantir-mini/` and `<root>/second-brain/scripts/fold.ts` existing,
-   then calls `markPending()` (`lib/second-brain/pending-fold.ts`), writing
-   `<project>/second-brain/pending-fold.json` (a queue, NOT authoritative).
+   runs the legacy-file migration, gates on `.palantir-mini/` and
+   `<root>/second-brain/scripts/fold.ts` existing, then calls `markPending()`
+   (`lib/second-brain/pending-fold.ts`), which writes a `status:"pending"` entry
+   directly into `manifest.json.foldedSessions[sessionId]` under the same
+   two-writer manifest lock the bump-CLI uses (`foldedsessions-bump-cli.ts`'s
+   `withManifestLock`). `markPending()` never regresses an existing
+   `"in-progress"`/`"governed-complete"`/legacy no-status record back to
+   `"pending"`.
 2. **SessionStart dispatch** — `hooks/session-start.ts` reads pending entries via
-   `listPending`/`readPendingFold` and instructs the model to dispatch the
-   `palantir-mini:second-brain-fold` subagent (Agent tool) once per pending
-   session.
+   `listPending()` (which filters `manifest.json.foldedSessions` for
+   `status === "pending"`, running the legacy migration first) and instructs the
+   model to dispatch the `palantir-mini:second-brain-fold` subagent (Agent tool)
+   once per pending session.
 3. **Model-driven fold** — `agents/second-brain-fold.md` runs the project-owned
    fold engine, which extracts transcript chunks and persists
-   `<project>/second-brain/graph.json` per batch; the engine also owns
-   `second-brain/manifest.json`'s `foldedSessions` completion map (the
-   authoritative completion record — `pending-fold.json` is only a safety-net
-   queue). The subagent never edits `graph.json` or the manifest marker fields
-   directly; it emits governed lineage via Path B
-   (`lib/second-brain/foldedsessions-emit-cli.ts`) and advances the marker via
-   a bump CLI (`lib/second-brain/foldedsessions-bump-cli.ts`).
+   `<project>/second-brain/graph.json` per batch, printing per-batch NDJSON
+   (`{"kind":"batch",...}`) and a terminal `{"kind":"summary",...}` line — a
+   governed contract now typed at
+   `runtime-overlay/schemas-snapshot/ontology/primitives/second-brain-graph.ts`
+   and validated at runtime by `lib/second-brain/graph-contract.ts` (actionable
+   field/expected/found/batchIndex errors). The subagent never edits
+   `graph.json` directly; for each batch it calls
+   `foldedsessions-emit-cli.ts batch` (validates the WHOLE batch BEFORE emitting
+   any verdict — all-or-nothing per batch; a rejected batch emits nothing and is
+   never bumped) then `foldedsessions-bump-cli.ts bump` (advancing
+   `governedBatches`). The bump on the LAST batch performs the
+   `"in-progress"` → `"governed-complete"` transition as ONE atomic manifest
+   read-modify-write under the lock, stamping `foldedAt` + the audit `byWhom`
+   identity together (workstream C). The terminal summary is emitted via
+   `foldedsessions-emit-cli.ts summary`, which additively enriches a
+   `memory_fold_committed` payload with `fromStatus`/`toStatus`/`totalBatches`/
+   `foldedAt`/`byWhom` (see `MemoryFoldCommittedEnvelope` in
+   `lib/event-log/types.ts` — additive fields only, no existing field
+   removed/renamed).
+4. **Retention (compaction, not deletion)** — `lib/second-brain/retention.ts`'s
+   pure `planRetention()` flags `governed-complete` markers older than a policy
+   window and/or beyond a max-live-entries cap; `foldedsessions-retention-cli.ts`
+   executes the plan under the same manifest lock by APPENDING pruned markers to
+   `<project>/second-brain/manifest-archive.jsonl` (append-only, one JSON object
+   per line) BEFORE removing them from the live manifest — never a silent
+   delete. `graph.json` CONTENT pruning stays engine-side and out-of-repo: the
+   plugin's contract expectation is that the engine independently manages
+   `graph.json`'s own lifecycle (e.g. compacting/archiving stale nodes), and
+   that manifest-marker compaction here never implies or triggers any
+   `graph.json` mutation.
 
 ## Impact graph
 
@@ -109,8 +150,12 @@ degrade gracefully via `.isStub`.
                                                           v
                                      convex/decisionEvents.ts (T3+/T4 mirror, STUB)
 
- Stop: second-brain-fold.ts (bookmark) -> pending-fold.json -> SessionStart dispatch
-    -> agents/second-brain-fold.md -> second-brain/graph.json + manifest.json
+ Stop: second-brain-fold.ts (bookmark, migrates legacy pending-fold.json first)
+    -> manifest.json.foldedSessions[sid].status="pending" -> SessionStart dispatch
+    -> agents/second-brain-fold.md -> second-brain/graph.json
+    + manifest.json.foldedSessions[sid] (pending -> in-progress -> governed-complete,
+      atomic flip + byWhom/foldedAt audit stamp)
+    -> foldedsessions-retention-cli.ts compact -> manifest-archive.jsonl (append-only)
 
  impact-graph-{maintain,cascade-delete,bulk-refresh,session-end-flush}.ts
     -> lib/impact-graph/convex-client.ts (STUB) -> impactEdges/fileState/graphMutations

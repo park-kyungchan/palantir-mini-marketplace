@@ -181,3 +181,156 @@ describe("emit-CLI — bad input is a hard, non-zero failure (never a silent hal
     expect(r.stderr).toContain("type must be a non-empty string");
   });
 });
+
+
+describe("emit-CLI — `batch` subcommand: validate-before-commit, all-or-nothing per batch", () => {
+  test("a well-formed batch line emits every verdict in order", async () => {
+    const root = makeTmpProject();
+    const batchLine = {
+      kind: "batch",
+      batchIndex: 0,
+      verdicts: [verdictEmitObj(), { ...verdictEmitObj(), payload: { verdict: "NONE" } }],
+    };
+    const r = await runCli(["batch", root, "sess-batch-1", JSON.stringify(batchLine)], {
+      PALANTIR_MINI_HOST_RUNTIME: "claude-code",
+    });
+    expect(r.code).toBe(0);
+    const parsed = JSON.parse(r.stdout) as { emitted: boolean; count: number; sequences: number[] };
+    expect(parsed.emitted).toBe(true);
+    expect(parsed.count).toBe(2);
+    expect(readRows(root).length).toBe(2);
+  });
+
+  test("a batch with an EMPTY verdicts array validates + emits nothing (0 rows), exit 0", async () => {
+    const root = makeTmpProject();
+    const batchLine = { kind: "batch", batchIndex: 1, verdicts: [] };
+    const r = await runCli(["batch", root, "sess-batch-2", JSON.stringify(batchLine)]);
+    expect(r.code).toBe(0);
+    expect(fs.existsSync(eventsPath(root))).toBe(false);
+  });
+
+  test("an INVALID batch (bad verdict kind) is rejected — exit 2, actionable stderr, ZERO events written", async () => {
+    const root = makeTmpProject();
+    const batchLine = {
+      kind: "batch",
+      batchIndex: 2,
+      verdicts: [verdictEmitObj(), { type: "resolution_verdict", payload: { verdict: "BOGUS" } }],
+    };
+    const r = await runCli(["batch", root, "sess-batch-3", JSON.stringify(batchLine)]);
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain("failed contract validation");
+    expect(r.stderr).toContain("payload.verdict");
+    // ALL-OR-NOTHING: even though verdicts[0] was individually valid, NOTHING was emitted
+    // for this batch because validation runs for the WHOLE batch before any emit.
+    expect(fs.existsSync(eventsPath(root))).toBe(false);
+  });
+
+  test("a malformed batch line (not JSON) is rejected — exit 2, no events file", async () => {
+    const root = makeTmpProject();
+    const r = await runCli(["batch", root, "sess-batch-4", "{not json"]);
+    expect(r.code).toBe(2);
+    expect(fs.existsSync(eventsPath(root))).toBe(false);
+  });
+
+  test("missing args → exit 2 + usage", async () => {
+    const root = makeTmpProject();
+    const r = await runCli(["batch", root]);
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain("usage:");
+  });
+});
+
+describe("emit-CLI — `summary` subcommand: validate-before-commit + W3 audit enrichment", () => {
+  function summaryLineObj(): Record<string, unknown> {
+    return {
+      kind: "summary",
+      totalBatches: 3,
+      summary: {
+        type: "memory_fold_committed",
+        payload: { graphPath: "second-brain/graph.json", nodeCount: 9, edgeCount: 0, sessionId: "sess-sum-1" },
+        memoryLayers: ["semantic", "episodic"],
+        hypothesis: "folded",
+      },
+    };
+  }
+
+  test("a well-formed summary emits with the base 4 payload fields intact", async () => {
+    const root = makeTmpProject();
+    const r = await runCli(["summary", root, "sess-sum-1", JSON.stringify(summaryLineObj())]);
+    expect(r.code).toBe(0);
+    const row = readRows(root)[0]!;
+    const payload = row.payload as Record<string, unknown>;
+    expect(payload.graphPath).toBe("second-brain/graph.json");
+    expect(payload.nodeCount).toBe(9);
+    expect(payload.edgeCount).toBe(0);
+    expect(payload.sessionId).toBe("sess-sum-1");
+  });
+
+  test("audit args (byWhom/fromStatus/toStatus/foldedAt) are ADDITIVELY merged onto the payload", async () => {
+    const root = makeTmpProject();
+    const line = {
+      kind: "summary",
+      totalBatches: 3,
+      summary: {
+        type: "memory_fold_committed",
+        payload: { graphPath: "second-brain/graph.json", nodeCount: 1, edgeCount: 0, sessionId: "sess-sum-2" },
+        memoryLayers: ["semantic", "episodic"],
+        hypothesis: "folded",
+      },
+    };
+    const r = await runCli([
+      "summary",
+      root,
+      "sess-sum-2",
+      JSON.stringify(line),
+      "claude-code",
+      "in-progress",
+      "governed-complete",
+      "2026-07-02T00:00:00.000Z",
+    ]);
+    expect(r.code).toBe(0);
+    const row = readRows(root)[0]!;
+    const payload = row.payload as Record<string, unknown>;
+    // base fields still present (additive, nothing removed)
+    expect(payload.graphPath).toBe("second-brain/graph.json");
+    expect(payload.sessionId).toBe("sess-sum-2");
+    // W3 audit fields attached
+    expect(payload.byWhom).toBe("claude-code");
+    expect(payload.fromStatus).toBe("in-progress");
+    expect(payload.toStatus).toBe("governed-complete");
+    expect(payload.foldedAt).toBe("2026-07-02T00:00:00.000Z");
+  });
+
+  test("omitting the audit args still emits successfully (no enrichment, base fields intact)", async () => {
+    const root = makeTmpProject();
+    const r = await runCli(["summary", root, "sess-sum-3", JSON.stringify(summaryLineObj())]);
+    expect(r.code).toBe(0);
+    const row = readRows(root)[0]!;
+    const payload = row.payload as Record<string, unknown>;
+    expect("byWhom" in payload).toBe(false);
+    expect(payload.sessionId).toBe("sess-sum-1"); // unchanged fixture value (base summaryLineObj)
+  });
+
+  test("an INVALID summary (missing totalBatches) is rejected — exit 2, no events written", async () => {
+    const root = makeTmpProject();
+    const bad = summaryLineObj();
+    delete (bad as Record<string, unknown>).totalBatches;
+    const r = await runCli(["summary", root, "sess-sum-4", JSON.stringify(bad)]);
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain("failed contract validation");
+    expect(fs.existsSync(eventsPath(root))).toBe(false);
+  });
+
+  test("a non-memory_fold_committed summary type is emitted verbatim (no enrichment attempted)", async () => {
+    const root = makeTmpProject();
+    const line = {
+      kind: "summary",
+      totalBatches: 1,
+      summary: { type: "resolution_verdict", payload: { verdict: "NONE" } },
+    };
+    const r = await runCli(["summary", root, "sess-sum-5", JSON.stringify(line)]);
+    expect(r.code).toBe(0);
+    const row = readRows(root)[0]!;
+    expect(row.type).toBe("resolution_verdict");
+  });
+});
