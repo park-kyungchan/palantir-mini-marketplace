@@ -7,6 +7,36 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.37.0] - 2026-07-02 — cartography system, sonnet-only agent model policy, sealed event union, semantics-preserving elevation, second-brain single-manifest authority
+
+Ships four independent hardening arcs plus a governance-facing map of the repo itself. **Cartography** adds a source-generated map of the plugin's own surface (SKILLS/AGENTS/HOOKS/TOOLS, derived from the live filesystem, never hand-edited) behind a CI drift gate, anchored by a hand-written root entry map and DATAFLOW doc. **Sonnet-only** locks every subagent's `model:` frontmatter to `sonnet` and adds a self-check axis so a drifted agent file fails loud. **Event union seal** closes out the last untyped corners of `events.jsonl`: every vocabulary name now carries a typed payload, dead names are retired, and the envelope union is bidirectionally parity-checked at compile time with `as-any` casts removed. **Ontology semantics/status/provenance** makes elevation a tracked status transition instead of a silent overwrite, with zero semantic loss and a paired self-check. **Second-brain** replaces the separate `pending-fold.json` queue file with `manifest.json.foldedSessions` as the SOLE fold-lifecycle authority, adds a schema-governed fold contract (validate-before-emit, all-or-nothing per batch), and ships T-tier retention (archive-append before live-manifest removal, both under the existing two-writer lock). schemas-snapshot moves 1.83.1 → 1.87.0 across the arc.
+
+### Added — cartography system
+- **Root `CARTOGRAPHY.md` entry map + hand-written `DATAFLOW.md`** — a bootstrap doc pointing at the four generated maps plus a hand-authored data-flow narrative (never regenerated) (`CARTOGRAPHY.md`, `cartography/DATAFLOW.md`).
+- **Source-generated `SKILLS.md` / `AGENTS.md` / `HOOKS.md` / `TOOLS.md`** — derived directly from the live `skills/`, `agents/`, `hooks/`, and tool-declaration surfaces via `scripts/gen-cartography.ts`; never hand-edited (`cartography/SKILLS.md`, `cartography/AGENTS.md`, `cartography/HOOKS.md`, `cartography/TOOLS.md`).
+- **CI drift gate** — `bun run check:cartography` (`gen-cartography.ts --check`) fails loud if any generated map has drifted from the live surface it describes; wired as a release gate (`scripts/gen-cartography.ts`).
+
+### Added — sonnet-only agent model policy
+- **Every active agent pinned to `model: sonnet`** — the agent tier seed and all agent frontmatter converge on a single model policy (`agents/*.md`, `runtime-overlay/schemas-snapshot/ontology/seeds/agent-definitions.ts`).
+- **NEW self-check axis `agent-model-policy`** — `pm-plugin-self-check` gains a dedicated axis asserting every live agent declares `model: sonnet`, naming the offending file on drift (missing field or non-sonnet value), pinned to the current active-agent count with `.archived/` excluded (`bridge/handlers/pm-plugin-self-check/check-agent-model-policy.ts`).
+
+### Sealed — event union (schemas 1.84.0)
+- **Typed payloads for every vocabulary name** — the `events.jsonl` envelope union now has a concrete payload type per event name instead of a loosely-typed catch-all (`lib/event-log/types.ts`, `runtime-overlay/schemas-snapshot/ontology/lineage/event-types.ts`).
+- **18 dead vocabulary names removed** — retired event names with no live emitter or reader are dropped from the union rather than kept as permanent dead weight.
+- **Bidirectional compile-time parity** — the envelope union and the event-type registry are cross-checked at compile time so a name can no longer exist on one side without the other.
+- **`as-any` casts removed** — the prior escape hatches around the untyped union are gone; derive-or-assert is now the single source of truth for envelope shape.
+
+### Added — ontology semantics/status/provenance (schemas 1.85.0 → 1.86.0 remediation)
+- **Elevation is now a tracked status transition** — promoting a primitive no longer silently overwrites it; the transition itself carries status + provenance, with zero semantic loss versus the pre-elevation record.
+- **NEW self-check axis `semantic-loss`** — asserts an elevation transition never drops a field the pre-elevation record carried (`bridge/handlers/pm-plugin-self-check/check-semantic-loss.ts`).
+- **Property candidate semantics parity + status default wiring** — a W1/W2 remediation sweep closed stale removed-event references and brought Property candidate semantics into parity with the governed status model, with an explicit default wired in.
+
+### BREAKING — second-brain single-manifest authority (schemas 1.87.0)
+- **`pending-fold.json` removed** — `manifest.json.foldedSessions` is now the SOLE persisted fold-lifecycle store; there is no separate pending-fold queue file anymore (`lib/second-brain/pending-fold.ts`).
+- **Automatic migration on first Stop/SessionStart** — `migrateLegacyPendingFile()` forward-migrates any surviving legacy `pending-fold.json` into `manifest.json.foldedSessions` (never clobbering an existing further-along record), then renames the legacy file to `pending-fold.json.migrated`. Idempotent and best-effort from both call sites (`hooks/second-brain-fold.ts` Stop hook, `hooks/session-start.ts` / `listPending()` read path).
+- **Schema-governed fold contract** — `foldedsessions-emit-cli` validates a whole batch/summary NDJSON line against the governed contract (`lib/second-brain/graph-contract.ts`, backed by `#schemas/ontology/primitives/second-brain-graph.ts`) BEFORE emitting any of it; an invalid batch is rejected atomically (exit 2, zero verdicts emitted) — never a partial land.
+- **T-tier retention** — `foldedsessions-retention-cli` compacts governed-complete fold markers by age and count-cap, always archive-appending to `manifest-archive.jsonl` before removing from the live manifest, under the same two-writer manifest lock the bump-CLI uses (`lib/second-brain/retention.ts`, `lib/second-brain/foldedsessions-retention-cli.ts`).
+
 ## [7.36.0] - 2026-06-25 — fold-and-DTC-gate improvement: gate authorized-delivery lane + ontology-write-bypass hardening, BackwardProp sink-1/sink-2 closure, P3 Lead-decision governed-emit
 
 Ships the fold-and-DTC-gate improvement arc. The DTC enforcement gate gains a fail-closed **A2 authorized-delivery lane** (a re-verified per-turn user-approval envelope lets a PROVEN non-ontology delivery action pass-with-audit) and is **hardened against the ontology-write bypass** where an ontology write de-floors to `commit`/`generic-mutation` (NOT `ontology-write`). The BackwardProp loop is closed on both sinks: **Sink-1** surfaces the prior session's high-signal verdicts at SessionStart (`a2-prior` READ) and reflects the prior digest into a pm-owned cache (no longer writes the curated MEMORY.md); **Sink-2** replays graded value at session end so T1→T2→T3 promotions do not silently expire. **P3** adds a governed Path-B write path for the Lead's orchestration verdicts via a NEW `lead_decision` event type. Default / per-turn paths stay byte-identical when the new additive approval inputs / env bypasses are absent.
