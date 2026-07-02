@@ -2,7 +2,7 @@
 
 > Per canonical plan v2 §4 row 6.2 (sprint-129 PR 6.2; PHASE 6 PR 2/7).
 
-> Runtime-boundary migration note (2026-05-25): this document describes the Codex plugin hook entrypoint path plus the legacy fallback shim. Durable workflow semantics and hook intent remain in the canonical source root at `plugins/palantir-mini` and the neutral boundary at `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`.
+> Runtime-boundary migration note (2026-05-25): this document describes the Codex plugin hook entrypoint path plus the legacy fallback shim. Durable workflow semantics and hook intent remain in the canonical source root at `plugins/palantir-mini` and the neutral boundary at `~/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`.
 
 ## Overview
 
@@ -72,7 +72,7 @@ Codex plugin availability is not the same as palantir-mini workflow authority.
 When Codex has already loaded a palantir-mini plugin hook, the adapter applies
 `lib/codex/palantir-mini-activation-policy.ts` before running shared hook
 intent. The policy is opt-in for palantir-mini semantics and returns a silent
-empty response for explicit user opt-out prompts, `/home/palantirkc/meta-harness`
+empty response for explicit user opt-out prompts, `~/meta-harness`
 work, repo-local `AGENTS.md` instructions that explicitly make palantir-mini
 opt-in only, and ordinary non-palantir turns. Silent bypass means no shared hook
 run, no prompt-front-door write, no additional context injection, and no

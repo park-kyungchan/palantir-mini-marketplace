@@ -14,6 +14,7 @@
 
 import * as fs from "fs";
 import * as crypto from "crypto";
+import * as os from "os";
 import * as path from "path";
 import { emit } from "../scripts/log";
 import { getConvexClient } from "../lib/impact-graph/convex-client";
@@ -101,7 +102,7 @@ export default async function impactGraphMaintain(
   }
 
   // Resolve absolute path
-  const home     = process.env.HOME ?? "/home/palantirkc";
+  const home     = process.env.HOME ?? os.homedir();
   let absPath = rawPath;
   if (rawPath.startsWith("~/")) {
     absPath = path.join(home, rawPath.slice(2));

@@ -12,6 +12,7 @@
 //   plans/distributed-wishing-manatee.md §T4.1
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { emit, projectRoot as resolveProjectRoot } from "../../scripts/log";
 import { resolvePalantirMiniRoot } from "../../lib/config/root";
@@ -41,7 +42,7 @@ export interface PmResearchCitationValidateResult {
   verdict: "pass" | "fail";
 }
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 const PLUGIN_ROOT = resolvePalantirMiniRoot();
 
 function defaultResearchRoot(): string {

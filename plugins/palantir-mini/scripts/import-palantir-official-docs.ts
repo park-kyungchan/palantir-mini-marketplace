@@ -4,6 +4,7 @@
 
 import * as crypto from "crypto";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 interface SitemapEntry {
@@ -26,7 +27,7 @@ interface DocRow {
   error?: string;
 }
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 const RESEARCH_ROOT = process.env.PALANTIR_OFFICIAL_RESEARCH_ROOT
   ? expandHome(process.env.PALANTIR_OFFICIAL_RESEARCH_ROOT)
   : path.join(HOME, ".claude", "research", "palantir-official");

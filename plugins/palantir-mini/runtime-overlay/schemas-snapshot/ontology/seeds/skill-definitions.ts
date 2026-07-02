@@ -19,12 +19,13 @@
  * @purpose seed SkillDefinitionRegistry from filesystem inventory
  */
 
+import * as os from "node:os";
 import {
   SKILL_DEFINITION_REGISTRY,
   skillDefinitionRid,
 } from "../primitives/skill-definition";
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 
 const PLUGIN_SKILLS_DIR = `${HOME}/.claude/plugins/palantir-mini/skills`;
 const USER_SKILLS_DIR = `${HOME}/.claude/skills`;

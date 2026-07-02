@@ -62,7 +62,7 @@ If the new handler still isn't visible after Option B, fall back to Option A.
 For new handlers, you can directly invoke the source file via Bash to confirm the code is correct (this bypasses MCP server entirely):
 
 ```bash
-PALANTIR_MINI_PROJECT=/home/palantirkc bun run plugins/palantir-mini/scripts/run.ts <handler-name> <args>
+PALANTIR_MINI_PROJECT=$HOME bun run plugins/palantir-mini/scripts/run.ts <handler-name> <args>
 ```
 
 This works for handlers that follow the run.ts dispatch pattern (most do). Useful for smoke-testing without session restart.

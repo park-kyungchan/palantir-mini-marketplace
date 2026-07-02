@@ -2,6 +2,7 @@
 // Compare generated palantir-official docs with legacy palantir-foundry mirrors.
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 interface OfficialRow {
@@ -35,7 +36,7 @@ interface MatchRow {
   verdict: "exact-url" | "near-content" | "legacy-only" | "official-only";
 }
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 const OFFICIAL_ROOT = path.join(HOME, ".claude", "research", "palantir-official");
 const LEGACY_ROOT = path.join(HOME, ".claude", "research", "palantir-foundry");
 const PLAN_ROOT = path.join(HOME, ".claude", "plans");

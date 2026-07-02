@@ -20,7 +20,7 @@ describe("PALANTIR_MINI_USER_REQUIREMENT_PROMPT_TEMPLATE.md", () => {
     const content = readFileSync(USER_REQUIREMENT_PROMPT_DOC_PATH, "utf8");
     expect(content).toContain("<USER_REQUIREMENT>");
     expect(content).toContain("</USER_REQUIREMENT>");
-    expect(content).toContain("/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini");
+    expect(content).toContain("~/palantir-mini-marketplace/plugins/palantir-mini");
     expect(content).toContain("park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/");
     expect(content).toContain("Installed runtime caches are consumer payloads only");
     expect(content).toContain("Do not edit:");

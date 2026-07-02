@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { safeSegment } from "../id-segment";
 import { isPalantirMiniMcpToolName, isReadOnlyBashCommand } from "../hooks/tool-classifier";
@@ -59,8 +60,9 @@ const ACTIVATION_SEGMENT_OPTS = {
   allowColon: false,
 } as const;
 
-const META_HARNESS_ROOT = "/home/palantirkc/meta-harness";
-const PALANTIR_MINI_MARKETPLACE_ROOT = "/home/palantirkc/palantir-mini-marketplace";
+const HOME_ROOT = process.env.HOME ?? os.homedir();
+const META_HARNESS_ROOT = path.join(HOME_ROOT, "meta-harness");
+const PALANTIR_MINI_MARKETPLACE_ROOT = path.join(HOME_ROOT, "palantir-mini-marketplace");
 const REPO_LOCAL_PLUGIN_OPT_OUT_MARKERS = [
   "do not use the palantir-mini plugin",
   "unless the user explicitly asks for palantir-mini",
@@ -185,7 +187,7 @@ function isPalantirMiniSourceWork(cwd: string | undefined, pluginRoot: string | 
     return true;
   }
   return (
-    isWithin(normalizedCwd, "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini") ||
+    isWithin(normalizedCwd, path.join(PALANTIR_MINI_MARKETPLACE_ROOT, "plugins", "palantir-mini")) ||
     isWithin(normalizedCwd, PALANTIR_MINI_MARKETPLACE_ROOT)
   );
 }

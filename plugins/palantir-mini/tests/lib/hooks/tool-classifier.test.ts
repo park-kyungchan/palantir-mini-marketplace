@@ -222,6 +222,31 @@ describe("classifyHookTool", () => {
     expect(isReadOnlyBashCommand("docker create img")).toBe(false);
   });
 
+  test("UNDER-BLOCK guard: script-interpreter invocations of mutation-named scripts classify as NOT read-only", () => {
+    // Path-anchored: interpreter starts the command, next arg is a script path whose
+    // basename starts with a mutation verb (or mentions governed-change).
+    expect(isReadOnlyBashCommand("bun run scripts/apply-governed-change.ts")).toBe(false);
+    expect(isReadOnlyBashCommand("node scripts/migrate-palantir-math-schema.ts")).toBe(false);
+    expect(isReadOnlyBashCommand("tsx scripts/sync-codex-adapter.ts")).toBe(false);
+  });
+
+  test("NON-OVER-BLOCK guard: script-interpreter invocations that are NOT mutation-named scripts stay read-only", () => {
+    // `bun test`, `bun run typecheck`, and `verify-*`/`gen-*` scripts must not be
+    // reclassified by the mutation-script-invocation rule above.
+    expect(isReadOnlyBashCommand("bun test tests/lib/hooks/tool-classifier.test.ts")).toBe(true);
+    expect(isReadOnlyBashCommand("bun run typecheck")).toBe(true);
+    expect(isReadOnlyBashCommand("bun run scripts/verify-no-semantic-root-fork.ts")).toBe(true);
+    // gen- scripts are intentionally left alone by this narrow rule (they write generated
+    // files, but that classification is out of scope for this fix and unchanged).
+    expect(isReadOnlyBashCommand("bun run scripts/gen-cartography.ts")).toBe(true);
+    expect(isReadOnlyBashCommand("bun run gen:cartography")).toBe(true);
+    expect(isReadOnlyBashCommand("bun run check:cartography")).toBe(true);
+    // vocabulary appearing later in the line (not the leading script-path argument) must
+    // not trigger the rule -- guards against reintroducing bd-003-style over-block.
+    expect(isReadOnlyBashCommand("bun test tests/apply-something.test.ts")).toBe(true);
+    expect(isReadOnlyBashCommand("grep bun run scripts/apply-foo.ts docs.md")).toBe(true);
+  });
+
   test("NON-OVER-BLOCK guard: read-only interpreter one-liners + read network/container verbs stay read-only", () => {
     // CRITICAL (bd-003): no blanket `python -c` / `node -e` denylist — these run
     // read-only one-liners far more often than writes. Locks the guarantee.

@@ -8,7 +8,7 @@
  * events.jsonl for each orphan found.
  *
  * kosmos events.jsonl is READ-ONLY. This script NEVER writes to it.
- * All output goes to /home/palantirkc/.palantir-mini/session/events.jsonl.
+ * All output goes to ~/.palantir-mini/session/events.jsonl.
  *
  * Usage:
  *   bun scripts/reconcile-orphan-events.ts              (dry-run, default)
@@ -21,6 +21,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as readline from "readline";
+import * as os from "os";
 import { appendEventAtomic } from "../../plugins/palantir-mini/lib/event-log/append.ts";
 import { eventId, sessionId, commitSha } from "../../plugins/palantir-mini/lib/event-log/types.ts";
 
@@ -28,7 +29,7 @@ import { eventId, sessionId, commitSha } from "../../plugins/palantir-mini/lib/e
 // Constants
 // ---------------------------------------------------------------------------
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 
 /** Source: kosmos events.jsonl — READ-ONLY */
 const KOSMOS_EVENTS = path.join(HOME, "kosmos/.palantir-mini/session/events.jsonl");
@@ -164,7 +165,7 @@ async function executeReconcile(orphans: OrphanLine[]): Promise<void> {
       throughWhich: {
         sessionId: sid,
         toolName:  tool,
-        cwd:       "/home/palantirkc/projects/kosmos",
+        cwd:       "~/projects/kosmos",
       },
       byWhom: {
         identity: "claude-code" as const,

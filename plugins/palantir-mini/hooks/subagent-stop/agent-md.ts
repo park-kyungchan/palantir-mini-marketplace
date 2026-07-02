@@ -3,12 +3,13 @@
 // Extracted from subagent-stop.ts during A.1 decomposition.
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { resolvePalantirMiniRoot } from "../../lib/config/root";
 
 export const AGENT_DIR_GLOBS = [
   ".claude/agents",
-  path.join(process.env.HOME ?? "/home/palantirkc", ".claude/agents"),
+  path.join(process.env.HOME ?? os.homedir(), ".claude/agents"),
   path.join(resolvePalantirMiniRoot(), "agents"),
 ];
 
@@ -20,7 +21,7 @@ export function findAgentMd(agentName: string, cwd: string): string | null {
   if (!agentName) return null;
   const candidates = [
     path.join(cwd, ".claude/agents", `${agentName}.md`),
-    path.join(process.env.HOME ?? "/home/palantirkc", ".claude/agents", `${agentName}.md`),
+    path.join(process.env.HOME ?? os.homedir(), ".claude/agents", `${agentName}.md`),
     path.join(resolvePalantirMiniRoot(), "agents", `${agentName}.md`),
   ];
   for (const c of candidates) {

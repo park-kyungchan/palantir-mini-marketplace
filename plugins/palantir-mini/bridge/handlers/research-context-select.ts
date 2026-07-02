@@ -2,6 +2,7 @@
 // Returns the smallest research/schema read set for Palantir-heavy tasks.
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import {
   resolveResearchAnchor,
@@ -59,7 +60,7 @@ interface ResearchContextSelectResult {
   runtimeGap?: string;
 }
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 const RESEARCH_ROOT = path.join(HOME, ".claude", "research");
 const OFFICIAL_ROOT = path.join(RESEARCH_ROOT, "palantir-official");
 const MANIFEST_PATH = path.join(OFFICIAL_ROOT, "_manifest.json");

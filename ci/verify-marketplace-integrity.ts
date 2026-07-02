@@ -26,7 +26,7 @@ function main(): void {
       upstreamAuthority?: string;
     };
     assert(
-      marker.authority === "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini",
+      marker.authority === "~/palantir-mini-marketplace/plugins/palantir-mini",
       ".ssot-authority.json authority must point at the canonical local plugin source",
       errors,
     );

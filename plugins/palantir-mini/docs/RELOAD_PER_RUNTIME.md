@@ -10,9 +10,9 @@
 
 ## Source vs Runtime Legend
 
-- Runtime-neutral local source checkout: `/home/palantirkc/palantir-mini-marketplace`, plugin root `plugins/palantir-mini/`.
+- Runtime-neutral local source checkout: `~/palantir-mini-marketplace`, plugin root `plugins/palantir-mini/`.
 - Upstream source of truth: `https://github.com/park-kyungchan/palantir-mini-marketplace`.
-- Codex marketplace registration should point at `/home/palantirkc/palantir-mini-marketplace` for local development.
+- Codex marketplace registration should point at `~/palantir-mini-marketplace` for local development.
 - Installed payloads such as `~/.codex/plugins/cache/**` are runtime consumers and must not be edited as semantic authority.
 - Claude installs via the directory-source marketplace (`~/.claude/plugins/cache`) and is active in this checkout. Gemini runtime install path is not active (contract-only / `runtime_gap`).
 
@@ -58,7 +58,7 @@ After runtime-surface changes, restart the Codex CLI process.
 
 ```bash
 # Local development source registration
-codex plugin marketplace add /home/palantirkc/palantir-mini-marketplace
+codex plugin marketplace add ~/palantir-mini-marketplace
 
 # Install or reinstall the plugin payload
 codex plugin add palantir-mini@palantir-mini-marketplace
@@ -106,10 +106,10 @@ prompt-front-door state for the session.
 
 ## Common pitfalls
 
-1. **Editing installed cache payloads** — never edit `~/.codex/plugins/cache/**` as semantic source. Edit `/home/palantirkc/palantir-mini-marketplace` and reinstall.
+1. **Editing installed cache payloads** — never edit `~/.codex/plugins/cache/**` as semantic source. Edit `~/palantir-mini-marketplace` and reinstall.
 2. **Expecting hot reload** — Codex must be restarted after plugin, MCP, hook, or skill changes.
 3. **Confusing silent bypass with no-call** — a silent adapter response reduces side effects after the hook starts; disabling hook/plugin loading in Codex config is the no-call mechanism.
-4. **Recreating runtime-owned source checkouts** — do not use `~/.codex/.tmp/marketplaces/palantir-mini-marketplace` as the working source. The working source is `/home/palantirkc/palantir-mini-marketplace`.
+4. **Recreating runtime-owned source checkouts** — do not use `~/.codex/.tmp/marketplaces/palantir-mini-marketplace` as the working source. The working source is `~/palantir-mini-marketplace`.
 
 ## Cross-References
 

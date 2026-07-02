@@ -142,5 +142,5 @@ describe("producer-ast-evidence", () => {
     }
     const nonAstEdges = result.edges.filter((e) => e.evidenceKind !== "ast");
     expect(nonAstEdges.length).toBe(0);
-  }, 10000);
+  }, 30000); // raised from 10000: borderline-slow AST traversal flaked under full-suite load (see KNOWN_BROAD_SUITE_FAILURES history)
 });

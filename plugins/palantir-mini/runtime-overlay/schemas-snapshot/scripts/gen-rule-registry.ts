@@ -19,9 +19,10 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import * as os from "os";
 import { execSync } from "child_process";
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 const RULES_DIRS = [
   { scope: "global" as const, dir: path.join(HOME, ".claude/rules") },
   // Project-scoped rules (discovered dynamically below)

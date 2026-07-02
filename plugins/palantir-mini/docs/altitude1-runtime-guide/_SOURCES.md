@@ -1,7 +1,7 @@
 # _SOURCES — live-source pointer index
 
 Every file the guide cites. Paths are relative to the plugin root
-`/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/` unless marked absolute.
+`~/palantir-mini-marketplace/plugins/palantir-mini/` unless marked absolute.
 **Pointer-not-copy**: grep the anchor, don't trust copied line numbers. **Verify before citing**:
 all paths below were `ls`-confirmed at authoring time; if a path moved, the disk wins — fix the
 pointer. (global CLAUDE.md §6.)

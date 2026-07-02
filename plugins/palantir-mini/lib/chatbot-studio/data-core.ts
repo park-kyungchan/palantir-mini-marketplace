@@ -32,21 +32,21 @@ const requestClarificationMechanicRef =
   requestClarification("constraintsNonGoals", "placeholder").card.decisionId;
 
 const PALANTIR_CHATBOT_STUDIO_SOURCE_REFS = [
-  "/home/palantirkc/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/tools.md",
+  "~/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
+  "~/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
+  "~/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md",
+  "~/.claude/research/palantir-official/foundry/chatbot-studio/tools.md",
 ] as const;
 
 const PALANTIR_ONTOLOGY_SOURCE_REFS = [
-  "/home/palantirkc/.claude/research/palantir-official/foundry/ontology/core-concepts.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/object-link-types/object-types-overview.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/object-link-types/link-types-overview.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/action-types/overview.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/functions/overview.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/interfaces/interface-overview.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/global-branching/overview.md",
-  "/home/palantirkc/.claude/research/palantir-official/foundry/aip-evals/ontology-edits.md",
+  "~/.claude/research/palantir-official/foundry/ontology/core-concepts.md",
+  "~/.claude/research/palantir-official/foundry/object-link-types/object-types-overview.md",
+  "~/.claude/research/palantir-official/foundry/object-link-types/link-types-overview.md",
+  "~/.claude/research/palantir-official/foundry/action-types/overview.md",
+  "~/.claude/research/palantir-official/foundry/functions/overview.md",
+  "~/.claude/research/palantir-official/foundry/interfaces/interface-overview.md",
+  "~/.claude/research/palantir-official/foundry/global-branching/overview.md",
+  "~/.claude/research/palantir-official/foundry/aip-evals/ontology-edits.md",
 ] as const;
 
 export type ChatbotStudioApprovalPolicy =
@@ -313,16 +313,16 @@ export function buildChatbotStudioSemanticBoundary(
       ]),
       contextBoundaryRef("GOVERNANCE", "Approval boundaries, review gates, and local publish analogue constraints.", [
         PALANTIR_CHATBOT_STUDIO_SOURCE_REFS[0],
-        "/home/palantirkc/.claude/research/palantir-official/foundry/global-branching/protecting-resources.md",
+        "~/.claude/research/palantir-official/foundry/global-branching/protecting-resources.md",
       ]),
       contextBoundaryRef("SECURITY", "Runtime separation and non-authorizing provider identity metadata.", [
-        "/home/palantirkc/.claude/research/palantir-official/foundry/ai-fde/security-and-governance.md",
+        "~/.claude/research/palantir-official/foundry/ai-fde/security-and-governance.md",
       ]),
       contextBoundaryRef("EVAL", "Evaluation and regression checks for local workbench outputs.", [
-        "/home/palantirkc/.claude/research/palantir-official/foundry/aip-evals/ontology-edits.md",
+        "~/.claude/research/palantir-official/foundry/aip-evals/ontology-edits.md",
       ]),
       contextBoundaryRef("RUNTIME", "Codex/Claude/Gemini runtime support status and reload evidence boundaries.", [
-        "/home/palantirkc/.claude/research/palantir-official/foundry/palantir-mcp/overview.md",
+        "~/.claude/research/palantir-official/foundry/palantir-mcp/overview.md",
         "docs/RUNTIME_LAYER_BOUNDARY.md",
       ]),
     ],
@@ -343,7 +343,7 @@ export function buildChatbotStudioSemanticBoundary(
         PALANTIR_ONTOLOGY_SOURCE_REFS[5],
       ]),
       ontologyBoundaryRef("ObjectView", "Object view presentation concept.", [
-        "/home/palantirkc/.claude/research/palantir-official/foundry/object-views/overview.md",
+        "~/.claude/research/palantir-official/foundry/object-views/overview.md",
       ]),
       ontologyBoundaryRef("ObjectSet", "Ontology object set concept used by tools and views.", [
         PALANTIR_ONTOLOGY_SOURCE_REFS[0],
@@ -367,7 +367,7 @@ export function buildChatbotStudioSemanticBoundary(
       "Local AIP Chatbot Studio is a one-developer analogue and does not claim Foundry SaaS parity.",
     ],
     noReferenceNoConfusionRules: [
-      "Semantic implementation claims must cite local Palantir research SSoT under /home/palantirkc/.claude/research/palantir-official/.",
+      "Semantic implementation claims must cite local Palantir research SSoT under ~/.claude/research/palantir-official/.",
       "Local derived palantir-mini vocabulary cannot override Palantir official/research authority.",
       "Generated docs, tool descriptions, and workbench output must not collapse Context Engineering layer names into Ontology primitive names.",
       "Gemini support remains runtime_gap/unsupported until native evidence exists.",
@@ -746,8 +746,17 @@ export function validateChatbotStudioDeclaration(
         "Semantic boundary must remain local-analogue-only and must not claim Foundry parity.",
       ));
     }
+    // sourceAuthorityRefs is always seeded (unconditionally, via `unique([...])` in
+    // buildChatbotStudioSemanticBoundary above) with PALANTIR_CHATBOT_STUDIO_SOURCE_REFS
+    // and PALANTIR_ONTOLOGY_SOURCE_REFS, both of which are canonicalized to the portable
+    // `~/.claude/research/palantir-official/...` string form in this same file. The only
+    // other contributors to sourceAuthorityRefs (conversation.universalEntryRef,
+    // conversation.ontologyContextRef, retrievalContext.sourceRefs) are optional/external
+    // and are never relied upon to satisfy this gate. So matching the canonical `~` form
+    // alone is correct and sufficient here; no home-directory expansion is needed because
+    // this check never touches the filesystem, it only inspects static metadata strings.
     if (!boundary.sourceAuthorityRefs.some((ref) =>
-      ref.includes("/home/palantirkc/.claude/research/palantir-official/")
+      ref.includes("~/.claude/research/palantir-official/")
     )) {
       issues.push(issue(
         "chatbot-studio.semantic-boundary-source-missing",

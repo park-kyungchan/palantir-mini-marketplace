@@ -93,7 +93,7 @@ On first onboarding, operators may place a document corpus at `<project>/.palant
 
 Populate `documents` with project-relevant references (BROWSE.md, INDEX.md, ontology docs, design specs) for Chatbot Studio retrieval. Each entry requires `documentId` (stable slug) and `sourcePath` (absolute or workspace-relative path).
 
-Project docs and `/home/palantirkc/docs/**` can be cited as reference evidence
+Project docs and `~/docs/**` can be cited as reference evidence
 only. Preserve `reference_only` / `not_promoted` semantics until an approved
 contract explicitly promotes a source.
 

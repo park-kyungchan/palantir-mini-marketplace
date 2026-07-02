@@ -7,9 +7,9 @@
 // getConvexClient().applyDiff() for each file's edges.
 //
 // Default SQLite DB paths:
-//   /home/palantirkc/.palantir-mini/impact-graph.db
-//   /home/palantirkc/projects/palantir-math/.palantir-mini/impact-graph.db
-//   /home/palantirkc/projects/mathcrew/.palantir-mini/impact-graph.db
+//   ~/.palantir-mini/impact-graph.db
+//   ~/projects/palantir-math/.palantir-mini/impact-graph.db
+//   ~/projects/mathcrew/.palantir-mini/impact-graph.db
 //
 // Idempotent: skips files where Convex contentHash already matches.
 // Dry-run: logs row counts and estimated edges without Convex writes.
@@ -19,6 +19,7 @@
 // Authority: sprint-061 plan §3.B.W1 Step E
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 // ─── Arg parsing ──────────────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ if (projectsArgValue) {
 
 // ─── Default DB paths ─────────────────────────────────────────────────────────
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 
 const DEFAULT_DB_PATHS = [
   path.join(HOME, ".palantir-mini", "impact-graph.db"),

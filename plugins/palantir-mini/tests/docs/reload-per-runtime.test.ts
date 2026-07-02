@@ -33,9 +33,9 @@ describe("RELOAD_PER_RUNTIME.md", () => {
     expect(pitfallEntries.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("should not document Claude reload commands in the Codex-only checkout", () => {
+  it("should document Claude reload commands now that Claude is an active adapter", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).not.toContain("/reload-plugins");
+    expect(content).toContain("/reload-plugins");
   });
 
   it("should reference hooks.json as SSoT for Codex CLI", () => {
@@ -56,9 +56,9 @@ describe("RELOAD_PER_RUNTIME.md", () => {
     expect(content).toContain("Codex must be restarted");
   });
 
-  it("should document exactly the active Codex runtime family", () => {
+  it("should document exactly the active Codex+Claude runtime family", () => {
     content = content ?? readFileSync(DOC_PATH, "utf-8");
-    expect(content).toContain("Current local install scope: Codex only");
+    expect(content).toContain("Current local install scope: Codex AND Claude");
     expect(content).not.toContain("gemini extensions validate");
     expect(content).not.toContain("claude plugin");
   });

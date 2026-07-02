@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import * as os from "node:os";
 import { resolve } from "node:path";
 
 const PLUGIN_ROOT = resolve(import.meta.dir, "..", "..");
-const LOCAL_PLUGIN_SOURCE = "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini";
+const LOCAL_PLUGIN_SOURCE = "~/palantir-mini-marketplace/plugins/palantir-mini";
 const UPSTREAM_MARKETPLACE_SOURCE = "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini";
+const RUNTIME_BOUNDARY_AUTHORITY = "~/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json";
 
 interface RuntimeBoundaryContract {
   schemaVersion: string;
@@ -29,9 +31,28 @@ interface RuntimeBoundaryContract {
   }>;
 }
 
-function loadContract(): RuntimeBoundaryContract {
+/**
+ * Expand a leading `~` in a `~`-form authority path to the real home dir.
+ * The runtime-boundary contract itself is an out-of-repo, machine-local
+ * artifact (Lead-approved design: the contract STAYS out-of-repo). Its
+ * path in .ssot-authority.json is stored in canonical `~` form; resolve it
+ * here purely to check for local presence before reading contract content.
+ */
+function expandHome(p: string): string {
+  if (p === "~") return os.homedir();
+  if (p.startsWith("~/") || p.startsWith("~\\")) {
+    return resolve(os.homedir(), p.slice(2));
+  }
+  return p;
+}
+
+function resolvedRuntimeBoundaryContractPath(): string {
   const marker = loadSsotAuthority();
-  const contractPath = String(marker.runtimeBoundaryAuthority);
+  return expandHome(String(marker.runtimeBoundaryAuthority));
+}
+
+function loadContract(): RuntimeBoundaryContract {
+  const contractPath = resolvedRuntimeBoundaryContractPath();
   return JSON.parse(readFileSync(contractPath, "utf8")) as RuntimeBoundaryContract;
 }
 
@@ -40,17 +61,27 @@ function loadSsotAuthority(): Record<string, unknown> {
   return JSON.parse(readFileSync(markerPath, "utf8")) as Record<string, unknown>;
 }
 
+// The runtime-boundary contract is an out-of-repo, machine-local artifact
+// (Lead-approved design: it STAYS out-of-repo). It will not exist on every
+// machine that checks out this repo. Existence-gate the two tests whose
+// assertions require reading its content; the third test (marker VALUES
+// only) always runs since it is fully machine-neutral.
+const runtimeBoundaryContractPresent = existsSync(resolvedRuntimeBoundaryContractPath());
+if (!runtimeBoundaryContractPresent) {
+  console.log(
+    `[runtime-boundary.test] skipping contract-content assertions: ${resolvedRuntimeBoundaryContractPath()} is absent on this machine`,
+  );
+}
+
 describe("runtime-neutral boundary contract", () => {
-  test("keeps neutral core separate from runtime overlays", () => {
+  test.skipIf(!runtimeBoundaryContractPresent)("keeps neutral core separate from runtime overlays", () => {
     const contract = loadContract();
 
     expect(contract.schemaVersion).toBe("palantir-mini/runtime-boundary-contract/v1");
     expect(contract.neutralCore.root).toBe(".palantir-mini/core");
     expect(contract.sourceAuthority.canonicalPluginSource).toBe(LOCAL_PLUGIN_SOURCE);
     expect(contract.sourceAuthority.upstreamPluginSource).toBe(UPSTREAM_MARKETPLACE_SOURCE);
-    expect(contract.sourceAuthority.runtimeBoundaryContract).toBe(
-      "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
-    );
+    expect(contract.sourceAuthority.runtimeBoundaryContract).toBe(RUNTIME_BOUNDARY_AUTHORITY);
     expect(contract.sourceAuthority.codexInstallPath).toContain(
       "~/.codex/plugins/cache/palantir-mini-marketplace",
     );
@@ -76,7 +107,7 @@ describe("runtime-neutral boundary contract", () => {
     }
   });
 
-  test("records legacy runtime-specific plugin surfaces as migration debt", () => {
+  test.skipIf(!runtimeBoundaryContractPresent)("records legacy runtime-specific plugin surfaces as migration debt", () => {
     const contract = loadContract();
     const debtPaths = contract.legacyMigrationDebt.map((entry) => entry.path);
 
@@ -97,9 +128,7 @@ describe("runtime-neutral boundary contract", () => {
 
     expect(marker.authority).toBe(LOCAL_PLUGIN_SOURCE);
     expect(marker.upstreamAuthority).toBe(UPSTREAM_MARKETPLACE_SOURCE);
-    expect(marker.runtimeBoundaryAuthority).toBe(
-      "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
-    );
+    expect(marker.runtimeBoundaryAuthority).toBe(RUNTIME_BOUNDARY_AUTHORITY);
     expect(String(marker.runtimeBoundaryAuthority)).not.toContain("/palantir-mini/.palantir-mini/");
     expect(marker.runtimeBoundaryAuthorityScope).toContain("runtime-neutral local checkout");
   });

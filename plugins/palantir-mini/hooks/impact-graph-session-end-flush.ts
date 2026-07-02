@@ -8,11 +8,12 @@
 //
 // Project discovery:
 //   1. ~/.claude/plugins/palantir-mini/registries/projects.json (if exists)
-//   2. Fallback: scan known project roots under /home/palantirkc
+//   2. Fallback: scan known project roots under $HOME (or os.homedir() if HOME unset)
 //
 // Authority: sprint-061 plan §3.B.W1 Step D + operating model §4.5.6a.3
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { emit } from "../scripts/log";
 import { getConvexClient } from "../lib/impact-graph/convex-client";
@@ -41,7 +42,7 @@ const PLUGIN_ROOT = path.resolve(
   "..",
 );
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 
 /** Fallback project roots when projects.json absent. */
 const FALLBACK_ROOTS = [

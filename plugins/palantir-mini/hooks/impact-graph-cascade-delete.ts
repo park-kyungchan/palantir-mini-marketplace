@@ -14,6 +14,7 @@
 
 import * as path from "path";
 import * as fs from "fs";
+import * as os from "os";
 import { emit } from "../scripts/log";
 import { getConvexClient } from "../lib/impact-graph/convex-client";
 
@@ -117,7 +118,7 @@ export default async function impactGraphCascadeDelete(
   }
 
   // Resolve absolute paths and cascade-delete from Convex
-  const home = process.env.HOME ?? "/home/palantirkc";
+  const home = process.env.HOME ?? os.homedir();
   const deletedFiles: string[] = [];
   let totalDeleted = 0;
 

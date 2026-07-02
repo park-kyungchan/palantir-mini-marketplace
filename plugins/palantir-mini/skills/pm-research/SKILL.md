@@ -81,7 +81,7 @@ Success: output is read-only (no local file modified); all tracked entries repor
 Current exposed MCP surface:
 
 0. **`research_context_select`** — minimal context-injection router. Given a task query, returns only the necessary research/schema read set plus latest watch targets. Use before broad research reads whenever the task is about Palantir AIP/Foundry, Claude capability facts, skills, or interaction. Fresh-process fallback if the tool is not yet reloaded:
-   `bun -e 'import select from "/home/palantirkc/.claude/plugins/palantir-mini/bridge/handlers/research-context-select.ts"; console.log(JSON.stringify(await select({ query: process.argv.slice(1).join(" "), topic: "palantir-official", includeSchemas: true, includeLatestWatch: true }), null, 2));' -- "<task query>"`.
+   `bun -e "import select from '$HOME/.claude/plugins/palantir-mini/bridge/handlers/research-context-select.ts'; console.log(JSON.stringify(await select({ query: process.argv.slice(1).join(' '), topic: 'palantir-official', includeSchemas: true, includeLatestWatch: true }), null, 2));" -- "<task query>"`.
 1. **`research_library_refresh`** — reads `_manifest.json`, accepts both `docs[]` and legacy `entries[]`, identifies stale entries using `lastVerified` / legacy `fetched`, supports `dryRun`, and emits `learning_captured` events only on non-dry-run stale entries.
 2. Compatibility input: callers may pass `libraryRoot` (preferred) or `source` (`palantir-official`, `palantir-foundry`, `claude-code`, `palantir-vision`, `interaction`, `skills`, `all`).
 3. Non-dry-run fetch is best-effort and only uses manifest entries that provide a direct `url` field. Legacy `source` URLs are provenance, not automatically safe markdown fetch targets.
@@ -154,7 +154,7 @@ NOT for re-fetching (use `refresh`) or upstream content drift (use `diff`).
 
 ```
 mcp__palantir-mini__research_library_refresh({
-  libraryRoot: "/home/palantirkc/.claude/research/palantir-official",
+  libraryRoot: "~/.claude/research/palantir-official",
   dryRun: true, staleThresholdDays: 30
 })
 ```

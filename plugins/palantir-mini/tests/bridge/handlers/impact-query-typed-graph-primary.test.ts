@@ -22,7 +22,7 @@ import * as path from "path";
 import impactQuery from "../../../bridge/handlers/impact-query";
 import { clearGraphCache } from "../../../lib/impact-query/graph-cache";
 
-const ROOT = "/home/palantirkc/palantir-mini-marketplace";
+const ROOT = path.join(os.homedir(), "palantir-mini-marketplace");
 const IMPLEMENTER_RID = "pm.self.ontology/object-type/agent/implementer";
 
 describe("impact_query — OE-9 typed-graph-primary propagation", () => {

@@ -22,6 +22,20 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 
+// Resolve the pm-recap module specifier at runtime relative to this test
+// file so mock.module() targets the same absolute path the production code
+// resolves via `await import("../../bridge/handlers/pm-recap")` from
+// lib/runtime-overlay/memory-reflect.ts (2 levels up to plugin root, then
+// bridge/handlers/pm-recap). This test file lives 3 levels below the plugin
+// root (tests/lib/runtime-overlay/), so the equivalent path from here is
+// "../../../bridge/handlers/pm-recap". A hardcoded absolute path here would
+// silently fail to intercept on any machine whose repo isn't checked out at
+// that exact location (including CI/sandbox).
+const PM_RECAP_MODULE_SPECIFIER = path.resolve(
+  import.meta.dir,
+  "../../../bridge/handlers/pm-recap",
+);
+
 // Deterministic pm-recap so the digest is stable across calls (the real recap
 // stamps generatedAt = new Date().toISOString(), which would never let the
 // hash-gate report "unchanged"). This mock owns the pm-recap module for this
@@ -34,7 +48,7 @@ const FIXED_RECAP = {
   }),
 };
 mock.module(
-  "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/bridge/handlers/pm-recap",
+  PM_RECAP_MODULE_SPECIFIER,
   () => FIXED_RECAP,
 );
 
@@ -117,7 +131,7 @@ describe("reflect writes to dedicated cache file", () => {
 
     // Swap the mock to a different digest → hash changes → rewrite.
     mock.module(
-      "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/bridge/handlers/pm-recap",
+      PM_RECAP_MODULE_SPECIFIER,
       () => ({
         default: async () => ({
           generatedAt: "SECOND-TS",
@@ -137,7 +151,7 @@ describe("reflect writes to dedicated cache file", () => {
 
     // Restore the shared fixture for the remaining tests.
     mock.module(
-      "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/bridge/handlers/pm-recap",
+      PM_RECAP_MODULE_SPECIFIER,
       () => FIXED_RECAP,
     );
   });

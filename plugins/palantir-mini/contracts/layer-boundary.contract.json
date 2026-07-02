@@ -2,13 +2,13 @@
   "schemaVersion": "palantir-mini/layer-boundary-contract/v1",
   "contractId": "layer-boundary-v1",
   "sourceAuthority": {
-    "canonicalMarketplaceRoot": "/home/palantirkc/palantir-mini-marketplace",
-    "canonicalPluginSource": "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini",
+    "canonicalMarketplaceRoot": "~/palantir-mini-marketplace",
+    "canonicalPluginSource": "~/palantir-mini-marketplace/plugins/palantir-mini",
     "upstreamMarketplaceSource": "https://github.com/park-kyungchan/palantir-mini-marketplace",
     "upstreamPluginSource": "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini",
     "codexRuntimeCache": "~/.codex/plugins/cache/palantir-mini-marketplace/**",
     "claudeRuntimeCache": "~/.claude/plugins/cache/palantir-mini-marketplace/**",
-    "runtimeBoundaryContract": "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
+    "runtimeBoundaryContract": "~/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
     "releasePath": "branch -> pull request -> merge to main -> Codex marketplace refresh/install"
   },
   "llmProvider": {
@@ -71,7 +71,7 @@
     "mayAuthorizeProtectedMutation": true,
     "deterministicForGate": true,
     "ownedPaths": [
-      "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/**"
+      "~/palantir-mini-marketplace/plugins/palantir-mini/**"
     ],
     "readOnlyPaths": [
       "~/.codex/plugins/cache/palantir-mini-marketplace/**"
@@ -156,13 +156,13 @@
     "mayAuthorizeProtectedMutation": true,
     "deterministicForGate": true,
     "ownedPaths": [
-      "/home/palantirkc/palantir-mini-marketplace/**"
+      "~/palantir-mini-marketplace/**"
     ],
     "readOnlyPaths": [
-      "/home/palantirkc/palantir-mini-marketplace/.git/**"
+      "~/palantir-mini-marketplace/.git/**"
     ],
     "forbiddenPaths": [
-      "/home/palantirkc/palantir-mini-marketplace/.palantir-mini/session/**"
+      "~/palantir-mini-marketplace/.palantir-mini/session/**"
     ],
     "allowedActions": [
       "branch",

@@ -114,7 +114,7 @@ mcp__palantir-mini__ontology_context_query({
    contract.
 6. Route only after approved `semanticIntentContractRef` and
    `digitalTwinChangeContractRef` are available.
-7. Use project docs and `/home/palantirkc/docs/**` only as
+7. Use project docs and `~/docs/**` only as
    `reference_only` / `not_promoted` evidence unless a later approved contract
    explicitly promotes them.
 

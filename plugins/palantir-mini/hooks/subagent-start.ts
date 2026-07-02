@@ -19,6 +19,7 @@
 
 import * as crypto from "crypto";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { emit } from "../scripts/log";
 import { resolvePalantirMiniRoot } from "../lib/config/root";
@@ -72,7 +73,7 @@ export function resolveAgentName(p: HookPayload, knownAgentNames: Set<string>): 
  */
 export function collectKnownAgentNames(cwd: string): Set<string> {
   const names = new Set<string>();
-  const home       = process.env.HOME ?? "/home/palantirkc";
+  const home       = process.env.HOME ?? os.homedir();
   const pluginRoot = resolvePalantirMiniRoot();
   const dirs: string[] = [
     path.join(cwd, ".claude", "agents"),
@@ -161,7 +162,7 @@ export function parseEnvBlock(content: string): Record<string, string> {
  *   3. <palantir-mini-root>/agents/<name>.md (plugin-bundled)
  */
 export function agentMdCandidates(agentName: string, cwd: string): string[] {
-  const home       = process.env.HOME ?? "/home/palantirkc";
+  const home       = process.env.HOME ?? os.homedir();
   const pluginRoot = resolvePalantirMiniRoot();
   const candidates: string[] = [
     path.join(cwd, ".claude", "agents", `${agentName}.md`),

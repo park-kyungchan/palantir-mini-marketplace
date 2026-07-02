@@ -220,10 +220,10 @@ describe("Chatbot Studio local data core", () => {
     expect(declaration.semanticBoundary.providerIdentityAuthority).toBe("metadata-only");
     expect(declaration.semanticBoundary.mutationAuthority).toBe("approved-dtc-only");
     expect(sourceText).toContain(
-      "/home/palantirkc/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
+      "~/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
     );
     expect(sourceText).toContain(
-      "/home/palantirkc/.claude/research/palantir-official/foundry/ontology/core-concepts.md",
+      "~/.claude/research/palantir-official/foundry/ontology/core-concepts.md",
     );
     expect(warningText).toContain("Context Engineering");
     expect(warningText).toContain("ObjectType");

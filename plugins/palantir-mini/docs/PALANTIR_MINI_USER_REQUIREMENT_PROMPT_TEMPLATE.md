@@ -29,7 +29,7 @@ intent instead of silently proceeding as if the plugin surface worked.
 
 Canonical source rules:
 - The canonical palantir-mini source is:
-  /home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini
+  ~/palantir-mini-marketplace/plugins/palantir-mini
 - The GitHub source is:
   park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/
 - Installed runtime caches are consumer payloads only. Do not edit:

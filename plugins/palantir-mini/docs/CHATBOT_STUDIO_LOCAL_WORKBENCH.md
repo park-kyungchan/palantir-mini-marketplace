@@ -28,7 +28,7 @@ These layers are related but not interchangeable. A Chatbot Studio action tool
 is not an Ontology `ActionType`; application state and retrieval context are not
 Ontology primitive declarations; provider/runtime identity is metadata, not
 authority. Semantic implementation claims must cite local Palantir research SSoT
-under `/home/palantirkc/.claude/research/palantir-official/` before they are
+under `~/.claude/research/palantir-official/` before they are
 promoted into contracts, schemas, docs, or handler descriptions.
 
 ## Callable Shape

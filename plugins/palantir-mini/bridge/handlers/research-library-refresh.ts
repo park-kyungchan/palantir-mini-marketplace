@@ -2,6 +2,7 @@
 // Dry-run/live refresh bridge for manifest-backed research libraries.
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { iterateDocs } from "./research_library_refresh/iterate-docs";
 import type {
@@ -12,7 +13,7 @@ import type {
   ResearchLibrarySource,
 } from "./research_library_refresh/types";
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 const RESEARCH_ROOT = path.join(HOME, ".claude", "research");
 
 const SOURCE_DIRS: Record<Exclude<ResearchLibrarySource, "all">, string> = {
