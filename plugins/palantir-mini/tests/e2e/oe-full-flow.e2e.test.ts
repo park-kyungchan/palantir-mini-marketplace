@@ -93,7 +93,7 @@ import type { DigitalTwinChangeContract } from "../../lib/lead-intent/contracts"
 import { handleOntologyEngineeringWorkflow } from "../../bridge/handlers/pm-ontology-engineering-workflow";
 import getOntology from "../../bridge/handlers/get-ontology";
 import { projectPrimitiveRid } from "../../lib/actions/project-primitive-rid";
-import { assessOntologyEngineeringWorkflowHook } from "../../hooks/ontology-engineering-workflow-enforcement-gate";
+import { assessOntologyEngineeringWorkflowHook } from "../../hooks/gates/ontology-engineering-workflow-enforcement-gate.impl";
 import {
   ONTOLOGY_ENGINEERING_WORKFLOW_SCHEMA_VERSION,
   type OntologyEngineeringWorkflowState,

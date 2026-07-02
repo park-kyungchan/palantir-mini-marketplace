@@ -5,7 +5,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import promptDtcEnforcementGate, {
   __test__,
-} from "../../hooks/prompt-dtc-enforcement-gate";
+} from "../../hooks/gates/prompt-dtc-enforcement-gate.impl";
 import {
   createPromptEnvelope,
   PromptFrontDoorStore,

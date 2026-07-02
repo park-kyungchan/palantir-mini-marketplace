@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { assessOntologyEngineeringWorkflowHook } from "../../hooks/ontology-engineering-workflow-enforcement-gate";
+import { assessOntologyEngineeringWorkflowHook } from "../../hooks/gates/ontology-engineering-workflow-enforcement-gate.impl";
 import {
   ONTOLOGY_ENGINEERING_WORKFLOW_SCHEMA_VERSION,
   type OntologyEngineeringWorkflowState,

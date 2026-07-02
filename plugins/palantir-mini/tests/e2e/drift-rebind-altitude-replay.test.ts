@@ -19,7 +19,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import promptDtcEnforcementGate from "../../hooks/prompt-dtc-enforcement-gate";
+import promptDtcEnforcementGate from "../../hooks/gates/prompt-dtc-enforcement-gate.impl";
 import { handleOntologyEngineeringWorkflow } from "../../bridge/handlers/pm-ontology-engineering-workflow";
 import getOntology from "../../bridge/handlers/get-ontology";
 import { readEvents } from "../../lib/event-log/read";

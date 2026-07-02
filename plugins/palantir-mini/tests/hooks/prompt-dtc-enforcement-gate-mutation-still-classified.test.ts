@@ -91,7 +91,7 @@ describe("gate_behavior_regression", () => {
   test("default mode + generic mutation prompt → scoped advisory, not FDE skip", async () => {
     delete process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE;
 
-    const mod = await import("../../hooks/prompt-dtc-enforcement-gate");
+    const mod = await import("../../hooks/gates/prompt-dtc-enforcement-gate.impl");
     const gate = mod.default;
 
     const result = await gate({
@@ -108,7 +108,7 @@ describe("gate_behavior_regression", () => {
   test("mode=advisory + mutation-only prompt → gate proceeds to assess (not FDE skip)", async () => {
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "advisory";
 
-    const mod = await import("../../hooks/prompt-dtc-enforcement-gate");
+    const mod = await import("../../hooks/gates/prompt-dtc-enforcement-gate.impl");
     const gate = mod.default;
 
     const result = await gate({
@@ -128,7 +128,7 @@ describe("gate_behavior_regression", () => {
   test("mode=advisory + empty prompt → gate proceeds normally (no FDE skip)", async () => {
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "advisory";
 
-    const mod = await import("../../hooks/prompt-dtc-enforcement-gate");
+    const mod = await import("../../hooks/gates/prompt-dtc-enforcement-gate.impl");
     const gate = mod.default;
 
     const result = await gate({
@@ -150,7 +150,7 @@ describe("no_exit_2_from_gate", () => {
   test("gate never throws for any mutation fixture in advisory mode", async () => {
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "advisory";
 
-    const mod = await import("../../hooks/prompt-dtc-enforcement-gate");
+    const mod = await import("../../hooks/gates/prompt-dtc-enforcement-gate.impl");
     const gate = mod.default;
 
     for (const prompt of MUTATION_FIXTURES) {
