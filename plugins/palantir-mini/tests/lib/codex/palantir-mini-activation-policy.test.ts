@@ -5,6 +5,14 @@ import * as path from "node:path";
 import { decideCodexPalantirMiniActivation } from "../../../lib/codex/palantir-mini-activation-policy";
 import { createPromptEnvelope, PromptFrontDoorStore } from "../../../lib/prompt-front-door";
 
+// Mirrors the HOME resolution in lib/codex/palantir-mini-activation-policy.ts
+// (META_HARNESS_ROOT / PALANTIR_MINI_MARKETPLACE_ROOT) so these root-sensitive
+// fixtures stay correct on any machine, not just the author machine where
+// HOME=/home/palantirkc.
+const HOME_ROOT = process.env.HOME ?? os.homedir();
+const META_HARNESS_CWD = path.join(HOME_ROOT, "meta-harness");
+const PALANTIR_MINI_MARKETPLACE_CWD = path.join(HOME_ROOT, "palantir-mini-marketplace");
+
 const tmpDirs: string[] = [];
 
 function makePluginRoot(): string {
@@ -81,7 +89,7 @@ describe("Codex palantir-mini activation policy", () => {
     const decision = decideCodexPalantirMiniActivation({
       eventName: "PermissionRequest",
       policyEventName: "PreToolUse",
-      cwd: "/home/palantirkc/meta-harness",
+      cwd: META_HARNESS_CWD,
       pluginRoot,
       prompt: "Use $harness and write a plan.",
       toolName: "apply_patch",
@@ -305,7 +313,7 @@ describe("Codex palantir-mini activation policy", () => {
     const decision = decideCodexPalantirMiniActivation({
       eventName: "Stop",
       policyEventName: "Stop",
-      cwd: "/home/palantirkc/palantir-mini-marketplace",
+      cwd: PALANTIR_MINI_MARKETPLACE_CWD,
       pluginRoot,
     });
 

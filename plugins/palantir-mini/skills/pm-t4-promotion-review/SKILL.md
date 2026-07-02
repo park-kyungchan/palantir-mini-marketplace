@@ -31,7 +31,7 @@ This skill complements `/palantir-mini:pm-value-audit --three-questions` (W2.C) 
 ```
 mcp__palantir-mini__pm_substrate_query({
   mode: "by-grade",
-  project: "/home/palantirkc",
+  project: "~",
   gradeFilter: "T4",
   windowDays: 30
 })
@@ -55,7 +55,7 @@ For each T4 event, extract `withWhat.refinementTarget.{kind, filePathOrRid, desc
 ```
 mcp__palantir-mini__pm_substrate_query({
   mode: "lineage",
-  project: "/home/palantirkc",
+  project: "~",
   filter: { byRefinementTarget: <kind>, valueGrade: "T4" }
 })
 ```

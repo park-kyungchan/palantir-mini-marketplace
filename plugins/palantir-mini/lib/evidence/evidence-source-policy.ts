@@ -1,3 +1,4 @@
+import * as os from "node:os";
 import * as path from "node:path";
 import type { FDEOntologyEngineeringPhase } from "../fde-ontology-engineering/types";
 import { findEvidencePromotionRecord } from "./evidence-promotion-ledger";
@@ -77,7 +78,7 @@ export interface EvidenceSourcePolicyConfig {
 }
 
 export const DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG: EvidenceSourcePolicyConfig = {
-  homeDocsRoot: "/home/palantirkc/docs",
+  homeDocsRoot: path.join(process.env.HOME ?? os.homedir(), "docs"),
   docFilenames: ["BROWSE.md", "INDEX.md", "CLAUDE.md", "AGENTS.md", "GEMINI.md"],
   docExtensions: [".md", ".mdx", ".txt", ".json", ".yaml", ".yml"],
   projectDocSegments: ["docs", "ontology", ".palantir-mini"],
@@ -200,7 +201,7 @@ export function classifyEvidenceSource(
       true,
       "home-doc",
       normalizedPath,
-      "/home/palantirkc/docs evidence is allowed as long-term reference evidence only.",
+      `${homeDocsRoot} evidence is allowed as long-term reference evidence only.`,
       input.sourcePath,
     );
   }
@@ -221,7 +222,7 @@ export function classifyEvidenceSource(
     false,
     "unsupported",
     normalizedPath,
-    "Only project documentation and /home/palantirkc/docs/** documentation are accepted by this policy.",
+    `Only project documentation and ${homeDocsRoot}/** documentation are accepted by this policy.`,
     input.sourcePath,
   );
 }

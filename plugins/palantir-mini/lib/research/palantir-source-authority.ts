@@ -56,7 +56,6 @@ export const DEFAULT_PALANTIR_SOURCE_AUTHORITY_CONFIG: PalantirSourceAuthorityCo
   ],
   localResearchPathPrefixes: [
     "~/.claude/research/palantir-",
-    "/home/palantirkc/.claude/research/palantir-",
   ],
   localResearchPathMarker: "/.claude/research/palantir-",
   officialUrlProtocol: "https:",

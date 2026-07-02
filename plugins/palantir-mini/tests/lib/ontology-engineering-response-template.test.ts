@@ -207,7 +207,7 @@ describe("palantir-mini workflow response requirements", () => {
       "durable subagent .md output 상태: N/A - 이 단위 테스트 응답은 subagent를 사용하지 않았습니다.",
       "native/runtime gap 여부: Codex/Gemini runtime gap은 runtime-native smoke evidence 없이는 parity로 주장하지 않습니다. hook-intent source는 plugin hooks.json SSoT이고 Codex는 adapter automatic live-read로 반영합니다. MCP/tool availability, skill/extension availability, subagent/lifecycle evidence를 함께 보고합니다.",
       "SSoT 판단 근거:",
-      "- source/ref: /home/palantirkc/.claude/research/BROWSE.md, /home/palantirkc/.claude/research/INDEX.md, /home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
+      "- source/ref: ~/.claude/research/BROWSE.md, ~/.claude/research/INDEX.md, ~/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
       "  provenance/currentness: research router BROWSE.md/INDEX.md와 palantir-official plugin snapshot 기준이며 live official-doc currentness는 별도 확인이 필요합니다. plugin source가 workflow authority이고 generated mirrors are non-authority입니다.",
       "  used-for judgment: Palantir AIP Architecture, Palantir AIP Chatbot Studio application state, Chatbot Studio retrieval context, Chatbot Studio tools, AI FDE turn evidence를 Ontology 및 Context Engineering 판단에 연결합니다.",
       "  confidence/limit: source evidence는 확인되었지만 Codex runtime gap과 live refresh 한계가 남아 있습니다.",

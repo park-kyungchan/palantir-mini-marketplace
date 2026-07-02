@@ -253,6 +253,30 @@ export function isReadOnlyBashCommand(command: string): boolean {
   }
   if (/\b(pip|pip3|pipx)\s+(install|uninstall)\b/.test(trimmed)) return false;
 
+  // Script-interpreter invocations of mutation-named scripts. Governance/apply scripts
+  // (e.g. `bun run scripts/apply-governed-change.ts`) don't match any verb/redirect
+  // pattern above, so they'd otherwise default-allow as read-only. This is a narrow,
+  // path-anchored denylist: the interpreter must start the command (or a `;`/`&&`/`||`/`|`
+  // chained sub-command), and the very next path-like argument's basename must start with
+  // a mutation verb or mention "governed-change" -- NOT a substring match anywhere on the
+  // line. This deliberately does NOT match `bun test ...`, `bun run typecheck`,
+  // `bun run scripts/verify-*.ts`, or `bun run scripts/gen-*.ts` (basename prefixes not in
+  // the list below), and does not re-introduce the bd-003 over-block pathology because it
+  // only fires on an actual leading script-path invocation, not vocabulary anywhere in the line.
+  const scriptInvocationMatch =
+    /(?:^|[;&|(]\s*)(?:bun\s+run|bunx|bun|node|npx|tsx)(?:\s+-{1,2}[A-Za-z0-9][\w-]*)*\s+([^\s"';&|]*\/[^\s"';&|]+)/.exec(
+      trimmed,
+    );
+  const scriptInvocationBasename = scriptInvocationMatch?.[1]?.split("/").pop();
+  if (
+    scriptInvocationBasename !== undefined &&
+    /^(apply|migrate|sync|commit|write|mutate|delete|remove|register)-|governed-change/.test(
+      scriptInvocationBasename,
+    )
+  ) {
+    return false;
+  }
+
   // git WRITE subcommands (read subcommands status/diff/show/log/... fall through to allow).
   if (/\bgit\s+(add|commit|push|stash|merge|rebase|checkout|switch|reset|clean|pull|restore|tag|am|apply|cherry-pick|revert|mv|rm|fetch|init|clone|worktree|config|update-ref)\b/.test(trimmed)) {
     return false;

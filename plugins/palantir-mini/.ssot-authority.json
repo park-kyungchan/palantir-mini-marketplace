@@ -1,8 +1,8 @@
 {
   "kind": "palantir-mini-workflow-authority",
-  "version": "1.7.0",
-  "asOf": "2026-06-15",
-  "authority": "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini",
+  "version": "1.8.0",
+  "asOf": "2026-07-02",
+  "authority": "~/palantir-mini-marketplace/plugins/palantir-mini",
   "designAuthority": {
     "path": "harness-upstream/ssot/palantir",
     "role": "design-grounding (the WHY behind 9-axis/DTC/OSDK-binding/lineage)",
@@ -10,13 +10,13 @@
     "router": "harness-upstream/ssot/README.md"
   },
   "upstreamAuthority": "github:park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini",
-  "runtimeBoundaryAuthority": "/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
+  "runtimeBoundaryAuthority": "~/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json",
   "runtimeBoundaryAuthorityScope": "Runtime-neutral boundary contract only; canonical plugin workflow source remains the runtime-neutral local checkout backed by the private marketplace remote.",
   "codexInstallPath": "~/.codex/plugins/cache/palantir-mini-marketplace/palantir-mini/<version>/",
   "consumerRuntimes": [
     {
       "runtime": "codex-cli",
-      "consumesVia": "Codex marketplace registration for /home/palantirkc/palantir-mini-marketplace during local development or palantir-mini@palantir-mini-marketplace after merge; Codex protocol ownership stays under ~/.codex/**"
+      "consumesVia": "Codex marketplace registration for ~/palantir-mini-marketplace during local development or palantir-mini@palantir-mini-marketplace after merge; Codex protocol ownership stays under ~/.codex/**"
     }
   ],
   "forbiddenForks": [

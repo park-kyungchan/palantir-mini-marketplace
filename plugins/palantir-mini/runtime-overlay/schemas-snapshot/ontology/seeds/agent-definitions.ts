@@ -24,13 +24,14 @@
  * @purpose seed AgentDefinitionRegistry from filesystem inventory
  */
 
+import * as os from "node:os";
 import {
   AGENT_DEFINITION_REGISTRY,
   agentDefinitionRid,
   type AgentDefinitionDeclaration,
 } from "../primitives/agent-definition";
 
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 
 const PLUGIN_AGENTS_DIR = `${HOME}/.claude/plugins/palantir-mini/agents`;
 const USER_AGENTS_DIR = `${HOME}/.claude/agents`;

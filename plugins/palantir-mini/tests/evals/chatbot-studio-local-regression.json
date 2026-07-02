@@ -266,12 +266,12 @@
       "providerIdentityAuthority": "metadata-only",
       "mutationAuthority": "approved-dtc-only",
       "sourceAuthorityRefs": [
-        "/home/palantirkc/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
-        "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
-        "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md",
-        "/home/palantirkc/.claude/research/palantir-official/foundry/ontology/core-concepts.md",
-        "/home/palantirkc/.claude/research/palantir-official/foundry/object-link-types/object-types-overview.md",
-        "/home/palantirkc/.claude/research/palantir-official/foundry/action-types/overview.md"
+        "~/.claude/research/palantir-official/foundry/architecture-center/aip-architecture.md",
+        "~/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
+        "~/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md",
+        "~/.claude/research/palantir-official/foundry/ontology/core-concepts.md",
+        "~/.claude/research/palantir-official/foundry/object-link-types/object-types-overview.md",
+        "~/.claude/research/palantir-official/foundry/action-types/overview.md"
       ],
       "contextEngineeringRefs": [
         {
@@ -280,8 +280,8 @@
           "kind": "DATA",
           "title": "Application state and retrieval context data selection.",
           "sourceAuthorityRefs": [
-            "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
-            "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md"
+            "~/.claude/research/palantir-official/foundry/chatbot-studio/application-state.md",
+            "~/.claude/research/palantir-official/foundry/chatbot-studio/retrieval-context.md"
           ],
           "localAnalogueStatus": "context-state",
           "doesNotProve": [
@@ -295,7 +295,7 @@
           "kind": "ACTION",
           "title": "Local Chatbot Studio tool/action surface.",
           "sourceAuthorityRefs": [
-            "/home/palantirkc/.claude/research/palantir-official/foundry/chatbot-studio/tools.md"
+            "~/.claude/research/palantir-official/foundry/chatbot-studio/tools.md"
           ],
           "localAnalogueStatus": "context-state",
           "doesNotProve": [
@@ -311,7 +311,7 @@
           "kind": "ObjectType",
           "title": "Ontology object type modeling concept.",
           "sourceAuthorityRefs": [
-            "/home/palantirkc/.claude/research/palantir-official/foundry/object-link-types/object-types-overview.md"
+            "~/.claude/research/palantir-official/foundry/object-link-types/object-types-overview.md"
           ],
           "localAnalogueStatus": "ontology-modeling-concept",
           "doesNotProve": [
@@ -325,7 +325,7 @@
           "kind": "ActionType",
           "title": "Ontology action type and governed edit surface.",
           "sourceAuthorityRefs": [
-            "/home/palantirkc/.claude/research/palantir-official/foundry/action-types/overview.md"
+            "~/.claude/research/palantir-official/foundry/action-types/overview.md"
           ],
           "localAnalogueStatus": "ontology-modeling-concept",
           "doesNotProve": [
@@ -340,7 +340,7 @@
         "Provider/runtime identity is metadata only; it does not create semantic authority or mutation authority."
       ],
       "noReferenceNoConfusionRules": [
-        "Semantic implementation claims must cite local Palantir research SSoT under /home/palantirkc/.claude/research/palantir-official/.",
+        "Semantic implementation claims must cite local Palantir research SSoT under ~/.claude/research/palantir-official/.",
         "Generated docs, tool descriptions, and workbench output must not collapse Context Engineering layer names into Ontology primitive names.",
         "Public Codex MCP input schemas must stay flat and avoid anyOf/oneOf/allOf/not composition keywords."
       ],

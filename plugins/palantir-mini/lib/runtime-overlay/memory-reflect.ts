@@ -1,7 +1,13 @@
 // palantir-mini — lib/runtime-overlay/memory-reflect.ts
 // R-ID A.W5.a — session-end prior-digest reflection utility (Sink-1 WRITE)
 //
-// Calls pm_recap internally to produce a digest of the current session state.
+// Builds a digest of the current session state via an INJECTED RecapProvider
+// (see ADR 0001, docs/adr/0001-memory-reflect-recap-provider-inversion.md).
+// This module (lib/) never depends on the MCP handler layer — the boundary
+// caller (hooks/t4-promotion-trigger.ts) wires the real pm_recap handler in
+// via opts.recapProvider. Unwired callers (no provider, or a throwing
+// provider) degrade to the pre-existing buildMinimalDigest fallback — same
+// semantics as the former import-failure catch, now a provider-failure catch.
 // Computes a stable hash of the digest and compares with the last-reflected
 // hash stored at <projectRoot>/.palantir-mini/session/.last-memory-reflect-hash.
 //
@@ -25,12 +31,14 @@
 //   { written: false, reason: "disabled" } without touching disk.
 //
 // Authority: plan inherited-discovering-quill.md §4.A.W5
+//            docs/adr/0001-memory-reflect-recap-provider-inversion.md
 //            rule 10 §append-only invariant (events.jsonl; cache file is NOT events.jsonl)
 //            rule 02 §Memory (MEMORY.md is index-only; cache is pm-owned)
 
 import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
+import type { RecapProvider } from "../recap/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -146,14 +154,23 @@ function buildCacheScaffold(digest: string): string {
 }
 
 /**
- * Build a compact text digest of the current session state by calling pm_recap
- * internally. Returns the digest as a string suitable for cache injection.
+ * Build a compact text digest of the current session state via an injected
+ * RecapProvider. Returns the digest as a string suitable for cache injection.
+ *
+ * When no provider is supplied, or the supplied provider throws, this falls
+ * back to buildMinimalDigest (same semantics as the pre-inversion
+ * import-failure catch — see ADR 0001).
  */
-async function buildSessionDigest(projectRoot: string): Promise<string> {
+async function buildSessionDigest(
+  projectRoot: string,
+  recapProvider?: RecapProvider,
+): Promise<string> {
+  if (!recapProvider) {
+    return buildMinimalDigest(projectRoot);
+  }
+
   try {
-    // Dynamically import pm-recap to avoid circular dep at module load time.
-    const recapMod = await import("../../bridge/handlers/pm-recap");
-    const result = await recapMod.default({ project: projectRoot, skipMcpFirst: false });
+    const result = await recapProvider({ project: projectRoot, skipMcpFirst: false });
 
     const { substrateHealth, sprintSummary, generatedAt } = result;
     const lastSprint = sprintSummary.length > 0
@@ -181,14 +198,14 @@ async function buildSessionDigest(projectRoot: string): Promise<string> {
 
     return lines.join("\n");
   } catch {
-    // pm-recap unavailable or failed — produce minimal digest from events file directly
+    // Provider threw — produce minimal digest from events file directly
     return buildMinimalDigest(projectRoot);
   }
 }
 
 /**
- * Minimal fallback digest when pm-recap import fails.
- * Counts lines in events.jsonl.
+ * Minimal fallback digest when no RecapProvider is supplied, or the supplied
+ * provider throws. Counts lines in events.jsonl.
  */
 function buildMinimalDigest(projectRoot: string): string {
   const eventsPath = path.join(
@@ -204,10 +221,21 @@ function buildMinimalDigest(projectRoot: string): string {
   } catch {
     lineCount = 0;
   }
-  return `Generated: ${new Date().toISOString()}\nEvents: ${lineCount} (pm-recap unavailable)`;
+  return `Generated: ${new Date().toISOString()}\nEvents: ${lineCount} (recap provider unavailable)`;
 }
 
 // ─── Main function ────────────────────────────────────────────────────────────
+
+export interface ReflectMemoryToCacheOptions {
+  /**
+   * Injected Recap Provider (ADR 0001). The boundary caller
+   * (hooks/t4-promotion-trigger.ts) wires in the real pm_recap handler; this
+   * module never imports the MCP handler layer itself. When omitted, or when
+   * the supplied provider throws, buildSessionDigest falls back to
+   * buildMinimalDigest.
+   */
+  recapProvider?: RecapProvider;
+}
 
 /**
  * Reflect the current pm-recap digest into the dedicated pm-owned cache block.
@@ -216,9 +244,12 @@ function buildMinimalDigest(projectRoot: string): string {
  * resolveCachePath(projectRoot) is auto-created (with its fence) when missing.
  *
  * @param projectRoot  Absolute path to the project root.
+ * @param opts.recapProvider  Injected Recap Provider (see ADR 0001). Unwired
+ *   callers degrade to the minimal digest.
  */
 export async function reflectMemoryToCache(
   projectRoot: string,
+  opts: ReflectMemoryToCacheOptions = {},
 ): Promise<MemoryReflectResult> {
   if (typeof projectRoot !== "string" || projectRoot.trim().length === 0) {
     return { written: false, reason: "error" };
@@ -232,7 +263,7 @@ export async function reflectMemoryToCache(
   const cachePath = resolveCachePath(projectRoot);
 
   // Build the digest text first (needed for both create + update paths).
-  const digest = await buildSessionDigest(projectRoot);
+  const digest = await buildSessionDigest(projectRoot, opts.recapProvider);
   const hash = sha256(digest);
 
   // Compare with last-reflected hash. When unchanged AND the cache file already

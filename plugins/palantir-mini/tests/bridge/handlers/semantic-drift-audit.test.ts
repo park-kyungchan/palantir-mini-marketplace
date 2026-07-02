@@ -7,7 +7,22 @@
  */
 
 import { test, expect, describe } from "bun:test";
+import { existsSync } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import semanticDriftAudit from "../../../bridge/handlers/semantic-drift-audit";
+
+// The palantir-math project is a sibling project on the original author's
+// machine, not something shipped with this plugin or guaranteed to exist in
+// CI/sandboxes. Resolve its path portably (env HOME, falling back to
+// os.homedir()) and skip this test when the fixture project is absent,
+// rather than hardcoding the author's home directory.
+const PALANTIR_MATH_PROJECT = path.join(
+  process.env.HOME ?? os.homedir(),
+  "projects",
+  "palantir-math",
+);
+const palantirMathPresent = existsSync(PALANTIR_MATH_PROJECT);
 
 
 describe("semantic_drift_audit handler", () => {
@@ -17,9 +32,9 @@ describe("semantic_drift_audit handler", () => {
     await expect(semanticDriftAudit({ project: 123 })).rejects.toThrow("project");
   });
 
-  test("returns SemanticDriftAuditResult shape against palantir-math", async () => {
+  test.skipIf(!palantirMathPresent)("returns SemanticDriftAuditResult shape against palantir-math", async () => {
     const result = await semanticDriftAudit({
-      project: "/home/palantirkc/projects/palantir-math",
+      project: PALANTIR_MATH_PROJECT,
     });
 
     // Top-level shape

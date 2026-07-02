@@ -33,7 +33,7 @@ else
   PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 fi
 
-HOME_DIR="${HOME:-/home/palantirkc}"
+HOME_DIR="${HOME:?HOME must be set}"
 PASS=0
 FAIL=0
 STUB_CREATED=0
@@ -89,7 +89,13 @@ check_required \
   "${PLUGIN_ROOT}/runtime-overlay/schemas-snapshot/MANIFEST.json"
 
 # ── Check 7 (optional): Per-project memory directory ─────────────────────────
-MEMORY_DIR="${HOME_DIR}/.claude/projects/-home-palantirkc/memory"
+# Claude Code project-path slug encoding: absolute path with every "/" replaced
+# by "-" (e.g. /home/palantirkc -> -home-palantirkc, /sessions/foo -> -sessions-foo).
+# Derived from HOME_DIR rather than hardcoded so this check is portable across
+# machines/sandboxes. Mirrors the slug logic in hooks/session-start.ts and
+# hooks/second-brain-fold.ts (path.resolve(root).split(path.sep).join("-")).
+HOME_SLUG="$(printf '%s' "${HOME_DIR}" | tr '/' '-')"
+MEMORY_DIR="${HOME_DIR}/.claude/projects/${HOME_SLUG}/memory"
 if [ -d "${MEMORY_DIR}" ]; then
   printf "  PASS  Per-project memory dir exists (optional)\n"
   printf "        %s\n" "${MEMORY_DIR}"

@@ -17,6 +17,7 @@
 // Authority: sprint-061 plan §3.B.W1 Step E + operating model §4.5.6a.3
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { IncrementalImpactUpdater } from "../lib/impact-graph/incremental-updater";
 
@@ -125,7 +126,7 @@ async function drainAllDirty(): Promise<void> {
 
 async function updateSingleFile(filePath: string): Promise<void> {
   // Resolve absolute path
-  const home = process.env.HOME ?? "/home/palantirkc";
+  const home = process.env.HOME ?? os.homedir();
   let absPath = filePath;
   if (filePath.startsWith("~/")) {
     absPath = path.join(home, filePath.slice(2));

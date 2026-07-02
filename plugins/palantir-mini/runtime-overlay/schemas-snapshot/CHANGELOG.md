@@ -8,6 +8,37 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.95.0 — 2026-07-02 (portability fix — remove hardcoded /home/palantirkc HOME-fallback literals)
+
+Fix/cleanup MINOR (rule 08 — HOME-fallback literal + seed-instance path corrections only; no primitive type, field, or export is added, removed, or retyped, so no consumer breaks).
+
+### Changed — HOME-fallback literals now resolve via `os.homedir()` (6 files)
+
+- `ontology/research-source-map.ts`: `HOME_DIR = process.env["HOME"] ?? "/home/palantirkc"` → `?? os.homedir()` (adds `import * as os from "node:os"`, matching the file's existing `node:`-prefixed import style).
+- `ontology/seeds/agent-definitions.ts`: same fallback swap (adds `import * as os from "node:os"`).
+- `ontology/seeds/skill-definitions.ts`: same fallback swap (adds `import * as os from "node:os"`).
+- `scripts/gen-rule-registry.ts`: same fallback swap (adds `import * as os from "os"`, matching the file's existing bare-specifier import style).
+- `scripts/reconcile-orphan-events.ts`: same fallback swap for the code constant (adds `import * as os from "os"`); the top-of-file comment ("All output goes to ...") and the dry-run example's `cwd` string both switch from the absolute `/home/palantirkc/...` form to the portable `~/...` form (no runtime effect — comment + literal example payload only).
+
+### Changed — self-Ontology `ProjectOntologyIndex` seed instance (`ontology/self/project-ontology-index.objecttype.ts`)
+
+- The single seeded `PROJECT_ONTOLOGY_INDEX_INSTANCES` row's `projectRoot` (declarative self-referential data, not an env-fallback expression) changes from the hardcoded `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini` to the canonical `~/palantir-mini-marketplace/plugins/palantir-mini` string, matching `.ssot-authority.json`'s v1.8.0 `authority` field (also updated to the `~` form in the same wave). `tests/ontology/self/project-ontology-index-registration.test.ts` asserts only count/uniqueness/property-name shape and carries no literal-value pin, so no test change was required.
+
+No behavior change on any machine where `HOME` is already set (every affected fallback is reached only when `HOME` is unset); this is a portability fix for developer machines/CI where the previous hardcoded single-user path did not resolve.
+
+## v1.94.0 — 2026-07-02 (deprecated-skill retirement — pm-rule delete-candidate)
+
+Fix/cleanup MINOR (rule 08 — seed-data removal + description-only corrections; no primitive type, field, or export is added, removed, or retyped, so no consumer breaks). Precedent: dead-vocabulary removal shipped as MINOR in v1.84.0.
+
+### Removed — pm-rule skill seed (`ontology/seeds/skill-definitions.ts`)
+
+- Dropped the `{ slug: "pm-rule", ... }` row from `PLUGIN_SKILLS`. The skill self-flagged `category: "delete-candidate"` / `surfaceStatus: "deprecated-candidate"` in its own frontmatter; its live surface (`skills/pm-rule/`) was deleted in the paired plugin change. Callers should invoke `pm_rule_query({ byId })` directly — the hint strings in `hooks/value-grade-assigner.ts` and `scripts/rule-excerpt.ts` were updated in lockstep to drop the retired `/palantir-mini:pm-rule N` suggestion. `pm-rule-audit` and `pm-rule-memory-prune` seed rows are unaffected — they remain live, separately-invocable skills.
+
+### Changed — stale seed descriptions (`ontology/seeds/skill-definitions.ts`)
+
+- The top-of-file example comment (`invoked (e.g. ...)`) cited the now-deleted `pm-rule` skill; it now cites the still-existing `/palantir-mini:pm-rule-audit`.
+- The `pm-cold-start-orchestrate` seed description claimed a SessionStart auto-fire hook (`cold-start-browse-index-loader`) that no longer exists (removed as an orphan; see CHANGELOG 6.132.0 in the plugin's own history). The description now matches the skill's own frontmatter: manually invoked (or Lead-invoked), deep-injects canonical research BROWSE+INDEX context, no auto-fire hook.
+
 ## v1.93.0 — 2026-06-25 (Lead-decision governed-emit event type — P3 / Path-B)
 
 Additive MINOR (rule 08 — one new event-type discriminator registered in the lineage axis; ADDITIVE only, no existing discriminator/field/export is removed or retyped, so every legacy producer/consumer stays byte-compatible).

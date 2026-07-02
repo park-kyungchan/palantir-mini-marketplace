@@ -27,6 +27,7 @@ import * as path from "node:path";
 import { loadCapabilityRegistry } from "../capability-registry";
 import { resolvePalantirMiniRoot } from "../config/root";
 import { resolveExternalRoots } from "../runtime/external-roots";
+import { OVERLAY_RULES_DIR } from "../runtime-overlay/resolve-rule";
 import {
   composeCodexMountedHookEvents,
   composeCompatibilityHookEventsAlias,
@@ -290,7 +291,15 @@ async function composeVisibleMcpTools(): Promise<VisibleMcpToolsSubField> {
 
 function composeActiveRules(): ActiveRulesSubField {
   try {
-    const entries = fs.readdirSync(RULES_DIR_DEFAULT, { withFileTypes: true });
+    // Rules are runtime-scoped: prefer the external ~/.claude/rules/ overlay
+    // when present, falling back to the plugin-bundled runtime-overlay/rules/ copy only when
+    // the external ~/.claude/rules/ overlay is absent (external-preferred =
+    // author-machine behavior unchanged; portability fix only). Identical fix
+    // applied to lib/ontology-context/retrieval-context.ts.
+    const rulesDir = fs.existsSync(RULES_DIR_DEFAULT)
+      ? RULES_DIR_DEFAULT
+      : OVERLAY_RULES_DIR;
+    const entries = fs.readdirSync(rulesDir, { withFileTypes: true });
     const ruleIds: number[] = [];
     for (const ent of entries) {
       if (!ent.isFile()) continue;

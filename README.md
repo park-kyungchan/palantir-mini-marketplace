@@ -3,7 +3,7 @@
 Private Codex marketplace for palantir-mini.
 
 Runtime-neutral local source for this machine lives at
-`/home/palantirkc/palantir-mini-marketplace`. The upstream source of truth is
+`~/palantir-mini-marketplace`. The upstream source of truth is
 this GitHub repository, with plugin implementation under `plugins/palantir-mini/`.
 Current local install support is Codex-only; Claude and Gemini install/package
 surfaces are intentionally absent from this checkout until they are installed
@@ -14,7 +14,7 @@ palantir-mini itself.
 
 ```bash
 # Local Codex install from the runtime-neutral checkout:
-codex plugin marketplace add /home/palantirkc/palantir-mini-marketplace
+codex plugin marketplace add ~/palantir-mini-marketplace
 codex plugin add palantir-mini@palantir-mini-marketplace
 
 # Post-merge install from GitHub:

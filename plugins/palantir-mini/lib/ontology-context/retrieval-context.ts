@@ -30,6 +30,7 @@ import { resolvePalantirMiniRoot } from "../config/root";
 import { resolveExternalRoots } from "../runtime/external-roots";
 import { readEvents } from "../event-log/read";
 import { foldToSnapshot } from "../event-log/read/fold-snapshot";
+import { OVERLAY_RULES_DIR } from "../runtime-overlay/resolve-rule";
 import {
   composeCodexMountedHookEvents,
   composeCompatibilityHookEventsAlias,
@@ -152,7 +153,20 @@ export interface ComposeRetrievalContextOpts {
 const EXTERNAL_ROOTS = resolveExternalRoots();
 const RULES_DIR_DEFAULT = EXTERNAL_ROOTS.rulesDir;
 const RESEARCH_OFFICIAL_DIR = EXTERNAL_ROOTS.researchOfficialDir;
-const SCHEMAS_PRIMITIVES_DIR = EXTERNAL_ROOTS.schemasPrimitivesDir;
+// OE-9 fs-scan lane: prefer the external dev schemas package when present,
+// otherwise fall back to the plugin-vendored snapshot (mirrors the
+// plugin-snapshot-first policy in lib/runtime-overlay/schema-resolve.ts and
+// the OVERLAY_RULES_DIR fallback used by composeRules below).
+const SNAPSHOT_PRIMITIVES_DIR = path.join(
+  resolvePalantirMiniRoot(),
+  "runtime-overlay",
+  "schemas-snapshot",
+  "ontology",
+  "primitives",
+);
+const SCHEMAS_PRIMITIVES_DIR = fs.existsSync(EXTERNAL_ROOTS.schemasPrimitivesDir)
+  ? EXTERNAL_ROOTS.schemasPrimitivesDir
+  : SNAPSHOT_PRIMITIVES_DIR;
 const RULE_FILE_PATTERN = /^(\d{2})-.+\.md$/;
 const LINEAGE_WINDOW_DAYS = 7;
 const SCOPED_FILE_CAP = 200;
@@ -420,7 +434,17 @@ function composePluginSourceFiles(
 
 function composeRules(): RulesSubField {
   try {
-    const entries = fs.readdirSync(RULES_DIR_DEFAULT, { withFileTypes: true });
+    // Rules are runtime-scoped: prefer the external ~/.claude/rules/ overlay when present (preserving existing
+    // behavior on machines that have it), and fall back to the plugin-bundled
+    // runtime-overlay/rules/ copy (ships in the plugin, available on every
+    // machine/CI) only when the external overlay is absent. Portability fix
+    // only — external-preferred keeps author-machine behavior unchanged; the
+    // deeper question of aligning composers to resolve-rule.ts's
+    // plugin-overlay-first policy is deferred (see session-2 backlog).
+    const rulesDir = fs.existsSync(RULES_DIR_DEFAULT)
+      ? RULES_DIR_DEFAULT
+      : OVERLAY_RULES_DIR;
+    const entries = fs.readdirSync(rulesDir, { withFileTypes: true });
     const ruleIds: number[] = [];
     for (const ent of entries) {
       if (!ent.isFile()) continue;

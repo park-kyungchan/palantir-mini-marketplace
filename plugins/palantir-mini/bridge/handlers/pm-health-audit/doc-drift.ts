@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { detectDocDriftFn } from "../detect-doc-drift";
 import { checkProjectSkillOntology } from "../pm-plugin-self-check/check-project-skill-ontology";
@@ -423,7 +424,7 @@ function validateBrowseIndexLinks(projectRoot: string): HealthDocDriftSignal[] {
  */
 function validateCrossProjectXrefs(projectRoot: string): HealthDocDriftSignal[] {
   const signals: HealthDocDriftSignal[] = [];
-  const home = process.env.HOME ?? "/home/palantirkc";
+  const home = process.env.HOME ?? os.homedir();
   const targets = [
     path.join(projectRoot, "MEMORY.md"),
     path.join(projectRoot, "CLAUDE.md"),
@@ -500,7 +501,7 @@ function validateMemorySchemaDrift(projectRoot: string): HealthDocDriftSignal[] 
     path.join(projectRoot, "MEMORY.md"),
     path.join(projectRoot, ".claude", "MEMORY.md"),
   ];
-  const schemaRoot = path.join(process.env.HOME ?? "/home/palantirkc", ".claude", "schemas");
+  const schemaRoot = path.join(process.env.HOME ?? os.homedir(), ".claude", "schemas");
   if (!fs.existsSync(schemaRoot)) return signals;
 
   for (const memoryPath of memoryPaths) {

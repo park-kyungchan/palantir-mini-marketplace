@@ -30,6 +30,7 @@
 //   ~/.claude/plans/2026-05-07-palantir-mini-architecture-review.md §5.E.3 (R4-F8)
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { emit } from "./log";
 import { resolvePalantirMiniRoot } from "../lib/config/root";
@@ -41,11 +42,11 @@ const DEFAULT_EVENT_CLASS = "harness_bypass_invoked";
 const PLUGIN_ROOT = resolvePalantirMiniRoot();
 
 const PROJECTS_ROOT = path.join(
-  process.env.HOME ?? "/home/palantirkc",
+  process.env.HOME ?? os.homedir(),
   "projects"
 );
 
-const MONOREPO_ROOT = process.env.HOME ?? "/home/palantirkc";
+const MONOREPO_ROOT = process.env.HOME ?? os.homedir();
 
 // ─── CLI arg parsing ─────────────────────────────────────────────────────────
 

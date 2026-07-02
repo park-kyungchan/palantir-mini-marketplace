@@ -16,17 +16,30 @@
 //   - ~/.claude/plans/2026-05-07-palantir-mini-architecture-review.md §5.I.7 (R6-F17)
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { resolvePalantirMiniRoot } from "./config/root";
 
 /** The canonical peerDependency package name for the shared schema package. */
 export const SCHEMA_PACKAGE_NAME = "@palantirKC/claude-schemas";
 
-/** Base directory containing all consumer projects (projects/*). */
-const PROJECTS_ROOT = path.join("/home/palantirkc", "projects");
+/** Resolved home directory, honoring HOME first (matches the author-machine env) before os.homedir(). */
+const HOME_ROOT = process.env.HOME ?? os.homedir();
+
+/**
+ * Base directory containing all consumer projects (projects/*).
+ * Override with PALANTIR_MINI_CONSUMER_PROJECTS_ROOT (an absolute path) when consumer
+ * projects live outside ~/projects. Note: PALANTIR_MINI_PROJECTS_ROOT is already used
+ * elsewhere (lib/event-log/multi-project-reader.ts) for a different root, so a distinct
+ * env var name is used here to avoid an accidental cross-wire.
+ */
+const PROJECTS_ROOT =
+  process.env.PALANTIR_MINI_CONSUMER_PROJECTS_ROOT && path.isAbsolute(process.env.PALANTIR_MINI_CONSUMER_PROJECTS_ROOT)
+    ? process.env.PALANTIR_MINI_CONSUMER_PROJECTS_ROOT
+    : path.join(HOME_ROOT, "projects");
 
 /** Claude compatibility plugin install directory, scanned for peer dependency drift. */
-const CLAUDE_PLUGINS_ROOT = path.join("/home/palantirkc", ".claude", "plugins");
+const CLAUDE_PLUGINS_ROOT = path.join(HOME_ROOT, ".claude", "plugins");
 
 /** Canonical palantir-mini source root. */
 const PALANTIR_MINI_ROOT = resolvePalantirMiniRoot();
@@ -138,7 +151,8 @@ function findPluginPackageJsonFiles(): string[] {
  * peerDep ranges declared for SCHEMA_PACKAGE_NAME.
  *
  * Scanned paths:
- *   - All package.json under /home/palantirkc/projects/** (excluding node_modules, worktrees)
+ *   - All package.json under $HOME/projects/** (excluding node_modules, worktrees);
+ *     override the projects root via PALANTIR_MINI_CONSUMER_PROJECTS_ROOT (absolute path)
  *   - ~/ontology/shared-core/package.json
  *   - ~/.claude/schemas/package.json
  *   - ~/.claude/plugins/{name}/package.json for each plugin dir (sprint-060 W2.3 R6-F17 cross-plugin scan)

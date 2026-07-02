@@ -36,12 +36,19 @@
 // @domain: LOGIC
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { emit } from "../scripts/log";
 import { resolvePalantirMiniRoot } from "../lib/config/root";
 
 /** Number of lines from top of file to scan for the @domain marker. */
 const HEADER_SCAN_LINES = 20;
+
+/** Resolve the current home directory: $HOME env var, falling back to os.homedir() when unset.
+ * Read fresh on every call (not memoized) since tests mutate process.env.HOME per-case. */
+function getHome(): string {
+  return process.env.HOME ?? os.homedir();
+}
 
 /** Valid domain tokens (case-insensitive). */
 const VALID_DOMAINS = new Set(["DATA", "LOGIC", "ACTION", "SECURITY", "LEARN", "UI"]);
@@ -83,8 +90,7 @@ function escapeRegex(s: string): string {
  * Check if a file path is a synthesis path exempt from this gate.
  */
 function isSynthesisPath(absPath: string): boolean {
-  const home = process.env.HOME ?? "/home/palantirkc";
-  const plansPrefix = path.join(home, ".claude", "plans") + path.sep;
+  const plansPrefix = path.join(getHome(), ".claude", "plans") + path.sep;
   if (absPath.startsWith(plansPrefix)) return true;
   const base = path.basename(absPath);
   if (base === "BROWSE.md" || base === "INDEX.md" || base === "MEMORY.md") return true;
@@ -113,9 +119,8 @@ function extractDomainMarker(text: string): string | null {
 
 /** Resolve absolute path, expanding ~ prefix */
 function resolveAbsPath(filePath: string): string {
-  const home = process.env.HOME ?? "/home/palantirkc";
   if (filePath.startsWith("~/")) {
-    return path.resolve(home, filePath.slice(2));
+    return path.resolve(getHome(), filePath.slice(2));
   }
   return path.resolve(filePath);
 }
@@ -196,8 +201,7 @@ export default async function ontologyDomainClassificationValidate(
     }
 
     // Scope check — only enforce on domain-scope TS files
-    const home = process.env.HOME ?? "/home/palantirkc";
-    const scopeRegexes = buildScopeRegexes(home);
+    const scopeRegexes = buildScopeRegexes(getHome());
     const inScope = scopeRegexes.some((rx) => rx.test(absFilePath));
     if (!inScope) {
       return {

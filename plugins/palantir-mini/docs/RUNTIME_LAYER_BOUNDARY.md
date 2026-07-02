@@ -18,9 +18,9 @@ The machine-readable source for this boundary is
 
 ## Source Of Truth
 
-- Runtime-neutral local source checkout: `/home/palantirkc/palantir-mini-marketplace`
+- Runtime-neutral local source checkout: `~/palantir-mini-marketplace`
 - Upstream source: `https://github.com/park-kyungchan/palantir-mini-marketplace`
-- Plugin source root: `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/`
+- Plugin source root: `~/palantir-mini-marketplace/plugins/palantir-mini/`
 - Active local install targets: Codex marketplace AND Claude directory-source marketplace (Gemini contract-only / not installed)
 - Release path: branch -> PR -> merge to `main` -> marketplace refresh/install on each active adapter (Codex marketplace; Claude directory-source marketplace)
 
@@ -51,8 +51,8 @@ non-authorizing inputs.
 
 | Runtime | Native install surface | Runtime-owned state | Cache/install payload rule |
 |---|---|---|---|
-| Codex | local dev: `codex plugin marketplace add /home/palantirkc/palantir-mini-marketplace`; post-merge: `codex plugin marketplace add park-kyungchan/palantir-mini-marketplace --ref main`; then `codex plugin add palantir-mini@palantir-mini-marketplace` | `~/.codex/config.toml`, Codex hooks, MCP exposure, memories, `/plugins`, `/hooks`, `/mcp`, restart/reload state | `~/.codex/plugins/cache/**` is an installed payload; do not edit as semantic authority |
-| Claude | local dev: directory-source marketplace registered in `~/.claude/plugins/known_marketplaces.json` (`source: directory` -> `/home/palantirkc/palantir-mini-marketplace`) -> `palantir-mini@palantir-mini-marketplace` installed under `~/.claude/plugins/cache/palantir-mini-marketplace/palantir-mini/<version>/`; reload via `/plugin update` + `/reload-plugins` (monitors need a full restart) | `~/.claude` settings enable toggle, Claude hooks, MCP exposure, skills, `/plugins`, `/mcp`, `/hooks`, reload state | `~/.claude/plugins/cache/**` is an installed payload; do not edit as semantic authority |
+| Codex | local dev: `codex plugin marketplace add ~/palantir-mini-marketplace`; post-merge: `codex plugin marketplace add park-kyungchan/palantir-mini-marketplace --ref main`; then `codex plugin add palantir-mini@palantir-mini-marketplace` | `~/.codex/config.toml`, Codex hooks, MCP exposure, memories, `/plugins`, `/hooks`, `/mcp`, restart/reload state | `~/.codex/plugins/cache/**` is an installed payload; do not edit as semantic authority |
+| Claude | local dev: directory-source marketplace registered in `~/.claude/plugins/known_marketplaces.json` (`source: directory` -> `~/palantir-mini-marketplace`) -> `palantir-mini@palantir-mini-marketplace` installed under `~/.claude/plugins/cache/palantir-mini-marketplace/palantir-mini/<version>/`; reload via `/plugin update` + `/reload-plugins` (monitors need a full restart) | `~/.claude` settings enable toggle, Claude hooks, MCP exposure, skills, `/plugins`, `/mcp`, `/hooks`, reload state | `~/.claude/plugins/cache/**` is an installed payload; do not edit as semantic authority |
 
 Gemini runtime install/package paths are intentionally absent from the
 current local checkout. Do not keep source-looking Git working copies under

@@ -85,7 +85,7 @@ describe("exemptions", () => {
   test("E1: synthesis path (plans/) → exempt, skipped message", async () => {
     const result = await leadOntologyDiscoveryCompleteness({
       tool_name:  "Edit",
-      tool_input: { file_path: "/home/palantirkc/.claude/plans/2026-05-09-sprint-062.md" },
+      tool_input: { file_path: path.join(os.homedir(), ".claude", "plans", "2026-05-09-sprint-062.md") },
       cwd:        TMP,
     });
     expect(result.additionalContext).toBeUndefined();

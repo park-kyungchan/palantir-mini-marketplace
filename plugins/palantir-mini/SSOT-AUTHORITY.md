@@ -1,8 +1,8 @@
 # Plugin Workflow Authority — SSoT Marker
 
-The canonical palantir-mini source root on this machine is `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/`. Its upstream provenance is the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. The local source root owns workflow semantics, MCP handler source, hook intent, skills, agents, tests, and installable plugin manifests.
+The canonical palantir-mini source root on this machine is `~/palantir-mini-marketplace/plugins/palantir-mini/`. Its upstream provenance is the private GitHub marketplace payload `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/`. The local source root owns workflow semantics, MCP handler source, hook intent, skills, agents, tests, and installable plugin manifests.
 
-Runtime plugin caches are install targets. They must not become semantic forks. Runtime-neutral ownership is described by `/home/palantirkc/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`. Current local install support covers Codex and Claude (both active adapters; Gemini contract-only). Each adapter's runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong under its own runtime home (`~/.codex/**` for Codex, `~/.claude/**` for Claude).
+Runtime plugin caches are install targets. They must not become semantic forks. Runtime-neutral ownership is described by `~/.palantir-mini/core/runtime-boundary/runtime-boundary-contract.json`. Current local install support covers Codex and Claude (both active adapters; Gemini contract-only). Each adapter's runtime-native protocol adapters, hook registration, reload procedures, memory stores, trust state, and provider-specific capability facts belong under its own runtime home (`~/.codex/**` for Codex, `~/.claude/**` for Claude).
 
 ## Machine-Readable Marker
 
@@ -29,9 +29,9 @@ Runtime plugin caches are install targets. They must not become semantic forks. 
 
 | Artifact | Authority? | Notes |
 |----------|-----------|-------|
-| `/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini/` | YES — canonical local source root | Owns workflow semantics, MCP handler source, hook intent, source skills/agents, tests, and runtime manifests. |
+| `~/palantir-mini-marketplace/plugins/palantir-mini/` | YES — canonical local source root | Owns workflow semantics, MCP handler source, hook intent, source skills/agents, tests, and runtime manifests. |
 | `park-kyungchan/palantir-mini-marketplace:plugins/palantir-mini/` | YES — upstream provenance | Remote source used after PR merge and runtime marketplace refresh; not a runtime-home cache. |
-| `/home/palantirkc/.palantir-mini/core/` | YES — runtime-neutral boundary | Owns runtime-neutral workflow/control-plane boundary contracts and sentinel policy; it is not the full plugin root. |
+| `~/.palantir-mini/core/` | YES — runtime-neutral boundary | Owns runtime-neutral workflow/control-plane boundary contracts and sentinel policy; it is not the full plugin root. |
 | `~/.codex/plugins/cache/**` | NO — runtime install payload | May load the plugin for Codex, but must not carry independent workflow semantics. |
 | `plugins/palantir-mini/bridge/mcp-server.ts` | YES — bridge surface | The MCP server implementation that runtime wrappers should launch. |
 | `~/.codex/` | YES — Codex-native runtime overlay | Owns Codex hooks, memory, config, reload docs, and protocol adapter entrypoints. Must NOT contain a fork of workflow semantics. |
@@ -48,6 +48,24 @@ The plugin **source** SSoT (above) governs code, hooks, handlers, and manifests.
 - **Full decision record**: `docs/CONVEX_CLOUD_AUTHORITY.md` — includes R1/R2/R3 invariant status, switch instructions, and cross-refs.
 
 Per canonical plan v2 §4 row 6.7 (sprint-134 PR 6.7; PHASE 6 FINAL PR).
+
+**SecondBrain fold data substrate** (fs-based, separate from the Convex split
+above):
+
+- `<project>/second-brain/manifest.json`'s `foldedSessions` map is the SOLE
+  fold-lifecycle authority (`"pending"` -> `"in-progress"` ->
+  `"governed-complete"`), written under one two-writer manifest lock.
+- `<project>/second-brain/manifest-archive.jsonl` is the append-only archive
+  for compacted markers; retention always archives-then-removes, never a
+  silent delete.
+- `<project>/second-brain/graph.json` CONTENT is engine-side / consumer-project
+  owned — NOT governed by this repo. This repo's contract expectation is
+  limited to the manifest lifecycle markers and the schema-governed NDJSON
+  fold interchange; it does not manage `graph.json`'s own lifecycle.
+- `events.jsonl` remains the lineage spine: governed fold verdicts land there
+  same as any other governed emit.
+- Full sequence: `cartography/DATAFLOW.md` section "SecondBrain fold sequence
+  (W3 — single manifest authority)".
 
 ## Research Snapshot Authority
 
@@ -87,11 +105,12 @@ This document and `.ssot-authority.json` are the **SOURCE/WORKFLOW-authority** f
 
 ## Version History
 
+- v1.9.0 (2026-07-02): Added a "SecondBrain fold data substrate" subsection under "Data-layer Authority" naming `<project>/second-brain/manifest.json` `foldedSessions` as the sole fold-lifecycle authority, `manifest-archive.jsonl` as the append-only compaction archive, and `graph.json` content as engine-side/consumer-project-owned (not governed by this repo); `events.jsonl` remains the lineage spine. Cross-references `cartography/DATAFLOW.md`'s SecondBrain fold sequence section.
 - v1.8.0 (2026-06-15): Added a "Design Authority (external grounding)" section naming `harness-upstream/ssot/palantir/` as the runtime-neutral DESIGN-authority (the WHY behind 9-axis/SIC→DTC/OSDK-binding/lineage), explicitly distinct from this doc's SOURCE/WORKFLOW-authority and from the portable research-snapshot. Cross-references the new `designAuthority` field in the sibling `.ssot-authority.json` (which the sibling bumped to its own v1.7.0; doc and JSON versions are decoupled).
 - v1.7.0 (2026-06-15): Runtime-agnostic correction — Claude is an ACTIVE adapter via the directory-source marketplace install (`~/.claude/plugins/cache`), not a removed/contract-only surface. pm is runtime-NEUTRAL: one governed meaning, consumed by each runtime through its own generated binding. Codex + Claude both active; Gemini stays contract-only / `runtime_gap`. Added a `claude-code` row to the Consumer Runtime Map and generalized the consume invariant + install-support statement to both active adapters. (Does not rewrite the v1.6.1 historical entry, which was true on 2026-05-30.)
 - v1.5.0 (2026-05-25): Relocated canonical source authority to the private GitHub marketplace and demoted runtime caches to install payloads.
 - v1.6.1 (2026-05-30): Removed active Claude/Gemini install/package surfaces from this checkout; kept Codex marketplace installation as the only current local install path.
-- v1.6.0 (2026-05-30): Relocated the local implementation checkout to `/home/palantirkc/palantir-mini-marketplace` and demoted runtime-home marketplace checkouts to removable consumers.
+- v1.6.0 (2026-05-30): Relocated the local implementation checkout to `~/palantir-mini-marketplace` and demoted runtime-home marketplace checkouts to removable consumers.
 - v1.4.0 (2026-05-24): Relocated canonical source authority to `plugins/palantir-mini`; demoted `~/.claude/plugins/palantir-mini` to Claude-native install/compatibility target.
 - v1.1.0 (2026-05-21): Clarified Codex local-marketplace MCP consumption and generated hook adapter path after v6.78.0 bridge/runtime verification.
 - v1.2.0 (2026-05-22): Added runtime-neutral core boundary and marked runtime-native protocol ownership as `~/.codex/**` / `~/.claude/**` overlay responsibility.

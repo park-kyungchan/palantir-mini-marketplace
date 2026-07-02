@@ -41,13 +41,21 @@ import { resolvePalantirMiniRoot } from "../../lib/config/root";
 
 const HOME = process.env.HOME ?? os.homedir();
 const EXTERNAL_RULES_DIR = path.join(HOME, ".claude", "rules");
-const MEMORY_DIR = path.join(HOME, ".claude", "projects", "-home-palantirkc", "memory");
+// Claude Code project-path slug: absolute path with every path separator
+// replaced by "-" (e.g. /home/palantirkc -> -home-palantirkc). Derived from
+// HOME rather than hardcoded so this test is portable across machines/sandboxes.
+// Mirrors bootstrap-home.sh's HOME_SLUG derivation and the slug logic in
+// hooks/session-start.ts / hooks/second-brain-fold.ts.
+const HOME_SLUG = path.resolve(HOME).split(path.sep).join("-");
+const MEMORY_DIR = path.join(HOME, ".claude", "projects", HOME_SLUG, "memory");
 
 /** Temporary backup dirs created during test — cleaned up in afterAll. */
 let backupRulesDir: string | null = null;
 let backupMemoryDir: string | null = null;
 let rulesWereRenamed = false;
 let memoryWereRenamed = false;
+/** Whether ~/.claude/rules/ existed before the test moved it away (captured pre-move). */
+let rulesDirExisted = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -170,6 +178,12 @@ describe("fresh-home bootstrap: plugin overlay substitutes for missing external 
 
     let restoreError: unknown = null;
 
+    // Capture existence BEFORE the move — moveDir() no-ops when src is
+    // absent, so rulesWereRenamed alone can't tell us whether there is
+    // anything to restore. Mirrors the memoryExists capture in the sibling
+    // memory-dir test below.
+    rulesDirExisted = fs.existsSync(EXTERNAL_RULES_DIR);
+
     try {
       // ── Move external rules away ──────────────────────────────────────────
       moveDir(EXTERNAL_RULES_DIR, backupRulesDir);
@@ -201,13 +215,20 @@ describe("fresh-home bootstrap: plugin overlay substitutes for missing external 
     if (restoreError) throw restoreError;
 
     // ── Verify byte-identity of restored dir ─────────────────────────────────
-    const postHashes = hashDir(EXTERNAL_RULES_DIR);
-    expect(postHashes.size).toBe(preHashes.size);
-    for (const [rel, hash] of preHashes) {
-      expect(postHashes.get(rel)).toBe(hash);
+    // Only meaningful if ~/.claude/rules/ existed before this test moved it
+    // away — on a machine without that dir (e.g. sandbox/CI fresh-home),
+    // moveDir() no-ops on the absent source and there is nothing to restore
+    // or verify. Mirrors the "didn't exist originally" branch in the sibling
+    // memory-dir test below.
+    if (rulesDirExisted) {
+      const postHashes = hashDir(EXTERNAL_RULES_DIR);
+      expect(postHashes.size).toBe(preHashes.size);
+      for (const [rel, hash] of preHashes) {
+        expect(postHashes.get(rel)).toBe(hash);
+      }
+      // Verify CORE.md specifically.
+      expect(fs.existsSync(path.join(EXTERNAL_RULES_DIR, "CORE.md"))).toBe(true);
     }
-    // Verify CORE.md specifically.
-    expect(fs.existsSync(path.join(EXTERNAL_RULES_DIR, "CORE.md"))).toBe(true);
   });
 
   test("resolveResearchAnchor can force plugin snapshot fallback", async () => {
@@ -306,7 +327,14 @@ describe("fresh-home bootstrap: plugin overlay substitutes for missing external 
   });
 
   test("CORE.md is intact after all test teardowns (wc -l check)", () => {
-    // Cross-verify that ~/.claude/rules/ was fully restored.
+    // Cross-verify that ~/.claude/rules/ was fully restored — but only if it
+    // existed before this suite touched it. On a machine without
+    // ~/.claude/rules/ to begin with (sandbox/CI fresh-home), there is
+    // nothing to restore, so this cross-check is not applicable. The real
+    // subject under test (resolveRule plugin-overlay fallback, asserted in
+    // the earlier test) is unconditional and unaffected by this gate.
+    if (!rulesDirExisted) return;
+
     expect(fs.existsSync(EXTERNAL_RULES_DIR)).toBe(true);
     const corePath = path.join(EXTERNAL_RULES_DIR, "CORE.md");
     expect(fs.existsSync(corePath)).toBe(true);

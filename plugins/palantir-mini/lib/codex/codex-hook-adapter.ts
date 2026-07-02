@@ -48,6 +48,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawn as spawnChildProcess } from "node:child_process";
 import { emit } from "../../scripts/log";
@@ -157,7 +158,7 @@ export interface PalantirMiniPluginBypass {
   promptId?: string;
 }
 
-const DEFAULT_HOME = process.env.HOME || "/home/palantirkc";
+const DEFAULT_HOME = process.env.HOME || os.homedir();
 const SESSION_PROJECT_ROOT_SCHEMA_VERSION = "codex-adapter/session-project-root/v1";
 const SESSION_PLUGIN_OPT_OUT_SCHEMA_VERSION = "codex-adapter/session-plugin-opt-out/v1";
 
@@ -480,7 +481,7 @@ function promptFrontDoorRootCandidates(
     projectRootFromEventsFile(process.env.PALANTIR_MINI_EVENTS_FILE),
     projectRootHint,
     trackedRoot,
-    "/home/palantirkc/palantir-mini-marketplace",
+    path.join(resolved.home, "palantir-mini-marketplace"),
     cwd,
     resolved.cwd,
     resolved.home,

@@ -89,7 +89,7 @@ Handlers emit 5-dim lineage events (BackwardProp visibility into which rules get
 - `rule-drift-detect` (SessionStart): registered-vs-file count, MEMORY.md counter, every `hookCitations` entry resolves to a live hook.
 - `rule-citation-validate` (PostToolUse:Edit on hooks/*.ts): every `rule NN` in hook source is a live rule.
 
-**§8.4 Skills**: `/palantir-mini:pm-rule <id-or-slug>` (wraps `pm_rule_query`); `/palantir-mini:pm-rule-audit`.
+**§8.4 Skills**: `pm_rule_query { byId: <id> }` (MCP, direct); `/palantir-mini:pm-rule-audit`.
 
 ## §9 — Scope + precedence
 

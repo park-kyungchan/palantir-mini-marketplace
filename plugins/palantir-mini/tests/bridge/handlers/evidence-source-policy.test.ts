@@ -11,6 +11,9 @@ import {
 
 describe("evidence source policy", () => {
   const projectRoot = "/tmp/example-project";
+  // Mirrors DEFAULT_EVIDENCE_SOURCE_POLICY_CONFIG.homeDocsRoot's HOME resolution so this
+  // fixture stays correct on any machine, not just the author machine (HOME=/home/palantirkc).
+  const homeDocPath = path.join(process.env.HOME ?? os.homedir(), "docs", "proposals", "fde-gap.md");
 
   test("allows project docs as reference-only, not-promoted evidence", () => {
     const result = classifyEvidenceSource({
@@ -25,10 +28,10 @@ describe("evidence source policy", () => {
     expect(result.normalizedPath).toBe("/tmp/example-project/docs/architecture.md");
   });
 
-  test("allows /home/palantirkc/docs evidence as reference-only, not-promoted evidence", () => {
+  test("allows home-docs-root evidence as reference-only, not-promoted evidence", () => {
     const result = classifyEvidenceSource({
       projectRoot,
-      sourcePath: "/home/palantirkc/docs/proposals/fde-gap.md",
+      sourcePath: homeDocPath,
     });
 
     expect(result.allowed).toBe(true);
@@ -129,15 +132,15 @@ describe("evidence source policy", () => {
     });
 
     test("custom homeDocsRoot overrides the default home-doc root", () => {
-      // Default behavior: /home/palantirkc/docs is a home-doc.
+      // Default behavior: the resolved home docs root is a home-doc.
       expect(classifyEvidenceSource({
         projectRoot,
-        sourcePath: "/home/palantirkc/docs/proposals/fde-gap.md",
+        sourcePath: homeDocPath,
       }).kind).toBe("home-doc");
 
       // Custom root: the historical default path is no longer recognised as a home-doc...
       expect(classifyEvidenceSource(
-        { projectRoot, sourcePath: "/home/palantirkc/docs/proposals/fde-gap.md" },
+        { projectRoot, sourcePath: homeDocPath },
         { homeDocsRoot: "/srv/reference-docs" },
       ).kind).toBe("unsupported");
 

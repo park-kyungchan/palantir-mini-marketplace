@@ -19,6 +19,7 @@
 
 import { existsSync } from "node:fs";
 import { dirname } from "node:path";
+import * as os from "node:os";
 
 export type ResearchLibrary =
   | "palantir-developers"
@@ -56,7 +57,7 @@ export interface ResearchSourceResolution {
   readonly note?: string;
 }
 
-const HOME_DIR = process.env["HOME"] ?? "/home/palantirkc";
+const HOME_DIR = process.env["HOME"] ?? os.homedir();
 const SCHEMA_ROOT = `${HOME_DIR}/.claude/schemas/ontology`;
 const LEGACY_PREFIX = ".claude/research/palantir/";
 const ARCHIVE_PREFIX = ".claude/research/_archive/2026-04-20-palantir-consolidation/";

@@ -14,9 +14,7 @@ const RUNTIMES: readonly RuntimeId[] = ["claude", "codex", "gemini"];
 const CODEX_UNMOUNTED_HOOK_EVENTS = [] as const;
 const FORBIDDEN_SOURCE_REFS = [
   "~/.codex/plugins/cache",
-  "/home/palantirkc/.codex/plugins/cache",
   "~/.claude/plugins/cache",
-  "/home/palantirkc/.claude/plugins/cache",
 ] as const;
 
 // Each adapter family is verified against the date it was last empirically checked.

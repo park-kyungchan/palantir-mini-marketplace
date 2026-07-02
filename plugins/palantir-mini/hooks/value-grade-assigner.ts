@@ -755,7 +755,7 @@ function blockReason(
     hint,
     ``,
     `Bypass for emergency: PALANTIR_MINI_VALUE_GRADE_BYPASS=1 (audited).`,
-    `For full text: pm_rule_query({ byId: 26 }) (or /palantir-mini:pm-rule 26)`,
+    `For full text: pm_rule_query({ byId: 26 })`,
   ].join("\n");
 
   process.stderr.write(`[palantir-mini/value-grade-assigner] ${reason}\n`);

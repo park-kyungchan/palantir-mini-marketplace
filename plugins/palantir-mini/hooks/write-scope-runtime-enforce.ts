@@ -23,6 +23,7 @@
 //   Lance Martin "Scaling Managed Agents" 2026-04-08 (cattle-not-pets principle)
 
 import * as fs   from "fs";
+import * as os   from "os";
 import * as path from "path";
 import { emit }           from "../scripts/log";
 import { loadProjectScope } from "../lib/project-scope/loader";
@@ -89,7 +90,7 @@ function isLeadDirect(p: HookPayload): boolean {
  * Normalize a file path: expand ~ prefix, make absolute relative to cwd.
  */
 function resolveAbsPath(filePath: string, cwd: string): string {
-  const home = process.env.HOME ?? "/home/palantirkc";
+  const home = process.env.HOME ?? os.homedir();
   if (filePath.startsWith("~/")) {
     return path.resolve(home, filePath.slice(2));
   }

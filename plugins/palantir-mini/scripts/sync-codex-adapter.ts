@@ -28,10 +28,11 @@
 // — see scripts/sync-codex-adapter.ts; DO NOT EDIT BY HAND
 
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const PLUGIN_ROOT = path.resolve(import.meta.dir, "..");
-const HOME = process.env.HOME ?? "/home/palantirkc";
+const HOME = process.env.HOME ?? os.homedir();
 
 const DEFAULT_TARGET = path.join(HOME, ".codex", "hooks", "palantir-mini-codex-hook-adapter.ts");
 const HOOKS_JSON_PATH = path.join(PLUGIN_ROOT, "hooks", "hooks.json");

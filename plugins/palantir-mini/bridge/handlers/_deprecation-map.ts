@@ -323,7 +323,7 @@ export const UNREGISTERED_HANDLER_CLASSIFICATION: UnregisteredHandlerClassificat
   },
   {
     entry: "pm-recap", kind: "file", classification: "internal",
-    note: "session-recap view (aip-logic); live-imported by lib/runtime-overlay/memory-reflect.ts + session-start hook.",
+    note: "session-recap view (aip-logic); injected as the RecapProvider by hooks/t4-promotion-trigger.ts (ADR 0001 — lib/runtime-overlay/memory-reflect.ts never imports bridge/ directly); live-imported by session-start hook.",
   },
   {
     entry: "session_resume", kind: "file", classification: "internal",

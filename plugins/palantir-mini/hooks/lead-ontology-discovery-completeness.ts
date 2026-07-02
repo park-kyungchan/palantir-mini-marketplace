@@ -44,6 +44,7 @@
 //            rule 26 §Axis E (procedural + semantic).
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { emit } from "../scripts/log";
 import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
@@ -181,7 +182,7 @@ interface HookResult {
 
 /** Resolve absolute path, expanding ~ prefix. */
 function resolveAbsPath(filePath: string): string {
-  const home = process.env.HOME ?? "/home/palantirkc";
+  const home = process.env.HOME ?? os.homedir();
   if (filePath.startsWith("~/")) {
     return path.resolve(home, filePath.slice(2));
   }

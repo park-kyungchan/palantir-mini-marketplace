@@ -78,7 +78,7 @@ export interface ProjectOntologyIndexInstance {
 export const PROJECT_ONTOLOGY_INDEX_INSTANCES: readonly ProjectOntologyIndexInstance[] =
   [
     {
-      projectRoot: "/home/palantirkc/palantir-mini-marketplace/plugins/palantir-mini",
+      projectRoot: "~/palantir-mini-marketplace/plugins/palantir-mini",
       ontologyAxes:
         "self-ontology (ObjectType/LinkType/ActionType/Function) + rules overlay + " +
         "events.jsonl lineage substrate",

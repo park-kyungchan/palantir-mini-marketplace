@@ -10,6 +10,7 @@
 // Authority: the former turn-fan-out policy v1.0.0, the former Lead-Protocol policy lead protocol, the former sprint-harness policy work contract binding.
 
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { classifyHookTool } from "../lib/hooks/tool-classifier";
 import { readCurrentFDEOntologyEngineeringSession } from "../lib/fde-ontology-engineering/session-store";
@@ -327,7 +328,7 @@ function extractBashWriteTargets(command: string): string[] {
 }
 
 function resolveWriteTargetAbs(filePath: string, cwd: string, lowercase = true): string {
-  const home = process.env.HOME ?? "/home/palantirkc";
+  const home = process.env.HOME ?? os.homedir();
   let abs = filePath;
   if (filePath.startsWith("~/")) abs = path.resolve(home, filePath.slice(2));
   else if (!path.isAbsolute(filePath)) abs = path.resolve(cwd, filePath);

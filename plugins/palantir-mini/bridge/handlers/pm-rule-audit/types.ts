@@ -2,11 +2,12 @@
 // Per rules/CONTEXT.md §12 ceilings.
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import type { RuleAuditFinding } from "#schemas/ontology/primitives/rule";
 import { resolvePalantirMiniRoot } from "../../../lib/config/root";
 
-export const HOME = process.env.HOME ?? "/home/palantirkc";
+export const HOME = process.env.HOME ?? os.homedir();
 export const RULES_DIR = path.join(HOME, ".claude/rules");
 export const MEMORY_MD = path.join(
   HOME,

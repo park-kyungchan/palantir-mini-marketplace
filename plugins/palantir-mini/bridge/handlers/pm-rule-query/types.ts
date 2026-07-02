@@ -2,8 +2,9 @@
 // Extracted from pm-rule-query.ts (343 LOC) per N1-LARGE wave 1.
 
 import type { RuleDeclaration, RuleId } from "#schemas/ontology/primitives/rule";
+import * as os from "os";
 
-export const HOME = process.env.HOME ?? "/home/palantirkc";
+export const HOME = process.env.HOME ?? os.homedir();
 export const SEARCH_DEFAULT_LIMIT = 10;
 export const SEARCH_MAX_LIMIT = 100;
 export const SEARCH_SNIPPET_CONTEXT = 60;

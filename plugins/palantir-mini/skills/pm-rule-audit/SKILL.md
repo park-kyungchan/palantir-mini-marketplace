@@ -140,5 +140,4 @@ The histogram scan pattern: grep `^//   enforcement:` from each hooks/*.ts; coun
 
 ## Related
 
-- `/palantir-mini:pm-rule` — fetch specific rule detail (R2b).
 - R3 hooks (shipped v2.24.1) — consolidated `rule-audit` hook (`--mode=bottleneck` at PreCompact + `--mode=drift` at SessionStart + `--mode=citation` at PostToolUse:Edit on hooks/*.ts) automates this audit on a cadence.

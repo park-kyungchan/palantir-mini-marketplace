@@ -34,6 +34,7 @@
 // blocking: true
 // timeout: 3 seconds
 
+import * as os from "os";
 import * as path from "path";
 import { emit } from "../scripts/log";
 import {
@@ -121,7 +122,7 @@ function callerAgentName(p: HookPayload): string | null {
  * Normalize file path: expand ~ prefix, resolve absolute.
  */
 function resolveAbsPath(filePath: string, cwd: string): string {
-  const home = process.env.HOME ?? "/home/palantirkc";
+  const home = process.env.HOME ?? os.homedir();
   if (filePath.startsWith("~/")) {
     return path.resolve(home, filePath.slice(2));
   }

@@ -1,5 +1,5 @@
 // Test: Wave-1 self-Ontology Skill ObjectType — pm's governed skill surface registered
-// AS an ObjectType + 45 skill instances. Proves the self-model gains the Skill noun and
+// AS an ObjectType + 44 skill instances. Proves the self-model gains the Skill noun and
 // that the seed stays true to the LIVE skills/ directory surface (drift guard).
 
 import { test, expect } from "bun:test";
@@ -13,7 +13,7 @@ import {
   SKILL_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_SKILL_COUNT = 45;
+const EXPECTED_SKILL_COUNT = 44;
 
 test("self Skill ObjectType is registered with slug identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(SKILL_OBJECT_TYPE_RID);
@@ -31,7 +31,7 @@ test(`Skill seed has ${EXPECTED_SKILL_COUNT} unique skill instances`, () => {
 
 test("Skill seed matches the LIVE skills/ directory surface (drift guard)", () => {
   // The snapshot OWNS the seed (no skills-tree import); this guard reads the live
-  // skills/ directory and asserts the self-model's 45 slugs equal pm's actual skill
+  // skills/ directory and asserts the self-model's 44 slugs equal pm's actual skill
   // surface, so adding or removing a skill dir fails loud until skill.objecttype.ts is
   // updated. `_shared` is a shared-fragment dir, not a skill — excluded.
   const skillsDir = path.join(import.meta.dir, "../../../skills");
