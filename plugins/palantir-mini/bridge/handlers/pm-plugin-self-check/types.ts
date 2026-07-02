@@ -8,6 +8,7 @@ import type { DeletionReadinessResult } from "./check-deletion-readiness";
 import type { SkillToolDeclarationsCheckResult } from "./check-skill-tool-declarations";
 import type { SchemasSnapshotManifestCheckResult } from "./check-schemas-snapshot-manifest";
 import type { HookSeedCheckResult } from "./check-hook-seed";
+import type { AgentModelPolicyCheckResult } from "./check-agent-model-policy";
 
 /** Plugin root resolved from this file's location (bridge/handlers/pm-plugin-self-check/types.ts → ../../.. = plugin root). */
 export const PLUGIN_ROOT = path.resolve(__dirname, "../../..");
@@ -22,6 +23,7 @@ export type PmPluginSelfCheckMode =
   | "managed-settings"
   | "surface-contracts"
   | "hook-seed"
+  | "agent-model-policy"
   | "release";
 
 export type PmPluginSelfCheckStatus = "pass" | "fail" | "skipped";
@@ -205,6 +207,14 @@ export interface PmPluginSelfCheckResult {
    * overallStatus in release mode.
    */
   hookSeedResult: HookSeedCheckResult;
+  /**
+   * Sonnet-only subagent model policy check (owner directive: "subagents are
+   * ALWAYS spawned as Sonnet with maximum reasoning effort"). Fails when any
+   * active agents/*.md (excluding .archived/) declares a `model:` frontmatter
+   * value other than "sonnet", or omits the field entirely. Influences
+   * overallStatus in release mode.
+   */
+  agentModelPolicyResult: AgentModelPolicyCheckResult;
   overallStatus: "pass" | "fail";
   /**
    * v6.0.0 removal advisories from DEPRECATION_MAP.

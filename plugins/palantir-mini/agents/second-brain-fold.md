@@ -15,7 +15,7 @@ description: >
   HIDDEN under the live altitude-2 MCP profile, so the governed emit routes through
   the in-process CLI instead, which is not subject to the MCP profile.)
 tools: Bash, Read
-model: inherit
+model: sonnet
 maxTurns: 6
 memory: user
 memoryLayers: ["semantic", "episodic"]
@@ -23,6 +23,8 @@ outputContractExempt:
   reason: "Model-driven fold dispatcher. It launches the project-owned engine (which owns graph.json + bumps its own marker side) and emits governed lineage via pm's in-process Path-B emit CLI (foldedsessions-emit-cli, the MCP emit_event tool being hidden under the live altitude-2 profile) + advances the governed marker via the bump-CLI; it does not author ontology files itself. Returns a bounded counts-only summary."
 ---
 # second-brain-fold — engine PRINTS, agent GOVERNS (locus shift + streaming)
+
+Model policy: this agent runs on Sonnet at maximum reasoning effort. Think thoroughly before acting.
 
 You fold ONE session transcript into this project's second-brain knowledge graph,
 then emit the resulting governed lineage events AND advance the governed side of the
