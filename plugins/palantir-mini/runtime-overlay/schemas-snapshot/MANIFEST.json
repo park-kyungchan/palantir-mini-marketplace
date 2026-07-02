@@ -1,11 +1,11 @@
 {
   "version": "2.0.0",
-  "snapshotAt": "2026-06-25T08:19:43.719Z",
+  "snapshotAt": "2026-07-02T01:08:43.647Z",
   "sourcePath": "~/.claude/schemas/",
   "purpose": "Plugin-owned portable @palantirKC/claude-schemas snapshot. Runtime imports resolve through #schemas/* by default. Upstream test files and runtime session state are intentionally excluded from the plugin substrate snapshot.",
   "packageVersion": "1.83.1",
   "totalFiles": 246,
-  "totalBytes": 2288834,
+  "totalBytes": 2288841,
   "fileSha256Index": {
     ".manifest.json": "fb6f06026e356fd2487f59a15816dcb2b6ccaa2adae052568944630d33863ec7",
     "BROWSE.md": "f0189425017dd329e683a513032d4fcd206620a9458280891b09f34670bc952e",
@@ -176,7 +176,7 @@
     "ontology/seeds/skill-definitions.ts": "67423fdb0779e97563ac33eaf6e5828dc5b538738b61d109988a2d8a6324ad24",
     "ontology/self/BROWSE.md": "c2d3ec0503f15157fda15ea44af8ab97608b3af1a2f3267b108d3d61df868a4e",
     "ontology/self/action-types.ts": "eb05e43ce21408df736d6577ef36399aa4c23e0c23060f610db026898d836818",
-    "ontology/self/agent.objecttype.ts": "85f1202340f0cddc8b0a1753548c552557e7a44234977c075c578b4a4f285400",
+    "ontology/self/agent.objecttype.ts": "559b3b87845729aca665981917b9042382cbcbd7a4cbc7ad8051098368ced037",
     "ontology/self/capability-contract.objecttype.ts": "cf826e0f96deb41ed5ac6867c82430a59010612881c2d4086fb4ecd186d2c34f",
     "ontology/self/capability-token.objecttype.ts": "711a3e185df687bc92d38eef0d78282c135aa4d6f03917d0e152bdecc9d69f66",
     "ontology/self/context-capsule.objecttype.ts": "db0d5d394da89fc5a884d5628289f374f177cafbfe60f3788bf176e1ac8e98c5",
