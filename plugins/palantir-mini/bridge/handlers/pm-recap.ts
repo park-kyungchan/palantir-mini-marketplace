@@ -28,83 +28,12 @@ import {
   computeClassificationAccuracy,
   type CalibrationScore,
 } from "../../lib/recap/classification-accuracy";
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-interface PmRecapArgs {
-  /** Absolute path to project root. Default: $PALANTIR_MINI_PROJECT or cwd. */
-  project?: string;
-  /**
-   * Filter scope for MCP-First Compliance section.
-   * "current-sprint" = events since most recent sprint_contract_bound (default).
-   * "sprint-NNN" (e.g. "sprint-060") = events for that sprint.
-   * "last-7-days" or "last-N-days" (e.g. "last-30-days") = calendar window.
-   * "all" = all events.
-   */
-  scope?: string;
-  /**
-   * When true, skip the §MCP-First Compliance section.
-   * Default false — include the section.
-   */
-  skipMcpFirst?: boolean;
-  /** Include per-bucket breakdown in §MCP-First Compliance. Default false. */
-  withBuckets?: boolean;
-  /**
-   * When true, include §Classification Accuracy section (sprint-062 W4-α).
-   * Default false — opt-in to avoid cost for quick recaps.
-   */
-  withClassificationAccuracy?: boolean;
-  /**
-   * Window in days for classification accuracy pairing (default 14).
-   * A prediction is confirmed when an edit_committed event fires for the same
-   * RID within ±classificationWindowDays of the plan output.
-   */
-  classificationWindowDays?: number;
-}
-
-interface SprintSummary {
-  sprintNumber: number;
-  contractId?: string;
-  bound: boolean;
-  verdict?: string;
-}
-
-interface SubstrateHealth {
-  totalEvents: number;
-  gradeDistribution: Record<string, number>;
-  t2PlusRatio: number;
-  t3CircuitInputs: number;
-}
-
-interface ClassificationAccuracySummary {
-  aggregate: number;
-  totalPlans: number;
-  totalMatches: number;
-  windowDays: number;
-  trust: boolean;
-  retrain: boolean;
-  perKindAccuracy: Record<string, number>;
-  section: string;
-}
-
-interface PmRecapResult {
-  project: string;
-  scope: string;
-  generatedAt: string;
-  substrateHealth: SubstrateHealth;
-  sprintSummary: SprintSummary[];
-  topEvents: Record<string, number>;
-  mcpFirstCompliance?: {
-    passed: number;
-    bypassed: number;
-    ratio: number;
-    estimatedTokensSaved: number;
-    mode: "native" | "heuristic";
-    topRids: string[];
-    section: string;
-  };
-  classificationAccuracy?: ClassificationAccuracySummary;
-}
+import type {
+  PmRecapArgs,
+  PmRecapResult,
+  SubstrateHealth,
+  SprintSummary,
+} from "../../lib/recap/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

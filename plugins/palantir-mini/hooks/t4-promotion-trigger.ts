@@ -29,6 +29,7 @@ import * as path from "path";
 import { emit } from "../scripts/log";
 import { replayPromoteGrades } from "../scripts/replay-promote-grades";
 import { reflectMemoryToCache } from "../lib/runtime-overlay/memory-reflect";
+import pmRecap from "../bridge/handlers/pm-recap";
 
 // ─── Hook input shape (Stop stdin) ───────────────────────────────────────────
 
@@ -164,7 +165,7 @@ async function main(): Promise<void> {
   // or session-end continuation. Writes a hash-gated digest into the dedicated
   // .palantir-mini/cache/memory-prior.md (the curated MEMORY.md is untouched).
   try {
-    await reflectMemoryToCache(project);
+    await reflectMemoryToCache(project, { recapProvider: pmRecap });
   } catch (err) {
     process.stderr.write(
       `[t4-promotion-trigger] reflectMemoryToCache error: ${String(err)}\n`,

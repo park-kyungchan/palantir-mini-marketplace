@@ -155,6 +155,7 @@ export function pruneRawSnapshots(snapshotDir: string, opts: PruneOptions = {}):
 
   entries.sort((a, b) => b.mtimeMs - a.mtimeMs);
 
+  // Boundary note: mtimeMs is fractional while cutoffMs derives from integer Date.now(), so a file created in the same millisecond as the cutoff can land on either side of it (exact-boundary maxAgeMs, e.g. 0, is inherently ambiguous).
   const cutoffMs = Date.now() - maxAgeMs;
   const keepIndices = new Set<number>();
   for (let i = 0; i < entries.length; i++) {

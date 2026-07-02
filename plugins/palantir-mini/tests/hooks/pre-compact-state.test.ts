@@ -131,10 +131,19 @@ describe("pruneRawSnapshots (G4 retention)", () => {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "README.md"), "ignored");
     fs.writeFileSync(path.join(dir, "manifest.json"), "ignored");
-    makeSnapshots(3);
-    const r = pruneRawSnapshots(dir, { keepCount: 1, maxAgeMs: 0 });
-    // Only events-*.jsonl files are eligible. keepCount=1 + maxAgeMs=0 →
-    // keep top 1 most-recent, prune rest. README + manifest untouched.
+    // Deterministic ages (dayMs = 24h old) + a 1h maxAgeMs give ~23h of
+    // margin either side of the cutoff. This replaces the previous
+    // maxAgeMs: 0 setup, which was timing-flaky: pruneRawSnapshots compares
+    // fractional-ms fs.statSync().mtimeMs against an integer Date.now(), and
+    // with maxAgeMs: 0 a file created within the same millisecond as the
+    // cutoff check could land on either side of it (empirically ~110/500
+    // flake locally). See lib/event-log/snapshot.ts cutoff comparison.
+    const dayMs = 24 * 3600 * 1000;
+    makeSnapshots(3, [dayMs, dayMs, dayMs]);
+    const r = pruneRawSnapshots(dir, { keepCount: 1, maxAgeMs: 3600 * 1000 });
+    // Only events-*.jsonl files are eligible. keepCount=1 + all 3 snapshots
+    // ~24h old (well beyond the 1h maxAgeMs) → keep top 1 most-recent, prune
+    // rest. README + manifest untouched.
     expect(r.keptCount).toBe(1);
     expect(r.removedCount).toBe(2);
     expect(fs.existsSync(path.join(dir, "README.md"))).toBe(true);

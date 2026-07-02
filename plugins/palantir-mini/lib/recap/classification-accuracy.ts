@@ -57,6 +57,26 @@ export interface CalibrationScore {
   windowDays: number;
 }
 
+/**
+ * pm_recap-facing §Classification Accuracy shape (sprint-062 W4-α).
+ * Reshapes CalibrationScore for the recap result: trust/retrain verdicts
+ * (threshold-gated booleans) and a flattened perKindAccuracy map replace the
+ * raw perKind KindStats breakdown, plus the rendered markdown `section`.
+ * Consumed by bridge/handlers/pm-recap.ts via PmRecapResult
+ * (lib/recap/types.ts) — this type lives here (the module that computes the
+ * underlying CalibrationScore) rather than in lib/recap/types.ts itself.
+ */
+export interface ClassificationAccuracySummary {
+  aggregate: number;
+  totalPlans: number;
+  totalMatches: number;
+  windowDays: number;
+  trust: boolean;
+  retrain: boolean;
+  perKindAccuracy: Record<string, number>;
+  section: string;
+}
+
 // ─── Internal types ───────────────────────────────────────────────────────────
 
 interface PlanPrediction {

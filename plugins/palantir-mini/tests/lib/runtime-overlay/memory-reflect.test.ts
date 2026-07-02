@@ -6,6 +6,12 @@
 // into a DEDICATED pm-owned cache file (.palantir-mini/cache/memory-prior.md),
 // auto-created (with its fence) when missing.
 //
+// ADR 0001 (docs/adr/0001-memory-reflect-recap-provider-inversion.md):
+// memory-reflect.ts (lib/) no longer imports bridge/handlers/pm-recap.ts via
+// a dynamic, module-interception-prone import. Tests inject a fake
+// RecapProvider directly via `opts.recapProvider` instead — no process-global
+// module mock, no file-load-order dependency, no CI/local divergence.
+//
 // Coverage:
 //   1. resolveCachePath is importable + points at the dedicated cache file
 //      (NOT MEMORY.md).
@@ -17,48 +23,32 @@
 //   5. PALANTIR_MINI_MEMORY_REFLECT_DISABLE=1 bypass → reason "disabled",
 //      no cache file created.
 
-import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
+import { test, expect, describe, beforeEach, afterEach } from "bun:test";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-
-// Resolve the pm-recap module specifier at runtime relative to this test
-// file so mock.module() targets the same absolute path the production code
-// resolves via `await import("../../bridge/handlers/pm-recap")` from
-// lib/runtime-overlay/memory-reflect.ts (2 levels up to plugin root, then
-// bridge/handlers/pm-recap). This test file lives 3 levels below the plugin
-// root (tests/lib/runtime-overlay/), so the equivalent path from here is
-// "../../../bridge/handlers/pm-recap". A hardcoded absolute path here would
-// silently fail to intercept on any machine whose repo isn't checked out at
-// that exact location (including CI/sandbox).
-const PM_RECAP_MODULE_SPECIFIER = path.resolve(
-  import.meta.dir,
-  "../../../bridge/handlers/pm-recap",
-);
-
-// Deterministic pm-recap so the digest is stable across calls (the real recap
-// stamps generatedAt = new Date().toISOString(), which would never let the
-// hash-gate report "unchanged"). This mock owns the pm-recap module for this
-// test file only.
-const FIXED_RECAP = {
-  default: async () => ({
-    generatedAt: "FIXED-TS-FOR-TEST",
-    substrateHealth: { totalEvents: 7, t2PlusRatio: 0.5, t3CircuitInputs: 2 },
-    sprintSummary: [],
-  }),
-};
-mock.module(
-  PM_RECAP_MODULE_SPECIFIER,
-  () => FIXED_RECAP,
-);
 
 import {
   reflectMemoryToCache,
   resolveCachePath,
 } from "../../../lib/runtime-overlay/memory-reflect";
+import type { RecapProvider } from "../../../lib/recap/types";
 
 const CACHE_START = "<!-- pm-recap-cache-start -->";
 const CACHE_END = "<!-- pm-recap-cache-end -->";
+
+// Deterministic fake RecapProvider so the digest is stable across calls (the
+// real pm_recap handler stamps generatedAt = new Date().toISOString(), which
+// would never let the hash-gate report "unchanged"). Injected directly via
+// opts.recapProvider — no module mocking involved.
+const FIXED_RECAP: RecapProvider = async () => ({
+  project: "unused",
+  scope: "current-sprint",
+  generatedAt: "FIXED-TS-FOR-TEST",
+  substrateHealth: { totalEvents: 7, gradeDistribution: {}, t2PlusRatio: 0.5, t3CircuitInputs: 2 },
+  sprintSummary: [],
+  topEvents: {},
+});
 
 // ─── Setup / teardown ────────────────────────────────────────────────────────
 
@@ -106,7 +96,7 @@ describe("reflect writes to dedicated cache file", () => {
     const cachePath = resolveCachePath(TMP);
     expect(fs.existsSync(cachePath)).toBe(false);
 
-    const result = await reflectMemoryToCache(TMP);
+    const result = await reflectMemoryToCache(TMP, { recapProvider: FIXED_RECAP });
 
     expect(result.written).toBe(true);
     expect(result.reason).toBe("hash changed");
@@ -126,34 +116,27 @@ describe("reflect writes to dedicated cache file", () => {
 
   test("a subsequent CHANGED digest rewrites only the fenced block", async () => {
     const cachePath = resolveCachePath(TMP);
-    await reflectMemoryToCache(TMP);
+    await reflectMemoryToCache(TMP, { recapProvider: FIXED_RECAP });
     const firstContent = fs.readFileSync(cachePath, "utf8");
 
-    // Swap the mock to a different digest → hash changes → rewrite.
-    mock.module(
-      PM_RECAP_MODULE_SPECIFIER,
-      () => ({
-        default: async () => ({
-          generatedAt: "SECOND-TS",
-          substrateHealth: { totalEvents: 99, t2PlusRatio: 0.9, t3CircuitInputs: 9 },
-          sprintSummary: [],
-        }),
-      }),
-    );
+    // Swap the provider to one yielding a different digest → hash changes →
+    // rewrite. No re-mocking needed — just pass a different function.
+    const CHANGED_RECAP: RecapProvider = async () => ({
+      project: "unused",
+      scope: "current-sprint",
+      generatedAt: "SECOND-TS",
+      substrateHealth: { totalEvents: 99, gradeDistribution: {}, t2PlusRatio: 0.9, t3CircuitInputs: 9 },
+      sprintSummary: [],
+      topEvents: {},
+    });
 
-    const result = await reflectMemoryToCache(TMP);
+    const result = await reflectMemoryToCache(TMP, { recapProvider: CHANGED_RECAP });
     expect(result.written).toBe(true);
     const secondContent = fs.readFileSync(cachePath, "utf8");
     expect(secondContent).not.toBe(firstContent);
     // The non-fence scaffold header is preserved across rewrites.
     expect(secondContent.startsWith("# palantir-mini")).toBe(true);
     expect(secondContent).toContain("SECOND-TS");
-
-    // Restore the shared fixture for the remaining tests.
-    mock.module(
-      PM_RECAP_MODULE_SPECIFIER,
-      () => FIXED_RECAP,
-    );
   });
 });
 
@@ -169,7 +152,7 @@ describe("MEMORY.md is never written", () => {
     fs.writeFileSync(memoryPath, ORIGINAL, "utf8");
     const beforeBytes = fs.readFileSync(memoryPath);
 
-    const result = await reflectMemoryToCache(TMP);
+    const result = await reflectMemoryToCache(TMP, { recapProvider: FIXED_RECAP });
     expect(result.written).toBe(true);
 
     const afterBytes = fs.readFileSync(memoryPath);
@@ -186,12 +169,12 @@ describe("hash-gated skip on unchanged digest", () => {
   test("second call with same digest returns 'unchanged' and does not re-write", async () => {
     const cachePath = resolveCachePath(TMP);
 
-    const r1 = await reflectMemoryToCache(TMP);
+    const r1 = await reflectMemoryToCache(TMP, { recapProvider: FIXED_RECAP });
     expect(r1.reason).toBe("hash changed");
     const mtime1 = fs.statSync(cachePath).mtimeMs;
     const bytes1 = fs.readFileSync(cachePath);
 
-    const r2 = await reflectMemoryToCache(TMP);
+    const r2 = await reflectMemoryToCache(TMP, { recapProvider: FIXED_RECAP });
     expect(r2.written).toBe(false);
     expect(r2.reason).toBe("unchanged");
 
@@ -209,7 +192,7 @@ describe("PALANTIR_MINI_MEMORY_REFLECT_DISABLE bypass", () => {
     process.env.PALANTIR_MINI_MEMORY_REFLECT_DISABLE = "1";
     const cachePath = resolveCachePath(TMP);
 
-    const result = await reflectMemoryToCache(TMP);
+    const result = await reflectMemoryToCache(TMP, { recapProvider: FIXED_RECAP });
     expect(result.written).toBe(false);
     expect(result.reason).toBe("disabled");
     expect(fs.existsSync(cachePath)).toBe(false);
