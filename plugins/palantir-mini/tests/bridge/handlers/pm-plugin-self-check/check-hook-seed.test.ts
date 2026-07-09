@@ -12,7 +12,7 @@
 //      mode stays scoped to lifecycle-hook timeout/forbidden-command policy — the
 //      seed drift axis is a release/CI integrity gate, like schemas-snapshot-manifest.)
 
-import { test, expect, describe } from "bun:test";
+import { test, expect, describe, afterEach } from "bun:test";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -20,6 +20,20 @@ import { pmPluginSelfCheck } from "../../../../bridge/handlers/pm-plugin-self-ch
 import { checkHookSeed } from "../../../../bridge/handlers/pm-plugin-self-check/check-hook-seed";
 import { verifyHookSeed } from "../../../../lib/runtime-overlay/hook-seed-drift";
 import { resolvePalantirMiniRoot } from "../../../../lib/config/root";
+
+const originalProjectEnv = process.env.PALANTIR_MINI_PROJECT;
+const originalEventsFileEnv = process.env.PALANTIR_MINI_EVENTS_FILE;
+
+// g10 fix follow-through: PALANTIR_MINI_PROJECT is now the highest-priority
+// root override (resolveEmitRoot()), so leaving it set after this file's
+// tests would hijack every other test file's emit() calls in the same bun
+// test process. Restore it (and the paired events-file override) afterward.
+afterEach(() => {
+  if (originalProjectEnv === undefined) delete process.env.PALANTIR_MINI_PROJECT;
+  else process.env.PALANTIR_MINI_PROJECT = originalProjectEnv;
+  if (originalEventsFileEnv === undefined) delete process.env.PALANTIR_MINI_EVENTS_FILE;
+  else process.env.PALANTIR_MINI_EVENTS_FILE = originalEventsFileEnv;
+});
 
 const eventsEnv = () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-hookseed-"));

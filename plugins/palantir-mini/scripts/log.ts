@@ -9,6 +9,7 @@
 
 import * as path from "path";
 import { appendEventAtomic } from "../lib/event-log/append";
+import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
 import { RESERVED_PROVENANCE_TYPES } from "../lib/event-log/reserved-provenance";
 import { gitHeadSha } from "../lib/git/head-sha";
 import type { EventEnvelope, EventId, CommitSha, SessionId } from "../lib/event-log/types";
@@ -91,6 +92,36 @@ export function projectRoot(): string {
 }
 
 /**
+ * Resolves emit()'s effective root from a (possibly empty/undefined)
+ * handler-supplied cwd. Priority:
+ *   1. PALANTIR_MINI_PROJECT, when set, stays the highest-priority explicit
+ *      override (unchanged semantics — returned as-is, no marker walk).
+ *   2. Otherwise startDir = `envCwd` when non-empty, else process.cwd().
+ *   3. The resolved start dir is walked upward via findProjectRoot() —
+ *      closing the g10 double-nested-events.jsonl bug where emit() never
+ *      resolved a marker root at all; when no `.palantir-mini` marker is
+ *      found, the start dir itself is used as-is.
+ *   4. A found root that is itself an excluded dir (HOME / a system temp
+ *      dir — see `isExcludedProjectRoot()`) is treated as not-found: an
+ *      ambient stray marker sitting directly at one of those ordinary
+ *      ancestors (e.g. `/tmp/.palantir-mini`) must not make emit() latch
+ *      onto it when walking up from a marker-less start dir underneath it —
+ *      the start dir itself is used instead, same as the no-marker case.
+ */
+export function resolveEmitRoot(envCwd?: string): string {
+  const envProject = process.env.PALANTIR_MINI_PROJECT;
+  if (envProject !== undefined) {
+    return envProject;
+  }
+  const startDir = envCwd && envCwd.length > 0 ? envCwd : process.cwd();
+  const found = findProjectRoot(startDir);
+  if (found !== null && !isExcludedProjectRoot(found)) {
+    return found;
+  }
+  return startDir;
+}
+
+/**
  * Resolves the parent project root for federation writes.
  * Returns the value of PALANTIR_MINI_PARENT_PROJECT env var, or null when
  * the current session has no parent (i.e. it is itself the Lead session).
@@ -141,7 +172,9 @@ export async function emit(env: LogEnvelope): Promise<number> {
   // B-30 (harness-h4 canary): handler-supplied env.cwd takes precedence over
   // MCP subprocess process.cwd() so events land in the project's events.jsonl
   // that the handler was invoked for, not the MCP server's launch cwd.
-  const root  = env.cwd && env.cwd.length > 0 ? env.cwd : projectRoot();
+  // g10 fix: resolveEmitRoot() walks upward via findProjectRoot() so the
+  // event lands at the real project root marker, not a raw/stray cwd.
+  const root  = resolveEmitRoot(env.cwd);
   const epath = eventsPathFor(root);
   const sha   = gitHeadSha(root);
 

@@ -13,7 +13,7 @@
  *   5. Release-mode wiring: pmPluginSelfCheck({ mode: "release" }) gates on it.
  */
 
-import { test, expect, describe } from "bun:test";
+import { test, expect, describe, afterEach } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import { pmPluginSelfCheck } from "../../../../bridge/handlers/pm-plugin-self-check";
@@ -22,6 +22,20 @@ import {
   checkSkillToolDeclarations,
   classifySkillTool,
 } from "../../../../bridge/handlers/pm-plugin-self-check/check-skill-tool-declarations";
+
+const originalProjectEnv = process.env.PALANTIR_MINI_PROJECT;
+const originalEventsFileEnv = process.env.PALANTIR_MINI_EVENTS_FILE;
+
+// g10 fix follow-through: PALANTIR_MINI_PROJECT is now the highest-priority
+// root override (resolveEmitRoot()), so leaving it set after this file's
+// tests would hijack every other test file's emit() calls in the same bun
+// test process. Restore it (and the paired events-file override) afterward.
+afterEach(() => {
+  if (originalProjectEnv === undefined) delete process.env.PALANTIR_MINI_PROJECT;
+  else process.env.PALANTIR_MINI_PROJECT = originalProjectEnv;
+  if (originalEventsFileEnv === undefined) delete process.env.PALANTIR_MINI_EVENTS_FILE;
+  else process.env.PALANTIR_MINI_EVENTS_FILE = originalEventsFileEnv;
+});
 
 const eventsEnv = () => {
   const dir = fs.mkdtempSync(path.join(require("os").tmpdir(), "pm-stc-"));
