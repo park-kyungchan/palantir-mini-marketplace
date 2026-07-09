@@ -6,8 +6,15 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
+const originalProjectEnv = process.env.PALANTIR_MINI_PROJECT;
 const tmpDirs: string[] = [];
 afterAll(() => {
+  // g10 fix follow-through: PALANTIR_MINI_PROJECT is now the highest-priority
+  // root override (resolveEmitRoot()), so leaving it set to a (now-deleted)
+  // tmp dir would hijack every other test file's emit() calls in the same
+  // bun test process.
+  if (originalProjectEnv === undefined) delete process.env.PALANTIR_MINI_PROJECT;
+  else process.env.PALANTIR_MINI_PROJECT = originalProjectEnv;
   for (const d of tmpDirs) {
     try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* ignore */ }
   }

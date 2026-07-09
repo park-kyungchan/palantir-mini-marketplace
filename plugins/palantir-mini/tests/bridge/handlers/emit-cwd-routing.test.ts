@@ -1,9 +1,11 @@
 /**
  * palantir-mini v2.13.1 — emit() cwd routing regression suite (B-30).
  *
- * Covers: handler-supplied env.cwd takes precedence over projectRoot() / env
- * var fallback so audit trail lands in the project the handler was invoked
- * for, not the MCP server's launch cwd.
+ * Covers: handler-supplied env.cwd resolves the audit-trail root (via
+ * findProjectRoot()) so events land in the project the handler was invoked
+ * for, not the MCP server's launch cwd — UNLESS PALANTIR_MINI_PROJECT is
+ * explicitly set, in which case it is the highest-priority override and wins
+ * over a supplied cwd (g10 fix, scripts/log.ts resolveEmitRoot()).
  *
  * Regression guard: harness-h4 canary (2026-04-24) observed all Playwright +
  * grading events routing to ~/.palantir-mini/session/events.jsonl even though
@@ -56,11 +58,8 @@ function toolInvocationPayload(toolName: string, durationMs = 12): {
 }
 
 describe("emit() cwd routing (B-30 regression)", () => {
-  test("explicit env.cwd overrides projectRoot() — event lands in handler's project", async () => {
+  test("explicit env.cwd resolves the project root when PALANTIR_MINI_PROJECT is unset", async () => {
     const handlerProject = makeProjectDir("handler");
-    const homeProject = makeProjectDir("home");
-    // Simulate MCP server launched from home
-    process.env.PALANTIR_MINI_PROJECT = homeProject;
 
     const seq = await emit({
       type: "tool_invocation_completed",
@@ -72,15 +71,38 @@ describe("emit() cwd routing (B-30 regression)", () => {
     expect(typeof seq).toBe("number");
 
     const handlerEvents = eventsPathFor(handlerProject);
-    const homeEvents = eventsPathFor(homeProject);
     expect(fs.existsSync(handlerEvents)).toBe(true);
-    // Home events file should NOT exist since routing resolved to handlerProject
-    expect(fs.existsSync(homeEvents)).toBe(false);
 
     const raw = fs.readFileSync(handlerEvents, "utf8").trim();
     const parsed = JSON.parse(raw);
     expect(parsed.type).toBe("tool_invocation_completed");
     expect(parsed.throughWhich.cwd).toBe(handlerProject);
+  });
+
+  test("g10 fix: PALANTIR_MINI_PROJECT, when set, wins over a supplied env.cwd (highest-priority override)", async () => {
+    const handlerProject = makeProjectDir("handler-env-override");
+    const homeProject = makeProjectDir("home-env-override");
+    // Simulate an explicit PALANTIR_MINI_PROJECT override.
+    process.env.PALANTIR_MINI_PROJECT = homeProject;
+
+    const seq = await emit({
+      type: "tool_invocation_completed",
+      toolName: "test-handler",
+      cwd: handlerProject,
+      reasoning: "g10 env-override routing probe",
+      payload: toolInvocationPayload("test-handler"),
+    });
+    expect(typeof seq).toBe("number");
+
+    const handlerEvents = eventsPathFor(handlerProject);
+    const homeEvents = eventsPathFor(homeProject);
+    // PALANTIR_MINI_PROJECT wins — event lands in homeProject, not handlerProject.
+    expect(fs.existsSync(homeEvents)).toBe(true);
+    expect(fs.existsSync(handlerEvents)).toBe(false);
+
+    const raw = fs.readFileSync(homeEvents, "utf8").trim();
+    const parsed = JSON.parse(raw);
+    expect(parsed.type).toBe("tool_invocation_completed");
   });
 
   test("foreign PALANTIR_MINI_EVENTS_FILE override does not steal explicit env.cwd events", async () => {

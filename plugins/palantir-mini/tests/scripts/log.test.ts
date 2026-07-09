@@ -1,12 +1,13 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { emit, type LogEnvelope } from "../../scripts/log";
+import { emit, resolveEmitRoot, type LogEnvelope } from "../../scripts/log";
 
 const originalHostRuntime = process.env.PALANTIR_MINI_HOST_RUNTIME;
 const originalEventsFile = process.env.PALANTIR_MINI_EVENTS_FILE;
 const originalEventsFileForce = process.env.PALANTIR_MINI_EVENTS_FILE_FORCE;
+const originalProjectEnv = process.env.PALANTIR_MINI_PROJECT;
 const tmpDirs: string[] = [];
 type LogOverrides = Partial<Omit<LogEnvelope, "type" | "payload" | "toolName" | "cwd">>;
 
@@ -24,6 +25,10 @@ function restoreEnv(): void {
 function makeTmpProject(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-log-"));
   tmpDirs.push(dir);
+  // Self-contained marker: makes this dir its own resolveEmitRoot() answer
+  // regardless of ambient `.palantir-mini` state elsewhere under os.tmpdir()
+  // (the exact stray-marker condition g10 guards against).
+  fs.mkdirSync(path.join(dir, ".palantir-mini"), { recursive: true });
   return dir;
 }
 
@@ -142,5 +147,64 @@ describe("scripts/log emit reserved commit-provenance choke (F1b)", () => {
       identity: "claude-code",
     });
     expect(seq).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// g10 fix — resolveEmitRoot() resolution order: PALANTIR_MINI_PROJECT, when
+// set, is the highest-priority explicit override (wins over a supplied cwd
+// too); otherwise findProjectRoot() is now actually consulted so a deep
+// startDir resolves to its ancestor marker; falls back to the raw startDir
+// when no marker exists anywhere up the chain.
+describe("scripts/log resolveEmitRoot resolution order", () => {
+  afterEach(() => {
+    if (originalProjectEnv === undefined) delete process.env.PALANTIR_MINI_PROJECT;
+    else process.env.PALANTIR_MINI_PROJECT = originalProjectEnv;
+  });
+
+  test("PALANTIR_MINI_PROJECT wins over process.cwd() when no cwd is supplied (env override wins)", () => {
+    const projectDir = makeTmpProject();
+    fs.mkdirSync(path.join(projectDir, ".palantir-mini"), { recursive: true });
+    process.env.PALANTIR_MINI_PROJECT = projectDir;
+
+    expect(resolveEmitRoot(undefined)).toBe(projectDir);
+  });
+
+  test("findProjectRoot walks a deep supplied cwd up to its ancestor marker (findProjectRoot used otherwise)", () => {
+    delete process.env.PALANTIR_MINI_PROJECT;
+    const projectDir = makeTmpProject();
+    fs.mkdirSync(path.join(projectDir, ".palantir-mini"), { recursive: true });
+    const deepCwd = path.join(projectDir, "a", "b", "c");
+    fs.mkdirSync(deepCwd, { recursive: true });
+
+    expect(resolveEmitRoot(deepCwd)).toBe(projectDir);
+  });
+
+  test("falls back to the raw startDir when no marker exists anywhere up the chain", () => {
+    delete process.env.PALANTIR_MINI_PROJECT;
+    // Deliberately NOT makeTmpProject() (which now self-seeds a marker) — this
+    // case needs a startDir with no marker anywhere in its ancestry. Stub
+    // existsSync so ambient stray `.palantir-mini` markers elsewhere under
+    // os.tmpdir() (the exact g10 condition) can't false-positive the walk.
+    const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-log-bare-"));
+    tmpDirs.push(bareDir);
+    const noMarkerCwd = path.join(bareDir, "a", "b");
+    fs.mkdirSync(noMarkerCwd, { recursive: true });
+
+    const existsSpy = spyOn(fs, "existsSync").mockReturnValue(false);
+    try {
+      expect(resolveEmitRoot(noMarkerCwd)).toBe(noMarkerCwd);
+    } finally {
+      existsSpy.mockRestore();
+    }
+  });
+
+  test("PALANTIR_MINI_PROJECT wins over a supplied cwd (explicit override is highest priority)", () => {
+    const handlerProject = makeTmpProject();
+    fs.mkdirSync(path.join(handlerProject, ".palantir-mini"), { recursive: true });
+    const envProject = makeTmpProject();
+    fs.mkdirSync(path.join(envProject, ".palantir-mini"), { recursive: true });
+    process.env.PALANTIR_MINI_PROJECT = envProject;
+
+    expect(resolveEmitRoot(handlerProject)).toBe(envProject);
   });
 });
