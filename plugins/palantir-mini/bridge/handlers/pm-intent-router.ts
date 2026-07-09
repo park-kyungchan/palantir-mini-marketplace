@@ -571,6 +571,21 @@ function promptLineagePayload(
   };
 }
 
+/**
+ * Wave 2 correlation-rid join (user decision 2026-07-10) — derives the single
+ * `lineageRefs.actionRid` value to stamp on a pm_intent_router validation
+ * checkpoint from the SAME flat rid fields `promptLineagePayload()` already
+ * computes (workContractRef > routerBindingRef > promptId, in specificity
+ * order), so all checkpoints for one routing flow correlate on one rid.
+ */
+function actionRidFromLineagePayload(lp: Record<string, unknown>): string | undefined {
+  return (
+    (lp.workContractRef as string | undefined) ??
+    (lp.routerBindingRef as string | undefined) ??
+    (lp.promptId as string | undefined)
+  );
+}
+
 interface WorkBindingState {
   workContractRef?: string;
   routerBindingRef?: string;
@@ -1128,6 +1143,8 @@ export async function routeIntent(
         } as Record<string, unknown>,
         toolName: "pm_intent_router",
         cwd: input.project,
+        // wave 2 correlation-rid join (user decision 2026-07-10).
+        lineageRefs: { actionRid: actionRidFromLineagePayload(lineagePayload) },
         reasoning:
           `pm_intent_router: PALANTIR_MINI_ROUTER_FAIL_CLOSED_BYPASS=1 set — ` +
           `skipping fail-closed predicate for intent="${effectiveInput.intent.slice(0, 60)}". ` +
@@ -1229,6 +1246,8 @@ export async function routeIntent(
           } as Record<string, unknown>,
           toolName: "pm_intent_router",
           cwd: input.project,
+          // wave 2 correlation-rid join (user decision 2026-07-10).
+          lineageRefs: { actionRid: actionRidFromLineagePayload(lineagePayload) },
           reasoning:
             `pm_intent_router PR 3.4: ontology_context_query failed after ${ctxElapsedMs}ms — ` +
             `falling back to legacy prefetch path. intent="${input.intent.slice(0, 60)}" ` +
@@ -1299,6 +1318,12 @@ export async function routeIntent(
         } as Record<string, unknown>,
         toolName: "pm_intent_router",
         cwd: input.project,
+        // wave 2 correlation-rid join (user decision 2026-07-10).
+        lineageRefs: {
+          actionRid: actionRidFromLineagePayload(
+            promptLineagePayload(input, promptRouting, workBindingState),
+          ),
+        },
         reasoning: isFailClosed
           ? `pm_intent_router FAIL-CLOSED: ontology-affecting intent="${input.intent.slice(0, 80)}" ` +
             `has no typed-ref DTC — returning contract_required. ` +
@@ -1407,6 +1432,13 @@ export async function routeIntent(
         } as Record<string, unknown>,
         toolName: "pm_intent_router",
         cwd: input.project,
+        // wave 2 correlation-rid join (user decision 2026-07-10).
+        lineageRefs: {
+          actionRid:
+            workBindingState.workContractRef ??
+            workBindingState.routerBindingRef ??
+            actionRidFromLineagePayload(lineagePayload),
+        },
         reasoning:
           `pm_intent_router: OntologyDtcBuildReadinessGate blocked dispatch for ` +
           `intent="${input.intent.slice(0, 80)}" basis=${routingProjection.basis}.`,
@@ -1483,6 +1515,13 @@ export async function routeIntent(
       } as Record<string, unknown>,
       toolName: "pm_intent_router",
       cwd: input.project,
+      // wave 2 correlation-rid join (user decision 2026-07-10).
+      lineageRefs: {
+        actionRid:
+          workBindingState.workContractRef ??
+          workBindingState.routerBindingRef ??
+          actionRidFromLineagePayload(lineagePayload),
+      },
       reasoning:
         `pm_intent_router: intent="${input.intent.slice(0, 80)}" ` +
         `decision=${routeRecipe.decision} ` +
@@ -1601,6 +1640,8 @@ export async function routeIntent(
           } as Record<string, unknown>,
           toolName: "pm_intent_router",
           cwd: input.project,
+          // wave 2 correlation-rid join (user decision 2026-07-10).
+          lineageRefs: { actionRid: actionRidFromLineagePayload(lineagePayload) },
           reasoning:
             `Sprint-097 PR 3.5 — approval auto-create policy gated on explicit 6-signal ` +
             `low-risk check per canonical plan v2 §4 row 3.5 + proposal §11 Phase 3 final acceptance. ` +

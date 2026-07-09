@@ -148,6 +148,7 @@ async function emitContractSelfAttest(
   project:    string,
   contractInfo: BoundContractInfo | null,
   sessionId:  string | undefined,
+  actionTypeRid: string,
 ): Promise<void> {
   try {
     const contractId = contractInfo?.contractId ?? "no-contract-found";
@@ -164,6 +165,12 @@ async function emitContractSelfAttest(
       toolName: "commit_edits",
       cwd:      project,
       sessionId,
+      // wave 2 correlation-rid join (user decision 2026-07-10): actionTypeRid is
+      // the same rid lib/actions/commit.ts stamps on the paired edit_committed
+      // source event (payload.actionTypeRid) — sharing it here via
+      // lineageRefs.actionRid lets scripts/replay-promote-grades.ts join the two
+      // once the source side is stamped in a future wave.
+      lineageRefs: { actionRid: actionTypeRid },
       runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
       reasoning: `commit_edits self-attest: contractId=${contractId} mode=${mode} — defense-in-depth per architecture review §5.E.6 (R4-F12); ensures bypass-via-direct-import is auditable in events.jsonl`,
       memoryLayers: ["procedural"],
@@ -236,6 +243,8 @@ async function autoInjectDryRun(
       cwd: project,
       sessionId,
       runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
+      // wave 2 correlation-rid join (user decision 2026-07-10) — see emitContractSelfAttest.
+      lineageRefs: { actionRid: actionTypeRid },
       reasoning: `commit_edits auto-dry-run dryRunRef=${dryRunRef} actionTypeRid=${actionTypeRid} editCount=${edits.length} — auto-injected because caller did not provide dryRunRef (closes P1.SP2/M16/E.1)`,
       memoryLayers: ["procedural"],
     });
@@ -268,6 +277,8 @@ async function emitSkipAudit(
       cwd: project,
       sessionId,
       runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
+      // wave 2 correlation-rid join (user decision 2026-07-10) — see emitContractSelfAttest.
+      lineageRefs: { actionRid: actionTypeRid },
       reasoning: `commit_edits: skipAutoDryRun=true — caller opted out of auto dry-run injection (audited per sprint-060 W1.5 §skipAutoDryRun)`,
       memoryLayers: ["procedural"],
     });
@@ -287,7 +298,7 @@ export default async function commitEditsHandler(rawArgs: unknown): Promise<Comm
   // auditable. Best-effort: failure does not block commit.
   if (!args.validateOnly) {
     const contractInfoForAttest = readBoundContractInfo(args.project);
-    await emitContractSelfAttest(args.project, contractInfoForAttest, undefined);
+    await emitContractSelfAttest(args.project, contractInfoForAttest, undefined, args.actionTypeRid);
   }
 
   // ─── sprint-060 W1.5 — auto dry-run injection ───────────────────────────
