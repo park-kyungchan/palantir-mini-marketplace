@@ -111,6 +111,38 @@ export function buildEffectiveGradeIndex(events: EventEnvelope[]): Map<string, V
 // ─── Correlation-rid join (wave 2) ──────────────────────────────────────────
 
 /**
+ * Wave 3 (promotion-linkage) — incidental sibling filter.
+ *
+ * bridge/handlers/commit-edits.ts's three pre-flight checkpoints
+ * (errorClass "contract_self_attested" / "dry_run_auto_computed" /
+ * "dry_run_auto_skip") deliberately stamp the SAME lineageRefs.actionRid=
+ * actionTypeRid so they correlate with EACH OTHER as audit-trail bookkeeping
+ * — accepted in wave 2 fix round 1 (see the per-emit comments in
+ * commit-edits.ts: "accepted audit-trail bookkeeping among pre-flight
+ * checks — not a stand-in for edit_committed's own promotion"). That
+ * bookkeeping correlation was never meant to satisfy the promotion engine's
+ * join predicate: none of these three rows is an independent validation of
+ * anything, so letting one serve as the VALIDATION (attestation) side of a
+ * correlation-rid join would grant an incidental T1→T2 promotion (or
+ * contribute a spurious identity toward a T3→T4 dual-vendor count) that its
+ * counterpart never earned. This closed set names that sibling family; a rid
+ * match whose VALIDATION side carries one of these errorClasses never
+ * satisfies ridJoins() — a sibling checkpoint used as the SOURCE side is
+ * unaffected and can still be legitimately promoted by a genuine, non-sibling
+ * validation (matches elsewhere are untouched).
+ */
+const INCIDENTAL_SIBLING_ERROR_CLASSES = new Set([
+  "contract_self_attested",
+  "dry_run_auto_computed",
+  "dry_run_auto_skip",
+]);
+
+function isIncidentalSiblingValidation(validation: EventEnvelope): boolean {
+  const errorClass = (validation.payload as Record<string, unknown> | undefined)?.errorClass;
+  return typeof errorClass === "string" && INCIDENTAL_SIBLING_ERROR_CLASSES.has(errorClass);
+}
+
+/**
  * Wave 2 (user decision 2026-07-10) — CORRELATION-RID JOIN.
  *
  * The eventId join (below) requires an emitter to know its own eventId, which
@@ -130,6 +162,7 @@ function ridJoins(source: EventEnvelope, validation: EventEnvelope): boolean {
   const validationRid = validation.lineageRefs?.actionRid;
   if (!sourceRid || !validationRid) return false;
   if (sourceRid !== validationRid) return false;
+  if (isIncidentalSiblingValidation(validation)) return false;
   // when-ordering: the source must precede (or coincide with) the validation.
   return source.when <= validation.when;
 }

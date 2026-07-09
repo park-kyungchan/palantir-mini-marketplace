@@ -7,6 +7,14 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.41.0] - 2026-07-10 — promotion-linkage wave 3: emit-site census, edit_committed when-ordering design note, incidental-sibling promotion filter
+
+### Added — emit-site census + edit_committed when-ordering design note
+- **`docs/2026-07-10-promotion-linkage-wave3.md`** — census of all 97 `validation_phase_completed` emit call sites (23 wave-2 stamped + 2 pre-existing unrelated-stamped in `hooks/t4-canonical-emit-watch.ts` + 72 classified this wave into `needs-context-plumbing` / `standalone-advisory` / `stampable-now-deferred`), cross-checked against the canonical event-type registry (`runtime-overlay/schemas-snapshot/ontology/lineage/event-types.ts`). No new sites stamped — two high-confidence candidates (`lib/actions/commit.ts:185`, `bridge/handlers/propagation-audit-backward.ts:303`) are flagged for Lead review rather than self-executed, since neither is a byte-for-byte-identical sibling of an already-stamped pattern. Design note lays out 3 resolution options for `lib/actions/commit.ts`'s `edit_committed` when-ordering gap (commit-edits.ts's 3 pre-flight checkpoints necessarily precede `edit_committed`) with one recommendation.
+
+### Fixed — incidental self-attest / dry-run sibling promotion filter (`scripts/replay-promote-grades.ts`)
+- **`ridJoins()` no longer treats `commit-edits.ts`'s three pre-flight checkpoints (`errorClass` `contract_self_attested` / `dry_run_auto_computed` / `dry_run_auto_skip`) as valid correlation-rid VALIDATION evidence.** These rows deliberately share `lineageRefs.actionRid=actionTypeRid` so they audit-correlate with each other (wave 2 fix round 1, accepted as bookkeeping-only) — before this fix that same correlation incidentally satisfied the promotion engine's join predicate, granting a spurious T1→T2 promotion (or a spurious identity toward a T3→T4 dual-vendor count) to whatever shared their actionRid. The new `isIncidentalSiblingValidation()` guard checks only the VALIDATION side, so a sibling checkpoint used as the SOURCE side is unaffected and can still be legitimately promoted by a genuine, non-sibling validation. Behavior-preserving everywhere else. New regression suite `tests/scripts/replay-promote-grades-linkage-wave3.test.ts` (5 tests) locks both the suppressed case and the still-working general mechanism.
+
 ## [7.39.0] - 2026-07-03 — PreToolUse hot-path fast-path entries (H3) + sync-codex-adapter CI coverage (H7)
 
 Session-3 wave C.
