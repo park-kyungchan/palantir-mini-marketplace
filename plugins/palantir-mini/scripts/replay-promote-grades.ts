@@ -10,10 +10,14 @@
 //
 // Promotion conditions applied in sequence:
 //   T1→T2: event has an outcome_pair_audited or validation_phase_completed sibling
-//          with matching lineageRefs.outcomePairId or sourceEventId in payload.
+//          with matching lineageRefs.actionRid === source.eventId (eventId join,
+//          fallback) or payload.sourceEventId, OR (wave 2, additive) both events
+//          carry the SAME lineageRefs.actionRid correlation rid with source.when
+//          <= validation.when (correlation-rid join).
 //   T2→T3: event already has a typed withWhat.refinementTarget populated.
 //   T3→T4: event has ≥2 distinct validation_phase_completed(passed=true) events
-//          with matching lineageRefs.actionRid, OR has kLlmConsensus marker.
+//          matching via the eventId join OR the correlation-rid join (union),
+//          OR has kLlmConsensus marker.
 //
 // Authority: rule 26 §Substrate routing + rule 10 §append-only invariant
 //            canonical plan v2 §4 row 4.2
@@ -104,6 +108,32 @@ export function buildEffectiveGradeIndex(events: EventEnvelope[]): Map<string, V
   return index;
 }
 
+// ─── Correlation-rid join (wave 2) ──────────────────────────────────────────
+
+/**
+ * Wave 2 (user decision 2026-07-10) — CORRELATION-RID JOIN.
+ *
+ * The eventId join (below) requires an emitter to know its own eventId, which
+ * is minted inside emit() and never returned to callers (wave-1 audit
+ * finding) — so class-A sites could never populate it. The correlation-rid
+ * join instead requires BOTH the source and the validation event to carry
+ * `lineageRefs.actionRid` set to the SAME contract/action rid (e.g. a
+ * SemanticIntentContract/DigitalTwinChangeContract contractId, an
+ * actionTypeRid, a promptId — any stable identifier shared across the
+ * flow's checkpoints), with the source preceding the validation in time.
+ *
+ * This is a JOIN CONDITION, additive to the eventId join — it is NOT a
+ * replacement. Both are tried; either satisfies attestation.
+ */
+function ridJoins(source: EventEnvelope, validation: EventEnvelope): boolean {
+  const sourceRid = source.lineageRefs?.actionRid;
+  const validationRid = validation.lineageRefs?.actionRid;
+  if (!sourceRid || !validationRid) return false;
+  if (sourceRid !== validationRid) return false;
+  // when-ordering: the source must precede (or coincide with) the validation.
+  return source.when <= validation.when;
+}
+
 // ─── T1→T2 evidence finder ─────────────────────────────────────────────────────
 
 /**
@@ -111,9 +141,14 @@ export function buildEffectiveGradeIndex(events: EventEnvelope[]): Map<string, V
  * references it. Returns evidence when found, null otherwise.
  *
  * Matches when:
- *   - type = "validation_phase_completed" AND passed = true AND
- *     (lineageRefs.actionRid === source.eventId OR
- *      payload.sourceEventId === source.eventId)
+ *   - type = "validation_phase_completed" AND passed = true AND EITHER:
+ *     (a) eventId join (fallback, kept from wave 1):
+ *         lineageRefs.actionRid === source.eventId OR
+ *         payload.sourceEventId === source.eventId
+ *     (b) correlation-rid join (wave 2, additive): both source and
+ *         validation carry the SAME lineageRefs.actionRid (a shared
+ *         contract/action rid, not an eventId) AND source.when <=
+ *         validation.when.
  *   - OR type = "phase_completed" AND
  *     payload.taskId matches source.eventId (loose association)
  */
@@ -131,15 +166,18 @@ export function findT1ToT2Evidence(
       const p = ev.payload as Record<string, unknown>;
       if (!p.passed) continue;
 
-      const refersToSource =
+      const refersToSourceByEventId =
         ev.lineageRefs?.actionRid === sourceId ||
         (p.sourceEventId as string | undefined) === sourceId;
+      const refersToSourceByRid = ridJoins(source, ev);
 
-      if (refersToSource) {
+      if (refersToSourceByEventId || refersToSourceByRid) {
         return {
           outcomePairEventId: ev.eventId as string,
           outcomePairId: ev.lineageRefs?.outcomePairId as string | undefined,
-          rationale: `Paired with validation_phase_completed event ${ev.eventId} (passed=true)`,
+          rationale: refersToSourceByEventId
+            ? `Paired with validation_phase_completed event ${ev.eventId} (passed=true) via eventId join`
+            : `Paired with validation_phase_completed event ${ev.eventId} (passed=true) via correlation-rid join (lineageRefs.actionRid=${ev.lineageRefs?.actionRid})`,
         };
       }
     }
@@ -181,6 +219,10 @@ export function findT2ToT3Evidence(source: EventEnvelope): T2ToT3Evidence | null
  *
  * Also accepts single-vendor D2-fallback when withWhat carries kLlmConsensus
  * = "single-vendor-attested".
+ *
+ * Wave 2: attestations are collected over the UNION of the eventId join
+ * (fallback) and the correlation-rid join (additive) — the ≥2-distinct-
+ * identities rule applies across both join kinds combined.
  */
 export function findT3ToT4Evidence(
   source: EventEnvelope,
@@ -209,11 +251,12 @@ export function findT3ToT4Evidence(
     const p = ev.payload as Record<string, unknown>;
     if (!p.passed) continue;
 
-    const refersToSource =
+    const refersToSourceByEventId =
       ev.lineageRefs?.actionRid === sourceId ||
       (p.sourceEventId as string | undefined) === sourceId;
+    const refersToSourceByRid = ridJoins(source, ev);
 
-    if (refersToSource) {
+    if (refersToSourceByEventId || refersToSourceByRid) {
       attestationEvents.push(ev);
       const identity = ev.byWhom?.identity;
       if (identity) attestingIdentities.add(identity);

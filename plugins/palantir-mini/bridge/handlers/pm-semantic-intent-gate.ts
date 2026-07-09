@@ -945,6 +945,9 @@ async function emitDtcBuildApprovalAuditEvent(
       toolName: "pm_semantic_intent_gate",
       cwd: input.project,
       ...(granted ? { identity: "user" as const } : {}),
+      // wave 2 correlation-rid join (user decision 2026-07-10): promptId is the
+      // stable per-flow rid available at this checkpoint (no contract draft yet).
+      lineageRefs: { actionRid: input.userApprovalPromptId ?? input.promptId },
       reasoning:
         `pm_semantic_intent_gate: DTC-build approval ${granted ? "granted" : "denied"} — ${verdict.reason}`,
       hypothesis:
@@ -1957,6 +1960,10 @@ async function persistAdvancedFillResults(
       } as Record<string, unknown>,
       toolName: "pm_semantic_intent_gate",
       cwd: input.project,
+      // wave 2 correlation-rid join (user decision 2026-07-10).
+      lineageRefs: {
+        actionRid: refs.digitalTwinChangeContractRef ?? refs.semanticIntentContractRef ?? envelope.promptId,
+      },
       reasoning:
         "pm_semantic_intent_gate persisted advanced SIC/DTC fill result into prompt-front-door contract records.",
       memoryLayers: ["semantic", "procedural"],
@@ -2014,6 +2021,22 @@ function promptLineagePayload(input: SemanticIntentGateInput, data: {
     },
     memoryLayers: ["semantic", "procedural"],
   };
+}
+
+/**
+ * Wave 2 correlation-rid join (user decision 2026-07-10) — derives the single
+ * `lineageRefs.actionRid` value to stamp on a pm_semantic_intent_gate
+ * validation checkpoint from the SAME flat rid fields `promptLineagePayload()`
+ * already computes (digitalTwinChangeContractRef > semanticIntentContractRef >
+ * promptId, in specificity order), so all checkpoints for one gate flow
+ * correlate on one rid.
+ */
+function actionRidFromLineagePayload(lp: Record<string, unknown>): string | undefined {
+  return (
+    (lp.digitalTwinChangeContractRef as string | undefined) ??
+    (lp.semanticIntentContractRef as string | undefined) ??
+    (lp.promptId as string | undefined)
+  );
 }
 
 export async function semanticIntentGate(
@@ -2129,6 +2152,9 @@ export async function semanticIntentGate(
         } as Record<string, unknown>,
         toolName: "pm_semantic_intent_gate",
         cwd: input.project,
+        // wave 2 correlation-rid join (user decision 2026-07-10): no contract
+        // draft exists yet at this bounce, so promptId is the stable per-flow rid.
+        lineageRefs: { actionRid: input.promptId },
         reasoning:
           `pm_semantic_intent_gate: FDE-provenance bounce — status=${effectiveGate.status} ` +
           `requiredNextAction=pm_ontology_engineering_workflow start intent="${input.rawIntent.slice(0, 80)}"`,
@@ -2251,6 +2277,8 @@ export async function semanticIntentGate(
       } as Record<string, unknown>,
       toolName: "pm_semantic_intent_gate",
       cwd: input.project,
+      // wave 2 correlation-rid join (user decision 2026-07-10).
+      lineageRefs: { actionRid: actionRidFromLineagePayload(lineagePayload) },
       reasoning:
         `pm_semantic_intent_gate: status=${effectiveGate.status} ` +
         `allowsRouting=${effectiveGate.allowsRouting} intent="${input.rawIntent.slice(0, 80)}"`,
@@ -2401,6 +2429,9 @@ export async function semanticIntentGate(
             } as Record<string, unknown>,
             toolName: "pm_semantic_intent_gate",
             cwd: input.project,
+            // wave 2 correlation-rid join (user decision 2026-07-10): the draft's
+            // own contractId is stable across this fill sequence's checkpoints.
+            lineageRefs: { actionRid: advanced.contractId },
             reasoning:
               `pm_semantic_intent_gate nine-axis-sic BATCH advanced — ` +
               `appliedTurns=[${batch.appliedTurns.join(",")}] fillComplete=${batch.fillComplete}; ` +
@@ -2436,6 +2467,8 @@ export async function semanticIntentGate(
               } as Record<string, unknown>,
               toolName: "pm_semantic_intent_gate",
               cwd: input.project,
+              // wave 2 correlation-rid join (user decision 2026-07-10).
+              lineageRefs: { actionRid: advanced.contractId },
               reasoning:
                 `pm_semantic_intent_gate: SemanticIntentContract finalized after 9-axis BATCH fill; ` +
                 `contractId=${advanced.contractId} — all 9 axes + intent filled in one round-trip`,
@@ -2528,6 +2561,8 @@ export async function semanticIntentGate(
               } as Record<string, unknown>,
               toolName: "pm_semantic_intent_gate",
               cwd: input.project,
+              // wave 2 correlation-rid join (user decision 2026-07-10).
+              lineageRefs: { actionRid: advanced.contractId },
               reasoning:
                 `pm_semantic_intent_gate dtc fill T${input.turn} advanced — targetField=${descriptor.targetField}`,
               memoryLayers: ["semantic", "procedural"],
@@ -2550,6 +2585,8 @@ export async function semanticIntentGate(
                 } as Record<string, unknown>,
                 toolName: "pm_semantic_intent_gate",
                 cwd: input.project,
+                // wave 2 correlation-rid join (user decision 2026-07-10).
+                lineageRefs: { actionRid: advanced.contractId },
                 reasoning:
                   `pm_semantic_intent_gate: DigitalTwinChangeContract finalized after 7-turn DTC fill`,
                 memoryLayers: ["semantic", "procedural"],
@@ -2600,6 +2637,8 @@ export async function semanticIntentGate(
                   } as Record<string, unknown>,
                   toolName: "pm_semantic_intent_gate",
                   cwd: input.project,
+                  // wave 2 correlation-rid join (user decision 2026-07-10).
+                  lineageRefs: { actionRid: advanced.contractId },
                   reasoning:
                     `DTC grading dispatch completed; verdict=${gradeResult.verdict} overall=${gradeResult.overall} — DTC held at user-review; not advanced to approved`,
                   memoryLayers: ["semantic"],
@@ -2698,6 +2737,8 @@ export async function semanticIntentGate(
                 } as Record<string, unknown>,
                 toolName: "pm_semantic_intent_gate",
                 cwd: input.project,
+                // wave 2 correlation-rid join (user decision 2026-07-10).
+                lineageRefs: { actionRid: advanced.contractId },
                 reasoning:
                   `pm_semantic_intent_gate context-engineering-to-sic T${input.turn} ended without readiness; ` +
                   `contractId=${advanced.contractId} — SIC approval must fail closed`,
@@ -2816,6 +2857,8 @@ export async function semanticIntentGate(
                 } as Record<string, unknown>,
                 toolName: "pm_semantic_intent_gate",
                 cwd: input.project,
+                // wave 2 correlation-rid join (user decision 2026-07-10).
+                lineageRefs: { actionRid: advanced.contractId },
                 reasoning:
                   `pm_semantic_intent_gate nine-axis-sic T${input.turn} ended without readiness; ` +
                   `contractId=${advanced.contractId} — SIC approval must fail closed`,
@@ -2847,6 +2890,8 @@ export async function semanticIntentGate(
                 } as Record<string, unknown>,
                 toolName: "pm_semantic_intent_gate",
                 cwd: input.project,
+                // wave 2 correlation-rid join (user decision 2026-07-10).
+                lineageRefs: { actionRid: advanced.contractId },
                 reasoning:
                   `pm_semantic_intent_gate: SemanticIntentContract finalized after 9-axis fill; ` +
                   `contractId=${advanced.contractId} — all 9 axes + intent filled (T9 complete)`,
@@ -2920,6 +2965,8 @@ export async function semanticIntentGate(
               } as Record<string, unknown>,
               toolName: "pm_semantic_intent_gate",
               cwd: input.project,
+              // wave 2 correlation-rid join (user decision 2026-07-10).
+              lineageRefs: { actionRid: advanced.contractId },
               reasoning:
                 `pm_semantic_intent_gate fill T7 completed but required fields missing; ` +
                 `contractId=${advanced.contractId} — advisory only, not blocking`,
@@ -2950,6 +2997,8 @@ export async function semanticIntentGate(
               } as Record<string, unknown>,
               toolName: "pm_semantic_intent_gate",
               cwd: input.project,
+              // wave 2 correlation-rid join (user decision 2026-07-10).
+              lineageRefs: { actionRid: advanced.contractId },
               reasoning:
                 `pm_semantic_intent_gate: SemanticIntentContract finalized after 8-turn fill; ` +
                 `contractId=${advanced.contractId} verdict=filled — ` +
