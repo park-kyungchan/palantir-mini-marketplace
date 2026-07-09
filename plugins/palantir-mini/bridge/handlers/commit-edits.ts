@@ -16,6 +16,19 @@
 //   carrying contractId in reasoning. This makes bypass-via-direct-import auditable
 //   even when the hook (commit-edits-precondition.ts) is not in the call path.
 //
+// v2.2.0 (promotion-linkage wave 2, fix round 1) — the three
+//   validation_phase_completed checkpoints below (self-attest, auto-dry-run,
+//   skip-audit) each stamp lineageRefs.actionRid=actionTypeRid, but this does
+//   NOT correlation-rid-promote the sibling edit_committed event (see
+//   lib/actions/commit.ts): (a) baseLineage() there stamps no lineageRefs at
+//   all, and (b) all three checkpoints fire BEFORE commitEdits() is called,
+//   so they always precede edit_committed in time, violating the join's
+//   required source.when <= validation.when ordering. The stamp only
+//   correlates these three pre-flight checkpoints with each other. See the
+//   per-emit comments below for detail; closing the edit_committed gap is a
+//   deferred design decision (new post-commit checkpoint + commit.ts stamp),
+//   not addressed here.
+//
 // DEFAULT DRY-RUN AUTO-INJECTION:
 //   When called WITHOUT a dryRunRef AND sprint mode is "full" (or unresolved):
 //     1. Synthesize a deterministic dryRunRef from edits + actionTypeRid.
@@ -165,11 +178,23 @@ async function emitContractSelfAttest(
       toolName: "commit_edits",
       cwd:      project,
       sessionId,
-      // wave 2 correlation-rid join (user decision 2026-07-10): actionTypeRid is
-      // the same rid lib/actions/commit.ts stamps on the paired edit_committed
-      // source event (payload.actionTypeRid) — sharing it here via
-      // lineageRefs.actionRid lets scripts/replay-promote-grades.ts join the two
-      // once the source side is stamped in a future wave.
+      // wave 2 correlation-rid join (user decision 2026-07-10) — CORRECTED (fix
+      // round 1): this does NOT join to the sibling edit_committed source event.
+      // lib/actions/commit.ts's baseLineage() stamps no lineageRefs at all (out
+      // of the wave-1 audited scope), so no join exists today — and even if a
+      // future wave stamped lineageRefs.actionRid there, this event (along with
+      // autoInjectDryRun / emitSkipAudit below) is emitted BEFORE commitEdits()
+      // is called, so its `when` always precedes edit_committed's `when`,
+      // violating the join's required source.when <= validation.when ordering.
+      // Closing that gap needs a NEW post-commit checkpoint, not just stamping
+      // commit.ts — deferred as a design decision, not a mechanical fix.
+      //
+      // What lineageRefs.actionRid DOES do today: it correlates this pre-flight
+      // checkpoint with the sibling checkpoints below (autoInjectDryRun /
+      // emitSkipAudit) that share the same actionTypeRid within one commit_edits
+      // invocation, letting them attest each other via the correlation-rid join
+      // (accepted audit-trail bookkeeping among pre-flight checks — not a
+      // stand-in for edit_committed's own promotion).
       lineageRefs: { actionRid: actionTypeRid },
       runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
       reasoning: `commit_edits self-attest: contractId=${contractId} mode=${mode} — defense-in-depth per architecture review §5.E.6 (R4-F12); ensures bypass-via-direct-import is auditable in events.jsonl`,
@@ -243,7 +268,10 @@ async function autoInjectDryRun(
       cwd: project,
       sessionId,
       runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
-      // wave 2 correlation-rid join (user decision 2026-07-10) — see emitContractSelfAttest.
+      // wave 2 correlation-rid join (user decision 2026-07-10) — CORRECTED (fix
+      // round 1): does NOT join to edit_committed; see emitContractSelfAttest
+      // for why (no lineageRefs on the source + this event necessarily precedes
+      // it). Correlates only with the sibling pre-flight checkpoints.
       lineageRefs: { actionRid: actionTypeRid },
       reasoning: `commit_edits auto-dry-run dryRunRef=${dryRunRef} actionTypeRid=${actionTypeRid} editCount=${edits.length} — auto-injected because caller did not provide dryRunRef (closes P1.SP2/M16/E.1)`,
       memoryLayers: ["procedural"],
@@ -277,7 +305,10 @@ async function emitSkipAudit(
       cwd: project,
       sessionId,
       runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
-      // wave 2 correlation-rid join (user decision 2026-07-10) — see emitContractSelfAttest.
+      // wave 2 correlation-rid join (user decision 2026-07-10) — CORRECTED (fix
+      // round 1): does NOT join to edit_committed; see emitContractSelfAttest
+      // for why (no lineageRefs on the source + this event necessarily precedes
+      // it). Correlates only with the sibling pre-flight checkpoints.
       lineageRefs: { actionRid: actionTypeRid },
       reasoning: `commit_edits: skipAutoDryRun=true — caller opted out of auto dry-run injection (audited per sprint-060 W1.5 §skipAutoDryRun)`,
       memoryLayers: ["procedural"],
