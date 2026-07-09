@@ -138,6 +138,9 @@ export default async function preCompactState(_payload: unknown): Promise<HookOu
           cwd: root,
           identity: "monitor",
           memoryLayers: ["working", "episodic"],
+          // promotion-linkage wave 4 (needs-context-plumbing site 9) — additive
+          // correlation-rid stamp; capsuleId-class.
+          lineageRefs: { actionRid: frozenCapsule.capsuleId },
           reasoning: "PreCompact froze the active context capsule and attached its path to the compaction snapshot lineage.",
         });
       }

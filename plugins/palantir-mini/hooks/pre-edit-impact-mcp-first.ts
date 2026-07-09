@@ -470,6 +470,9 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
           sessionId,
           identity:    "monitor",
           memoryLayers: ["working", "episodic"],
+          // promotion-linkage wave 4 (needs-context-plumbing site 5) — additive
+          // correlation-rid stamp; promptId-class.
+          lineageRefs: { actionRid: optOutEnvelope.promptId },
           reasoning:   `pre-edit-impact-mcp-first skipped MCP-first blocking for file ${relPath} because the current prompt explicitly opted out of palantir-mini plugin workflow enforcement via marker ${optOutEnvelope.palantirMiniPluginOptOut.matchedMarker}.`,
         });
       } catch { /* best-effort */ }
@@ -496,6 +499,9 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
           sessionId,
           identity:    "monitor",
           memoryLayers: ["working"],
+          // promotion-linkage wave 4 (needs-context-plumbing site 6) — additive
+          // correlation-rid stamp; promptId-class, same function as site 5.
+          lineageRefs: { actionRid: optOutEnvelope?.promptId },
           reasoning:   `pre-edit-impact-mcp-first: denied PALANTIR_MINI_MCP_FIRST_BYPASS=1 (tool=${toolName}, filePath=${relPath}).`,
         });
       } catch { /* best-effort */ }
@@ -541,6 +547,9 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
           sessionId,
           identity:    "monitor",
           memoryLayers: ["procedural", "episodic"],
+          // promotion-linkage wave 4 (needs-context-plumbing site 7) — additive
+          // correlation-rid stamp; promptId-class, same function as site 5.
+          lineageRefs: { actionRid: optOutEnvelope?.promptId },
           reasoning:   `pre-edit-impact-mcp-first: Lead called impact_query/pre_edit_impact/get_ontology/pm-impact-quick with matching RID/path evidence within last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. MCP-first protocol satisfied (the former Lead-Protocol policy v3.10.0 §MCP-First protocol). sprint-063 W2.B.`,
         });
       } catch { /* best-effort */ }
@@ -589,6 +598,9 @@ export default async function preEditImpactMcpFirst(payload: unknown): Promise<H
         sessionId,
         identity:    "monitor",
         memoryLayers: ["procedural", "episodic"],
+        // promotion-linkage wave 4 (needs-context-plumbing site 8) — additive
+        // correlation-rid stamp; promptId-class, same function as site 5.
+        lineageRefs: { actionRid: optOutEnvelope?.promptId },
         reasoning:   `pre-edit-impact-mcp-first: BLOCKED — no impact_query/pre_edit_impact/get_ontology/pm-impact-quick call with matching RID/path evidence found in last 5 min for file ${relPath} (windowMs=${MCP_FIRST_WINDOW_MS}) in ${projectRoot}. Sprint-062 W3-α promoted to blocking; sprint-063 W2.B removed semantic_change_plan (the former Lead-Protocol policy v3.10.0).`,
         refinementTarget: {
           kind:            "rule-conformance-policy",

@@ -145,6 +145,9 @@ async function main(): Promise<void> {
       sessionId,
       identity: "claude-code",
       memoryLayers: ["procedural"],
+      // promotion-linkage wave 4 (needs-context-plumbing site 3) — additive
+      // correlation-rid stamp; taskId-class.
+      lineageRefs: { actionRid: input.taskId },
       reasoning,
       ...(refinementTarget !== undefined ? { refinementTarget } : {}),
     });

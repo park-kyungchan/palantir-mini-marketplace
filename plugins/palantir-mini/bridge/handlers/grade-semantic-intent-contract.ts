@@ -62,6 +62,12 @@ export default async function gradeSemanticIntentContractHandler(
     } as Record<string, unknown>,
     toolName: "grade_semantic_intent_contract",
     cwd: project,
+    // promotion-linkage wave 4 (needs-context-plumbing site 4) — additive
+    // correlation-rid stamp; contractId-class, same SIC-grading purpose as
+    // the wave-1/2 pm-semantic-intent-gate.ts stamps but a different handler.
+    lineageRefs: {
+      actionRid: typeof sic.contractId === "string" ? sic.contractId : undefined,
+    },
     reasoning: result.reasoning,
   });
 

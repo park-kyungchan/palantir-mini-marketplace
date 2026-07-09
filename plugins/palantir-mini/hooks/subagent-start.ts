@@ -351,6 +351,9 @@ export default async function subagentStart(payload: unknown): Promise<{ message
           identity:    "claude-code",
           agentName:   resolvedAgentName,
           memoryLayers: ["procedural"],
+          // promotion-linkage wave 4 (needs-context-plumbing site 10) —
+          // additive correlation-rid stamp; taskId-class.
+          lineageRefs: { actionRid: p.task_id },
           reasoning:   `Blocking spawn of retired agent '${resolvedAgentName}': deprecationWindowEndsSprint=${gate.endedSprint} expired at sprint ${gate.currentSprint}. Per the former project-agent-authority policy §Deprecation window mechanics, SubagentStart hook emits validation_phase_completed errorClass=project_agent_collision_detected and denies spawn. Use project-implementer for project-scoped implementation work.`,
         });
       } catch {
@@ -382,6 +385,10 @@ export default async function subagentStart(payload: unknown): Promise<{ message
           identity:    "monitor",
           agentName:   resolvedAgentName,
           memoryLayers: ["procedural", "semantic"],
+          // promotion-linkage wave 4 (needs-context-plumbing site 11) —
+          // additive correlation-rid stamp; taskId-class, same function as
+          // site 10.
+          lineageRefs: { actionRid: p.task_id },
           reasoning:   outputContractAdvisory,
         });
       } catch {
@@ -445,6 +452,10 @@ export default async function subagentStart(payload: unknown): Promise<{ message
           identity:    "claude-code",
           agentName:   resolvedAgentName,
           memoryLayers: ["episodic", "procedural"],
+          // promotion-linkage wave 4 (needs-context-plumbing site 12) —
+          // additive correlation-rid stamp; taskId-class, already in the
+          // payload above.
+          lineageRefs: { actionRid: p.task_id },
           reasoning:
             `PR 5.5 sprint-116: subagent correlationId bound via per-agent isolated marker file at ` +
             `correlation-markers/${sessionIdForMarker}/${agentIdForMarker}.json. ` +

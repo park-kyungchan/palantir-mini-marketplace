@@ -63,6 +63,17 @@ export interface CommitResult {
    * req.edits — additive to the return type only; no behavior change to the append.
    */
   materializedPrimitives?: number;
+  /**
+   * promotion-linkage wave 4 fix round 1 — the actual per-invocation eventId
+   * minted for the edit_committed envelope (eventType === "edit_committed"
+   * only). actionTypeRid is a TYPE-level rid shared by every invocation of a
+   * verb, so it cannot safely correlate a single commit's post-commit
+   * checkpoint back to THIS commit alone; callers needing a per-invocation
+   * join key (e.g. bridge/handlers/commit-edits.ts's "commit_confirmed"
+   * checkpoint) must use this eventId instead, via the engine's eventId join
+   * (lineageRefs.actionRid === source.eventId) — not the correlation-rid join.
+   */
+  eventId?: string;
   /** A2 — set to "unregistered_action_type" when the ActionType gate refused the commit. */
   errorClass?: "unregistered_action_type";
 }
@@ -188,6 +199,16 @@ export async function commitEdits(req: CommitRequest): Promise<CommitResult> {
         passed: false,
         errorClass: "unregistered_action_type",
       },
+      // R-M1 (promotion-linkage wave 4, Lead ruling) — additive correlation-rid
+      // stamp matching the wave-2 commit-edits.ts sibling checkpoints
+      // (lineageRefs.actionRid = actionTypeRid). Grounded: the promotion
+      // engine's evidence loop (scripts/replay-promote-grades.ts) filters out
+      // payload.passed === false validation-side events BEFORE calling
+      // ridJoins(), so this refusal (passed:false) can never itself serve as
+      // promotion evidence for an earlier edit_committed sharing the same
+      // actionTypeRid — no INCIDENTAL_SIBLING_ERROR_CLASSES filter change is
+      // needed (see tests/scripts/replay-promote-grades-linkage-wave4.test.ts).
+      lineageRefs: { actionRid: req.actionTypeRid },
       withWhat: {
         ...lineage.withWhat,
         reasoning:
@@ -218,14 +239,27 @@ export async function commitEdits(req: CommitRequest): Promise<CommitResult> {
   }
 
   // All passed, commit.
+  const commitLineage = baseLineage(req);
   const envelope: Omit<EventEnvelope, "sequence"> = {
-    ...baseLineage(req),
+    ...commitLineage,
     type: "edit_committed",
     payload: {
       actionTypeRid: req.actionTypeRid,
       appliedEdits:  req.edits,
       submissionCriteriaPassed: evalResult.passedNames,
     },
+    // R-M3 Option 1 (promotion-linkage wave 4, design note §(b)) — kept per
+    // Lead ruling part (i): correlates this envelope with the wave-2
+    // commit-edits.ts pre-flight siblings' bookkeeping rid. FIX ROUND 1: this
+    // stamp is NOT the join key the post-commit "commit_confirmed" checkpoint
+    // uses to pair with THIS event — actionTypeRid is a type-level rid shared
+    // by every invocation of the verb, so pairing on it let one invocation's
+    // checkpoint promote a DIFFERENT, unrelated invocation's edit_committed
+    // (reproduced in the wave-4 fix-round-1 finding). The checkpoint instead
+    // joins via `commitLineage.eventId` below (returned as `eventId` on
+    // CommitResult), which is per-invocation-unique — see the eventId join in
+    // scripts/replay-promote-grades.ts's findT1ToT2Evidence.
+    lineageRefs: { actionRid: req.actionTypeRid },
   };
   const sequence = await appendEventAtomic(epath, envelope);
 
@@ -239,5 +273,6 @@ export async function commitEdits(req: CommitRequest): Promise<CommitResult> {
     sequence,
     eventType: "edit_committed",
     materializedPrimitives: countMaterializedPrimitives(req.edits),
+    eventId: commitLineage.eventId as unknown as string,
   };
 }
