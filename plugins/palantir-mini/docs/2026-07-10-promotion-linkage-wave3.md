@@ -30,6 +30,14 @@ manual spot-check for spread operators (`...`) near unstamped sites that could h
 site is a genuine unstamped plain object literal or additive-conditional-spread of
 unrelated fields (`refinementTarget`, `identity`/`runtime`).
 
+**Evidence standard (added in the 2026-07-10 re-audit, applies to every row below):**
+a row's bucket must be grounded ONLY in identifiers actually reachable inside the
+emit call's ENCLOSING FUNCTION — locals, params, or values plumb-able via its direct
+callers (named explicitly when the path runs through a caller). Every row below now
+names that enclosing function. Two rows in the original pass cited an identifier that
+belonged to a DIFFERENT function than the one the emit call actually lives in; see
+§Re-audit.
+
 ### Reconciliation
 
 | Bucket | Count |
@@ -71,7 +79,7 @@ unstamped site and what kind of thing the site actually validates:
   audit/health-check, or the promotion engine's own lifecycle (not a specific prior
   T1 decision event). There is no natural sibling source event to correlate against
   at all — promotion linkage does not conceptually apply. The large majority of sites
-  (65/72) fall here: PreToolUse/PostToolUse hook gates (agent ownership, domain
+  (57/72, post-re-audit — see §Re-audit) fall here: PreToolUse/PostToolUse hook gates (agent ownership, domain
   classification, write-scope, drift, manifest, semantic-frontmatter, etc.),
   self-contained periodic audits (cross-project-audit, mode-bottleneck,
   propagation-chain-health, propagation-audit-forward, health-audit), and — notably —
@@ -82,10 +90,20 @@ unstamped site and what kind of thing the site actually validates:
 
 | Bucket | Count |
 |---|---|
-| `needs-context-plumbing` | 5 |
+| `needs-context-plumbing` | 13 |
 | `stampable-now-deferred` | 2 |
-| `standalone-advisory` | 65 |
+| `standalone-advisory` | 57 |
 | **Total unstamped, classified** | **72** |
+
+**Re-audited 2026-07-10** against the enclosing-function evidence standard (§Re-audit
+below) — bucket counts above are POST-re-audit. The original wave-3 pass counted
+5 / 2 / 65; two `needs-context-plumbing` rows cited an identifier that was not
+actually reachable at the cited emit call site (reclassified to
+`standalone-advisory`), and ten `standalone-advisory` rows turned out to have a
+genuinely reachable contract/prompt/task/capsule-class identifier the original
+pass missed (reclassified to `needs-context-plumbing`). See §Re-audit for the
+full list and reasoning. The 97-site total and the 23/2/72 top-level
+reconciliation are unaffected — only the internal split of the 72 changed.
 
 ### Full site table
 
@@ -96,34 +114,44 @@ unstamped site and what kind of thing the site actually validates:
 
 **Pre-existing stamped, unrelated (2)**: `hooks/t4-canonical-emit-watch.ts:147,167`.
 
-**`needs-context-plumbing` (5)**:
+**`needs-context-plumbing` (13)** — enclosing function named per the evidence standard;
+rows marked "2026-07-10 re-audit" are new this pass (see §Re-audit for why the
+original pass missed them):
 
-| Site | In-scope candidate | Note |
-|---|---|---|
-| `hooks/gates/ontology-engineering-workflow-enforcement-gate.impl.ts:463` | `approvedAtPromptId` | promptId-class, wave-1-style mismatch |
-| `hooks/gates/prompt-dtc-enforcement-gate.impl.ts:1109` | `semanticIntentContractRef`, `digitalTwinChangeContractRef` | literally wave-1's own vocabulary, same finding repeated |
-| `hooks/gates/prompt-dtc-enforcement-gate.impl.ts:1193` | `assessment.governanceDecision.decisionId` | decisionId-class (pairs with `pre_mutation_governance_decided`'s own `decisionId`, not an eventId) |
-| `lib/context/context-capsule.ts:271` | `capsuleId` | capsuleId-class |
-| `hooks/task-completed-enrichment.ts:137` | `input.taskId` | taskId-class |
+| Site | Enclosing function | In-scope candidate | Note |
+|---|---|---|---|
+| `hooks/gates/prompt-dtc-enforcement-gate.impl.ts:1109` | `emitGateAssessment` | `semanticIntentContractRef`, `digitalTwinChangeContractRef` (locals, lines 1104-1106) | literally wave-1's own vocabulary, same finding repeated |
+| `lib/context/context-capsule.ts:271` | `archiveContextCapsule` | `capsuleId` (function param) | capsuleId-class |
+| `hooks/task-completed-enrichment.ts:137` | `main` | `input.taskId` (referenced line 123) | taskId-class |
+| `bridge/handlers/grade-semantic-intent-contract.ts:53` | `gradeSemanticIntentContractHandler` | `sic.contractId` — already IN the payload (line 61) | 2026-07-10 re-audit; contractId-class, same SIC-grading purpose as wave-1/2's `pm-semantic-intent-gate.ts` stamps but a different handler, so not proven-identical (deferred, not stamped) |
+| `hooks/pre-edit-impact-mcp-first.ts:461` | `preEditImpactMcpFirst` | `optOutEnvelope.promptId` — already IN the payload (line 466) | 2026-07-10 re-audit; promptId-class, `optOutEnvelope` is declared once (line 457) before all 4 emit sites in this function |
+| `hooks/pre-edit-impact-mcp-first.ts:488` | `preEditImpactMcpFirst` | `optOutEnvelope.promptId` (in scope, not yet used at this branch) | 2026-07-10 re-audit; same function/identifier as :461 |
+| `hooks/pre-edit-impact-mcp-first.ts:533` | `preEditImpactMcpFirst` | `optOutEnvelope.promptId` (in scope, not yet used at this branch) | 2026-07-10 re-audit; same function/identifier as :461 |
+| `hooks/pre-edit-impact-mcp-first.ts:581` | `preEditImpactMcpFirst` | `optOutEnvelope.promptId` (in scope, not yet used at this branch) | 2026-07-10 re-audit; same function/identifier as :461 |
+| `hooks/pre-compact-state.ts:128` | `preCompactState` | `frozenCapsule.capsuleId` — already IN the payload (line 133) | 2026-07-10 re-audit; capsuleId-class, `frozenCapsule` from `freezeActiveContextCapsule()` at line 125 |
+| `hooks/subagent-start.ts:336` | `subagentStart` | `p.task_id` (function param, used elsewhere in this fn at line 438) | 2026-07-10 re-audit; taskId-class, same function as :429 |
+| `hooks/subagent-start.ts:372` | `subagentStart` | `p.task_id` (function param) | 2026-07-10 re-audit; taskId-class, same function as :429 |
+| `hooks/subagent-start.ts:429` | `subagentStart` | `p.task_id` — already IN the payload (line 438) | 2026-07-10 re-audit; taskId-class |
+| `hooks/gates/prompt-dtc-enforcement-gate.impl.ts:1296` | `promptDtcEnforcementGateImpl` | `fdeSkip.envelope?.promptId` — already IN the payload (line 1305) | 2026-07-10 re-audit; promptId-class |
 
 **`stampable-now-deferred` (2)** — see §Recommendation:
 
-| Site | Candidate | Why deferred instead of stamped |
-|---|---|---|
-| `lib/actions/commit.ts:185` | `req.actionTypeRid` | Identical value/purpose to `commit-edits.ts`'s 3 already-stamped sibling checkpoints (self-correlation bookkeeping only — this specific event is the F4 fail-closed refusal, which by definition has no `edit_committed` sibling since the commit never happens), but it is a DIFFERENT function outside the wave-1/2 audited 3 files, so not "proven identical" under this wave's cap. Also directly relevant to §(b) below. |
-| `bridge/handlers/propagation-audit-backward.ts:303` | `args.seedEventId` (a real `eventId`, not a contract/prompt ref) | This is the FIRST unstamped site found where the in-scope candidate is the CORRECT identifier class for the engine's exact-match eventId join, not merely another contract/prompt ref. High confidence, but it is a new pattern (not a proven-identical sibling of an existing stamp) and touches a component (`propagationAuditBackward`) not audited in waves 1/2 — held for explicit Lead sign-off rather than silently expanding scope. |
+| Site | Enclosing function | Candidate | Why deferred instead of stamped |
+|---|---|---|---|
+| `lib/actions/commit.ts:185` | `commitEdits` | `req.actionTypeRid` (function param) | Identical value/purpose to `commit-edits.ts`'s 3 already-stamped sibling checkpoints (self-correlation bookkeeping only — this specific event is the F4 fail-closed refusal, which by definition has no `edit_committed` sibling since the commit never happens), but it is a DIFFERENT function outside the wave-1/2 audited 3 files, so not "proven identical" under this wave's cap. Also directly relevant to §(b) below. |
+| `bridge/handlers/propagation-audit-backward.ts:303` | `propagationAuditBackward` (default export) | `args.seedEventId` (a real `eventId`, not a contract/prompt ref; function param) | This is the FIRST unstamped site found where the in-scope candidate is the CORRECT identifier class for the engine's exact-match eventId join, not merely another contract/prompt ref. High confidence, but it is a new pattern (not a proven-identical sibling of an existing stamp) and touches a component (`propagationAuditBackward`) not audited in waves 1/2 — held for explicit Lead sign-off rather than silently expanding scope. |
 
-**`standalone-advisory` (65)** — full path:line list (grouped by file):
+**`standalone-advisory` (57, post-re-audit)** — full path:line list (grouped by
+file). Two sites (marked `[+]`) moved IN from `needs-context-plumbing` this pass;
+see §Re-audit:
 
 ```
 scripts/cross-project-audit.ts:327
 hooks/agent-ownership-validate.ts:185,248,279,312,360
 hooks/rule-audit/mode-bottleneck.ts:23
 hooks/ontology-domain-classification-validate.ts:167,269
-bridge/handlers/grade-semantic-intent-contract.ts:53
 hooks/lead-ontology-discovery-completeness.ts:317,398
-hooks/pre-edit-impact-mcp-first.ts:461,488,533,581
-hooks/gates/ontology-engineering-workflow-enforcement-gate.impl.ts:622
+hooks/gates/ontology-engineering-workflow-enforcement-gate.impl.ts:463[+],622
 bridge/handlers/propagation-audit-forward.ts:214
 hooks/manifest-validate.ts:92,108
 hooks/ontology-import-guard.ts:149
@@ -145,21 +173,101 @@ hooks/t3-circuit-feeder.ts:207
 bridge/mcp-server.ts:944
 bridge/handlers/pm-health-audit.ts:140
 hooks/t4-promotion-trigger.ts:82,116,149   (promotion-engine's own meta-events — must not be stamped)
-hooks/pre-compact-state.ts:128
 hooks/generated-header-check.ts:69
 hooks/prompt-fde-readiness-advisory.ts:56
-hooks/subagent-start.ts:336,372,429
 bridge/handlers/pm-research-citation-validate.ts:403
 hooks/impact-graph-maintain.ts:166
 hooks/events-5d-gate.ts:107
 bridge/handlers/validate-substrate-firing.ts:199
 bridge/handlers/pm-handler-usage-audit.ts:250
-hooks/gates/prompt-dtc-enforcement-gate.impl.ts:1296
+hooks/gates/prompt-dtc-enforcement-gate.impl.ts:1193[+]
 bridge/handlers/propagation-chain-health.ts:377
 hooks/second-brain-fold.ts:178
 bridge/handlers/pm-plugin-self-check/check-hooks.ts:191
 lib/runtime-overlay/schema-resolve.ts:156
 ```
+
+Sites carrying a self-referential `eventId`/envelope-id field that is NOT a
+genuine sibling-correlation candidate (worth flagging explicitly since they read
+similarly to the `stampable-now-deferred` `seedEventId` case but are NOT the same
+shape): `hooks/value-grade-assigner.ts:466,521,584` (`originalEnvelopeId`/`envelopeId`
+= the id of the SAME envelope currently being value-graded — meta-instrumentation
+about this gate's own decision on the current tool call, not a reference to a
+distinct prior source event; stamping it would risk the same circular/
+self-referential promotion the doc already calls out for
+`hooks/t4-promotion-trigger.ts`), `hooks/t3-circuit-feeder.ts:207` (`eventId` = the
+T3 envelope being routed, and the payload shape is deliberately constrained to
+`{ phase, passed, errorClass? }` per its own rule-10 §5-dim comment), and
+`bridge/handlers/propagation-chain-health.ts:377` /
+`bridge/handlers/propagation-audit-forward.ts:214` (`auditId`/loop-scoped
+`seedEventId` — self-generated ids for the CURRENT audit run's own output, out of
+scope by the time the summary emit fires; both are named examples of the
+"self-contained periodic audit" class in §Taxonomy above).
+
+### Re-audit (2026-07-10, Lead rulings RP1-RP2)
+
+A verifier pass sampled 8 of the 97 rows and found 2 wrong: both cited an
+identifier that belongs to a DIFFERENT function than the one the emit call
+actually lives in. That 2/8 error rate invalidated trust in the whole table, so
+all 72 unstamped rows were re-derived against the evidence standard in §Method
+above (name the enclosing function; ground the category only in what that
+function — or a named plumbing path through its callers — actually has in
+scope). Method: automated enclosing-function detection + payload-scoped
+identifier extraction for every row, with manual read-through of every row that
+produced a hit, plus manual read-through of the two originally-flagged sites and
+every row bordering an ambiguous case (self-referential eventId fields). Result:
+12 of the 72 rows changed bucket; the other 60 were confirmed accurate as-is
+(three of those — `prompt-dtc-enforcement-gate.impl.ts:1109`,
+`context-capsule.ts:271`, `task-completed-enrichment.ts:137` — already had a
+correct evidence claim in the original pass, now with the enclosing function name
+added per the standard).
+
+**The 2 confirmed-wrong sites (reclassified `needs-context-plumbing` →
+`standalone-advisory`):**
+
+- `hooks/gates/ontology-engineering-workflow-enforcement-gate.impl.ts:463` — the
+  emit lives in `deny(reason, additionalContext, errorClass, payload)`.
+  `approvedAtPromptId` belongs to `computeSourceMutationFastPath` (a different,
+  earlier-in-file async function) and is never passed to `deny()`. `deny()` has
+  two call sites, both inside `assessOntologyEngineeringWorkflowHook` (lines 573,
+  657); neither call happens after a source-mutation approval was found (the
+  branch at 657 fires specifically when `sourceMutationFastPath?.authorized` is
+  NOT `true`), so there is no plumbing path from either caller either — the
+  approval-record's promptId only exists on the SUCCESS path, which never reaches
+  `deny()`. `deny()`'s own DENY event validates the CURRENT tool call being
+  blocked (a PreToolUse `decision: "block"` verdict) — matches
+  `standalone-advisory`.
+- `hooks/gates/prompt-dtc-enforcement-gate.impl.ts:1193` — the emit lives in
+  `emitOffBypass(payload, projectRoot, mutating)`. `assessment.governanceDecision.decisionId`
+  belongs to `emitGateAssessment` (a sibling function) and is never passed to
+  `emitOffBypass()`. `emitOffBypass()`'s three call sites (lines 1275, 1283, 1288,
+  all inside `promptDtcEnforcementGateImpl`) all fire BEFORE any envelope/
+  assessment is read (mode="off", bypass env var, or mode="off" again) — no
+  caller in scope at any of the three call sites holds a decisionId, promptId, or
+  contractId. This event records that the gate was bypassed for the CURRENT tool
+  call before any assessment ran — matches `standalone-advisory`.
+
+**The 10 sites reclassified `standalone-advisory` → `needs-context-plumbing`**
+(each has a contract/prompt/task/capsule-class identifier genuinely reachable in
+its own enclosing function — several already appear in that same emit's payload,
+just not as `lineageRefs`): `bridge/handlers/grade-semantic-intent-contract.ts:53`,
+`hooks/pre-edit-impact-mcp-first.ts:461,488,533,581`, `hooks/pre-compact-state.ts:128`,
+`hooks/subagent-start.ts:336,372,429`, `hooks/gates/prompt-dtc-enforcement-gate.impl.ts:1296`.
+Full evidence for each is in the `needs-context-plumbing` table above. None of
+these is stamped this pass — RP3 scopes this re-audit to the census doc only; a
+mechanical stamping pass (like the 2 `stampable-now-deferred` sites) is wave-4
+scope.
+
+**Sites checked and confirmed to have NO reachable candidate despite a
+surface-level eventId-shaped field** (stayed `standalone-advisory`; reasoning
+inlined at the end of the `standalone-advisory` list above):
+`hooks/value-grade-assigner.ts:466,521,584`, `hooks/t3-circuit-feeder.ts:207`,
+`bridge/handlers/propagation-chain-health.ts:377`,
+`bridge/handlers/propagation-audit-forward.ts:214`,
+`scripts/archive-t0-events.ts:173` (loop-scoped `eventId`, out of scope by the
+emit call after the loop), `bridge/mcp-server.ts:944` (`hostSessionId()` is the
+envelope's own 5-dim `sessionId` field, not a payload-embedded correlation
+candidate).
 
 ### Recommendation on the 2 `stampable-now-deferred` sites
 
