@@ -1140,6 +1140,18 @@ async function emitGateAssessment(
       sessionId: payload.session_id,
       identity: "monitor",
       memoryLayers: ["semantic", "procedural"],
+      // promotion-linkage wave 4 (needs-context-plumbing site 1) — additive
+      // correlation-rid stamp; not yet joinable to a companion emitter, but
+      // matches the precedence order pm-semantic-intent-gate.ts's
+      // actionRidFromLineagePayload() already established for this same
+      // digitalTwinChangeContractRef > semanticIntentContractRef > promptId
+      // vocabulary.
+      lineageRefs: {
+        actionRid:
+          digitalTwinChangeContractRef ??
+          semanticIntentContractRef ??
+          assessment.envelope?.promptId,
+      },
       reasoning: [
         `prompt-dtc-enforcement-gate: mode=${mode} tool=${toolName(payload)} mutating=${mutating} ok=${assessment.ok} willDeny=${willDeny}`,
         `promptId=${assessment.envelope?.promptId ?? "none"}`,
@@ -1313,6 +1325,9 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
         sessionId: p.session_id,
         identity: "monitor",
         memoryLayers: ["working", "procedural"],
+        // promotion-linkage wave 4 (needs-context-plumbing site 13) — additive
+        // correlation-rid stamp; promptId-class.
+        lineageRefs: { actionRid: fdeSkip.envelope?.promptId },
         reasoning: [
           `prompt-dtc-enforcement-gate: FDE read-only session skip`,
           `session=${fdeSkip.session?.sessionId ?? "none"}`,

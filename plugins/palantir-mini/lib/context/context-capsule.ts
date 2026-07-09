@@ -280,6 +280,9 @@ export async function archiveContextCapsule(
       cwd: projectRoot,
       identity: "monitor",
       memoryLayers: ["episodic", "semantic"],
+      // promotion-linkage wave 4 (needs-context-plumbing site 2) — additive
+      // correlation-rid stamp; capsuleId-class.
+      lineageRefs: { actionRid: capsuleId },
       reasoning: `Context capsule archived at ${archivePath}.`,
     });
     eventEmitted = true;

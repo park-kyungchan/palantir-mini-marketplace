@@ -310,6 +310,15 @@ export default async function propagationAuditBackward(
     cwd: project,
     reasoning: `BackwardProp replay: seed=${seedEventId} depth=${maxDepth} nodes=${nodes.length} firstViolation=${firstViolationStep ?? "none"}`,
     memoryLayers: ["episodic"],
+    // R-M2 (promotion-linkage wave 4) — stamped with the seed event's real
+    // eventId, satisfying the engine's exact-match eventId-class join. Stamped
+    // UNCONDITIONALLY (not gated on firstViolationStep === null): the
+    // promotion engine's own evidence loop (findT1ToT2Evidence /
+    // findT3ToT4Evidence in scripts/replay-promote-grades.ts) already filters
+    // out payload.passed === false validation-side events BEFORE calling
+    // ridJoins(), so a failed audit (passed:false) can never itself serve as
+    // promotion evidence — no additional gate is needed here.
+    lineageRefs: { actionRid: seedEventId },
   });
 
   // When a violation was detected, emit a paired `phase_completed` event

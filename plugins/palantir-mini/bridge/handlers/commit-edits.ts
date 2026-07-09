@@ -29,6 +29,33 @@
 //   deferred design decision (new post-commit checkpoint + commit.ts stamp),
 //   not addressed here.
 //
+// v2.3.0 (promotion-linkage wave 4, R-M3 Option 1) — closes the edit_committed
+//   gap named above: lib/actions/commit.ts now stamps
+//   lineageRefs.actionRid=actionTypeRid on the edit_committed envelope itself,
+//   and this handler emits exactly ONE new post-commit checkpoint
+//   (errorClass "commit_confirmed") immediately after commitEdits() returns
+//   committed:true, carrying the SAME actionRid. Because the checkpoint's
+//   `when` is necessarily later than edit_committed's `when`, the join's
+//   source.when <= validation.when ordering is satisfied for free.
+//   "commit_confirmed" is deliberately kept OUT of
+//   INCIDENTAL_SIBLING_ERROR_CLASSES (scripts/replay-promote-grades.ts) —
+//   unlike the 3 pre-flight siblings above, this checkpoint is real evidence
+//   of a successful commit and SHOULD count toward promotion.
+//
+// v2.3.1 (promotion-linkage wave 4, fix round 1) — CORRECTED the v2.3.0 join
+//   key: actionTypeRid is a TYPE-level rid shared by EVERY invocation of a
+//   verb, so pairing the checkpoint on it let one invocation's
+//   "commit_confirmed" promote a DIFFERENT, unrelated invocation's
+//   edit_committed event whenever both happened to share an actionTypeRid
+//   (empirically reproduced: two edit_committed events months apart, one
+//   later checkpoint, both promoted). The checkpoint now carries
+//   lineageRefs.actionRid=result.eventId — the per-invocation eventId
+//   lib/actions/commit.ts mints for THIS commit and returns on CommitResult —
+//   using the promotion engine's eventId join instead of the correlation-rid
+//   join. commit.ts's own actionTypeRid stamp on edit_committed (part i of
+//   R-M3) is unchanged/kept per the Lead ruling; it no longer participates in
+//   this pairing.
+//
 // DEFAULT DRY-RUN AUTO-INJECTION:
 //   When called WITHOUT a dryRunRef AND sprint mode is "full" (or unresolved):
 //     1. Synthesize a deterministic dryRunRef from edits + actionTypeRid.
@@ -400,6 +427,41 @@ export default async function commitEditsHandler(rawArgs: unknown): Promise<Comm
 
   try {
     const result = await commitEdits(req);
+    // R-M3 Option 1 (promotion-linkage wave 4) — post-commit checkpoint.
+    // Emitted immediately after commitEdits() returns committed:true.
+    //
+    // FIX ROUND 1: joins to the edit_committed source event via
+    // `result.eventId` (the per-invocation eventId lib/actions/commit.ts
+    // minted for THIS commit — see CommitResult.eventId), using the promotion
+    // engine's eventId join (lineageRefs.actionRid === source.eventId), NOT
+    // args.actionTypeRid. actionTypeRid is a TYPE-level rid shared by every
+    // invocation of the verb — pairing on it let one invocation's checkpoint
+    // promote a DIFFERENT, unrelated invocation's edit_committed event
+    // (reproduced in the wave-4 fix-round-1 finding). Per-invocation eventId
+    // makes that cross-invocation join structurally impossible. Skipped
+    // (best-effort, matching the surrounding try/catch) when result.eventId
+    // is absent.
+    if (result.committed && result.eventId) {
+      try {
+        await emit({
+          type: "validation_phase_completed",
+          payload: {
+            phase: "post_write",
+            passed: true,
+            errorClass: "commit_confirmed",
+            actionTypeRid: args.actionTypeRid,
+          } as Record<string, unknown>,
+          toolName: "commit_edits",
+          cwd: args.project,
+          runtime: process.env.PALANTIR_MINI_HOST_RUNTIME,
+          lineageRefs: { actionRid: result.eventId },
+          reasoning: `commit_edits post-commit checkpoint: actionTypeRid=${args.actionTypeRid} committed ${args.edits.length} edit(s) — closes edit_committed's T1->T2 eventId-join gap for eventId=${result.eventId} (promotion-linkage wave 4, R-M3 Option 1, fix round 1).`,
+          memoryLayers: ["procedural"],
+        });
+      } catch {
+        // best-effort — checkpoint emission failure must not block the commit result
+      }
+    }
     // PR-10: on success, transition to implementation then close (best-effort)
     if (!args.validateOnly && openTrace) {
       try {
