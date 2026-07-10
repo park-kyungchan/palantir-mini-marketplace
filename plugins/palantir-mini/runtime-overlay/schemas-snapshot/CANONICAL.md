@@ -2,6 +2,8 @@
 
 This directory was formerly a synced snapshot of `~/.claude/schemas` (via `scripts/refresh-runtime-overlay.ts --target schemas`). As of the palantir-mini Ground-Up Harness Redesign (W1, 2026-06-07) it is the **canonical, plugin-owned, LLM-agnostic runtime SSoT** — the self-ontology of palantir-mini's harness control-surfaces. The `schemas` sync target has been removed; do NOT re-add it. Upstream `~/.claude/schemas` is retired (pending physical deletion after consumer-check).
 
+**Retirement EXECUTED 2026-07-11** per g12 decision `de-2026-07-11-schemas-authority-ruling-plugin-self-containment-confirmed` (USER-approved): `~/.claude/schemas` was physically deleted (269 tracked files, git-recoverable) after consumer re-pointing; this package is now the SOLE canonical authority for pm self-ontology schemas (rule 08 v2.2.0). The directory name `schemas-snapshot` is historical — it is the SOURCE, not a snapshot of anything.
+
 Taxonomy note: this is the IN-PLUGIN SNAPSHOT / self-ontology (the carried-with-plugin schemas), NOT the DESIGN-authority (`harness-upstream/ssot/palantir/` = the WHY) and NOT the SOURCE-authority (`.ssot-authority.json` = the plugin code).
 
 Edit primitives here directly. `#schemas/*` and `@palantirKC/claude-schemas` resolve here.
