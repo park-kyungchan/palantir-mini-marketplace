@@ -124,7 +124,13 @@ describe("scripts/emit-cli emitFromStdin (routes through scripts/log.ts emit())"
 
   test("malformed JSON on stdin: emitFromStdin rejects, nothing appended", async () => {
     const project = makeTmpProject();
-    await expect(emitFromStdin("{not json")).rejects.toThrow(/not valid JSON/);
+    // bun-types under-types `.rejects.toThrow()` as `void` (not `Promise<void>`),
+    // so `await` on the bare expression is flagged "has no effect on the type" —
+    // the cast makes the real runtime Promise honest to the type checker while
+    // keeping the actual awaited assertion (needed so a match failure surfaces
+    // as a clean test failure here, not an unhandled rejection after return).
+    const rejection = expect(emitFromStdin("{not json")).rejects.toThrow(/not valid JSON/) as unknown as Promise<void>;
+    await rejection;
     expect(fs.existsSync(eventsPath(project))).toBe(false);
   });
 });
