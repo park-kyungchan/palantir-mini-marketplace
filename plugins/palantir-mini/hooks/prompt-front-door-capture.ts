@@ -79,6 +79,7 @@ import {
 // Capture itself uses emit() directly for the user_prompt_submitted event.
 import { emit } from "../scripts/log";
 import { findProjectRoot } from "../lib/project/find-root";
+import { writeGlobalSessionPointerSync } from "../lib/prompt-front-door/global-session-index";
 
 interface HookPayload {
   readonly session_id?: string;
@@ -176,6 +177,23 @@ export function writePromptCaptureSync(envelope: PromptEnvelope): PromptCurrentP
     pointer,
   );
   return pointer;
+}
+
+/**
+ * G-ENV-A cross-lane fallback (pm-flex slice 2): best-effort dual write of a
+ * (runtime, sessionId) -> projectRoot pointer into the GLOBAL session index,
+ * so a later PreToolUse gate call from a different cwd (dispatched subagent,
+ * second repo) can redirect back to THIS project's local envelope store. Never
+ * throws — a global-index write failure must not break or alter local capture,
+ * which is the authoritative side effect and already succeeded by the time this
+ * runs.
+ */
+function writeGlobalSessionPointerBestEffort(envelope: PromptEnvelope): void {
+  try {
+    writeGlobalSessionPointerSync(envelope.runtime, envelope.sessionId, envelope.projectRoot);
+  } catch {
+    // best-effort: the global index is a fallback redirect, not authoritative state.
+  }
 }
 
 /**
@@ -365,6 +383,7 @@ export default async function promptFrontDoorCapture(payload: unknown): Promise<
   });
 
   writePromptCaptureSync(envelope);
+  writeGlobalSessionPointerBestEffort(envelope);
   const entryWrite = writeUniversalOntologyEntry(createUniversalOntologyEntry({
     rawUserRequest: rawPrompt,
     projectRoot,
