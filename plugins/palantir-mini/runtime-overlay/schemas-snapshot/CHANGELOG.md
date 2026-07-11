@@ -8,6 +8,19 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.96.0 — 2026-07-11 (P1 unification S2+S3 — canonical value-grade grader + cartography_decision_mirrored event type + doc salvage)
+
+Additive MINOR (rule 08 — one new lineage-axis module + one new event-type discriminator + one new exports subpath; no existing primitive field/export removed or retyped). Design authority: g12 `de-2026-07-11-schemas-authority-ruling-plugin-self-containment-confirmed` (USER) + `de-2026-07-11-p1-unification-s2-s3-wave-design-of` (lead).
+
+### Added
+
+- **`ontology/lineage/value-grade-grading.ts`** — the rule-26 T0..T4 auto-grader `autoGradeEnvelope`, lifted VERBATIM from palantir-mini `bridge/handlers/emit-event.ts` (P1 unification S3). Branch semantics byte-identical (T0 5-dim incomplete → T1 A+E → T2 +B lineageRefs|hypothesis → T3 +C refinementTarget|failureCategory → T4 +D2 kLlmConsensus; D2 consulted only after C), proven by a 16-fixture old-vs-new differential harness (every tier transition + the D2-without-C ordering edge + the empty-lineageRefs edge; identical=ALL). Declares a structural `GradeableEnvelope` input view (5-dim base + only the optional fields the grader reads) so the module imports ONLY sibling package primitives (`value-grade`, `lineage-refs`) — never uphill from the plugin tree. The plugin re-imports + re-exports it from `bridge/handlers/emit-event.ts` (single grading source; importers `scripts/log.ts`, `hooks/value-grade-assigner.ts`, tests unchanged). New exports subpath: `./ontology/lineage/value-grade-grading`.
+- **`cartography_decision_mirrored`** event type — `lineage/event-types.ts` `EVENT_TYPE_NAMES` + `EVENT_TYPE_REGISTRY` gain the 84th discriminator (was 83; P1 unification S2): a home-cartography g12 DecisionEvent (`governance/cartography-decisions.jsonl` row — the append-only substrate of record per c42, never rewritten) mirrored into events.jsonl as a graded pm envelope. Payload: `{ sourceEventId, sourceLedger, sourceAtopWhich, decision, reasoning, expectedOutcome, memoryLayers, standing?, supersedes?, pairs?, intent?, outcomeRef?, mirroredBy: "live-emit"|"backfill" }` — the g12 row's path-array `atopWhich` rides in `payload.sourceAtopWhich` (the envelope's own `atopWhich` stays `CommitSha`; the two same-name fields have colliding shapes per the wave-design scout). Idempotent backfill joins on `payload.sourceEventId`. Verified non-colliding with `validateReservedProvenanceType`'s reserved commit-provenance list (repo-wide grep zero prior hits), deliberately NON-reserved so mirrors arrive via the Path-B `scripts/emit-cli.ts` subprocess contract. Paired non-snapshot runtime edits: `lib/event-log/types.ts` (`CartographyDecisionMirroredEnvelope` variant + `isCartographyDecisionMirrored` guard + optional `EventSnapshot.cartography_decision_mirrored` count), `lib/event-log/read/fold-snapshot.ts` (exhaustiveness-forced switch case). The self-Ontology seed (`self/event-envelope.objecttype.ts` `EVENT_ENVELOPE_INSTANCES`) advances 83 → 84 (drift guard `tests/ontology/self/event-envelope-registration.test.ts`).
+
+### Changed (doc-only)
+
+- `ontology/INDEX.md` + `ontology/CHANGELOG.md` — salvaged the single meaningful 2026-06-15 delta from the retired `~/.claude/schemas` tree (Authority-Flow design-source pointer), ADAPTED to the post-retirement authority direction: this package is the SOLE canonical contract-surface authority; the retired home tree mirrored it, not the reverse. See the ontology-axis CHANGELOG's dated doc-only entry.
+
 ## v1.95.0 — 2026-07-02 (portability fix — remove hardcoded /home/palantirkc HOME-fallback literals)
 
 Fix/cleanup MINOR (rule 08 — HOME-fallback literal + seed-instance path corrections only; no primitive type, field, or export is added, removed, or retyped, so no consumer breaks).

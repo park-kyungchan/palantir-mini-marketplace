@@ -1,5 +1,11 @@
 # Ontology Schema Changelog
 
+## (doc-only, no version bump) — INDEX.md Authority-Flow design-source pointer (salvaged from the retired live tree) — 2026-07-11
+
+Documentation-only edit (rule 08 — no `types.ts` / `semantics.ts` change, no primitive added/removed/edited, no generated code touched → bump-exempt). Salvages the single meaningful 2026-06-15 delta from the retired `~/.claude/schemas` tree (home commit `2b439fe64`; retirement executed per g12 `de-2026-07-11-schemas-authority-ruling-plugin-self-containment-confirmed`):
+
+- `ontology/INDEX.md` — added one reference-pointer line at the top of the `## Authority Flow` section noting that the runtime-neutral DESIGN-authority (the WHY: 9-axis / DTC / OSDK-binding / lineage) is distilled in `~/harness-upstream/ssot/palantir/`, UPSTREAM of this schema/codegen contract layer (the WHAT). The original home-tree wording ("this package mirrors the pm in-plugin snapshot") was INVERTED by the 2026-07-11 self-containment ruling and is NOT carried over — the salvaged line instead states that THIS package is the sole canonical contract-surface authority and the retired home tree mirrored it, not the reverse. Scoped reference only; does NOT redefine this package's own executable schema/codegen authority.
+
 ## 1.81.0 — first-class universal_ontology_entry_transitioned lineage event (OE-14 / D5-7) — 2026-06-14
 
 Additive MINOR (rule 08 — one new event-type discriminator on the lineage axis; ADDITIVE only, no existing discriminator/field/export removed or retyped).

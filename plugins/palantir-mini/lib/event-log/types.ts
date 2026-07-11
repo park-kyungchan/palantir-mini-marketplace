@@ -1366,6 +1366,49 @@ export type SessionResumedEnvelope = EventEnvelopeBase & {
   };
 };
 
+// ─── P1 unification S2 — home-cartography g12 decision-ledger mirror ───────
+//
+// A row of the home tree's append-only g12 DecisionEvent ledger
+// (governance/cartography-decisions.jsonl — the substrate of record per c42,
+// never rewritten) mirrored into events.jsonl as a graded pm envelope, either
+// live at emit time (scripts/emit-cli.ts Path-B subprocess contract) or by the
+// idempotent backfill keyed on payload.sourceEventId. The g12 row's own
+// atopWhich is a PATH ARRAY (surfaces the decision sat atop), which collides
+// with the envelope's CommitSha atopWhich — so it rides in the payload as
+// sourceAtopWhich and the envelope's atopWhich stays the git HEAD SHA at
+// mirror time (g12 de-2026-07-11-p1-unification-s2-s3-wave-design-of).
+export type CartographyDecisionMirroredEnvelope = EventEnvelopeBase & {
+  type: "cartography_decision_mirrored";
+  payload: {
+    /** The g12 row's eventId (e.g. "de-2026-07-11-..."); the idempotent backfill join key. */
+    sourceEventId: string;
+    /** Repo-relative path of the source ledger (e.g. "governance/cartography-decisions.jsonl"). */
+    sourceLedger: string;
+    /** The g12 row's own atopWhich path array (the envelope's atopWhich stays CommitSha). */
+    sourceAtopWhich: string[];
+    /** withWhat.decision of the source row. */
+    decision: string;
+    /** withWhat.reasoning of the source row. */
+    reasoning: string;
+    /** withWhat.expectedOutcome of the source row. */
+    expectedOutcome: string;
+    /** withWhat.memoryLayers of the source row (g12 vocabulary, e.g. "harness-metaopt"). */
+    memoryLayers: string[];
+    /** withWhat.standing of the source row (durable-preference rows). */
+    standing?: boolean;
+    /** withWhat.supersedes of the source row (eventId of the superseded row). */
+    supersedes?: string;
+    /** withWhat.pairs of the source row (decision-outcome pairing key). */
+    pairs?: string;
+    /** The source row's optional top-level intent tag. */
+    intent?: string;
+    /** withWhat.outcomeRef of the source row (null in the ledger ⇒ omitted here). */
+    outcomeRef?: string | null;
+    /** How this mirror row was produced. */
+    mirroredBy: "live-emit" | "backfill";
+  };
+};
+
 // ─── The discriminated union ───────────────────────────────────────────────
 export type EventEnvelope =
   | EditProposedEnvelope
@@ -1465,7 +1508,9 @@ export type EventEnvelope =
   | SemanticManifestRefreshedEnvelope
   | SemanticDriftAuditedEnvelope
   | SemanticChangePlanEmittedEnvelope
-  | SessionResumedEnvelope;
+  | SessionResumedEnvelope
+  // P1 unification S2 — home-cartography g12 decision-ledger mirror
+  | CartographyDecisionMirroredEnvelope;
 
 export type EventType = EventEnvelope["type"];
 
@@ -1509,6 +1554,9 @@ export const isSemanticManifestRefreshed   = (e: EventEnvelope): e is SemanticMa
 export const isSemanticDriftAudited        = (e: EventEnvelope): e is SemanticDriftAuditedEnvelope        => e.type === "semantic_drift_audited";
 export const isSemanticChangePlanEmitted   = (e: EventEnvelope): e is SemanticChangePlanEmittedEnvelope   => e.type === "semantic_change_plan_emitted";
 export const isSessionResumed              = (e: EventEnvelope): e is SessionResumedEnvelope              => e.type === "session_resumed";
+
+// P1 unification S2 — home-cartography g12 decision-ledger mirror
+export const isCartographyDecisionMirrored = (e: EventEnvelope): e is CartographyDecisionMirroredEnvelope => e.type === "cartography_decision_mirrored";
 
 // ─── Snapshot type produced by foldToSnapshot (prim-data-04 SnapshotManifest) ─
 
@@ -1635,6 +1683,8 @@ export interface EventSnapshot {
   semantic_drift_audited?:            number;
   semantic_change_plan_emitted?:      number;
   session_resumed?:                   number;
+  // P1 unification S2 — home-cartography g12 decision-ledger mirror
+  cartography_decision_mirrored?:     number;
   // O-2 — register→commit→materialize→read loop closure. Projection of committed
   // applyRegister* edits into a readable typed-primitive collection (fold-snapshot.ts).
   // FOLD-1 — each bucket entry carries the registered rid PLUS the committed
