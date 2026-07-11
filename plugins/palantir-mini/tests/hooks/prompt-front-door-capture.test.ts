@@ -60,6 +60,11 @@ beforeEach(() => {
   savedEnv.PALANTIR_MINI_PROJECT = process.env.PALANTIR_MINI_PROJECT;
   savedEnv.PALANTIR_MINI_EVENTS_FILE = process.env.PALANTIR_MINI_EVENTS_FILE;
   savedEnv.PALANTIR_MINI_HOST_RUNTIME = process.env.PALANTIR_MINI_HOST_RUNTIME;
+  // Hermeticity: promptFrontDoorCapture now dual-writes a best-effort global
+  // session pointer (pm-flex slice 2, G-ENV-A). Redirect it to a per-test tmp
+  // dir so this suite never touches the real user home.
+  savedEnv.PALANTIR_MINI_GLOBAL_STATE_DIR = process.env.PALANTIR_MINI_GLOBAL_STATE_DIR;
+  process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = makeTmpProject("global-state");
 });
 
 afterEach(() => {
