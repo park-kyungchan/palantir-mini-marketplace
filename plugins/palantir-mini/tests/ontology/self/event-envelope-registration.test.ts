@@ -3,10 +3,11 @@
 // by Sprint-cartography W1 vocabulary/union drift closure — 18 vocabulary-dead
 // discriminators removed + 14 typed-but-unlisted variants added after an exhaustive
 // emit-site audit restored exact set equality with the EventType union; then schemas
-// v1.96 / P1 unification S2 added cartography_decision_mirrored: 84). Proves the
-// self-model resolves from the registry and that the discriminator seed stays true to
-// the LIVE lineage/event-types.ts EVENT_TYPE_NAMES array (drift guard) — a discriminator
-// added/removed without updating the seed fails loud here.
+// v1.96 / P1 unification S2 added cartography_decision_mirrored: 84; pm
+// authorization-flexibility slice 3 added delivery_authorization_granted: 85). Proves
+// the self-model resolves from the registry and that the discriminator seed stays true
+// to the LIVE lineage/event-types.ts EVENT_TYPE_NAMES array (drift guard) — a
+// discriminator added/removed without updating the seed fails loud here.
 
 import { test, expect } from "bun:test";
 import * as fs from "node:fs";
@@ -19,7 +20,7 @@ import {
   EVENT_ENVELOPE_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_EVENT_ENVELOPE_COUNT = 84;
+const EXPECTED_EVENT_ENVELOPE_COUNT = 85;
 
 test("self EventEnvelope ObjectType is registered with eventId identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(EVENT_ENVELOPE_OBJECT_TYPE_RID);
@@ -37,7 +38,7 @@ test(`EventEnvelope seed has ${EXPECTED_EVENT_ENVELOPE_COUNT} unique discriminat
 
 test("EventEnvelope seed matches the LIVE event-types.ts EVENT_TYPE_NAMES surface (drift guard)", () => {
   // The snapshot OWNS the seed (no event-types array import as data); this guard reads
-  // event-types.ts as TEXT and asserts the self-model's 84 names equal pm's actual event
+  // event-types.ts as TEXT and asserts the self-model's 85 names equal pm's actual event
   // discriminator surface, so adding or removing a discriminator fails loud until
   // event-envelope.objecttype.ts is updated. EVENT_TYPE_NAMES entries are quoted
   // snake_case strings at 2-space indent inside the `as const` array (grounding-verified;

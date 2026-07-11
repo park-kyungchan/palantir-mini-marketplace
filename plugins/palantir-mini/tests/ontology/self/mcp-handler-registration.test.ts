@@ -1,5 +1,6 @@
 // Tests: Wave 1 self-Ontology ObjectType — pm's bridge-handler layer registered AS an
-// McpHandler ObjectType + 63 handler instances. Proves the self-model resolves from the
+// McpHandler ObjectType + 64 handler instances (pm authorization-flexibility slice 3
+// added pm-authorize-delivery: 63 → 64). Proves the self-model resolves from the
 // registry and that the handler seed stays true to the LIVE bridge/handlers/ directory
 // (drift guard) — a handler added/removed in the bridge without updating the seed fails
 // loud here.
@@ -15,7 +16,7 @@ import {
   MCP_HANDLER_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_MCP_HANDLER_COUNT = 63;
+const EXPECTED_MCP_HANDLER_COUNT = 64;
 
 test("self McpHandler ObjectType is registered with handlerName identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(MCP_HANDLER_OBJECT_TYPE_RID);
@@ -33,7 +34,7 @@ test(`McpHandler seed has ${EXPECTED_MCP_HANDLER_COUNT} unique handler instances
 
 test("McpHandler seed matches the LIVE bridge/handlers/ directory (drift guard)", () => {
   // The snapshot OWNS the seed (no lib import uphill); this guard reads the live
-  // bridge/handlers/ directory and asserts the self-model's 63 names equal pm's actual
+  // bridge/handlers/ directory and asserts the self-model's 64 names equal pm's actual
   // handler surface (every *.ts module minus the 2 private underscore helpers), so
   // adding or removing a handler fails loud until mcp-handler.objecttype.ts is updated.
   const handlersDir = path.join(import.meta.dir, "../../../bridge/handlers");

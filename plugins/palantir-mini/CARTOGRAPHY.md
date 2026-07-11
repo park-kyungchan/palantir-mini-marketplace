@@ -17,7 +17,7 @@ before mutation (SIC → DTC gates ahead of any commit), and strict SSoT boundar
                      [ ontology ]
                           |
                           v  (consumed read-only during normal work)
-        Altitude-2 (everyday MCP operation, 11/23 tools visible)
+        Altitude-2 (everyday MCP operation, 12/24 tools visible)
         PALANTIR_MINI_MCP_PROFILE=altitude-2 (.mcp.json)
                           |
         +-----------------------------+-------------------------------+
@@ -53,7 +53,7 @@ before mutation (SIC → DTC gates ahead of any commit), and strict SSoT boundar
 - `cartography/SKILLS.md` — generated, do not edit. One row per skill.
 - `cartography/AGENTS.md` — generated, do not edit. One row per agent, its frontmatter model, and its trigger.
 - `cartography/HOOKS.md` — generated, do not edit. Hook-event -> script map mirroring `hooks/hooks.json`.
-- `cartography/TOOLS.md` — generated, do not edit. All 23 MCP tools with owning handler + surface profile.
+- `cartography/TOOLS.md` — generated, do not edit. All 24 MCP tools with owning handler + surface profile.
 - `cartography/DATAFLOW.md` — hand-written. Write paths, events.jsonl lifecycle, SecondBrain fold sequence, impact graph.
 
 (These generator outputs may not exist yet in your checkout; a parallel task adds the generator. Reference them anyway once present.)

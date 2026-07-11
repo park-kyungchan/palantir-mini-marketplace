@@ -1,22 +1,21 @@
 /**
- * palantir-mini SELF-ONTOLOGY — McpTool as a registered ObjectType + its 23 instances
- * (M-SELF deliverable #3, harness redesign W3e-3a; O-1 structured_output included).
+ * palantir-mini SELF-ONTOLOGY — McpTool as a registered ObjectType + its 24 instances
+ * (M-SELF deliverable #3, harness redesign W3e-3a; O-1 structured_output included; pm
+ * authorization-flexibility slice 3 added pm_authorize_delivery: 23 + 1 = 24).
  * Together with the Executor ActionType this takes the self/ ObjectType+ActionType
  * register count from 1 → 3.
  *
  * pm's MCP surface modeled AS ontology: the bridge exposes a fixed set of MCP tools
  * (the runtime's callable surface). This file declares ONE `McpTool` ObjectType (the
- * type) and seeds the 23 tool identities as instances — the snapshot OWNS the seed
+ * type) and seeds the 24 tool identities as instances — the snapshot OWNS the seed
  * (it is the authority), so it does NOT import `bridge/mcp-server.ts` uphill. The
- * paired registration test cross-checks these 23 names against the LIVE bridge TOOLS
+ * paired registration test cross-checks these 24 names against the LIVE bridge TOOLS
  * array so the self-model fails loud if pm's surface drifts (a tool added/removed in
  * the bridge without updating this seed).
  *
- * Count provenance (PR-E2 surface-trim, LIVE-verified): bridge has EXACTLY 23 tools
- * after the surface trim removed 4 zero-consumer audits + folded 3 into survivors
- * (grade_semantic_intent_contract → approve_sic; pm_workflow_response_validate →
- * pm_plugin_self_check; pm_lead_brief → pm_substrate_query session-opener mode). The
- * SSoT is the TOOLS array length / HANDLER_MODULES map. Richer per-tool metadata (category / audience /
+ * Count provenance (pm authorization-flexibility slice 3, LIVE-verified): bridge has
+ * EXACTLY 24 tools (PR-E2 surface-trim's 23 + pm_authorize_delivery). The SSoT is the
+ * TOOLS array length / HANDLER_MODULES map. Richer per-tool metadata (category / audience /
  * lifecycle / classifier projection) is the RUNTIME projection at
  * `lib/capability-registry/mcp-tool-capability.ts`; it is intentionally NOT duplicated
  * here — this self-model carries the stable tool IDENTITY only.
@@ -68,7 +67,7 @@ export interface McpToolInstance {
 }
 
 /**
- * The 23 McpTool instances — pm's LIVE bridge tool surface, in TOOLS-array order.
+ * The 24 McpTool instances — pm's LIVE bridge tool surface, in TOOLS-array order.
  * Snapshot-owned seed (no bridge import); the registration test cross-checks this set
  * against the live `bridge/mcp-server.ts` TOOLS array and fails on any drift.
  */
@@ -96,8 +95,10 @@ export const MCP_TOOL_INSTANCES: readonly McpToolInstance[] = [
   { toolName: "pm_rule_audit" },
   { toolName: "ontology_context_query" },
   { toolName: "structured_output" },
+  // pm authorization-flexibility slice 3 (G-DSN-E) — structured grant issuance.
+  { toolName: "pm_authorize_delivery" },
 ];
 
-// Register the McpTool ObjectType (the type). The 23 instances above are data the
+// Register the McpTool ObjectType (the type). The 24 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(MCP_TOOL_OBJECT_TYPE);

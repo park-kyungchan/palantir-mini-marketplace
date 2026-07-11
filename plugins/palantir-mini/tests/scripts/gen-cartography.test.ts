@@ -4,7 +4,7 @@
 // is idempotent (byte-identical across two runs), (c) --check exits 0 when
 // committed cartography/*.md files are current, (d) --check exits 1 when a
 // generated file is tampered (tamper is always restored, even on assertion
-// failure), (e) TOOLS.md contains exactly the live 23-tool registry, and
+// failure), (e) TOOLS.md contains exactly the live 24-tool registry, and
 // (f) AGENTS.md lists all 10 agents with model sonnet.
 
 import { describe, it, expect, afterEach } from "bun:test";
@@ -133,13 +133,13 @@ describe("gen-cartography.ts (c)+(d) --check drift detection", () => {
   });
 });
 
-describe("gen-cartography.ts (e) TOOLS.md exactly matches the live 23-tool registry", () => {
+describe("gen-cartography.ts (e) TOOLS.md exactly matches the live 24-tool registry", () => {
   it("TOOLS.md contains exactly the tool names derived from the live server registry", async () => {
     const mod = (await import(path.join(PLUGIN_ROOT, "bridge", "mcp-server.ts"))) as {
       TOOLS: Array<{ name: string }>;
     };
     const liveNames = [...mod.TOOLS.map((t) => t.name)].sort((a, b) => a.localeCompare(b));
-    expect(liveNames.length).toBe(23);
+    expect(liveNames.length).toBe(24);
 
     const toolsMd = await generateToolsMd();
     for (const name of liveNames) {
@@ -153,7 +153,7 @@ describe("gen-cartography.ts (e) TOOLS.md exactly matches the live 23-tool regis
       .filter((line) => line.startsWith("| ") && !line.startsWith("|---"));
     // First data row line is the header row itself ("| Tool | ... |"); exclude it.
     const toolRows = dataRows.slice(1);
-    expect(toolRows.length).toBe(23);
+    expect(toolRows.length).toBe(24);
   });
 });
 

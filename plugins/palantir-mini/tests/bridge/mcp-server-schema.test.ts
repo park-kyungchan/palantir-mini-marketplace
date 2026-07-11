@@ -558,7 +558,7 @@ describe("mcp-server ToolSpec metadata", () => {
     expect(result!.tools.length).toBe(
       STUDIO_CORE_MCP_TOOL_NAMES.length + ALTITUDE_2_READ_MCP_TOOL_NAMES.length,
     );
-    expect(result!.tools.length).toBe(11);
+    expect(result!.tools.length).toBe(12);
     expect([...names].sort()).toEqual(
       [...STUDIO_CORE_MCP_TOOL_NAMES, ...ALTITUDE_2_READ_MCP_TOOL_NAMES].sort(),
     );

@@ -1,6 +1,7 @@
 // Tests: M-SELF deliverables #2 + #3 (harness redesign W3e-3a) — pm's Hands-layer
 // Executor registered AS a typed Tier-2 ActionType, and pm's MCP surface registered
-// AS an McpTool ObjectType + 23 tool instances. Proves the self-Ontology gains its
+// AS an McpTool ObjectType + 24 tool instances (pm authorization-flexibility slice 3
+// added pm_authorize_delivery: 23 → 24). Proves the self-Ontology gains its
 // first ActionType (ACTION_TYPE_REGISTRY.register-grep over self/ goes 0 → 1) and that
 // the McpTool seed stays true to the LIVE bridge surface (drift guard).
 
@@ -23,7 +24,7 @@ import {
   MCP_TOOL_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_MCP_TOOL_COUNT = 23;
+const EXPECTED_MCP_TOOL_COUNT = 24;
 
 test("self Executor is registered in ACTION_TYPE_REGISTRY (register-grep > 0)", () => {
   const got = ACTION_TYPE_REGISTRY.get(EXECUTOR_ACTION_TYPE_RID);

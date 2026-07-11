@@ -463,6 +463,35 @@ const TOOLS: ToolSpec[] = [
       required: ["project", "intent"],
     },
   },
+  // ─── pm authorization-flexibility slice 3 (G-DSN-E) — structured grant issuance ──
+  {
+    name: "pm_authorize_delivery",
+    description:
+      "pm authorization-flexibility slice 3 (G-DSN-E) — mint a SESSION-scoped delivery-authorization " +
+      "grant (30-min TTL) from a re-verified user-approval envelope, replacing the dead A2 native-tool " +
+      "tool_input re-issue lane (G-ENV-B: additionalProperties:false on native Bash/Edit/Write schemas " +
+      "rejects the plugin-invented extra fields before hooks run) with a plugin-owned MCP surface. " +
+      "Re-verifies userApprovalQuote/userApprovalPromptId/userApprovalPromptHash against the hook-captured " +
+      "PromptEnvelope via verifyDeliveryApprovalAgainstEnvelope (fail-closed, unforgeable); on success the " +
+      "grant authorizes subsequent merge/PR/commit/release/push tool calls in THIS session (any project " +
+      "root sharing the session, via the global cross-lane index) until TTL expiry. No grant is ever " +
+      "written on a failed verification; there is no revocation in v1 (TTL-only expiry).",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        project: { type: "string", description: "Absolute project root used to resolve the current prompt-front-door envelope (local lookup; falls back to the global cross-lane session index)." },
+        userApprovalQuote: { type: "string", description: "Verbatim quote of the user's delivery-approval sentence; substring-verified against the captured envelope excerpt." },
+        userApprovalPromptId: { type: "string", description: "Optional promptId anchor for the approval; defaults to promptId, then the resolved current envelope's promptId." },
+        userApprovalPromptHash: { type: "string", description: "Optional promptHash anchor for the approval; defaults to promptHash, then the resolved current envelope's promptHash." },
+        promptId: { type: "string", description: "Prompt-front-door promptId hint used to resolve the current envelope when no current pointer is set." },
+        promptHash: { type: "string", description: "Prompt-front-door promptHash hint paired with promptId." },
+        sessionId: { type: "string", description: "Runtime session hint used to resolve the current envelope (local + global fallback lookup)." },
+        runtime: { type: "string", enum: PROMPT_RUNTIMES, description: "Front-door runtime hint; defaults to the resolved envelope's runtime." },
+      },
+      required: ["project", "userApprovalQuote"],
+    },
+  },
   {
     name: "pm_health_audit",
     description:
@@ -698,6 +727,8 @@ const TOOL_CATEGORIES: Record<NonNullable<ToolSpec["category"]>, readonly string
     "research_context_select",
     // sprint-093 PR 3.1 (canonical plan v2 §4 row 3.1; Phase 3 entry point).
     "ontology_context_query",
+    // pm authorization-flexibility slice 3 (G-DSN-E) — structured grant issuance.
+    "pm_authorize_delivery",
   ],
   "validation-health": [
     "events_log_rotate",
@@ -743,6 +774,8 @@ const HANDLER_MODULES: Record<string, string> = {
   ontology_context_query:              "./handlers/ontology-context-query",
   // G. Structured output (1) — O-1 structural anti-stall (rule 05).
   structured_output:                   "./handlers/structured-output",
+  // H. pm authorization-flexibility slice 3 (G-DSN-E) — structured grant issuance (1).
+  pm_authorize_delivery:                "./handlers/pm-authorize-delivery",
 };
 
 function categoryForTool(toolName: string): NonNullable<ToolSpec["category"]> {

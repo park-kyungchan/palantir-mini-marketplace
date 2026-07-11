@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.97.0 — 2026-07-12 (pm authorization-flexibility slice 3 — G-DSN-E structured grant issuance: `delivery_authorization_granted` event type)
+
+Additive MINOR (rule 08 — one new event-type discriminator; no existing primitive field/export removed or retyped). Design authority: g12 `de-2026-07-11-authorization-flexibility-over-phrase-markers` + `de-2026-07-12-pm-flex-slices-2-3-policy-answers-locked` + `_workspace/2026-07-12-pmflex/context/design.json` slice 3.
+
+### Added
+
+- **`delivery_authorization_granted`** event type — `lineage/event-types.ts` `EVENT_TYPE_NAMES` + `EVENT_TYPE_REGISTRY` gain the 85th discriminator (was 84): emitted by the palantir-mini `pm_authorize_delivery` MCP tool on successful grant issuance — a caller-supplied `userApprovalQuote`/`promptId`/`promptHash` was re-verified against the hook-captured PromptEnvelope (`verifyDeliveryApprovalAgainstEnvelope`, fail-closed, unforgeable) and a SESSION-scoped delivery-authorization grant (30-minute absolute TTL, no revocation in v1) was minted. Payload: `{ grantId, scope, sessionId, projectRoot, promptId, promptHash, issuedAt, expiresAt }`. No event is emitted on a failed verification (no grant is ever written on failure). Paired non-snapshot runtime edits: `lib/event-log/types.ts` (`DeliveryAuthorizationGrantedEnvelope` variant + `isDeliveryAuthorizationGranted` guard + optional `EventSnapshot.delivery_authorization_granted` count), `lib/event-log/read/fold-snapshot.ts` (exhaustiveness-forced switch case), `lib/prompt-front-door/delivery-grant-store.ts` (new GLOBAL grant store, home-level, keyed `(runtime, sessionId)`, mirroring slice 2's `global-session-index.ts` path convention), `bridge/handlers/pm-authorize-delivery.ts` (new MCP tool, registered in `bridge/mcp-server.ts` + `lib/capability-registry/mcp-tool-capability.ts` under the `studio-core`/`altitude-2` surface), `hooks/gates/prompt-dtc-enforcement-gate.impl.ts` (A2 lane checks the grant store FIRST, falling through unchanged to the existing tool_input re-issue + lexicon paths on any miss/expiry/error). The self-Ontology seed (`self/event-envelope.objecttype.ts` `EVENT_ENVELOPE_INSTANCES`, drift guard `tests/ontology/self/event-envelope-registration.test.ts`) advances 84 → 85; the McpTool self-Ontology seed (`self/mcp-tool.objecttype.ts` `MCP_TOOL_INSTANCES`, drift guard `tests/ontology/self/executor-registration.test.ts`) advances 23 → 24.
+
 ## v1.96.0 — 2026-07-11 (P1 unification S2+S3 — canonical value-grade grader + cartography_decision_mirrored event type + doc salvage)
 
 Additive MINOR (rule 08 — one new lineage-axis module + one new event-type discriminator + one new exports subpath; no existing primitive field/export removed or retyped). Design authority: g12 `de-2026-07-11-schemas-authority-ruling-plugin-self-containment-confirmed` (USER) + `de-2026-07-11-p1-unification-s2-s3-wave-design-of` (lead).

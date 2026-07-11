@@ -1162,6 +1162,42 @@ export type DriftRebindEnvelopeAdvancedEnvelope = EventEnvelopeBase & {
   payload: DriftRebindEnvelopeAdvancedPayload;
 };
 
+// ─── pm authorization-flexibility slice 3 — G-DSN-E structured grant issuance ──
+//
+// Emitted by the `pm_authorize_delivery` MCP handler on successful grant issuance:
+// a caller-supplied userApprovalQuote/promptId/promptHash was re-verified against
+// the hook-captured PromptEnvelope (verifyDeliveryApprovalAgainstEnvelope,
+// fail-closed, unforgeable) and a SESSION-scoped delivery-authorization grant (30-min
+// TTL) was minted. The grant carries forward the user's real approval turn, mirroring
+// the `drift_rebind_envelope_advanced` precedent's `byWhom.identity: "user"`
+// convention for a carried-forward approval. No event is emitted on a failed
+// verification (no grant is ever written on failure).
+
+/** Payload for `delivery_authorization_granted` (the grant-issuance step). */
+export interface DeliveryAuthorizationGrantedPayload {
+  /** The minted grant's stable identifier. */
+  grantId: string;
+  /** Grant scope; v1 has exactly one value ("authorized-delivery"). */
+  scope: string;
+  /** Runtime session the grant is scoped to. */
+  sessionId: string;
+  /** The resolved envelope's project root at issuance time. */
+  projectRoot: string;
+  /** The resolved envelope's promptId the approval was re-verified against. */
+  promptId: string;
+  /** The resolved envelope's promptHash the approval was re-verified against. */
+  promptHash: string;
+  /** ISO8601 issuance timestamp. */
+  issuedAt: string;
+  /** ISO8601 absolute expiry (issuedAt + 30 min); TTL-only, no revocation in v1. */
+  expiresAt: string;
+}
+
+export type DeliveryAuthorizationGrantedEnvelope = EventEnvelopeBase & {
+  type: "delivery_authorization_granted";
+  payload: DeliveryAuthorizationGrantedPayload;
+};
+
 /**
  * OE-14 / D5-7 — first-class UniversalOntologyEntry status-transition lineage.
  * A UniversalOntologyEntry advanced its lifecycle status (e.g. context-retrieved
@@ -1510,7 +1546,9 @@ export type EventEnvelope =
   | SemanticChangePlanEmittedEnvelope
   | SessionResumedEnvelope
   // P1 unification S2 — home-cartography g12 decision-ledger mirror
-  | CartographyDecisionMirroredEnvelope;
+  | CartographyDecisionMirroredEnvelope
+  // pm authorization-flexibility slice 3 — G-DSN-E structured grant issuance
+  | DeliveryAuthorizationGrantedEnvelope;
 
 export type EventType = EventEnvelope["type"];
 
@@ -1557,6 +1595,8 @@ export const isSessionResumed              = (e: EventEnvelope): e is SessionRes
 
 // P1 unification S2 — home-cartography g12 decision-ledger mirror
 export const isCartographyDecisionMirrored = (e: EventEnvelope): e is CartographyDecisionMirroredEnvelope => e.type === "cartography_decision_mirrored";
+// pm authorization-flexibility slice 3 — G-DSN-E structured grant issuance
+export const isDeliveryAuthorizationGranted = (e: EventEnvelope): e is DeliveryAuthorizationGrantedEnvelope => e.type === "delivery_authorization_granted";
 
 // ─── Snapshot type produced by foldToSnapshot (prim-data-04 SnapshotManifest) ─
 
@@ -1685,6 +1725,8 @@ export interface EventSnapshot {
   session_resumed?:                   number;
   // P1 unification S2 — home-cartography g12 decision-ledger mirror
   cartography_decision_mirrored?:     number;
+  // pm authorization-flexibility slice 3 — G-DSN-E structured grant issuance
+  delivery_authorization_granted?:    number;
   // O-2 — register→commit→materialize→read loop closure. Projection of committed
   // applyRegister* edits into a readable typed-primitive collection (fold-snapshot.ts).
   // FOLD-1 — each bucket entry carries the registered rid PLUS the committed

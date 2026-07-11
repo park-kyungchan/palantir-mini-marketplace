@@ -8,6 +8,7 @@
   "impact_query": "cf912a5ba612033425d5c0c50eeec03869cb582d9e1f735236cf36507856ee6c",
   "ontology_context_query": "6c9811b8802a0cf6f4b5e1ebda05dca667d9aa3c3c7442db8c89053810eb1d0a",
   "ontology_schema_get": "b64501e5e2e04d57767aab8b36eff498ddca1b45caedaed5d6c24f5c75e7fa53",
+  "pm_authorize_delivery": "7381697113faf3a4dbdf6a0da6105bdb10e9ee91776a3e834860aa71235767bc",
   "pm_grader_dispatch": "201c2ae1a6c7e1ab58ca21e584cc8cfbba2890e4fa931a0290da9458e3e18d45",
   "pm_health_audit": "4255643b24ca5ec7b7eeeb616e01ef8eb6eedb819bf56cd3b8f1f2dc7aa1bc10",
   "pm_intent_router": "49da0f01e16b9a2da809c6941d6615cc50166ed5ff54285af7feb3ab7d06beec",
