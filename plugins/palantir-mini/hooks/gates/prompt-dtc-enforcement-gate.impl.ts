@@ -30,6 +30,7 @@ import {
   isPromptRuntime,
   validatePromptContinuity,
 } from "../../lib/prompt-front-door";
+import { readGlobalSessionPointer } from "../../lib/prompt-front-door/global-session-index";
 import {
   validateDigitalTwinChangeContract,
   validateSemanticIntentContract,
@@ -716,7 +717,7 @@ function assessScopedBlockingSurface(
   return { scoped: reasons.length > 0, reasons };
 }
 
-async function readCurrentEnvelope(
+async function readCurrentEnvelopeFromStore(
   store: PromptFrontDoorStore,
   payload: HookPayload,
 ): Promise<PromptEnvelope | undefined> {
@@ -740,6 +741,51 @@ async function readCurrentEnvelope(
   return undefined;
 }
 
+/**
+ * G-ENV-A cross-lane fallback (pm-flex slice 2): consulted ONLY when the local
+ * per-project lookup ({@link readCurrentEnvelopeFromStore} against `projectRoot`)
+ * misses. Looks up the GLOBAL session index by (runtime, sessionId); when a
+ * pointer exists and redirects to a DIFFERENT project root, reads the envelope
+ * from THAT root's own local store via the exact same store machinery. This
+ * only widens WHERE an envelope is found, never WHAT it authorizes — no
+ * approval/TTL/verification logic changes here. Fails closed (returns
+ * undefined) on any error or when no redirect produces an envelope.
+ */
+async function readCurrentEnvelopeViaGlobalFallback(
+  payload: HookPayload,
+  projectRoot: string,
+): Promise<PromptEnvelope | undefined> {
+  try {
+    const sessionId = payload.tool_input?.sessionId ?? payload.session_id;
+    if (typeof sessionId !== "string" || sessionId.length === 0) return undefined;
+
+    const preferred = detectRuntime(payload);
+    const runtimes = preferred
+      ? [preferred, ...PROMPT_RUNTIMES.filter((runtime) => runtime !== preferred)]
+      : PROMPT_RUNTIMES;
+    for (const runtime of runtimes) {
+      const pointer = await readGlobalSessionPointer(runtime, sessionId);
+      if (!pointer || pointer.projectRoot === projectRoot) continue;
+      const redirectStore = new PromptFrontDoorStore({ projectRoot: pointer.projectRoot });
+      const redirectEnvelope = await readCurrentEnvelopeFromStore(redirectStore, payload);
+      if (redirectEnvelope) return redirectEnvelope;
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function readCurrentEnvelope(
+  store: PromptFrontDoorStore,
+  payload: HookPayload,
+  projectRoot: string,
+): Promise<PromptEnvelope | undefined> {
+  const local = await readCurrentEnvelopeFromStore(store, payload);
+  if (local) return local;
+  return readCurrentEnvelopeViaGlobalFallback(payload, projectRoot);
+}
+
 async function assessFDEEngineeringReadOnlySkip(
   projectRoot: string,
   payload: HookPayload,
@@ -756,7 +802,7 @@ async function assessFDEEngineeringReadOnlySkip(
   }
 
   const store = new PromptFrontDoorStore({ projectRoot });
-  const envelope = await readCurrentEnvelope(store, payload);
+  const envelope = await readCurrentEnvelope(store, payload, projectRoot);
   if (!envelope) {
     return {
       skip: false,
@@ -882,7 +928,7 @@ async function assessPromptDtc(
   mutationClass?: ProtectedMutationClass,
 ): Promise<GateAssessment> {
   const store = new PromptFrontDoorStore({ projectRoot });
-  const envelope = await readCurrentEnvelope(store, payload);
+  const envelope = await readCurrentEnvelope(store, payload, projectRoot);
   if (!envelope) {
     return {
       ok: false,
@@ -900,6 +946,16 @@ async function assessPromptDtc(
         "Current prompt explicitly opted out of palantir-mini plugin workflow enforcement.",
     };
   }
+
+  // G-ENV-A cross-lane fallback (pm-flex slice 2): the envelope may have been
+  // resolved via the global-index redirect (envelope.projectRoot !== projectRoot),
+  // in which case its SIC/DTC contract records also live under THAT root's local
+  // store, not this call's local `store`. On the primary (local-hit) path these
+  // are always the same root, so this is byte-identical to using `store` directly.
+  const contractStore =
+    envelope.projectRoot === projectRoot
+      ? store
+      : new PromptFrontDoorStore({ projectRoot: envelope.projectRoot });
 
   const continuity = validatePromptContinuity({
     envelope,
@@ -987,8 +1043,10 @@ async function assessPromptDtc(
     };
   }
 
-  const semanticRecord = await store.readContractRecordByRef<SemanticIntentContract>(semanticRef);
-  const digitalTwinRecord = await store.readContractRecordByRef<DigitalTwinChangeContract>(
+  const semanticRecord = await contractStore.readContractRecordByRef<SemanticIntentContract>(
+    semanticRef,
+  );
+  const digitalTwinRecord = await contractStore.readContractRecordByRef<DigitalTwinChangeContract>(
     digitalTwinRef,
   );
   if (!semanticRecord || !digitalTwinRecord) {
