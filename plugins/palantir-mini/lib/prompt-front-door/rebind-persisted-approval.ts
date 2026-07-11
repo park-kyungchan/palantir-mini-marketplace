@@ -31,7 +31,7 @@
  */
 
 import type { ApprovedSemanticIntentContract } from "../semantic-intent/approved-contract";
-import { validateApprovalRefValue } from "./approval-ref";
+import { approvalRefToString, validateApprovalRefValue } from "./approval-ref";
 import type { PromptEnvelope } from "./envelope";
 import { transitionPromptEnvelope } from "./state-machine";
 import type {
@@ -122,6 +122,32 @@ export async function rebindPersistedApprovalToCurrentEnvelope(
       `drift_rebind: DTC contract approvalRef is not minted: ${dtcContractRefIssues
         .map((issue) => issue.message)
         .join("; ")}`,
+    );
+  }
+
+  // ── G-ENV-C idempotency short-circuit (BEFORE the FSM walk / any write) ─────
+  // `digital_twin_approved` only transitions to `superseded` in the FSM — there is
+  // no path back to `semantic_intent_user_review`, so a duplicate/retried
+  // drift_rebind call against an envelope ALREADY at `digital_twin_approved` (e.g.
+  // a retry, or the envelope was already advanced by a prior turn) would otherwise
+  // throw on the FIRST transition below. Compare the ALREADY-PERSISTED
+  // digitalTwinApprovalRef against the incoming (persisted, carried-forward) DTC's
+  // approvalRef via `approvalRefToString` — identical → true no-op success (no
+  // write, no FSM walk); different → fail closed with a DISTINCT error (never
+  // silently rebind over a different existing approval).
+  if (currentEnvelope.state === "digital_twin_approved") {
+    const existingRef = approvalRefToString(currentEnvelope.contractRefs.digitalTwinApprovalRef);
+    const incomingRef = approvalRefToString(dtcContract.approvalRef);
+    if (existingRef !== undefined && incomingRef !== undefined && existingRef === incomingRef) {
+      return {
+        advancedEnvelope: currentEnvelope,
+        semanticIntentContractRef: currentEnvelope.contractRefs.semanticIntentContractRef ?? "",
+        digitalTwinChangeContractRef: currentEnvelope.contractRefs.digitalTwinChangeContractRef ?? "",
+      };
+    }
+    throw new Error(
+      "drift_rebind: current envelope already digital_twin_approved under a DIFFERENT " +
+        "approvalRef; refusing silent overwrite.",
     );
   }
 

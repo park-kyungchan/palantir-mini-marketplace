@@ -279,4 +279,90 @@ describe("rebindPersistedApprovalToCurrentEnvelope — legitimate RESUME re-bind
     );
     expect(fs.existsSync(sicRecords)).toBe(false);
   });
+
+  // ── G-ENV-C: idempotency short-circuit on an already-approved envelope ────────
+  describe("G-ENV-C idempotency short-circuit", () => {
+    test("rebind called TWICE with the same sic/dtc is a no-op success both times", async () => {
+      const root = setupRoot("idempotent-retry");
+      const store = new PromptFrontDoorStore({ projectRoot: root });
+      const approvedSic = mintedSic();
+      const dtc = approvedDtc(approvedSic.contractId);
+      const priorRecord = await persistPriorDtcRecord(store, root, dtc);
+      const currentEnvelope = currentCapturedEnvelope(root);
+
+      const first = await rebindPersistedApprovalToCurrentEnvelope({
+        store,
+        currentEnvelope,
+        approvedSic,
+        dtcRecord: priorRecord,
+      });
+      expect(first.advancedEnvelope.state).toBe("digital_twin_approved");
+
+      // Second call re-targets the envelope the FIRST call just advanced (the real
+      // retried-drift_rebind shape: caller re-reads "current" and gets the
+      // already-approved envelope back).
+      const second = await rebindPersistedApprovalToCurrentEnvelope({
+        store,
+        currentEnvelope: first.advancedEnvelope,
+        approvedSic,
+        dtcRecord: priorRecord,
+      });
+
+      // True no-op: same envelope + same refs, no new records written.
+      expect(second.advancedEnvelope).toEqual(first.advancedEnvelope);
+      expect(second.semanticIntentContractRef).toBe(first.semanticIntentContractRef);
+      expect(second.digitalTwinChangeContractRef).toBe(first.digitalTwinChangeContractRef);
+
+      // A third call is ALSO a no-op (idempotent, not just "succeeds once more").
+      const third = await rebindPersistedApprovalToCurrentEnvelope({
+        store,
+        currentEnvelope: second.advancedEnvelope,
+        approvedSic,
+        dtcRecord: priorRecord,
+      });
+      expect(third.advancedEnvelope).toEqual(first.advancedEnvelope);
+    });
+
+    test("FAIL-CLOSED: rebind against an envelope already digital_twin_approved under a DIFFERENT approvalRef throws distinctly", async () => {
+      const root = setupRoot("idempotent-mismatch");
+      const store = new PromptFrontDoorStore({ projectRoot: root });
+      const approvedSic = mintedSic();
+      const dtc = approvedDtc(approvedSic.contractId);
+      const priorRecord = await persistPriorDtcRecord(store, root, dtc);
+      const currentEnvelope = currentCapturedEnvelope(root);
+
+      const first = await rebindPersistedApprovalToCurrentEnvelope({
+        store,
+        currentEnvelope,
+        approvedSic,
+        dtcRecord: priorRecord,
+      });
+      expect(first.advancedEnvelope.state).toBe("digital_twin_approved");
+
+      // A SECOND, genuinely different approved DTC (a DISTINCT minted approvalRef —
+      // a different userVisibleSummary hashes differently, so approvalRefToString
+      // differs from the first call's) attempting to rebind onto the SAME
+      // already-approved envelope.
+      const otherApprovalRef = createUserApprovalRef({
+        promptId: "prior-approval-prompt",
+        promptHash: "prior-approval-hash",
+        sessionId: "prior-approval-session",
+        runtime: "claude",
+        userVisibleSummary: "approve a DIFFERENT DTC build",
+        userAnswer: "approve a DIFFERENT DTC build",
+        approvalSurface: "digital-twin-change",
+      });
+      const otherDtc = { ...approvedDtc(approvedSic.contractId), approvalRef: otherApprovalRef };
+      const otherPriorRecord = await persistPriorDtcRecord(store, root, otherDtc);
+
+      await expect(
+        rebindPersistedApprovalToCurrentEnvelope({
+          store,
+          currentEnvelope: first.advancedEnvelope,
+          approvedSic,
+          dtcRecord: otherPriorRecord,
+        }),
+      ).rejects.toThrow(/already digital_twin_approved under a DIFFERENT approvalRef/i);
+    });
+  });
 });

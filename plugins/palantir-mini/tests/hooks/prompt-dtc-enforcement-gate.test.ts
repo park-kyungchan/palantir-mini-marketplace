@@ -1460,3 +1460,92 @@ describe("bd-017 path-aware push/PR floor (mutationClass)", () => {
     expect(__test__.resolvePushRangeBaseRef(root)).toBe("base");
   });
 });
+
+// G-CLS-D — the delivery classifier must be QUOTE-AWARE: prose living inside a
+// quoted argument value (e.g. `--message "ship the release"`) must NOT
+// false-positive as a real delivery command, but a real delivery verb the
+// executable actually runs — including one hidden inside an interpreter's
+// `-c "…"` exec-a-quoted-script idiom — must STILL classify.
+describe("G-CLS-D quote-aware delivery classifier", () => {
+  const dirs: string[] = [];
+
+  afterEach(() => {
+    for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
+  });
+
+  function bashPayload(command: string, root: string) {
+    return { cwd: root, tool_name: "Bash", tool_input: { command } };
+  }
+
+  function freshDir(label: string): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `pm-dtc-gate-cls-d-${label}-`));
+    dirs.push(dir);
+    return dir;
+  }
+
+  describe("MUST NOT classify — delivery verbs living only inside quoted prose", () => {
+    test("decisions:emit ledger-shaped call: quoted --decision/--reasoning prose is not a real delivery", () => {
+      const root = freshDir("decisions-emit");
+      const command =
+        'bun run tools/cartography/decisions-emit.ts --decision "push the release notes to the team" ' +
+        '--reasoning "merge governance ledger append, no code delivery"';
+      const cls = __test__.protectedMutationClassForPromptGate(bashPayload(command, root), true, root);
+      expect(cls).toBe("external-command");
+      expect(cls).not.toBe("release");
+    });
+
+    test("echo mentioning a gh pr merge inside quotes is not a real PR action", () => {
+      const root = freshDir("echo-gh-pr");
+      const command = 'echo "reminder: gh pr merge later this week" >> notes.md';
+      const cls = __test__.protectedMutationClassForPromptGate(bashPayload(command, root), true, root);
+      expect(cls).toBe("external-command");
+      expect(cls).not.toBe("pull-request");
+    });
+
+    test("git log --grep prose mentioning npm/bun publish is not a real publish", () => {
+      const root = freshDir("git-log-grep");
+      const command = 'git log --grep "npm publish and bun publish notes"';
+      const cls = __test__.protectedMutationClassForPromptGate(bashPayload(command, root), true, root);
+      expect(cls).toBe("external-command");
+      expect(cls).not.toBe("release");
+    });
+
+    test("bun test --test-name-pattern mentioning deploy is not a real deploy", () => {
+      const root = freshDir("bun-test-pattern");
+      const command = 'bun test --test-name-pattern "deploy the staging bundle notes"';
+      const cls = __test__.protectedMutationClassForPromptGate(bashPayload(command, root), true, root);
+      expect(cls).toBe("external-command");
+      expect(cls).not.toBe("release");
+    });
+  });
+
+  describe("MUST STILL classify — real delivery commands", () => {
+    test("REGRESSION: bare `git push` (no quotes) still classifies as release (blocking)", () => {
+      const root = freshDir("bare-push");
+      const command = "git push origin main";
+      const cls = __test__.protectedMutationClassForPromptGate(bashPayload(command, root), true, root);
+      expect(cls).toBe("release");
+    });
+
+    test("`bash -c \"git push origin main\"` (inner-script idiom) still classifies as release", () => {
+      const root = freshDir("bash-c-push");
+      const command = 'bash -c "git push origin main"';
+      const cls = __test__.protectedMutationClassForPromptGate(bashPayload(command, root), true, root);
+      expect(cls).toBe("release");
+    });
+
+    test("REGRESSION: bare `gh pr merge` (no quotes) still classifies as pull-request (blocking)", () => {
+      const root = freshDir("bare-gh-pr");
+      const command = "gh pr merge 123 --squash";
+      const cls = __test__.protectedMutationClassForPromptGate(bashPayload(command, root), true, root);
+      expect(cls).toBe("pull-request");
+    });
+
+    test("mixed command: quoted prose AND a real unquoted `git push` still classifies as release", () => {
+      const root = freshDir("mixed-prose-and-push");
+      const command = 'echo "ship this quietly" && git push origin main';
+      const cls = __test__.protectedMutationClassForPromptGate(bashPayload(command, root), true, root);
+      expect(cls).toBe("release");
+    });
+  });
+});

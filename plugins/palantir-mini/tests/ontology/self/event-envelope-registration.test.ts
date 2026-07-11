@@ -37,7 +37,7 @@ test(`EventEnvelope seed has ${EXPECTED_EVENT_ENVELOPE_COUNT} unique discriminat
 
 test("EventEnvelope seed matches the LIVE event-types.ts EVENT_TYPE_NAMES surface (drift guard)", () => {
   // The snapshot OWNS the seed (no event-types array import as data); this guard reads
-  // event-types.ts as TEXT and asserts the self-model's 83 names equal pm's actual event
+  // event-types.ts as TEXT and asserts the self-model's 84 names equal pm's actual event
   // discriminator surface, so adding or removing a discriminator fails loud until
   // event-envelope.objecttype.ts is updated. EVENT_TYPE_NAMES entries are quoted
   // snake_case strings at 2-space indent inside the `as const` array (grounding-verified;

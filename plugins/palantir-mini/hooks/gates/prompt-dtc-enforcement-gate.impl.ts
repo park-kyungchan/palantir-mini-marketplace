@@ -23,6 +23,7 @@ import { emit } from "../../scripts/log";
 import { findProjectRoot, isExcludedProjectRoot } from "../../lib/project/find-root";
 import { pathIsProjectOntologyClass } from "../../lib/project/ontology-path-class";
 import { readCurrentFDEOntologyEngineeringSession } from "../../lib/fde-ontology-engineering/session-store";
+import { stripQuotedSegments } from "../../lib/hooks/command-text";
 import {
   PROMPT_RUNTIMES,
   PromptFrontDoorStore,
@@ -226,7 +227,15 @@ function protectedMutationClassForPromptGate(
   if (normalizedName === "bash" && mutating) {
     const rawCommand = String(payload.tool_input?.command ?? "");
     const command = rawCommand.toLowerCase();
-    if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(command)) {
+    // G-CLS-D: scan a QUOTE-STRIPPED view for the delivery-verb regexes below so
+    // prose inside a quoted argument value (e.g. `--message "ship the release"`)
+    // no longer false-positives as a real delivery command. `isGitSubcommand` is
+    // argv[0]-anchored (safe already) and keeps scanning the raw `command`.
+    // `stripQuotedSegments` itself preserves an inner `bash -c "…"`/`sh -c "…"`
+    // exec-a-quoted-script idiom unstripped, so a real delivery command hidden
+    // inside one still classifies.
+    const scanCommand = stripQuotedSegments(command);
+    if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(scanCommand)) {
       // bd-017: a `gh pr` whose ENTIRE pushed/PR RANGE is non-ontology drops from the
       // `pull-request` floor (blocking) to `generic-mutation` (scoped floor). An
       // empty / unresolvable / MIXED range stays `pull-request` (conservative,
@@ -244,7 +253,7 @@ function protectedMutationClassForPromptGate(
       const targetRepo = resolveGitTargetRepo(rawCommand, projectRoot);
       return allStagedPathsNonOntology(projectRoot, targetRepo) ? "generic-mutation" : "commit";
     }
-    if (/\b(git\s+push|npm\s+publish|bun\s+publish|release|deploy)\b/.test(command)) {
+    if (/\b(git\s+push|npm\s+publish|bun\s+publish|release|deploy)\b/.test(scanCommand)) {
       // bd-017: a `git push` (and publish/release/deploy) whose ENTIRE pushed RANGE
       // is non-ontology drops from the `release` floor (blocking) to
       // `generic-mutation` (scoped floor). A push moves already-committed refs, so the
@@ -664,13 +673,16 @@ function isProvenNonOntologyDelivery(
   if (normalizedName === "bash") {
     const rawCommand = String(payload.tool_input?.command ?? "");
     const command = rawCommand.toLowerCase();
-    if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(command)) {
+    // G-CLS-D: same quote-stripped scan as protectedMutationClassForPromptGate —
+    // see its comment for the `-c "…"` exec-a-quoted-script exception.
+    const scanCommand = stripQuotedSegments(command);
+    if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(scanCommand)) {
       return allPushRangePathsNonOntology(projectRoot);
     }
     if (isGitSubcommand(command, "commit")) {
       return allStagedPathsNonOntology(projectRoot, resolveGitTargetRepo(rawCommand, projectRoot));
     }
-    if (/\b(git\s+push|npm\s+publish|bun\s+publish|release|deploy)\b/.test(command)) {
+    if (/\b(git\s+push|npm\s+publish|bun\s+publish|release|deploy)\b/.test(scanCommand)) {
       return allPushRangePathsNonOntology(projectRoot);
     }
     // Any other bash command reaching here is not a proven delivery surface.
