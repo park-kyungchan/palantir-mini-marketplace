@@ -274,6 +274,8 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
       case "semantic_drift_audited":            snapshot.semantic_drift_audited = (snapshot.semantic_drift_audited ?? 0) + 1; break;
       case "semantic_change_plan_emitted":      snapshot.semantic_change_plan_emitted = (snapshot.semantic_change_plan_emitted ?? 0) + 1; break;
       case "session_resumed":                   snapshot.session_resumed = (snapshot.session_resumed ?? 0) + 1; break;
+      // P1 unification S2 — home-cartography g12 decision-ledger mirror
+      case "cartography_decision_mirrored":     snapshot.cartography_decision_mirrored = (snapshot.cartography_decision_mirrored ?? 0) + 1; break;
       default: {
         const _exhaustive: never = ev;
         void _exhaustive;

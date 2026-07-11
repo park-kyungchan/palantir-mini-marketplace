@@ -59,6 +59,8 @@ declarations and emits per-project generated TypeScript into
 
 ## Authority Flow
 
+> Design rationale (the WHY behind these ontology primitives — 9-axis/DTC/OSDK-binding/lineage) is distilled in `~/harness-upstream/ssot/palantir/` (DESIGN-authority), UPSTREAM of this schema/codegen contract layer (the WHAT). This package (`@palantirKC/claude-schemas`, in-plugin `runtime-overlay/schemas-snapshot/`) is the SOLE canonical contract-surface authority (rule 08 v2.2.0; g12 `de-2026-07-11-schemas-authority-ruling-plugin-self-containment-confirmed`) — not a mirror of any external tree; the retired `~/.claude/schemas/` tree mirrored THIS package, not the reverse.
+
 ```text
 ~/.claude/research/palantir-developers/
   -> ~/.claude/research/palantir-foundry/

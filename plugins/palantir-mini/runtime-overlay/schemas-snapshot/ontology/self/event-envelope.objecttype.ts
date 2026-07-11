@@ -1,33 +1,34 @@
 /**
- * palantir-mini SELF-ONTOLOGY — EventEnvelope as a registered ObjectType + its 83
+ * palantir-mini SELF-ONTOLOGY — EventEnvelope as a registered ObjectType + its 84
  * discriminator instances (Wave 1 ObjectType build; count updated by Sprint-cartography
  * W1 vocabulary/union drift closure — 18 vocabulary-dead discriminators removed after
  * an exhaustive emit-site + fixture audit found zero occurrences anywhere in the
  * plugin outside this read-only snapshot boundary, and 14 typed EventEnvelope variants
  * with real emit sites but no prior vocabulary entry were added, restoring exact set
- * equality with lib/event-log/types.ts's EventType union: 87 - 18 + 14 = 83). pm's
- * append-only Decision-Lineage
+ * equality with lib/event-log/types.ts's EventType union: 87 - 18 + 14 = 83; then
+ * schemas v1.96 / P1 unification S2 added cartography_decision_mirrored: 83 + 1 = 84).
+ * pm's append-only Decision-Lineage
  * substrate modeled AS ontology: every ontology-state edit emits a 5-dim event row
  * (rule 10) into events.jsonl, and the set of legal row kinds is the EVENT_TYPE_NAMES
  * discriminator registry. This file turns that lineage substrate into a typed surface.
  *
- * This file declares ONE `EventEnvelope` ObjectType (the type) and seeds the 83 event
+ * This file declares ONE `EventEnvelope` ObjectType (the type) and seeds the 84 event
  * discriminators as instances (eventType = the EVENT_TYPE_NAMES entry). A logged
- * EventEnvelope row is keyed by `eventId`; the 83 instances seed the discriminator
+ * EventEnvelope row is keyed by `eventId`; the 84 instances seed the discriminator
  * VOCABULARY (the eventType identity), mirroring how the McpTool seed carries the
  * stable tool identity. The snapshot OWNS the seed (it is the authority), so it does
  * NOT import the event-types module's array uphill as data. The paired registration
- * test cross-checks these 83 names against the LIVE event-types.ts EVENT_TYPE_NAMES
+ * test cross-checks these 84 names against the LIVE event-types.ts EVENT_TYPE_NAMES
  * array (read as text) so the self-model fails loud if pm's event surface drifts
  * (a discriminator added/removed without updating this seed).
  *
- * Count provenance (Sprint-cartography W1, LIVE-verified): event-types.ts
- * EVENT_TYPE_NAMES holds EXACTLY 83 discriminator entries. The 5-dim envelope fields
+ * Count provenance (schemas v1.96 / P1 unification S2, LIVE-verified): event-types.ts
+ * EVENT_TYPE_NAMES holds EXACTLY 84 discriminator entries. The 5-dim envelope fields
  * (when / atopWhich / throughWhich / byWhom / withWhat) + valueGrade (rule 26) are the
  * stored-fact surface; the registered INSTANCES carry the eventType identity only.
  *
  * @owner palantirkc-ontology
- * @purpose Wave 1 self-Ontology ObjectType (EventEnvelope, 83 discriminator instances)
+ * @purpose Wave 1 self-Ontology ObjectType (EventEnvelope, 84 discriminator instances)
  */
 
 import {
@@ -55,7 +56,7 @@ export const EVENT_ENVELOPE_OBJECT_TYPE: ObjectTypeDeclaration = {
   description:
     "palantir-mini append-only Decision-Lineage row modeled as an ObjectType: the " +
     "5-dim envelope (when/atopWhich/throughWhich/byWhom/withWhat, rule 10) + valueGrade " +
-    "(rule 26). Instances seed the 83-entry eventType discriminator vocabulary from the " +
+    "(rule 26). Instances seed the 84-entry eventType discriminator vocabulary from the " +
     "live EVENT_TYPE_NAMES registry; per-row payloads are the runtime concern.",
   primaryKeyProperty: "eventId",
   titleProperty: "eventType",
@@ -77,7 +78,7 @@ export interface EventEnvelopeInstance {
 }
 
 /**
- * The 83 EventEnvelope instances — pm's LIVE event discriminator surface, in
+ * The 84 EventEnvelope instances — pm's LIVE event discriminator surface, in
  * EVENT_TYPE_NAMES declaration order. Snapshot-owned seed (no event-types array import
  * as data); the registration test cross-checks this set against the live
  * lineage/event-types.ts EVENT_TYPE_NAMES array (read as text) and fails on any drift.
@@ -171,8 +172,10 @@ export const EVENT_ENVELOPE_INSTANCES: readonly EventEnvelopeInstance[] = [
   { eventType: "workflow_trace_leak_detected" },
   { eventType: "pre_mutation_governance_decided" },
   { eventType: "skill_invocation_suggested" },
+  // v1.96 — P1 unification S2: home-cartography g12 decision-ledger mirror.
+  { eventType: "cartography_decision_mirrored" },
 ];
 
-// Register the EventEnvelope ObjectType (the type). The 83 instances above are data the
+// Register the EventEnvelope ObjectType (the type). The 84 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(EVENT_ENVELOPE_OBJECT_TYPE);

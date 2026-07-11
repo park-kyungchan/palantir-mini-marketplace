@@ -15,7 +15,18 @@ import type { EventEnvelope } from "../../lib/event-log/types";
 import { validateReservedProvenanceType } from "../../lib/event-log/reserved-provenance";
 import { isRefinementTarget } from "#schemas/ontology/primitives/refinement-target";
 import type { ValueGrade } from "#schemas/ontology/primitives/value-grade";
-import { hasAnyLineageRef } from "#schemas/ontology/primitives/lineage-refs";
+// P1 unification S3 — the rule-26 T0..T4 auto-grader now lives in the CANONICAL
+// schemas package (ontology/lineage/value-grade-grading.ts; single source per
+// g12 de-2026-07-11-schemas-authority-ruling-plugin-self-containment-confirmed).
+// Re-exported below so the existing importers (scripts/log.ts,
+// hooks/value-grade-assigner.ts, tests/governance/rule-26-doc-grading-
+// conformance.test.ts) keep resolving it from this module unchanged. The
+// grader's `GradeableEnvelope` structural input view is a subset of the runtime
+// `Omit<EventEnvelope, "sequence">` shape, so every existing call site
+// type-checks without edits.
+import { autoGradeEnvelope } from "#schemas/ontology/lineage/value-grade-grading";
+
+export { autoGradeEnvelope };
 
 interface EmitEventArgs {
   project:  string;
@@ -30,57 +41,6 @@ interface EmitEventResult {
   valuableDataAdvisory?: string;
   /** v1.35.0+ Computed valueGrade for this envelope (auto-assigned per rule 26 §Auto-grade). */
   valueGrade?: ValueGrade;
-}
-
-/**
- * v1.35.0 / rule 26 §Auto-grade — Compute valueGrade T0..T4 from envelope axes.
- * Conservative implementation: scans presence of required fields; no payload-
- * specific heuristics. value-grade-assigner hook (Phase 2) will refine this.
- *
- * Scoring rules:
- *   T0 — A1 5-dim incomplete (when/atopWhich/throughWhich/byWhom missing).
- *   T1 — A axis full + E axis (memoryLayers ≥1).
- *   T2 — T1 + B axis ≥1 (lineageRefs OR hypothesis OR rubric grading).
- *   T3 — T2 + C axis ≥1 (refinementTarget OR FailureCategory in payload).
- *   T4 — T3 + D2 (K-LLM consensus annotation in payload.kLlmConsensus).
- */
-export function autoGradeEnvelope(
-  envelope: Omit<EventEnvelope, "sequence">,
-): ValueGrade {
-  // Axis A1 — 5-dim completeness
-  const dim5 = Boolean(
-    envelope.when &&
-    envelope.atopWhich &&
-    envelope.throughWhich?.sessionId &&
-    envelope.throughWhich?.toolName &&
-    envelope.throughWhich?.cwd &&
-    envelope.byWhom?.identity,
-  );
-  if (!dim5) return "T0";
-
-  // Axis E — memory layer mapping
-  const hasMemoryLayer = Boolean(
-    envelope.withWhat?.memoryLayers && envelope.withWhat.memoryLayers.length > 0,
-  );
-  if (!hasMemoryLayer) return "T1"; // 5-dim full but no memory mapping
-
-  // Axis B — verifiability signals
-  const hasLineageRef = envelope.lineageRefs !== undefined && hasAnyLineageRef(envelope.lineageRefs);
-  const hasHypothesis = Boolean(envelope.withWhat?.hypothesis);
-  const axisB = hasLineageRef || hasHypothesis;
-  if (!axisB) return "T1";
-
-  // Axis C — refinement signals
-  const hasRefinementTarget = envelope.withWhat?.refinementTarget !== undefined;
-  const payloadAny = (envelope as { payload?: { failureCategory?: unknown } }).payload;
-  const hasFailureCategory = Boolean(payloadAny?.failureCategory);
-  const axisC = hasRefinementTarget || hasFailureCategory;
-  if (!axisC) return "T2";
-
-  // Axis D2 — K-LLM consensus
-  const payloadConsensus = (envelope as { payload?: { kLlmConsensus?: unknown } }).payload;
-  const hasKLlmConsensus = Boolean(payloadConsensus?.kLlmConsensus);
-  return hasKLlmConsensus ? "T4" : "T3";
 }
 
 /**

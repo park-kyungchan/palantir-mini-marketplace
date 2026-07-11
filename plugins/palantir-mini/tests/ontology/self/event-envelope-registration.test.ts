@@ -1,8 +1,9 @@
 // Tests: Wave 1 self-Ontology ObjectType — pm's append-only Decision-Lineage substrate
-// registered AS an EventEnvelope ObjectType + 83 discriminator instances (count updated
+// registered AS an EventEnvelope ObjectType + 84 discriminator instances (count updated
 // by Sprint-cartography W1 vocabulary/union drift closure — 18 vocabulary-dead
 // discriminators removed + 14 typed-but-unlisted variants added after an exhaustive
-// emit-site audit restored exact set equality with the EventType union). Proves the
+// emit-site audit restored exact set equality with the EventType union; then schemas
+// v1.96 / P1 unification S2 added cartography_decision_mirrored: 84). Proves the
 // self-model resolves from the registry and that the discriminator seed stays true to
 // the LIVE lineage/event-types.ts EVENT_TYPE_NAMES array (drift guard) — a discriminator
 // added/removed without updating the seed fails loud here.
@@ -18,7 +19,7 @@ import {
   EVENT_ENVELOPE_INSTANCES,
 } from "#schemas/ontology/self";
 
-const EXPECTED_EVENT_ENVELOPE_COUNT = 83;
+const EXPECTED_EVENT_ENVELOPE_COUNT = 84;
 
 test("self EventEnvelope ObjectType is registered with eventId identity", () => {
   const got = OBJECT_TYPE_REGISTRY.get(EVENT_ENVELOPE_OBJECT_TYPE_RID);

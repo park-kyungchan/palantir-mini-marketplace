@@ -110,6 +110,12 @@ export const EVENT_TYPE_NAMES = [
   "workflow_trace_leak_detected",
   "pre_mutation_governance_decided",
   "skill_invocation_suggested",
+  // v1.96 — P1 unification S2: home-cartography g12 decision-ledger mirror. A row of
+  // governance/cartography-decisions.jsonl (the home tree's append-only DecisionEvent
+  // ledger, which stays the substrate of record per c42 — never rewritten) mirrored
+  // into events.jsonl as a graded pm envelope, via live-emit (emit-cli Path-B) or the
+  // idempotent backfill keyed on payload.sourceEventId.
+  "cartography_decision_mirrored",
 ] as const;
 
 export type EventTypeName = typeof EVENT_TYPE_NAMES[number];
@@ -553,6 +559,12 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
   skill_invocation_suggested: {
     name: "skill_invocation_suggested",
     description: "v1.36 / sprint-025 / W1.8 — a hook emitted a persisted advisory recommending a /palantir-mini:pm-* skill invocation. Payload: { suggestedSkillSlug, suggestedByHook, triggerCondition, suggestionContext? }.",
+    primaryDomain: "learn",
+  },
+  // v1.96 — P1 unification S2: home-cartography g12 decision-ledger mirror.
+  cartography_decision_mirrored: {
+    name: "cartography_decision_mirrored",
+    description: "v1.96 / P1 unification S2 — a home-cartography g12 DecisionEvent (governance/cartography-decisions.jsonl row) was mirrored into events.jsonl as a graded pm envelope. The g12 ledger stays the substrate of record (c42 — append-only, never rewritten); this typed mirror joins the pm Decision-Lineage substrate for grading/promotion/replay. The envelope's own atopWhich stays CommitSha; the source row's path-array rides in payload.sourceAtopWhich. Payload: { sourceEventId, sourceLedger, sourceAtopWhich, decision, reasoning, expectedOutcome, memoryLayers, standing?, supersedes?, pairs?, intent?, outcomeRef?, mirroredBy: 'live-emit'|'backfill' }.",
     primaryDomain: "learn",
   },
 });
