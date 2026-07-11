@@ -276,6 +276,8 @@ export function foldToSnapshot(events: EventEnvelope[]): EventSnapshot {
       case "session_resumed":                   snapshot.session_resumed = (snapshot.session_resumed ?? 0) + 1; break;
       // P1 unification S2 — home-cartography g12 decision-ledger mirror
       case "cartography_decision_mirrored":     snapshot.cartography_decision_mirrored = (snapshot.cartography_decision_mirrored ?? 0) + 1; break;
+      // pm authorization-flexibility slice 3 — G-DSN-E structured grant issuance
+      case "delivery_authorization_granted":    snapshot.delivery_authorization_granted = (snapshot.delivery_authorization_granted ?? 0) + 1; break;
       default: {
         const _exhaustive: never = ev;
         void _exhaustive;

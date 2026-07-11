@@ -1,25 +1,27 @@
 /**
- * palantir-mini SELF-ONTOLOGY — McpHandler as a registered ObjectType + its 63
- * instances (Wave 1 ObjectType build; +1 = O-1 structured-output). pm's bridge-handler layer modeled AS ontology:
- * the runtime exposes 29 callable MCP tools but is backed by far more handler modules
- * (mode-dispatchers fan out to hidden sub-modes), so the handler dir is the true LOGIC
- * surface — the biggest under-modeling trap a 1-tool-per-type pass misses.
+ * palantir-mini SELF-ONTOLOGY — McpHandler as a registered ObjectType + its 64
+ * instances (Wave 1 ObjectType build; +1 = O-1 structured-output; +1 = pm
+ * authorization-flexibility slice 3 pm-authorize-delivery). pm's bridge-handler layer
+ * modeled AS ontology: the runtime exposes 24 callable MCP tools but is backed by far
+ * more handler modules (mode-dispatchers fan out to hidden sub-modes), so the handler
+ * dir is the true LOGIC surface — the biggest under-modeling trap a 1-tool-per-type
+ * pass misses.
  *
- * This file declares ONE `McpHandler` ObjectType (the type) and seeds the 63 handler
+ * This file declares ONE `McpHandler` ObjectType (the type) and seeds the 64 handler
  * identities as instances (handlerName = the bridge/handlers/*.ts filename, minus the 2
  * private underscore helpers `_deprecation-map` + `_project-event`). The snapshot OWNS
  * the seed (it is the authority), so it does NOT import bridge/handlers uphill. The
- * paired registration test cross-checks these 63 names against the LIVE
+ * paired registration test cross-checks these 64 names against the LIVE
  * bridge/handlers/ directory so the self-model fails loud if pm's handler surface drifts
  * (a handler added/removed in the bridge without updating this seed).
  *
- * Count provenance (Wave 1 grounding, LIVE-verified): bridge/handlers/ has EXACTLY 65
- * `.ts` files; excluding the 2 underscore helpers leaves 63 first-class handler nouns.
- * Identity-only here (handlerName + a couple of coarse structural flags); per-handler
- * dispatch metadata is the runtime concern, not duplicated into the self-model.
+ * Count provenance (pm authorization-flexibility slice 3, LIVE-verified): bridge/handlers/
+ * has EXACTLY 66 `.ts` files; excluding the 2 underscore helpers leaves 64 first-class
+ * handler nouns. Identity-only here (handlerName + a couple of coarse structural flags);
+ * per-handler dispatch metadata is the runtime concern, not duplicated into the self-model.
  *
  * @owner palantirkc-ontology
- * @purpose Wave 1 self-Ontology ObjectType (McpHandler, 63 handler instances)
+ * @purpose Wave 1 self-Ontology ObjectType (McpHandler, 64 handler instances)
  */
 
 import {
@@ -64,7 +66,7 @@ export interface McpHandlerInstance {
 }
 
 /**
- * The 63 McpHandler instances — pm's LIVE bridge/handlers/*.ts surface, in directory
+ * The 64 McpHandler instances — pm's LIVE bridge/handlers/*.ts surface, in directory
  * (readdir) order, excluding the 2 private underscore helpers (_deprecation-map,
  * _project-event). Snapshot-owned seed (no bridge import); the registration test
  * cross-checks this set against the live bridge/handlers/ directory and fails on drift.
@@ -86,6 +88,7 @@ export const MCP_HANDLER_INSTANCES: readonly McpHandlerInstance[] = [
   { handlerName: "ontology-schema-get" },
   { handlerName: "pm-agent-lineage-export" },
   { handlerName: "pm-aip-source-authority-validate" },
+  { handlerName: "pm-authorize-delivery" },
   { handlerName: "pm-event-query-by-grade" },
   { handlerName: "pm-grader-dispatch" },
   { handlerName: "pm-handler-usage-audit" },

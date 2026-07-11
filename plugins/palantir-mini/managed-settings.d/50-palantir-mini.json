@@ -57,7 +57,8 @@
             "mcp__palantir-mini__pm_rule_query",
             "mcp__palantir-mini__pm_rule_audit",
             "mcp__palantir-mini__ontology_context_query",
-            "mcp__palantir-mini__structured_output"
+            "mcp__palantir-mini__structured_output",
+            "mcp__palantir-mini__pm_authorize_delivery"
         ],
         "ask": [
             {

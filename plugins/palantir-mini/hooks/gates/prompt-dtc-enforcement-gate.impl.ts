@@ -31,6 +31,7 @@ import {
   validatePromptContinuity,
 } from "../../lib/prompt-front-door";
 import { readGlobalSessionPointer } from "../../lib/prompt-front-door/global-session-index";
+import { readDeliveryGrant } from "../../lib/prompt-front-door/delivery-grant-store";
 import {
   validateDigitalTwinChangeContract,
   validateSemanticIntentContract,
@@ -889,6 +890,38 @@ async function assessDtcBuildApprovalForGate(
 }
 
 /**
+ * pm authorization-flexibility slice 3 (G-DSN-E) — consult the GLOBAL delivery-grant
+ * store (lib/prompt-front-door/delivery-grant-store.ts) for a live, unexpired
+ * 'authorized-delivery' grant keyed by (runtime, sessionId). Checked FIRST in the A2
+ * branch, ahead of the existing tool_input re-issue lane: a live grant authorizes the
+ * delivery action WITHOUT requiring the caller to re-issue the tool call with
+ * userApprovalQuote/userApprovalPromptId/userApprovalPromptHash on THIS call. Runtime
+ * is often undetectable from a plain native-tool payload (no tool_input.runtime hint
+ * on a real Bash/Edit/Write call), so this mirrors readCurrentEnvelopeFromStore's
+ * runtime-iteration fallback: try the detected/preferred runtime first, then the rest
+ * of PROMPT_RUNTIMES. FAIL-CLOSED: any miss, expiry, or store error returns false, and
+ * the caller falls through UNCHANGED to the existing tool_input re-issue + lexicon
+ * paths (this is purely additive — no existing path is altered).
+ */
+async function hasLiveDeliveryGrantForGate(payload: HookPayload): Promise<boolean> {
+  try {
+    const sessionId = payload.tool_input?.sessionId ?? payload.session_id;
+    if (typeof sessionId !== "string" || sessionId.length === 0) return false;
+    const preferred = detectRuntime(payload);
+    const runtimes = preferred
+      ? [preferred, ...PROMPT_RUNTIMES.filter((runtime) => runtime !== preferred)]
+      : PROMPT_RUNTIMES;
+    for (const runtime of runtimes) {
+      const grant = await readDeliveryGrant(runtime, sessionId);
+      if (grant) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * A2 authorized-delivery lane — the PreToolUse mirror of
  * {@link assessDtcBuildApprovalForGate}, but routed through the DELIVERY verifier
  * ({@link verifyDeliveryApprovalAgainstEnvelope}) so the surface half of the
@@ -992,6 +1025,20 @@ async function assessPromptDtc(
     mutationClass !== undefined &&
     isProvenNonOntologyDelivery(payload, mutationClass, projectRoot)
   ) {
+    // pm authorization-flexibility slice 3 (G-DSN-E) — check the GLOBAL delivery-grant
+    // store FIRST (pm_authorize_delivery). On a miss/expiry/error this falls through
+    // UNCHANGED to the existing tool_input re-issue lane below.
+    if (await hasLiveDeliveryGrantForGate(payload)) {
+      return {
+        ok: true,
+        errorClass: "authorized_delivery",
+        envelope,
+        userApprovalAuthorized: true,
+        reason:
+          "Delivery action authorized by a live session delivery grant " +
+          `(pm_authorize_delivery; mutationClass=${mutationClass}).`,
+      };
+    }
     const deliveryApproval = await assessDeliveryApprovalForGate(projectRoot, payload);
     if (deliveryApproval?.authorized === true) {
       return {
@@ -1511,7 +1558,14 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
     mutationClass !== "ontology-write" &&
     AUTHORIZED_DELIVERY_CLASSES.has(mutationClass);
   const escapeLine = isDeliveryClassBlocker
-    ? "Authorize delivery: re-issue this tool call with userApprovalQuote (a verbatim substring of your approving turn — e.g. \"merge the PR\") + userApprovalPromptId/userApprovalPromptHash. It is re-verified fail-closed against the hook-captured prompt (15-min TTL, this turn only); a blunt MODE=off does NOT clear a delivery action."
+    ? "Authorize delivery: call the pm_authorize_delivery MCP tool with userApprovalQuote " +
+      "(a verbatim substring of your approving turn — e.g. \"merge the PR\") + " +
+      "userApprovalPromptId/userApprovalPromptHash. On success it mints a 30-min SESSION-scoped " +
+      "delivery grant (re-verified fail-closed against the hook-captured prompt, honored across " +
+      "any project root sharing this session); a blunt MODE=off does NOT clear a delivery action. " +
+      "Runtimes without an MCP surface (e.g. Codex) can instead re-issue this tool call with the " +
+      "same userApprovalQuote/userApprovalPromptId/userApprovalPromptHash fields on tool_input " +
+      "(15-min TTL, this turn only)."
     : "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables only this prompt-DTC gate.";
   const reason = [
     `Prompt-DTC gate ${mode.toUpperCase()} for ${toolName(p)} in ${projectRoot}.`,

@@ -139,6 +139,9 @@ export const STUDIO_CORE_MCP_TOOL_NAMES = [
   "pm_intent_router",
   "pm_pre_mutation_governance",
   "ontology_schema_get",
+  // pm authorization-flexibility slice 3 (G-DSN-E) — everyday-operation surface;
+  // visible under altitude-2 via studio-core inclusion (includedMcpToolSurfaceProfiles).
+  "pm_authorize_delivery",
 ] as const;
 
 export const PROTECTED_ACTION_MCP_TOOL_NAMES = [
@@ -545,6 +548,17 @@ export const MCP_TOOL_CAPABILITIES: readonly McpToolCapabilityRecord[] = [
     releaseDeploy: false,
     externalEgress: false,
     classifierProjection: explicit("ontology_context_query"),
+  }),
+  capability("pm_authorize_delivery", {
+    domain: "GOVERNANCE",
+    effects: ["evaluate", "append-event"],
+    mutationKind: "contract-negotiation",
+    requiresDtcApproval: false,
+    requiresSprintContract: false,
+    dataAction: "read-or-write-contract",
+    releaseDeploy: false,
+    externalEgress: false,
+    classifierProjection: explicit("pm_authorize_delivery"),
   }),
 ];
 

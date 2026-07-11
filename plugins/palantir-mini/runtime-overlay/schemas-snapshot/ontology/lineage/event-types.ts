@@ -116,6 +116,11 @@ export const EVENT_TYPE_NAMES = [
   // into events.jsonl as a graded pm envelope, via live-emit (emit-cli Path-B) or the
   // idempotent backfill keyed on payload.sourceEventId.
   "cartography_decision_mirrored",
+  // pm authorization-flexibility slice 3 — G-DSN-E structured grant issuance. A
+  // caller-supplied userApprovalQuote/promptId/promptHash was re-verified against
+  // the hook-captured PromptEnvelope (fail-closed, unforgeable) and a SESSION-scoped
+  // delivery-authorization grant (30-min TTL) was minted by pm_authorize_delivery.
+  "delivery_authorization_granted",
 ] as const;
 
 export type EventTypeName = typeof EVENT_TYPE_NAMES[number];
@@ -566,5 +571,10 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
     name: "cartography_decision_mirrored",
     description: "v1.96 / P1 unification S2 — a home-cartography g12 DecisionEvent (governance/cartography-decisions.jsonl row) was mirrored into events.jsonl as a graded pm envelope. The g12 ledger stays the substrate of record (c42 — append-only, never rewritten); this typed mirror joins the pm Decision-Lineage substrate for grading/promotion/replay. The envelope's own atopWhich stays CommitSha; the source row's path-array rides in payload.sourceAtopWhich. Payload: { sourceEventId, sourceLedger, sourceAtopWhich, decision, reasoning, expectedOutcome, memoryLayers, standing?, supersedes?, pairs?, intent?, outcomeRef?, mirroredBy: 'live-emit'|'backfill' }.",
     primaryDomain: "learn",
+  },
+  delivery_authorization_granted: {
+    name: "delivery_authorization_granted",
+    description: "pm authorization-flexibility slice 3 (G-DSN-E) — a SESSION-scoped delivery-authorization grant (30-min TTL) was minted by the pm_authorize_delivery MCP tool after re-verifying a caller-supplied userApprovalQuote/promptId/promptHash against the hook-captured PromptEnvelope (verifyDeliveryApprovalAgainstEnvelope, fail-closed, unforgeable). No event is emitted on a failed verification. Payload: { grantId, scope, sessionId, projectRoot, promptId, promptHash, issuedAt, expiresAt }.",
+    primaryDomain: "security",
   },
 });

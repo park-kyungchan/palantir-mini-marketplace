@@ -276,8 +276,9 @@ describe("pm_plugin_self_check", () => {
     // W3e-1: +2 public MCP graders (grade_outcome_with_rubric + pm_grader_dispatch) → 27→29.
     // O-1: +1 public MCP tool (structured_output) → 29→30.
     // PR-E2 surface trim: −4 zero-consumer audits + −3 folded into survivors → 30→23.
-    expect(result.mcpToolsRegistrationResult.registeredToolCount).toBe(23);
-    expect(result.mcpToolsRegistrationResult.registeredHandlerModules).toBe(23);
+    // pm authorization-flexibility slice 3: +1 public MCP tool (pm_authorize_delivery) → 23→24.
+    expect(result.mcpToolsRegistrationResult.registeredToolCount).toBe(24);
+    expect(result.mcpToolsRegistrationResult.registeredHandlerModules).toBe(24);
     expect(result.mcpToolsRegistrationResult.missingMetadataFields).toEqual([]);
     expect(result.mcpToolsRegistrationResult.missingHandlerModules).not.toContain("ontology_schema_get");
     expect(result.mcpToolsRegistrationResult.handlerFileCount).toBeGreaterThan(22);
