@@ -147,4 +147,57 @@ describe("advisory-shown-store", () => {
       await hasAdvisoryBoilerplateBeenShown("claude", "session-accumulate", "sic-miss"),
     ).toBe(true);
   });
+
+  // W4 CI fallout hardening — hostile/non-string inputs and store I/O failures.
+  // Hook payloads are untyped JSON at runtime, so despite the TS signatures a
+  // non-string runtime/sessionId can reach the store. Path resolution rejects
+  // them internally (strings only) and BOTH public functions fail OPEN: read ->
+  // false ("not shown", full boilerplate emitted), mark -> resolves quietly.
+  describe("hostile inputs and store failures fail open, never throw", () => {
+    test("object-typed sessionId -> read is false, mark resolves, neither throws", async () => {
+      const hostileSessionId = { nested: "oops" } as unknown as string;
+      expect(
+        await hasAdvisoryBoilerplateBeenShown("claude", hostileSessionId, "scoped-advisory"),
+      ).toBe(false);
+      await markAdvisoryBoilerplateShown("claude", hostileSessionId, "scoped-advisory");
+      expect(
+        await hasAdvisoryBoilerplateBeenShown("claude", hostileSessionId, "scoped-advisory"),
+      ).toBe(false);
+    });
+
+    test("object-typed runtime -> read is false, mark resolves, neither throws", async () => {
+      const hostileRuntime = { runtime: "claude" } as unknown as "claude";
+      expect(
+        await hasAdvisoryBoilerplateBeenShown(hostileRuntime, "session-hostile-rt", "sic-miss"),
+      ).toBe(false);
+      await markAdvisoryBoilerplateShown(hostileRuntime, "session-hostile-rt", "sic-miss");
+    });
+
+    test("undefined/empty sessionId -> read is false, mark resolves", async () => {
+      expect(
+        await hasAdvisoryBoilerplateBeenShown(
+          "claude",
+          undefined as unknown as string,
+          "generic-blocking",
+        ),
+      ).toBe(false);
+      await markAdvisoryBoilerplateShown("claude", "", "generic-blocking");
+      expect(await hasAdvisoryBoilerplateBeenShown("claude", "", "generic-blocking")).toBe(false);
+    });
+
+    test("PALANTIR_MINI_GLOBAL_STATE_DIR pointing at a REGULAR FILE (store I/O throws beneath) -> both functions fail open", async () => {
+      const blockingFile = path.join(makeTmpGlobalStateDir(), "not-a-dir");
+      writeFileSync(blockingFile, "regular file, not a directory\n", "utf8");
+      process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = blockingFile;
+
+      expect(
+        await hasAdvisoryBoilerplateBeenShown("claude", "session-enotdir", "delivery-blocking"),
+      ).toBe(false);
+      await markAdvisoryBoilerplateShown("claude", "session-enotdir", "delivery-blocking");
+      // The write above could not land (ENOTDIR) -> still "not shown".
+      expect(
+        await hasAdvisoryBoilerplateBeenShown("claude", "session-enotdir", "delivery-blocking"),
+      ).toBe(false);
+    });
+  });
 });

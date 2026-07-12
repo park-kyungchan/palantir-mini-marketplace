@@ -30,17 +30,39 @@ export type AdvisoryBoilerplateClass =
 const SEGMENT_OPTS = { fallback: "unknown", maxLen: Infinity, allowColon: false } as const;
 
 /**
+ * Defensive input validation (W4 CI fallout hardening): hook payloads are
+ * untyped JSON at runtime, so despite the TypeScript signatures a caller-
+ * supplied runtime/sessionId can be a non-string (object/undefined) shape.
+ * Path resolution below must only ever see non-empty strings — anything else
+ * is treated as "no usable session key" and the public functions fail OPEN
+ * (boilerplate shows in full) rather than letting a TypeError (e.g.
+ * path.join's `The "paths[0]" property must be of type string`) escape into
+ * the gate's fail-closed catch-all.
+ */
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+/**
  * Root directory for the global advisory-shown store. Default:
  * `<os.homedir()>/.palantir-mini/session/prompt-dtc-advisory-shown`. Honors the
  * SAME PALANTIR_MINI_GLOBAL_STATE_DIR override as delivery-grant-store.ts.
+ * Strings-only: a non-string homedir()/override (hostile or broken environment)
+ * throws here and is caught by the public functions' fail-open wrappers.
  */
 export function advisoryShownStoreRootDir(): string {
   const override = process.env.PALANTIR_MINI_GLOBAL_STATE_DIR;
-  const base = override && override.trim().length > 0 ? override : os.homedir();
+  const base = isNonEmptyString(override) && override.trim().length > 0 ? override : os.homedir();
+  if (!isNonEmptyString(base)) {
+    throw new TypeError("advisory-shown-store: resolved base dir is not a non-empty string");
+  }
   return path.join(base, ".palantir-mini", "session", "prompt-dtc-advisory-shown");
 }
 
 function advisoryShownPath(runtime: PromptRuntime, sessionId: string): string {
+  if (!isNonEmptyString(runtime) || !isNonEmptyString(sessionId)) {
+    throw new TypeError("advisory-shown-store: runtime/sessionId must be non-empty strings");
+  }
   return path.join(
     advisoryShownStoreRootDir(),
     `${safeSegment(runtime, SEGMENT_OPTS)}-${safeSegment(sessionId, SEGMENT_OPTS)}.json`,

@@ -1587,13 +1587,23 @@ async function collapsibleBoilerplateLines(
   fullLines: readonly string[],
   payload: HookPayload,
 ): Promise<string> {
-  const sessionId = payload.session_id;
-  const runtime = detectRuntime(payload) ?? "unknown";
-  if (typeof sessionId === "string" && sessionId.length > 0) {
-    if (await hasAdvisoryBoilerplateBeenShown(runtime, sessionId, cls)) {
-      return ADVISORY_BOILERPLATE_MARKER;
+  // HARD RULE (W4 CI fallout): the advisory-shown store is a dedup CACHE. Any
+  // error anywhere in its consultation — path resolution on a hostile payload
+  // shape, store I/O, anything — must be caught HERE and degrade to emitting
+  // the FULL boilerplate. It must never influence the gate verdict and never
+  // escape into promptDtcEnforcementGate's fail-closed catch-all (which would
+  // convert a broken token-diet cache into a spurious BLOCK).
+  try {
+    const sessionId = payload.session_id;
+    const runtime = detectRuntime(payload) ?? "unknown";
+    if (typeof sessionId === "string" && sessionId.length > 0) {
+      if (await hasAdvisoryBoilerplateBeenShown(runtime, sessionId, cls)) {
+        return ADVISORY_BOILERPLATE_MARKER;
+      }
+      await markAdvisoryBoilerplateShown(runtime, sessionId, cls);
     }
-    await markAdvisoryBoilerplateShown(runtime, sessionId, cls);
+  } catch {
+    // fail-open: dedup uncertainty must never suppress actionable text.
   }
   return fullLines.join("\n");
 }

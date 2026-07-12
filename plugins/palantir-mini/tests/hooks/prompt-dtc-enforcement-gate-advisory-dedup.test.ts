@@ -227,4 +227,60 @@ describe("prompt-dtc-enforcement-gate: G-ADV-N advisory boilerplate dedup", () =
     expect(result.additionalContext).toContain("Allowed while pending");
     expect(result.additionalContext).not.toContain("[boilerplate: see earlier this session]");
   });
+
+  // W4 CI fallout hardening (HARD RULE): the advisory-shown store is a dedup
+  // CACHE — any failure in its path resolution or I/O must degrade to the FULL
+  // boilerplate and must NEVER influence the gate verdict (in particular it must
+  // never escape into the gate's fail-closed catch-all and convert a broken
+  // token-diet cache into a spurious BLOCK).
+  test("7. store path resolution/I/O throwing (GLOBAL_STATE_DIR is a regular file) -> gate verdict unchanged + full text emitted, every call", async () => {
+    const project = makeTmpProject();
+    const sessionId = "session-dedup-store-broken";
+    await capturedPrompt(project, sessionId);
+
+    // Control run first (working store) to pin the expected verdict shape.
+    const control = await promptDtcEnforcementGate(genericBlockingPayload(project, sessionId));
+
+    // Now break the store BENEATH path resolution: point the global state dir
+    // at a REGULAR FILE so every mkdir/read/write inside the store throws
+    // (ENOTDIR). The gate must behave as if the dedup feature does not exist.
+    const blockingFile = path.join(makeTmpGlobalStateDir(), "not-a-dir");
+    fs.writeFileSync(blockingFile, "regular file, not a directory\n", "utf8");
+    process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = blockingFile;
+
+    const first = await promptDtcEnforcementGate(genericBlockingPayload(project, sessionId));
+    const second = await promptDtcEnforcementGate(genericBlockingPayload(project, sessionId));
+
+    for (const result of [first, second]) {
+      // Verdict unchanged vs the control run: same message, same (absent)
+      // decision — never the fail-closed BLOCK.
+      expect(result.message).toBe(control.message);
+      expect(result.decision).toBe(control.decision);
+      expect(result.message).not.toContain("BLOCKED");
+      expect(JSON.stringify(result)).not.toContain("failed closed on unexpected error");
+      // Full boilerplate on EVERY call (dedup silently disabled), never the marker.
+      expect(result.additionalContext).toContain("Allowed while pending");
+      expect(result.additionalContext).not.toContain("[boilerplate: see earlier this session]");
+    }
+  });
+
+  test("8. hostile payload shape (object-typed session_id) -> gate does not fail closed; full text emitted", async () => {
+    const project = makeTmpProject();
+    // No captured prompt needed — the assessment fails either way; the point is
+    // the verdict must be the normal advisory, not a fail-closed BLOCK, and the
+    // boilerplate must be full (dedup skipped for a non-string session key).
+    const payload = {
+      cwd: project,
+      session_id: { nested: "oops" } as unknown as string,
+      tool_name: "Bash",
+      tool_input: { command: "npm install left-pad" },
+    };
+
+    const result = await promptDtcEnforcementGate(payload);
+
+    expect(JSON.stringify(result)).not.toContain("failed closed on unexpected error");
+    expect(result.message).not.toContain("BLOCKED");
+    expect(result.additionalContext).toContain("Allowed while pending");
+    expect(result.additionalContext).not.toContain("[boilerplate: see earlier this session]");
+  });
 });
