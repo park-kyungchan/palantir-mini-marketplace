@@ -49,6 +49,26 @@ function git(dir: string, args: string): void {
   execSync(`git ${args}`, { cwd: dir, stdio: ["ignore", "ignore", "ignore"] });
 }
 
+/**
+ * G-GATE-J — fake `gh` PATH shim (mirrors the A2 suite's helper of the same
+ * name): echoes a fixed non-ontology path list for `gh pr diff --name-only`, so
+ * a `gh pr merge` fixture proves its change-set via the PR's OWN diff (the new
+ * ground truth for an existing-PR subcommand) instead of the local push range.
+ */
+async function withFakeGhOnPath<T>(paths: string[], fn: () => Promise<T>): Promise<T> {
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "dtc-gate-grant-fake-gh-"));
+  tmpDirs.push(binDir);
+  const script = `#!/bin/sh\n${paths.map((p) => `echo "${p}"`).join("\n")}\n`;
+  fs.writeFileSync(path.join(binDir, "gh"), script, { mode: 0o755 });
+  const savedPath = process.env.PATH;
+  process.env.PATH = `${binDir}:${savedPath ?? ""}`;
+  try {
+    return await fn();
+  } finally {
+    process.env.PATH = savedPath;
+  }
+}
+
 /** Real git-backed tmp project with a non-ontology push range (mirrors the A2 suite). */
 function makeTmpProject(label: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), `dtc-gate-a2-grant-${label}-`));
@@ -159,8 +179,12 @@ describe("prompt-dtc-enforcement-gate: A2 delivery-grant consumption (pm-flex sl
     });
 
     // No userApprovalQuote/userApprovalPromptId/userApprovalPromptHash on tool_input —
-    // the grant alone must authorize this call.
-    const result = await promptDtcEnforcementGate(deliveryPayload(project, envelope));
+    // the grant alone must authorize this call. G-GATE-J: shim `gh` so `gh pr merge`
+    // proves its change-set via `gh pr diff` (the PR's own diff), not the local push
+    // range.
+    const result = await withFakeGhOnPath(["README.md", "docs.md"], () =>
+      promptDtcEnforcementGate(deliveryPayload(project, envelope)),
+    );
 
     expect(result.decision).toBeUndefined();
     expect(result.message).toBe("palantir-mini: prompt-DTC gate OK");
@@ -183,12 +207,15 @@ describe("prompt-dtc-enforcement-gate: A2 delivery-grant consumption (pm-flex sl
 
     // Expired grant + VALID re-issue fields: must still pass via the (unchanged)
     // tool_input re-issue lane, proving the expired grant did not break fallthrough.
-    const result = await promptDtcEnforcementGate(
-      deliveryPayload(project, envelope, {
-        userApprovalQuote: "merge the PR",
-        userApprovalPromptId: envelope.promptId,
-        userApprovalPromptHash: envelope.promptHash,
-      }),
+    // G-GATE-J: shim `gh` so `gh pr merge` proves its change-set via `gh pr diff`.
+    const result = await withFakeGhOnPath(["README.md", "docs.md"], () =>
+      promptDtcEnforcementGate(
+        deliveryPayload(project, envelope, {
+          userApprovalQuote: "merge the PR",
+          userApprovalPromptId: envelope.promptId,
+          userApprovalPromptHash: envelope.promptHash,
+        }),
+      ),
     );
 
     expect(result.decision).toBeUndefined();
@@ -226,13 +253,16 @@ describe("prompt-dtc-enforcement-gate: A2 delivery-grant consumption (pm-flex sl
     // No local envelope at projectB; readCurrentEnvelope must resolve it via the
     // global index redirect to projectA, and the grant lookup (session-keyed, global)
     // must find the SAME grant regardless of which project root the call originates
-    // from.
-    const result = await promptDtcEnforcementGate(
-      deliveryPayload(projectB, envelope, {
-        // Explicit sessionId/runtime/promptId/promptHash so readCurrentEnvelope's
-        // explicit-pair branch resolves via the redirected store (mirrors the
-        // slice-2 cross-lane test's payload shape).
-      }),
+    // from. G-GATE-J: shim `gh` (invoked with cwd=projectB) so `gh pr merge` proves
+    // its change-set via `gh pr diff`.
+    const result = await withFakeGhOnPath(["README.md", "docs.md"], () =>
+      promptDtcEnforcementGate(
+        deliveryPayload(projectB, envelope, {
+          // Explicit sessionId/runtime/promptId/promptHash so readCurrentEnvelope's
+          // explicit-pair branch resolves via the redirected store (mirrors the
+          // slice-2 cross-lane test's payload shape).
+        }),
+      ),
     );
 
     expect(result.decision).toBeUndefined();

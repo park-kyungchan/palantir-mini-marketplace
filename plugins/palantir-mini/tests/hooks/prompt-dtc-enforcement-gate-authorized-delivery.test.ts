@@ -47,6 +47,32 @@ function git(dir: string, args: string): void {
 }
 
 /**
+ * G-GATE-J — a fake `gh` PATH shim: writes an executable `gh` script that
+ * recognizes `pr diff --name-only [selector]` and echoes a fixed path list (one
+ * per line), then prepends its dir to `process.env.PATH` for the duration of
+ * `fn` (restored in `finally`, independent of the SAVED_ENV_KEYS afterEach —
+ * PATH is NOT in that array since deleting it would break every other test's
+ * git/gh resolution). Mirrors what `allPushRangePathsNonOntology` used to
+ * resolve for `makeTmpProject()` (README.md + docs.md, both non-ontology), so
+ * the regression tests below exercise the SAME non-ontology change-set the
+ * legacy push-range mechanism proved — only the ground-truth OBJECT changed.
+ */
+async function withFakeGhOnPath<T>(paths: string[], fn: () => Promise<T>): Promise<T> {
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "dtc-gate-fake-gh-"));
+  tmpDirs.push(binDir);
+  const script = `#!/bin/sh\n${paths.map((p) => `echo "${p}"`).join("\n")}\n`;
+  const ghPath = path.join(binDir, "gh");
+  fs.writeFileSync(ghPath, script, { mode: 0o755 });
+  const savedPath = process.env.PATH;
+  process.env.PATH = `${binDir}:${savedPath ?? ""}`;
+  try {
+    return await fn();
+  } finally {
+    process.env.PATH = savedPath;
+  }
+}
+
+/**
  * A real git-backed tmp project. REGRESSION CAVEAT (6d / existing test (i)): with the
  * step-1e write-set requirement, a `gh pr merge` delivery PASS now ALSO requires
  * `allPushRangePathsNonOntology(project)` to resolve TRUE — which needs a real repo
@@ -178,7 +204,12 @@ describe("prompt-dtc-enforcement-gate: A2 authorized-delivery lane", () => {
     // No env → floors to blocking for pull-request; the delivery lane clears it.
     const { envelope } = await captureDeliveryApprovalPrompt(project);
 
-    const result = await promptDtcEnforcementGate(deliveryPayload(project, envelope));
+    // G-GATE-J: `gh pr merge` now proves its change-set via `gh pr diff`, not the
+    // local push range — shim `gh` to return the SAME non-ontology paths the
+    // legacy push-range mechanism used to resolve for this fixture.
+    const result = await withFakeGhOnPath(["README.md", "docs.md"], () =>
+      promptDtcEnforcementGate(deliveryPayload(project, envelope)),
+    );
 
     expect(result.decision).toBeUndefined();
     expect(result.message).toBe("palantir-mini: prompt-DTC gate OK");
@@ -413,10 +444,14 @@ describe("A2 ontology-write bypass — fail-closed", () => {
     const project = makeTmpProject();
     const { envelope } = await captureDeliveryApprovalPrompt(project);
 
-    const result = await promptDtcEnforcementGate(deliveryPayload(project, envelope));
+    // G-GATE-J: shim `gh pr diff` to return the PR's non-ontology change-set (the
+    // change-set ground truth for an existing-PR subcommand like `merge`).
+    const result = await withFakeGhOnPath(["README.md", "docs.md"], () =>
+      promptDtcEnforcementGate(deliveryPayload(project, envelope)),
+    );
 
-    // origin/main...HEAD is a non-empty, all-non-ontology range → guard (e) proves it
-    // → A2 PASS-WITH-AUDIT.
+    // `gh pr diff` resolves a non-empty, all-non-ontology change-set → guard (e)
+    // proves it → A2 PASS-WITH-AUDIT.
     expect(result.decision).toBeUndefined();
     expect(result.message).toBe("palantir-mini: prompt-DTC gate OK");
 
