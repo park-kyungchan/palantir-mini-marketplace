@@ -3,6 +3,7 @@
 # (events.jsonl is append-only on-disk substrate, not a tracked artifact).
 # On-disk files are preserved; this only stops git from tracking them.
 .palantir-mini/session/
+.palantir-mini/cache/
 .palantir-mini/harness/
 .palantir-mini/mcp-response-overflow/
 .palantir-mini/structured-output-overflow/
