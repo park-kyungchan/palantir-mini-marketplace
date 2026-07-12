@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.97.2 — 2026-07-12 (delivery-grant semantics correction: session-standing, not 30-min TTL)
+
+Fix/cleanup PATCH (rule 08 — doc/record correction only; no primitive type, field, or export is added, removed, or retyped). Grounds: g12 `de-2026-07-12-pm-flex-slices-2-3-policy-answers-locked` (the 30-min absolute-TTL ruling this entry supersedes) + the superseding USER directive `de-2026-07-12-authorization-friction-corrective-user-2026-07-12-recurring-per-delivery`.
+
+### Fixed (doc-only)
+
+- **`delivery_authorization_granted`'s description field described a SESSION-scoped grant with a 30-min absolute TTL and no revocation.** The palantir-mini plugin's G-RPLY-M fix (pm auth-friction closure) makes the grant SESSION-STANDING: it persists until an explicit revoke phrase in a subsequent user-authored turn, or a 24h cross-session safety-net expiry (`DELIVERY_GRANT_SAFETY_NET_TTL_MS`), whichever comes first — replacing "wait for TTL expiry" with "say so." This entry corrects the `lineage/event-types.ts` `EVENT_TYPE_REGISTRY` description string to match; no discriminator, payload shape, or export changed.
+
 ## v1.97.1 — 2026-07-12 (P1 unification S3 — record correction: home-side consumption is subprocess-only)
 
 Fix/cleanup PATCH (rule 08 — doc/record correction only; no primitive type, field, or export is added, removed, or retyped). Design authority: g12 `de-2026-07-12-h2-consumption-design-of-record-subprocess-only`.

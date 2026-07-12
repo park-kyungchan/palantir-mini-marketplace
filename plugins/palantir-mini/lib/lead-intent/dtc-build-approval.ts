@@ -35,6 +35,7 @@ import {
   type StructuredApprovalRef,
 } from "../prompt-front-door/approval-ref";
 import { PromptFrontDoorStore } from "../prompt-front-door/store";
+import { scanForNotificationMarkers } from "../prompt-front-door/prompt-origin-classifier";
 
 /** Short TTL for the DTC-build approval — mirrors the source-mutation precedent. */
 export const DTC_BUILD_APPROVAL_TTL_MS = 15 * 60 * 1000; // 15 minutes
@@ -173,6 +174,17 @@ export function excerptExpressesDeliveryApproval(promptExcerpt: string): boolean
 export interface EnvelopeStore {
   readEnvelope(sessionId: string, promptId: string): Promise<PromptEnvelope | null>;
   readCurrentPointer(
+    runtime: PromptRuntime,
+    sessionId: string,
+  ): Promise<{ readonly promptId: string; readonly promptHash: string } | null>;
+  /**
+   * G-RPLY-M Fix 1a: the narrower pointer that only advances on user-authored
+   * turns (never a system/notification-shaped UserPromptSubmit). Consumed by
+   * {@link verifyDeliveryApprovalAgainstEnvelope}'s turn-binding check instead of
+   * `readCurrentPointer`, so notification-interleaved turns cannot slide the
+   * approval-anchoring pointer window past a genuine, still-current approval.
+   */
+  readLastUserAuthoredPointer(
     runtime: PromptRuntime,
     sessionId: string,
   ): Promise<{ readonly promptId: string; readonly promptHash: string } | null>;
@@ -405,7 +417,38 @@ export async function verifyDeliveryApprovalAgainstEnvelope(
   }
 
   const runtime = input.runtime ?? envelope.runtime;
-  const pointer = await store.readCurrentPointer(runtime, sessionId);
+
+  // Adversarial-lens BLOCKER fix (2026-07-12, two-layer classification — see
+  // prompt-origin-classifier.ts's header note): mint eligibility for the
+  // AUTHORIZED-DELIVERY lane is trust-ELEVATING, unlike ordinary pointer
+  // advancement (which stays fail-open by design). The anchor envelope must be
+  // BOTH (a) shape-classified "user" at capture time AND (b) free of every
+  // known notification-marker substring anywhere in its full promptExcerpt —
+  // an independent, UNANCHORED re-scan, because classifyPromptOrigin's
+  // positional heuristics can let a marker that appears MID-TEXT (rather than
+  // wrapping the whole prompt or anchoring the start) fall open to "user" for
+  // pointer-advancement purposes. Ambiguity (marker found, or no originClass
+  // recorded on the envelope) refuses the mint, fail-closed; it does NOT
+  // retroactively un-advance the pointer, which already moved (if at all)
+  // under the separate pointer-advancement policy.
+  if (envelope.originClass !== "user") {
+    return {
+      authorized: false,
+      reason: `delivery mint refused: anchor envelope originClass is "${envelope.originClass ?? "unrecorded"}", not "user"`,
+    };
+  }
+  const markerScan = scanForNotificationMarkers(envelope.promptExcerpt);
+  if (markerScan.found) {
+    return {
+      authorized: false,
+      reason: `delivery mint refused: anchor envelope promptExcerpt contains notification marker "${markerScan.marker}"`,
+    };
+  }
+
+  // G-RPLY-M Fix 1a: anchored against the LAST USER-AUTHORED pointer (not the
+  // general current pointer), so interleaved system/notification-shaped turns do
+  // not slide this window past a still-current genuine approval.
+  const pointer = await store.readLastUserAuthoredPointer(runtime, sessionId);
 
   const verdict = coreVerify({
     envelope,

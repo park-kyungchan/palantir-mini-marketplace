@@ -1,11 +1,13 @@
 // palantir-mini pm authorization-flexibility slice 3 — pm_authorize_delivery MCP tool
 // Domain: SECURITY (G-DSN-E structured grant mechanism, subsumes G-ENV-B resolution)
 //
-// Mints a SESSION-scoped delivery-authorization grant (30-min TTL) from a
-// re-verified user-approval envelope, replacing the dead A2 native-tool tool_input
-// re-issue lane (G-ENV-B: additionalProperties:false on native Bash/Edit/Write
-// schemas rejects the plugin-invented extra fields before hooks ever run) with a
-// plugin-owned MCP surface. This is a PURE surface-relocation: it re-uses
+// Mints a SESSION-STANDING delivery-authorization grant (24h cross-session safety-
+// net expiry, revocable via a user-authored revoke phrase — see G-RPLY-M Fix 1b,
+// lib/prompt-front-door/delivery-grant-store.ts) from a re-verified user-approval
+// envelope, replacing the dead A2 native-tool tool_input re-issue lane (G-ENV-B:
+// additionalProperties:false on native Bash/Edit/Write schemas rejects the
+// plugin-invented extra fields before hooks ever run) with a plugin-owned MCP
+// surface. This is a PURE surface-relocation: it re-uses
 // {@link verifyDeliveryApprovalAgainstEnvelope} verbatim — the same unforgeable,
 // fail-closed re-verification the existing tool_input re-issue lane already ran.
 //
@@ -21,8 +23,10 @@
 // NEVER raw caller input — so a forged runtime/sessionId on the tool call cannot
 // mint a grant under an identity the caller does not actually hold.
 //
-// No grant is ever written on a failed verification. There is no revocation in v1
-// (TTL-only expiry, DELIVERY_GRANT_TTL_MS = 30 minutes).
+// No grant is ever written on a failed verification. The grant persists
+// session-standing until an explicit revoke phrase in a subsequent user-authored
+// turn, or the DELIVERY_GRANT_SAFETY_NET_TTL_MS cross-session safety-net expiry,
+// whichever comes first.
 
 import {
   verifyDeliveryApprovalAgainstEnvelope,
@@ -38,7 +42,7 @@ import {
 import { readGlobalSessionPointer } from "../../lib/prompt-front-door/global-session-index";
 import {
   issueDeliveryGrant,
-  DELIVERY_GRANT_TTL_MS,
+  DELIVERY_GRANT_SAFETY_NET_TTL_MS,
   type DeliveryGrant,
 } from "../../lib/prompt-front-door/delivery-grant-store";
 import { emit } from "../../scripts/log";
@@ -225,9 +229,9 @@ export default async function pmAuthorizeDelivery(
       identity: "user",
       runtime: envelope.runtime,
       reasoning:
-        `pm_authorize_delivery: minted a ${DELIVERY_GRANT_TTL_MS / 60000}-min session ` +
-        `delivery grant (${grant.grantId}) from a re-verified user-approval envelope ` +
-        `(${verdict.reason}).`,
+        `pm_authorize_delivery: minted a session-standing delivery grant ` +
+        `(${grant.grantId}, safety-net expiry ${DELIVERY_GRANT_SAFETY_NET_TTL_MS / 3600000}h) ` +
+        `from a re-verified user-approval envelope (${verdict.reason}).`,
       memoryLayers: ["working", "episodic"],
     });
   } catch {

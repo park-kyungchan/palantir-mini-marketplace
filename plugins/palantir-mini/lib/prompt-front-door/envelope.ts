@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { ApprovalRef } from "./approval-ref";
 import type { PalantirMiniPluginOptOut } from "../ontology-engineering-response-template";
+import type { PromptOriginClass } from "./prompt-origin-classifier";
 
 export const PROMPT_FRONT_DOOR_SCHEMA_VERSION = "prompt-front-door/v1";
 
@@ -48,6 +49,7 @@ export interface PromptEnvelope {
   readonly supersededByPromptId?: string;
   readonly palantirMiniPluginOptOut?: PalantirMiniPluginOptOut;
   readonly rawPrompt?: string;
+  readonly originClass?: PromptOriginClass;
 }
 
 export interface CreatePromptEnvelopeInput {
@@ -61,6 +63,7 @@ export interface CreatePromptEnvelopeInput {
   readonly palantirMiniPluginOptOut?: PalantirMiniPluginOptOut;
   readonly retainRawPrompt?: boolean;
   readonly excerptLength?: number;
+  readonly originClass?: PromptOriginClass;
 }
 
 export function hashPrompt(rawPrompt: string): string {
@@ -128,6 +131,7 @@ export function createPromptEnvelope(input: CreatePromptEnvelopeInput): PromptEn
       ? { palantirMiniPluginOptOut: input.palantirMiniPluginOptOut }
       : {}),
     ...(input.retainRawPrompt ? { rawPrompt: input.rawPrompt } : {}),
+    ...(input.originClass !== undefined ? { originClass: input.originClass } : {}),
   };
 }
 

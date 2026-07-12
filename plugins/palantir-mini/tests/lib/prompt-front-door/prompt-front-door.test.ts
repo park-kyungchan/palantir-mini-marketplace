@@ -461,6 +461,9 @@ describe("dtc-build-approval read-time verifier", () => {
       async readCurrentPointer() {
         return pointer;
       },
+      async readLastUserAuthoredPointer() {
+        return pointer;
+      },
     };
   }
 

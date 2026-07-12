@@ -181,6 +181,52 @@ export class PromptFrontDoorStore {
     }
   }
 
+  /**
+   * G-RPLY-M Fix 1a: a SECOND, narrower pointer that only advances on
+   * user-authored turns (see hooks/prompt-front-door-capture.ts's
+   * classifyPromptOrigin wiring). Mirrors currentPointerPath exactly, under its
+   * own `current-user-authored/` subdir so a system/notification-shaped turn
+   * never moves it. Consumed by verifyDeliveryApprovalAgainstEnvelope's turn-
+   * binding check instead of readCurrentPointer/currentPointerPath.
+   */
+  lastUserAuthoredPointerPath(runtime: PromptRuntime, sessionId: string): string {
+    return path.join(
+      this.rootDir,
+      "current-user-authored",
+      `${safeSegment(runtime, PROMPT_SEGMENT_OPTS)}-${safeSegment(sessionId, PROMPT_SEGMENT_OPTS)}.json`,
+    );
+  }
+
+  async writeLastUserAuthoredPointer(envelope: PromptEnvelope): Promise<PromptCurrentPointer> {
+    const pointer: PromptCurrentPointer = {
+      schemaVersion: "prompt-front-door/current/v1",
+      runtime: envelope.runtime,
+      sessionId: envelope.sessionId,
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      updatedAt: new Date().toISOString(),
+    };
+    await atomicWriteJson(
+      this.lastUserAuthoredPointerPath(envelope.runtime, envelope.sessionId),
+      pointer,
+    );
+    return pointer;
+  }
+
+  async readLastUserAuthoredPointer(
+    runtime: PromptRuntime,
+    sessionId: string,
+  ): Promise<PromptCurrentPointer | null> {
+    try {
+      return JSON.parse(
+        await readFile(this.lastUserAuthoredPointerPath(runtime, sessionId), "utf8"),
+      ) as PromptCurrentPointer;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+  }
+
   async saveEnvelope(envelope: PromptEnvelope): Promise<PromptCurrentPointer> {
     await this.writeEnvelope(envelope);
     return this.writeCurrentPointer(envelope);

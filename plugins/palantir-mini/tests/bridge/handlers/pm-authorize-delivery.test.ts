@@ -59,8 +59,18 @@ async function captureDeliveryApprovalPrompt(project: string, rawPrompt = APPROV
     projectRoot: project,
     capturedAt: "2026-07-12T04:00:00.000Z",
     sequence: 1,
+    // Adversarial-lens BLOCKER fix: this helper simulates a genuine
+    // user-authored capture (see the comment below), so originClass must be
+    // "user" too — verifyDeliveryApprovalAgainstEnvelope now refuses to mint
+    // against an envelope whose originClass isn't "user".
+    originClass: "user",
   });
   await store.saveEnvelope(envelope);
+  // G-RPLY-M Fix 1a: this helper simulates a genuine user-authored capture, so it
+  // must also advance the user-authored pointer (mirrors the real capture hook's
+  // classifyPromptOrigin === "user" branch) — verifyDeliveryApprovalAgainstEnvelope
+  // now anchors against readLastUserAuthoredPointer, not readCurrentPointer.
+  await store.writeLastUserAuthoredPointer(envelope);
   return { store, envelope };
 }
 

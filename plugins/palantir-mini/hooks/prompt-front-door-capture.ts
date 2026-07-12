@@ -80,6 +80,11 @@ import {
 import { emit } from "../scripts/log";
 import { findProjectRoot } from "../lib/project/find-root";
 import { writeGlobalSessionPointerSync } from "../lib/prompt-front-door/global-session-index";
+import {
+  classifyPromptOrigin,
+  excerptRequestsDeliveryGrantRevocation,
+} from "../lib/prompt-front-door/prompt-origin-classifier";
+import { revokeDeliveryGrant } from "../lib/prompt-front-door/delivery-grant-store";
 
 interface HookPayload {
   readonly session_id?: string;
@@ -155,6 +160,24 @@ export function currentPointerPathFor(
   return path.join(
     promptFrontDoorRoot(projectRoot),
     "current",
+    `${safeSegment(runtime)}-${safeSegment(sessionId)}.json`,
+  );
+}
+
+/**
+ * G-RPLY-M Fix 1a: mirrors currentPointerPathFor exactly, under its own
+ * `current-user-authored/` subdir (see lib/prompt-front-door/store.ts's
+ * lastUserAuthoredPointerPath for the sibling implementation this must stay
+ * write/read compatible with).
+ */
+export function userAuthoredPointerPathFor(
+  projectRoot: string,
+  runtime: PromptRuntime,
+  sessionId: string,
+): string {
+  return path.join(
+    promptFrontDoorRoot(projectRoot),
+    "current-user-authored",
     `${safeSegment(runtime)}-${safeSegment(sessionId)}.json`,
   );
 }
@@ -317,6 +340,48 @@ async function emitCaptureEvent(envelope: PromptEnvelope, cwd: string): Promise<
   }
 }
 
+/**
+ * G-RPLY-M Fix 1b audit: mirrors the mint-path audit
+ * (bridge/handlers/pm-authorize-delivery.ts's delivery_authorization_granted
+ * emit) and the pre-existing consume-path audit
+ * (prompt-dtc-enforcement-gate.impl.ts's emitGateAssessment on the
+ * authorized_delivery branch) so revocation leaves the same kind of audit
+ * trail as mint/consume. Reuses the existing generic audit-only event type
+ * validation_phase_completed (no new lineage discriminator — see design §0).
+ * Best-effort: a logging failure must not affect the (already-performed)
+ * revocation side effect.
+ */
+async function emitDeliveryGrantRevokedEvent(
+  runtime: PromptRuntime,
+  sessionId: string,
+  cwd: string,
+  revoked: boolean,
+): Promise<void> {
+  try {
+    await emit({
+      type: "validation_phase_completed",
+      payload: {
+        phase: "delivery-grant-revocation",
+        passed: true,
+        errorClass: "delivery_grant_revoked_by_user",
+        advisory: true,
+        revoked,
+        runtime,
+      } as Record<string, unknown>,
+      toolName: "prompt-front-door-capture",
+      cwd,
+      sessionId,
+      identity: "user",
+      memoryLayers: ["episodic", "procedural"],
+      reasoning: revoked
+        ? `prompt-front-door-capture: user-authored turn requested delivery-grant revocation for runtime=${runtime} sessionId=${sessionId}; grant revoked.`
+        : `prompt-front-door-capture: user-authored turn requested delivery-grant revocation for runtime=${runtime} sessionId=${sessionId}; no live grant existed.`,
+    });
+  } catch {
+    // best-effort: revocation itself already succeeded/no-opped by the time this runs.
+  }
+}
+
 async function emitMissingPromptEvent(payload: HookPayload, cwd: string): Promise<void> {
   try {
     await emit({
@@ -372,6 +437,7 @@ export default async function promptFrontDoorCapture(payload: unknown): Promise<
     currentPointerPathFor(projectRoot, runtime, sessionId),
   );
   const governedSessionLive = isGovernedSessionLive(projectRoot, sessionId, previous);
+  const originClass = classifyPromptOrigin(rawPrompt);
   const envelope = createPromptEnvelope({
     rawPrompt,
     sessionId,
@@ -380,10 +446,30 @@ export default async function promptFrontDoorCapture(payload: unknown): Promise<
     sequence: Date.now(),
     previousPromptHash: previous?.promptHash,
     palantirMiniPluginOptOut,
+    originClass,
   });
 
   writePromptCaptureSync(envelope);
   writeGlobalSessionPointerBestEffort(envelope);
+  if (originClass === "user") {
+    atomicWriteJsonSync(userAuthoredPointerPathFor(projectRoot, runtime, sessionId), {
+      schemaVersion: "prompt-front-door/current/v1",
+      runtime,
+      sessionId,
+      promptId: envelope.promptId,
+      promptHash: envelope.promptHash,
+      updatedAt: new Date().toISOString(),
+    });
+    if (excerptRequestsDeliveryGrantRevocation(rawPrompt)) {
+      let revoked = false;
+      try {
+        revoked = await revokeDeliveryGrant(runtime, sessionId);
+      } catch {
+        // best-effort.
+      }
+      await emitDeliveryGrantRevokedEvent(runtime, sessionId, cwd, revoked);
+    }
+  }
   const entryWrite = writeUniversalOntologyEntry(createUniversalOntologyEntry({
     rawUserRequest: rawPrompt,
     projectRoot,

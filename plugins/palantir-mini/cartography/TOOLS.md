@@ -16,7 +16,7 @@ All 24 MCP tools declared in `bridge/mcp-server.ts` TOOLS[], with per-profile vi
 | impact_query |  | ✓ |  |  | ✓ | `./handlers/impact-query` | Context Engineering core: ForwardProp/BackwardProp impact graph query for a RID. Returns single-hop + transit… |
 | ontology_context_query | ✓ | ✓ | ✓ | ✓ | ✓ | `./handlers/ontology-context-query` | Phase 3 read-path orchestrator (sprint-093 PR 3.1). Unifies impact + capability + lineage projections into a… |
 | ontology_schema_get | ✓ | ✓ | ✓ | ✓ | ✓ | `./handlers/ontology-schema-get` | Retrieve the canonical schema snapshot for a primitive RID. Looks up palantir-mini runtime-overlay/schemas-sn… |
-| pm_authorize_delivery | ✓ | ✓ | ✓ | ✓ | ✓ | `./handlers/pm-authorize-delivery` | pm authorization-flexibility slice 3 (G-DSN-E) — mint a SESSION-scoped delivery-authorization grant (30-min T… |
+| pm_authorize_delivery | ✓ | ✓ | ✓ | ✓ | ✓ | `./handlers/pm-authorize-delivery` | pm authorization-flexibility slice 3 (G-DSN-E) — mint a SESSION-STANDING delivery-authorization grant from a… |
 | pm_grader_dispatch |  | ✓ |  |  |  | `./handlers/pm-grader-dispatch` | W3e-1 — runtime-neutral model-grader dispatch. Dispatches ONE model-domain criterion to a FRESH grader subpro… |
 | pm_health_audit |  | ✓ |  |  |  | `./handlers/pm-health-audit` | Sprint-063 W4.A — mode-dispatched health audit merger for handler usage, harness base, harness components, ha… |
 | pm_intent_router | ✓ | ✓ | ✓ | ✓ | ✓ | `./handlers/pm-intent-router` | Sprint-063 W3.A — full intent-router. Subsumes delegate_or_direct + dispatch_route_decide + dispatch_to_runti… |
