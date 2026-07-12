@@ -7,6 +7,16 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.48.0] - 2026-07-12 — gh-pr diff ground-truth hardening: multi-invocation compound commands (G-GATE-J follow-up)
+
+Grounds: adversarial review of 7.47.0's `G-GATE-J` fix surfaced two blockers before landing.
+
+### Fixed
+
+- **`create` anywhere in a compound command masked an earlier existing-PR subcommand's real diff**: `ghPrChangeSetNonOntology` special-cased `gh pr create` by testing whether the substring appeared ANYWHERE in the command, before checking which subcommand was actually present — so `gh pr merge 456 --squash && gh pr create --fill` never consulted PR 456's own diff at all, silently falling back to the (superseded) local push-range proof. Fixed by replacing the single first-match parse with `findGhPrInvocations`, which enumerates EVERY `gh pr <subcommand>` invocation in the command in order; `ghPrChangeSetNonOntology` now requires ALL of them (AND, not first-match) to independently prove non-ontology — each `existing`-subcommand invocation via its OWN `gh pr diff`, each `create` invocation via the local push range.
+- **Selector parsing read the RAW, quote-unstripped command text**: `resolveGhPrDiffPaths`'s subcommand match ran over `rawCommand` directly, so a decoy `gh pr merge <N>` substring sitting inside an earlier quoted/inert portion of a compound command (a commit message, an `echo`, a `--title` value — e.g. `git commit -m "handle gh pr merge 1 conflicts" && gh pr merge 456 --squash`) could be matched first and its PR number used as the selector, resolving the WRONG PR's diff. `findGhPrInvocations` now scans the QUOTE-STRIPPED (`stripQuotedSegments`) lowercased view to locate matches, then slices selector/repo tokens from the ORIGINAL `rawCommand` at the same offsets (length-preserving), so quoted decoys never match and each invocation's own selector is used. Each invocation's token window is also now bounded to the next `gh pr` match (not just the next shell-operator), so a compound command mixing two existing-PR mutations (`gh pr merge 1 && gh pr close 2`) resolves each one's OWN selector instead of only the first.
+- New regression tests in `tests/hooks/prompt-dtc-enforcement-gate-gh-pr-diff-ground-truth.test.ts`: (f) `merge 456 && create` no longer masks PR 456's ontology-touching diff; (g) a decoy quoted `gh pr merge 1` does not supply the selector for the real `merge 456`; (h) `merge 1 && close 2` requires EVERY invocation's own diff to prove non-ontology.
+
 ## [7.47.0] - 2026-07-12 — gh-pr-merge delivery-proof ground truth (G-GATE-J) + docs-class audit-after carve-out (G-DOCS-K)
 
 Grounds: live smoke finding 2026-07-12 (user-reported: a live `pm_authorize_delivery` session grant was NOT honored by the prompt-DTC gate on `gh pr merge` of a governance-touching home PR) + pending-ledger `_workspace/pm-pending-ledger.md` § 2026-07-12 rows `G-GATE-J`, `G-DOCS-K` + USER directive 2026-07-12 (docs-class audit-after ruling).

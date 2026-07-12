@@ -78,6 +78,41 @@ async function withFakeGh<T>(
   }
 }
 
+/**
+ * Fake `gh` PATH shim differentiated BY SELECTOR (the `gh pr diff --name-only
+ * <selector>` argv position) — used to prove `resolveGhPrDiffPaths` /
+ * `ghPrChangeSetNonOntology` resolve the CORRECT PR's own diff rather than a
+ * decoy or the wrong invocation's selector in a compound command. `bySelector`
+ * maps a selector string to its fixed path list; `fallback` is used when no
+ * selector arg is passed (bare `gh pr diff --name-only`).
+ */
+async function withFakeGhBySelector<T>(
+  bySelector: Record<string, string[]>,
+  fallback: string[],
+  fn: () => T,
+): Promise<T> {
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "dtc-gate-ghdiff-sel-bin-"));
+  tmpDirs.push(binDir);
+  const cases = Object.entries(bySelector)
+    .map(([sel, paths]) => `  ${sel}) ${paths.map((p) => `echo "${p}"`).join("; ")} ;;`)
+    .join("\n");
+  const script = `#!/bin/sh
+sel="$4"
+case "$sel" in
+${cases}
+  *) ${fallback.map((p) => `echo "${p}"`).join("; ")} ;;
+esac
+`;
+  fs.writeFileSync(path.join(binDir, "gh"), script, { mode: 0o755 });
+  const savedPath = process.env.PATH;
+  process.env.PATH = `${binDir}:${savedPath ?? ""}`;
+  try {
+    return fn();
+  } finally {
+    process.env.PATH = savedPath;
+  }
+}
+
 afterEach(() => {
   for (const dir of tmpDirs.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -137,6 +172,65 @@ describe("G-GATE-J: gh-pr-merge change-set ground truth", () => {
       expect(mutationClass).toBe("pull-request");
       expect(__test__.isProvenNonOntologyDelivery(payload, mutationClass!, project)).toBe(false);
     });
+  });
+
+  test("(f) compound `merge 456 && create` no longer masks PR 456's ontology-touching diff behind the create/push-range branch", async () => {
+    const project = makeTmpSyncedProject();
+    const payload = {
+      cwd: project,
+      tool_name: "Bash",
+      tool_input: { command: "gh pr merge 456 --squash && gh pr create --fill" },
+    };
+
+    await withFakeGhBySelector(
+      { "456": ["projects/foo/ontology/atom.yaml"] },
+      ["docs/README.md"],
+      () => {
+        const mutationClass = __test__.protectedMutationClassForPromptGate(payload, true, project);
+        expect(mutationClass).toBe("pull-request");
+        expect(__test__.isProvenNonOntologyDelivery(payload, mutationClass!, project)).toBe(false);
+      },
+    );
+  });
+
+  test("(g) a decoy 'gh pr merge 1' inside a quoted commit message does not supply the selector for the REAL merge of PR 456", async () => {
+    const project = makeTmpSyncedProject();
+    const payload = {
+      cwd: project,
+      tool_name: "Bash",
+      tool_input: {
+        command: 'git commit -m "fix: handle gh pr merge 1 conflicts" && gh pr merge 456 --squash',
+      },
+    };
+
+    await withFakeGhBySelector(
+      { "1": ["docs/README.md"], "456": ["projects/foo/ontology/atom.yaml"] },
+      ["docs/README.md"],
+      () => {
+        const mutationClass = __test__.protectedMutationClassForPromptGate(payload, true, project);
+        expect(mutationClass).toBe("pull-request");
+        expect(__test__.isProvenNonOntologyDelivery(payload, mutationClass!, project)).toBe(false);
+      },
+    );
+  });
+
+  test("(h) compound existing-PR mutations (`merge 1 && close 2`) require EVERY invocation's own diff to prove non-ontology", async () => {
+    const project = makeTmpSyncedProject();
+    const payload = {
+      cwd: project,
+      tool_name: "Bash",
+      tool_input: { command: "gh pr merge 1 --squash && gh pr close 2" },
+    };
+
+    await withFakeGhBySelector(
+      { "1": ["docs/README.md"], "2": ["projects/foo/ontology/atom.yaml"] },
+      ["docs/README.md"],
+      () => {
+        const mutationClass = __test__.protectedMutationClassForPromptGate(payload, true, project);
+        expect(mutationClass).toBe("pull-request");
+        expect(__test__.isProvenNonOntologyDelivery(payload, mutationClass!, project)).toBe(false);
+      },
+    );
   });
 
   test("(e) gh pr create is UNCHANGED — still resolved via the local push range", () => {

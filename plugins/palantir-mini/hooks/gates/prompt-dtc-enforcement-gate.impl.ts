@@ -654,47 +654,89 @@ function allPushRangePathsNonOntology(projectRoot: string): boolean {
   return paths.every((p) => isNonOntologyPath(p, projectRoot));
 }
 
+type GhPrInvocation =
+  | { kind: "create" }
+  | { kind: "existing"; selector: string | undefined; repoFlag: string | undefined };
+
 /**
- * G-GATE-J — parse the PR SELECTOR (a bare number, URL, or branch name — or
- * absent, meaning "the current branch's PR") and an optional `-R`/`--repo`
- * target out of a `gh pr <subcommand> [selector] [flags]` command, then run
- * `gh pr diff --name-only [selector] [-R <repo>]` to resolve the PR's OWN
- * changed paths — the change-set ground truth for an EXISTING-PR subcommand
- * (merge/close/reopen/edit/ready/review). `execFileSync` (argv array, no shell)
- * is used deliberately: the selector/repo tokens are parsed out of the
- * model-supplied command text, so building a shell string here would open a
- * SECOND, hook-internal injection surface distinct from (and executed
- * regardless of the outcome of) the real tool call this hook is gating.
- * FAIL-CLOSED: no subcommand match, a thrown `gh` invocation (missing binary,
- * auth failure, network error), or EMPTY stdout all return `undefined` — the
- * cost of a network failure here is delivery-call-only latency (the caller
- * keeps the conservative floor), never a false non-ontology proof.
+ * G-GATE-J (post-review hardening) — enumerate EVERY `gh pr <subcommand> ...`
+ * invocation in `rawCommand`, in order. The subcommand scan runs over the
+ * QUOTE-STRIPPED, lowercased view (`stripQuotedSegments` blanks quoted
+ * CONTENTS but preserves length/position) so a decoy match living inside
+ * quoted prose — a commit message, an `echo`, a `--title` value, e.g.
+ * `git commit -m "handle gh pr merge 1 conflicts" && gh pr merge 456` — is
+ * never mistaken for a real invocation; only the REAL, unquoted `gh pr merge
+ * 456` matches. Because `stripQuotedSegments` preserves length, each match's
+ * index/end lines up with the ORIGINAL `rawCommand`, which is what
+ * selector/repo tokens are sliced from (preserves original casing for
+ * branch-name selectors).
+ *
+ * Each invocation's token window is bounded to the text between its OWN match
+ * and the START of the NEXT `gh pr` match (or end of string), so a compound
+ * command mixing multiple `gh pr` calls resolves each invocation's OWN
+ * kind/selector — `gh pr merge 1 && gh pr close 2` yields two `existing`
+ * entries (selectors `1` and `2`), and `gh pr merge 456 --squash && gh pr
+ * create --fill` yields one `existing` (selector `456`) and one `create`
+ * entry, instead of the LATER `create` masking the EARLIER existing-PR
+ * subcommand.
  */
-function resolveGhPrDiffPaths(rawCommand: string, projectRoot: string): string[] | undefined {
-  const subcommandMatch = rawCommand.match(/\bgh\s+pr\s+(merge|close|reopen|edit|ready|review)\b/i);
-  if (!subcommandMatch || subcommandMatch.index === undefined) return undefined;
-  const restText = rawCommand.slice(subcommandMatch.index + subcommandMatch[0].length);
-  const tokens = restText.trim().length > 0 ? restText.trim().split(/\s+/) : [];
-
-  let selector: string | undefined;
-  let repoFlag: string | undefined;
-  for (let i = 0; i < tokens.length; i++) {
-    const tok = tokens[i];
-    if (tok === undefined) break;
-    if (/^(&&|\|\||;|\|)$/.test(tok)) break; // stop at a shell-operator boundary
-    if (tok === "-R" || tok === "--repo") {
-      repoFlag = tokens[i + 1];
-      i++;
-      continue;
-    }
-    if (tok.toLowerCase().startsWith("--repo=")) {
-      repoFlag = tok.slice("--repo=".length);
-      continue;
-    }
-    if (tok.startsWith("-")) continue; // skip other flags (best-effort)
-    if (selector === undefined) selector = tok;
+function findGhPrInvocations(rawCommand: string): GhPrInvocation[] {
+  const scanCommand = stripQuotedSegments(rawCommand.toLowerCase());
+  const re = /\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/g;
+  const matches: { kind: "create" | "existing"; start: number; end: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(scanCommand)) !== null) {
+    matches.push({
+      kind: m[1] === "create" ? "create" : "existing",
+      start: m.index,
+      end: m.index + m[0].length,
+    });
   }
+  return matches.map((match, i) => {
+    if (match.kind === "create") return { kind: "create" };
+    const windowEnd = i + 1 < matches.length ? (matches[i + 1] as (typeof matches)[number]).start : rawCommand.length;
+    const restText = rawCommand.slice(match.end, windowEnd);
+    const tokens = restText.trim().length > 0 ? restText.trim().split(/\s+/) : [];
 
+    let selector: string | undefined;
+    let repoFlag: string | undefined;
+    for (let j = 0; j < tokens.length; j++) {
+      const tok = tokens[j];
+      if (tok === undefined) break;
+      if (/^(&&|\|\||;|\|)$/.test(tok)) break; // stop at a shell-operator boundary
+      if (tok === "-R" || tok === "--repo") {
+        repoFlag = tokens[j + 1];
+        j++;
+        continue;
+      }
+      if (tok.toLowerCase().startsWith("--repo=")) {
+        repoFlag = tok.slice("--repo=".length);
+        continue;
+      }
+      if (tok.startsWith("-")) continue; // skip other flags (best-effort)
+      if (selector === undefined) selector = tok;
+    }
+    return { kind: "existing", selector, repoFlag };
+  });
+}
+
+/**
+ * G-GATE-J — run `gh pr diff --name-only [selector] [-R <repo>]` for ONE
+ * already-parsed invocation and return its changed paths. `execFileSync`
+ * (argv array, no shell) is used deliberately: the selector/repo tokens are
+ * parsed out of the model-supplied command text, so building a shell string
+ * here would open a SECOND, hook-internal injection surface distinct from
+ * (and executed regardless of the outcome of) the real tool call this hook is
+ * gating. FAIL-CLOSED: a thrown `gh` invocation (missing binary, auth
+ * failure, network error) or EMPTY stdout both return `undefined` — the cost
+ * of a network failure here is delivery-call-only latency (the caller keeps
+ * the conservative floor), never a false non-ontology proof.
+ */
+function resolveGhPrDiffPathsForInvocation(
+  selector: string | undefined,
+  repoFlag: string | undefined,
+  projectRoot: string,
+): string[] | undefined {
   const args = ["pr", "diff", "--name-only"];
   if (selector) args.push(selector);
   if (repoFlag) args.push("-R", repoFlag);
@@ -720,13 +762,28 @@ function resolveGhPrDiffPaths(rawCommand: string, projectRoot: string): string[]
 }
 
 /**
+ * G-GATE-J — parse the PR SELECTOR/repo out of the FIRST existing-PR
+ * (`merge|close|reopen|edit|ready|review`) invocation in `rawCommand` and
+ * resolve its `gh pr diff --name-only` paths. Retained (in addition to
+ * `ghPrChangeSetNonOntology` below, which enumerates ALL invocations) as the
+ * single-invocation entry point exercised directly by existing callers/tests.
+ * FAIL-CLOSED: no existing-PR subcommand match, or a `gh` resolution failure,
+ * returns `undefined`.
+ */
+function resolveGhPrDiffPaths(rawCommand: string, projectRoot: string): string[] | undefined {
+  const first = findGhPrInvocations(rawCommand).find((inv) => inv.kind === "existing");
+  if (!first || first.kind !== "existing") return undefined;
+  return resolveGhPrDiffPathsForInvocation(first.selector, first.repoFlag, projectRoot);
+}
+
+/**
  * G-GATE-J — the ONE shared helper both call sites (mutation-class derivation in
  * `protectedMutationClassForPromptGate` AND the A2 write-set proof in
- * `isProvenNonOntologyDelivery`) use to determine whether a `gh pr` subcommand's
+ * `isProvenNonOntologyDelivery`) use to determine whether a `gh pr` command's
  * SHIPPED change-set is entirely non-ontology, so they cannot drift.
  *
  * bd-017 GAP (G-GATE-J) — `create` has no existing PR yet, so the local PUSH
- * RANGE genuinely IS what it ships; that subcommand keeps the ORIGINAL
+ * RANGE genuinely IS what it ships; a `create` invocation keeps the ORIGINAL
  * `allPushRangePathsNonOntology` semantics, unchanged. Every OTHER subcommand
  * (merge/close/reopen/edit/ready/review) operates on an EXISTING PR, whose
  * change-set ground truth is the PR's OWN diff (`gh pr diff`), NOT the local
@@ -735,19 +792,32 @@ function resolveGhPrDiffPaths(rawCommand: string, projectRoot: string): string[]
  * session's HEAD is already synced with its upstream tracking branch (the exact
  * case a `gh pr merge` run from a synced `main` hits — confirmed empirically:
  * the range predicate returned `false` regardless of the PR's actual content).
- * FAIL-CLOSED: `resolveGhPrDiffPaths` returning `undefined` (unresolvable
- * selector, `gh` failure, network error, empty diff) keeps the floor (returns
- * `false`) — a network failure in the hook costs delivery-call-only latency,
- * never correctness.
+ *
+ * POST-REVIEW HARDENING — this now enumerates EVERY `gh pr` invocation
+ * (`findGhPrInvocations`) instead of gating on "does `create` appear ANYWHERE
+ * in the command", which let a LATER `gh pr create` in a compound command
+ * (`gh pr merge 456 --squash && gh pr create --fill`) mask an EARLIER
+ * existing-PR subcommand's real diff. ALL invocations found must independently
+ * prove non-ontology (AND, not first-match): every `existing` invocation is
+ * checked against its OWN `gh pr diff`, every `create` invocation against the
+ * local push range. FAIL-CLOSED throughout: no invocation found, an
+ * unresolvable selector/`gh` failure, or any MIXED (ontology-touching) result
+ * returns `false` — a network failure in the hook costs delivery-call-only
+ * latency, never a false non-ontology proof.
  */
 function ghPrChangeSetNonOntology(rawCommand: string, projectRoot: string): boolean {
-  const scanCommand = stripQuotedSegments(rawCommand.toLowerCase());
-  if (/\bgh\s+pr\s+create\b/.test(scanCommand)) {
-    return allPushRangePathsNonOntology(projectRoot);
+  const invocations = findGhPrInvocations(rawCommand);
+  if (invocations.length === 0) return false;
+  for (const inv of invocations) {
+    if (inv.kind === "create") {
+      if (!allPushRangePathsNonOntology(projectRoot)) return false;
+      continue;
+    }
+    const paths = resolveGhPrDiffPathsForInvocation(inv.selector, inv.repoFlag, projectRoot);
+    if (paths === undefined) return false;
+    if (!paths.every((p) => isNonOntologyPath(p, projectRoot))) return false;
   }
-  const paths = resolveGhPrDiffPaths(rawCommand, projectRoot);
-  if (paths === undefined) return false;
-  return paths.every((p) => isNonOntologyPath(p, projectRoot));
+  return true;
 }
 
 function looksOntologyAffecting(value: unknown): boolean {
