@@ -2,7 +2,7 @@
 name: pm-value-audit
 category: maintenance
 surfaceStatus: public-core
-description: "Substrate health dashboard (rule 26 valuable-data) + AIP no-slop Three Questions audit (Q1 Trust / Q2 Scope / Q3 Refine)."
+description: "Substrate health dashboard (rule 26 valuable-data) + AIP no-slop Three Questions..."
 allowed-tools: mcp__palantir-mini__pm_health_audit mcp__palantir-mini__pm_substrate_query mcp__palantir-mini__emit_event Read Bash
 effort: high
 disable-model-invocation: false

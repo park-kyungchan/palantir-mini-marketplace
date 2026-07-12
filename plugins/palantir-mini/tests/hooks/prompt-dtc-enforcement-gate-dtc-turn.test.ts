@@ -36,6 +36,7 @@ const SAVED_ENV_KEYS = [
   "PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS",
   "PALANTIR_MINI_EVENTS_FILE",
   "PALANTIR_MINI_PROJECT",
+  "PALANTIR_MINI_GLOBAL_STATE_DIR",
 ] as const;
 
 function makeTmpProject(): string {
@@ -43,6 +44,12 @@ function makeTmpProject(): string {
   tmpDirs.push(dir);
   fs.mkdirSync(path.join(dir, ".palantir-mini", "session"), { recursive: true });
   fs.writeFileSync(path.join(dir, "package.json"), "{\"name\":\"dtc-gate-dtc-turn-test\"}\n");
+  return dir;
+}
+
+function makeTmpGlobalStateDir(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-gate-dtc-turn-global-"));
+  tmpDirs.push(dir);
   return dir;
 }
 
@@ -75,6 +82,7 @@ beforeEach(() => {
     savedEnv[key] = process.env[key];
     delete process.env[key];
   }
+  process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = makeTmpGlobalStateDir();
 });
 
 afterEach(() => {

@@ -7,7 +7,7 @@
   "properties": {
     "message": { "type": "string" },
     "reason": { "type": "string" },
-    "decision": { "enum": ["block", "continue"] },
+    "decision": { "enum": ["block"] },
     "additionalContext": { "type": "string" },
     "permissionDecision": { "enum": ["deny", "allow"] },
     "hookSpecificOutput": {

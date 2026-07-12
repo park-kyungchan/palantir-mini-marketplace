@@ -2,7 +2,7 @@
 name: pm-eval-suite
 category: maintenance
 surfaceStatus: public-core
-description: "AIP-Evals lifecycle — author | run | compare modes over an EvaluationSuite (test cases + target + evaluator policy, run dispatch, baseline-vs-candidate experiment decision)."
+description: "AIP-Evals lifecycle — author | run | compare modes over an EvaluationSuite (test..."
 allowed-tools: mcp__palantir-mini__emit_event mcp__palantir-mini__ontology_schema_get mcp__palantir-mini__grade_outcome_with_rubric mcp__palantir-mini__pm_grader_dispatch Read Write Edit Bash
 effort: high
 disable-model-invocation: false

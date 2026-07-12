@@ -11,14 +11,14 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-aip-agent-author | — | high | core-workflow / public-core | Author an AIPAgentDeclaration (Palantir AIP Chatbot Studio / AI FDE-style governed... |
 | pm-blueprint | — | medium | research / public-core | Generate a TechBlueprint for a new architecture question using a 7-agent research... |
 | pm-codegen | — | low | maintenance / public-core | Run palantir-mini codegen to regenerate <project>/src/generated/ from... |
-| pm-cold-start-orchestrate | — | high | core-workflow / public-core | Manually invoked (or Lead-invoked) — deep-injects canonical research BROWSE+INDEX context... |
+| pm-cold-start-orchestrate | — | high | core-workflow / public-core | Manually invoked (or Lead-invoked) — deep-injects canonical research BROWSE+INDEX... |
 | pm-dirty-classify | — | small | maintenance / public-core | Manual triage of working-tree dirt via 4-axis classifier (auto-regen /... |
 | pm-dtc-fill | — | low | core-workflow / public-core | Turn-by-turn DTC (DigitalTwinChangeContract) fill conversation. Use after SIC... |
-| pm-eval-suite | — | high | maintenance / public-core | AIP-Evals lifecycle — author \| run \| compare modes over an EvaluationSuite (test cases + target + evaluator p… |
+| pm-eval-suite | — | high | maintenance / public-core | AIP-Evals lifecycle — author \| run \| compare modes over an EvaluationSuite (test... |
 | pm-fde-session-preview | — | medium | core-workflow / public-core | Show a read-only FDE Ontology Build Session preview — mission/object/link/action/func... |
 | pm-guard | — | medium | core-workflow / public-core | Full safety mode — destructive command warnings + directory-scoped edits. Combines... |
 | pm-hitl-feedback-workbench | — | low | core-workflow / public-core | Use the generic HITL Lead Feedback Workbench to create user-review artifacts for any... |
-| pm-impact-quick | — | low | maintenance / public-core | 1-call wrapper for impact_query + pm_substrate_query (mode workflow) targeting a single RID. |
+| pm-impact-quick | — | low | maintenance / public-core | 1-call wrapper for impact_query + pm_substrate_query (mode workflow) targeting a... |
 | pm-init | — | medium | core-workflow / public-core | Bootstrap palantir-mini for a project. Creates <project>/.palantir-mini/session/... |
 | pm-intent-to-ontology | — | — | core-workflow / public-core | 1-call wrapper for the 6-step Intent-to-Ontology Protocol (sprint-063 W2.C... |
 | pm-investigate | — | — | core-workflow / public-core | Systematic root-cause debugging. Four phases — investigate, analyze, hypothesize,... |
@@ -28,7 +28,7 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-mcp-reload | — | medium | maintenance / public-core | Guide the user through MCP server module reload after a bridge handler edit —... |
 | pm-memory-map | — | low | research / public-core | 4-layer agentic memory balance audit (working / episodic / semantic / procedural). |
 | pm-ontology-branch-create | — | medium | core-workflow / public-core | Create an OntologyBranchDeclaration (Foundry Global Branching / AI FDE working... |
-| pm-ontology-drift-propose | — | medium | core-workflow / public-core | MANUAL drift propose-step — compose re-elevation GlobalBranchingProposals from a per-file-sha staleness repor… |
+| pm-ontology-drift-propose | — | medium | core-workflow / public-core | MANUAL drift propose-step — compose re-elevation GlobalBranchingProposals from a... |
 | pm-ontology-engineering-lead | — | medium | core-workflow / public-core | Docs-only Lead workflow for session-first ontology engineering. |
 | pm-ontology-proposal-create | — | medium | core-workflow / public-core | Create an OntologyProposalDeclaration (or GlobalBranchingProposal v1.40+) from a... |
 | pm-ontology-proposal-review | — | medium | core-workflow / public-core | Append review verdict to an existing OntologyProposal/GlobalBranchingProposal —... |
@@ -37,7 +37,7 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-project-onboard | — | medium | core-workflow / public-core | Scaffold the minimum palantir-mini ProjectOntologyIndex runtime for a project, then... |
 | pm-recap | — | low | maintenance / public-core | Produce a /recap-compatible summary (Claude Code v2.1.114+ Native Runtime, plugin... |
 | pm-replay | — | low | maintenance / public-core | Deterministic BackwardProp replay of events.jsonl filtered by 5-dim Decision Lineage... |
-| pm-research | — | medium | research / public-core | Research-library lifecycle — diff (local vs upstream drift) \| refresh (manifest-backed re-fetch) \| audit (man… |
+| pm-research | — | medium | research / public-core | Research-library lifecycle: diff \| refresh \| audit modes (drift, re-fetch, staleness). |
 | pm-retro | — | — | research / public-core | Engineering retrospective. Aggregates session metrics from the palantir-mini... |
 | pm-review | — | — | core-workflow / public-core | Pre-landing PR review. Analyzes diff against the base branch for SQL safety, LLM... |
 | pm-rule-audit | — | low | maintenance / public-core | Comprehensive rules/ health check via palantir-mini MCP. Detects T1/T2 bottleneck... |
@@ -47,7 +47,7 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-ship | — | — | core-workflow / public-core | Ship workflow — detect + merge base branch, run tests, audit coverage, review diff,... |
 | pm-t4-promotion-review | — | high | research / public-core | Audit T4-graded events (rule 26 §Substrate routing top tier — T3 + D2 K-LLM... |
 | pm-understand | — | medium | core-workflow / public-core | Run the 9-axis understand-phase (the harness heart): surface a request's explicit... |
-| pm-value-audit | — | high | maintenance / public-core | Substrate health dashboard (rule 26 valuable-data) + AIP no-slop Three Questions audit (Q1 Trust / Q2 Scope /… |
+| pm-value-audit | — | high | maintenance / public-core | Substrate health dashboard (rule 26 valuable-data) + AIP no-slop Three Questions... |
 | pm-verify | — | high | core-workflow / public-core | Run the palantir-mini validation pipeline against a project — executes Design +... |
-| pm-walk-analyze | — | medium | research / public-core | Mode B (Project Analysis): Walk real production ontology code for any registered project,... |
+| pm-walk-analyze | — | medium | research / public-core | Mode B (Project Analysis): Walk real production ontology code for any registered... |
 | pm-walk-build | — | medium | research / public-core | Mode A (Small Block): Build ontology entities step by step using scene-based... |

@@ -34,7 +34,14 @@ const SAVED_ENV_KEYS = [
   "PALANTIR_MINI_EVENTS_FILE",
   "PALANTIR_MINI_PROJECT",
   "PALANTIR_MINI_HOST_RUNTIME",
+  "PALANTIR_MINI_GLOBAL_STATE_DIR",
 ] as const;
+
+function makeTmpGlobalStateDir(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-gate-a2-delivery-global-"));
+  tmpDirs.push(dir);
+  return dir;
+}
 
 const SESSION_ID = "session-a2-delivery-hook";
 const RUNTIME = "claude";
@@ -195,6 +202,7 @@ beforeEach(() => {
     savedEnv[key] = process.env[key];
     delete process.env[key];
   }
+  process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = makeTmpGlobalStateDir();
 });
 
 afterEach(() => {

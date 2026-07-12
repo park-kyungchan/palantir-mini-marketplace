@@ -2,7 +2,7 @@
 name: pm-walk-analyze
 category: research
 surfaceStatus: public-core
-description: "Mode B (Project Analysis): Walk real production ontology code for any registered project,..."
+description: "Mode B (Project Analysis): Walk real production ontology code for any registered..."
 effort: medium
 disable-model-invocation: false
 ---

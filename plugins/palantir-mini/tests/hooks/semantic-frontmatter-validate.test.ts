@@ -10,7 +10,7 @@ import semanticFrontmatterValidate from "../../hooks/semantic-frontmatter-valida
 describe("semanticFrontmatterValidate handler — skip paths", () => {
   test("skips when no file_path", async () => {
     const result = await semanticFrontmatterValidate({});
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toMatch(/no file_path/i);
   });
 
@@ -18,7 +18,7 @@ describe("semanticFrontmatterValidate handler — skip paths", () => {
     const result = await semanticFrontmatterValidate({
       tool_input: { file_path: "/home/test/schemas/ontology/primitives/foo.md" },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toMatch(/not in scope/i);
   });
 
@@ -26,7 +26,7 @@ describe("semanticFrontmatterValidate handler — skip paths", () => {
     const result = await semanticFrontmatterValidate({
       tool_input: { file_path: "/home/test/lib/utils.ts" },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toMatch(/not in scope/i);
   });
 
@@ -38,7 +38,7 @@ describe("semanticFrontmatterValidate handler — skip paths", () => {
         new_string: "",
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toMatch(/no content/i);
   });
 });
@@ -68,7 +68,7 @@ describe("semanticFrontmatterValidate handler — PreToolUse blocking", () => {
 export const foo = 1;`,
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toMatch(/valid=true.*jsdoc/);
   });
 
@@ -83,7 +83,7 @@ export const foo = 1;`,
 export const bar = 2;`,
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toMatch(/valid=true.*yaml/);
   });
 
@@ -108,7 +108,7 @@ describe("semanticFrontmatterValidate handler — PostToolUse advisory", () => {
         new_string: "export const foo = 1;",
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.additionalContext).toMatch(/missing semantic frontmatter/i);
   });
 
@@ -124,7 +124,7 @@ describe("semanticFrontmatterValidate handler — PostToolUse advisory", () => {
 export const foo = 1;`,
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.additionalContext).toBeUndefined();
   });
 });

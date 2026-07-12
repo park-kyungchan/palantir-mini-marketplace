@@ -2,7 +2,7 @@
 name: pm-research
 category: research
 surfaceStatus: public-core
-description: "Research-library lifecycle — diff (local vs upstream drift) | refresh (manifest-backed re-fetch) | audit (manifest staleness report) modes."
+description: "Research-library lifecycle: diff | refresh | audit modes (drift, re-fetch, staleness)."
 allowed-tools: mcp__palantir-mini__research_context_select mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event Read Bash
 effort: medium
 disable-model-invocation: false

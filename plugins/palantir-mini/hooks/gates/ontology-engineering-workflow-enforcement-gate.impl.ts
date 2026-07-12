@@ -39,7 +39,7 @@ interface HookPayload {
 
 interface HookResult {
   readonly message: string;
-  readonly decision?: "continue" | "block";
+  readonly decision?: "block";
   readonly permissionDecision?: "allow" | "deny";
   readonly reason?: string;
   readonly additionalContext?: string;
@@ -531,7 +531,6 @@ export function assessOntologyEngineeringWorkflowHook(
     // suggest the plugin-owned turn-card decision path; the call proceeds.
     return {
       message: "palantir-mini: ontology-engineering workflow gate ADVISORY - runtime-native question UI detected (suggest-only)",
-      decision: "continue",
       additionalContext:
         "Advisory: prefer the plugin-owned WorkflowContract turn-card decision queue and UserDecisionRecord path over runtime-specific UI widgets or legacy question payload fields. This is a suggestion, not a block.",
     };
@@ -540,7 +539,6 @@ export function assessOntologyEngineeringWorkflowHook(
   if (isProvenanceExemptWorkflowAction(payload)) {
     return {
       message: "palantir-mini: ontology-engineering workflow gate OK - provenance-exempt self-provisioning action allowed",
-      decision: "continue",
       additionalContext: responseTemplateContext(payload),
     };
   }
@@ -563,7 +561,6 @@ export function assessOntologyEngineeringWorkflowHook(
   if (!ontologyEngineeringContext && !protectedSurfaceMutation && !workflowToolCall) {
     return {
       message: "palantir-mini: ontology-engineering workflow gate skipped",
-      decision: "continue",
     };
   }
 
@@ -589,7 +586,6 @@ export function assessOntologyEngineeringWorkflowHook(
     if (sourceMutationFastPath?.authorized === true) {
       return {
         message: "palantir-mini: ontology-engineering workflow gate OK - user-approved source-mutation fast-path (re-verified against captured envelope)",
-        decision: "continue",
         additionalContext: [
           `sourceMutationFastPath=granted in lieu of SIC/DTC; ${sourceMutationFastPath.reason}`,
           sourceMutationFastPath.approvalRefSummary ?? "",
@@ -645,7 +641,6 @@ export function assessOntologyEngineeringWorkflowHook(
       }
       return {
         message: "palantir-mini: ontology-engineering workflow gate OK - pm-self-engineering exemption (non-ontology pm-source edit, explicit per-session opt-in)",
-        decision: "continue",
         additionalContext: [
           `pmSelfEngineeringExempt=granted; ${selfEngineering.reason}`,
           `pmRoot=${selfEngineering.pmRoot ?? "?"}; targets=[${selfEngineering.targets.join(", ")}]`,
@@ -666,7 +661,6 @@ export function assessOntologyEngineeringWorkflowHook(
 
   return {
     message: `palantir-mini: ontology-engineering workflow gate OK - ${probe.provenanceReason}`,
-    decision: "continue",
     additionalContext: [
       `projectRoot=${probe.projectRoot}; mutationAuthorized=${String(probe.mutationAuthorized)}`,
       responseTemplateContext(payload),

@@ -184,7 +184,6 @@ describe("pretool-gate-fast-entry: gate1 (ontology-engineering-workflow-enforcem
     expect(entryResult.stdout).toBe(
       `${JSON.stringify({
         message: "palantir-mini: ontology-engineering workflow gate skipped - malformed hook payload",
-        decision: "continue",
       })}\n`,
     );
   });
@@ -354,7 +353,6 @@ describe("pretool-gate-fast-entry: gate2 (prompt-dtc-enforcement-gate)", () => {
     expect(entryResult.stdout).toBe(
       `${JSON.stringify({
         message: "palantir-mini: prompt-DTC gate skipped - malformed hook payload",
-        decision: "continue",
       })}\n`,
     );
   });

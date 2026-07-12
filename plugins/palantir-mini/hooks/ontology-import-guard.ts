@@ -86,7 +86,7 @@ export function collectNewContent(input: HookPayload["tool_input"]): string {
 
 export default async function ontologyImportGuard(payload: unknown): Promise<{
   message:   string;
-  decision?: "block" | "continue";
+  decision?: "block";
   reason?:   string;
   hookSpecificOutput?: { updatedInput?: { file_path?: string } };
 }> {
@@ -108,7 +108,6 @@ export default async function ontologyImportGuard(payload: unknown): Promise<{
   if (toolName !== "Edit" && toolName !== "Write" && toolName !== "MultiEdit") {
     return {
       message: `palantir-mini: ontology-import-guard skipped (tool=${toolName ?? "unknown"})`,
-      decision: "continue",
       ...(canonicalFilePath ? { hookSpecificOutput: { updatedInput: { file_path: canonicalFilePath } } } : {}),
     };
   }
@@ -116,7 +115,6 @@ export default async function ontologyImportGuard(payload: unknown): Promise<{
   if (!isTargetedFile(effectiveFilePath)) {
     return {
       message: "palantir-mini: ontology-import-guard skipped (out-of-scope file)",
-      decision: "continue",
       ...(canonicalFilePath ? { hookSpecificOutput: { updatedInput: { file_path: canonicalFilePath } } } : {}),
     };
   }
@@ -127,7 +125,6 @@ export default async function ontologyImportGuard(payload: unknown): Promise<{
   if (violations.length === 0) {
     return {
       message: "palantir-mini: ontology-import-guard OK (no forbidden schema imports)",
-      decision: "continue",
       ...(canonicalFilePath ? { hookSpecificOutput: { updatedInput: { file_path: canonicalFilePath } } } : {}),
     };
   }
