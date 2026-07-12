@@ -7,6 +7,29 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.52.0] - 2026-07-13 — skill-catalog merges 1-3 (G-SKILL-P slice B, user-approved)
+
+Grounds: USER slice-B approval 2026-07-13 in session 283c2b45 (merges 1-3 only; merge 4 —
+`pm-impact-quick` + `pm-pr-impact` — explicitly declined, kept separate), per the decision
+table in `~/projects/_workspace/2026-07-12-w10-closure/design-w5-token-diet.md` §Slice 4 and
+the standing token-waste corrective directive `de-2026-07-12-authorization-friction-corrective`
+(same USER-directed token-diet line of work as `[7.51.0]`'s slice A description shortening).
+
+### Changed
+
+- **Skill catalog consolidated 39 <- 44 skills** via 3 content-lossless mode-dispatch merges (precedent: `skills/pm-eval-suite` — "one skill, N modes selected by the first argument"). Every absorbed skill's full body (When to use / Prerequisites / Inputs / How to run / Output / Authority + cross-refs) is preserved verbatim as its mode's section — nothing was deleted, only re-headered one level down and gathered under a `## Mode: <name>` heading; the catalog saving is from fewer `description:` lines injected per agent spawn, not from thinner guidance:
+  - **NEW `pm-ontology-proposal`** (modes `create | review | branch | drift`) absorbs `pm-ontology-proposal-create`, `pm-ontology-proposal-review`, `pm-ontology-branch-create`, `pm-ontology-drift-propose` (4 dirs deleted, 1 created; net -3).
+  - **`pm-walk`** (modes `analyze | build`) absorbs `pm-walk-analyze` (`git mv`'d to `pm-walk`, keeping its `references/` history) + `pm-walk-build` (dir deleted, its lone `references/scene-maps.md` folded in; net -1).
+  - **`pm-rule-audit`** (name kept; gains modes `audit | prune`) absorbs `pm-rule-memory-prune` (dir deleted; net -1). `allowed-tools` gained `mcp__palantir-mini__pm_memory_layer_audit` for the new `prune` mode.
+  - Cross-references updated repo-wide: `skills/pm-aip-agent-author/SKILL.md`, `lib/ontology-engineering-workflow/drift-propose.ts`'s header comment, `bridge/handlers/pm-memory-layer-audit.ts` + `bridge/handlers/pm-rule-audit/detect-drift.ts`'s user-facing `/palantir-mini:pm-rule-memory-prune` recommendation strings (-> `/palantir-mini:pm-rule-audit prune`), `codex-skills/README.md`'s skill-count prose, `cartography/SKILLS.md` (regenerated via `bun run gen:cartography`).
+  - Self-Ontology seed parity (rule 08, `@palantirKC/claude-schemas`): `ontology/self/skill.objecttype.ts`'s `SKILL_INSTANCES` (45 doc count corrected to 44 live, now 39) and `ontology/seeds/skill-definitions.ts`'s `PLUGIN_SKILLS` updated to the post-merge slug set; `tests/ontology/self/skill-registration.test.ts`'s `EXPECTED_SKILL_COUNT` 44 -> 39 (drift guard against the live `skills/` directory).
+  - Merge 4 (`pm-impact-quick` + `pm-pr-impact`) from the same decision table was **not** approved this turn — both skills are untouched, kept as separate NL-routing surfaces.
+  - Measured catalog description-char total: see PR description for the before/after per-spawn token accounting.
+
+### Fixed
+
+- `_workspace/pm-pending-ledger.md` G-SKILL-P row narrowed: slice B (this entry) executed for merges 1-3; item 4 recorded as kept-separate-by-user, not re-opened.
+
 ## [7.51.0] - 2026-07-12 — PreToolUse hook output-shape conformance + skill-catalog token diet
 
 Grounds: the USER token-waste directive (Session-283c2b45 token audit, home repo `_workspace/2026-07-12-w10-closure/token-waste-audit.md`) + `~/projects/_workspace/2026-07-12-w10-closure/design-w5-token-diet.md`.

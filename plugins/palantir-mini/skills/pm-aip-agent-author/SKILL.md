@@ -103,5 +103,5 @@ Next: bind to a Workshop application or invoke /pm-eval-suite for first eval cyc
 
 - Schemas: `~/.claude/schemas/ontology/primitives/aip-agent.ts` (v1.37+).
 - 1차 자료: `~/.claude/research/palantir-foundry/aip/ai-fde-overview-and-modes-skills-2026-03-12.md` + `~/.claude/research/claude-code/managed-agents.md` (compare/contrast Anthropic Managed Agents vs Palantir AIP Agents).
-- Companion skills: `/pm-eval-suite`, `/pm-ontology-branch-create`, `/pm-ai-fde-route`.
+- Companion skills: `/pm-eval-suite`, `/pm-ontology-proposal` (branch mode), `/pm-ai-fde-route`.
 - Plan §3.W3.A — `~/.claude/plans/mossy-mapping-eich.md`.

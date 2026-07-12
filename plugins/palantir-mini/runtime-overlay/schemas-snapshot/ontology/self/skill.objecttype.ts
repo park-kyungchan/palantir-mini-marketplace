@@ -1,17 +1,18 @@
 /**
- * palantir-mini SELF-ONTOLOGY — Skill as a registered ObjectType + its 45 instances
- * (Wave 1, harness redesign self-model build). Mirrors the `mcp-tool.objecttype.ts`
- * idiom: ONE `Skill` ObjectType (the type) + the live skill slugs seeded as instances.
+ * palantir-mini SELF-ONTOLOGY — Skill as a registered ObjectType + its 39 instances
+ * (Wave 1, harness redesign self-model build; skill-catalog merges G-SKILL-P slice B,
+ * pm 7.52.0, dropped 44 -> 39). Mirrors the `mcp-tool.objecttype.ts` idiom: ONE `Skill`
+ * ObjectType (the type) + the live skill slugs seeded as instances.
  *
  * pm's governed skill surface modeled AS ontology: each `skills/<slug>/SKILL.md`
  * directory (excluding `_shared`) is one Skill identity. This file declares the type
- * and seeds the 45 slugs — the snapshot OWNS the seed (it is the authority), so it does
- * NOT import the skills tree uphill. The paired registration test cross-checks these 45
+ * and seeds the 39 slugs — the snapshot OWNS the seed (it is the authority), so it does
+ * NOT import the skills tree uphill. The paired registration test cross-checks these 39
  * slugs against the LIVE `skills/` directory so the self-model fails loud if pm's skill
  * surface drifts (a skill added/removed without updating this seed).
  *
- * Count provenance (LIVE-verified): `skills/` holds 46 directories; `_shared` is a
- * shared-fragment dir (not a skill), leaving EXACTLY 44 governed skills. Identity-only
+ * Count provenance (LIVE-verified): `skills/` holds 40 directories; `_shared` is a
+ * shared-fragment dir (not a skill), leaving EXACTLY 39 governed skills. Identity-only
  * here (slug primary key); richer per-skill descriptor metadata (name / surfaceStatus /
  * backingHandler) lives in each `SKILL.md` frontmatter, not duplicated in the seed.
  *
@@ -61,9 +62,15 @@ export interface SkillInstance {
 }
 
 /**
- * The 45 Skill instances — pm's LIVE skill surface, in `skills/` directory order.
+ * The 39 Skill instances — pm's LIVE skill surface, in `skills/` directory order.
  * Snapshot-owned seed (no skills-tree import); the registration test cross-checks this
  * set against the live `skills/` directory and fails on any drift.
+ *
+ * pm 7.52.0 (G-SKILL-P slice B, USER-approved): `pm-ontology-proposal-create` +
+ * `pm-ontology-proposal-review` + `pm-ontology-branch-create` + `pm-ontology-drift-propose`
+ * merged into one mode-dispatch skill `pm-ontology-proposal` (create|review|branch|drift);
+ * `pm-walk-analyze` + `pm-walk-build` merged into `pm-walk` (analyze|build);
+ * `pm-rule-memory-prune` absorbed into `pm-rule-audit` as its `prune` mode (name kept).
  */
 export const SKILL_INSTANCES: readonly SkillInstance[] = [
   { slug: "pm-ai-fde-route" },
@@ -86,11 +93,8 @@ export const SKILL_INSTANCES: readonly SkillInstance[] = [
   { slug: "pm-lsp-audit" },
   { slug: "pm-mcp-reload" },
   { slug: "pm-memory-map" },
-  { slug: "pm-ontology-branch-create" },
-  { slug: "pm-ontology-drift-propose" },
   { slug: "pm-ontology-engineering-lead" },
-  { slug: "pm-ontology-proposal-create" },
-  { slug: "pm-ontology-proposal-review" },
+  { slug: "pm-ontology-proposal" },
   { slug: "pm-orchestrate" },
   { slug: "pm-pr-impact" },
   { slug: "pm-project-onboard" },
@@ -100,7 +104,6 @@ export const SKILL_INSTANCES: readonly SkillInstance[] = [
   { slug: "pm-retro" },
   { slug: "pm-review" },
   { slug: "pm-rule-audit" },
-  { slug: "pm-rule-memory-prune" },
   { slug: "pm-self-test" },
   { slug: "pm-semantic-intent-gate" },
   { slug: "pm-ship" },
@@ -108,10 +111,9 @@ export const SKILL_INSTANCES: readonly SkillInstance[] = [
   { slug: "pm-understand" },
   { slug: "pm-value-audit" },
   { slug: "pm-verify" },
-  { slug: "pm-walk-analyze" },
-  { slug: "pm-walk-build" },
+  { slug: "pm-walk" },
 ];
 
-// Register the Skill ObjectType (the type). The 45 instances above are data the
+// Register the Skill ObjectType (the type). The 39 instances above are data the
 // self-model exposes + the registration test counts; instances are not type-registered.
 OBJECT_TYPE_REGISTRY.register(SKILL_OBJECT_TYPE);

@@ -258,7 +258,7 @@ export default async function pmMemoryLayerAudit(
   const { files: staleMemoryFiles, byLayer: staleByLayer } = collectStaleMemoryFiles(args.project);
   if (staleMemoryFiles.length > 0) {
     recommendations.push(
-      `Stale memory files (mtime > 30d): ${staleMemoryFiles.length} (${Object.entries(staleByLayer).filter(([, n]) => n > 0).map(([k, n]) => `${k}=${n}`).join(", ")}). Review via /palantir-mini:pm-rule-memory-prune.`,
+      `Stale memory files (mtime > 30d): ${staleMemoryFiles.length} (${Object.entries(staleByLayer).filter(([, n]) => n > 0).map(([k, n]) => `${k}=${n}`).join(", ")}). Review via /palantir-mini:pm-rule-audit prune.`,
     );
   }
 

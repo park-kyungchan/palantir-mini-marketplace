@@ -55,10 +55,8 @@ const PLUGIN_SKILLS: ReadonlyArray<{
   { slug: "pm-lsp-audit",               description: "Comprehensive codebase audit using LSP-powered TypeScript code analysis" },
   { slug: "pm-mcp-reload",              description: "Guide the user through MCP server module reload after a bridge handler edit so handler changes are picked up by MCP tool calls" },
   { slug: "pm-memory-map",              description: "4-layer agentic memory balance audit (working / episodic / semantic / procedural) — distribution + per-event-type stats + recommendations" },
-  { slug: "pm-ontology-branch-create",  description: "Create an OntologyBranchDeclaration (Foundry Global Branching / AI FDE working branch) to sandbox a what-if or reviewable ontology edit cycle without mutating production" },
   { slug: "pm-ontology-engineering-lead", description: "Docs-only session-first Lead workflow for ontology engineering — does not register a public MCP tool and does not authorize mutation" },
-  { slug: "pm-ontology-proposal-create", description: "Create an OntologyProposalDeclaration (or GlobalBranchingProposal v1.40+) from a branch + edits as a review surface — proposals are reviews, not direct commits" },
-  { slug: "pm-ontology-proposal-review", description: "Append a review verdict (approve / reject / defer / merge) to an existing OntologyProposal / GlobalBranchingProposal" },
+  { slug: "pm-ontology-proposal",       description: "Ontology proposal lifecycle — create | review | branch | drift modes for review-gated ontology edits (OntologyProposal / GlobalBranchingProposal)" },
   { slug: "pm-orchestrate",             description: "Ontology-Driven work orchestration — 6-phase protocol for complex multi-step tasks" },
   { slug: "pm-pr-impact",               description: "PR-scoped impact analysis — diffs branch vs base + computes blast radius" },
   { slug: "pm-project-onboard",         description: "Scaffold the minimum palantir-mini ProjectOntologyIndex runtime for a project (idempotent 4-file scaffold via runOnboardScaffold) without changing application runtime code" },
@@ -67,8 +65,7 @@ const PLUGIN_SKILLS: ReadonlyArray<{
   { slug: "pm-research",                description: "Research-library lifecycle — diff (local vs upstream drift) | refresh (manifest-backed re-fetch) | audit (manifest staleness report) modes" },
   { slug: "pm-retro",                   description: "Engineering retrospective — aggregates session metrics from event log" },
   { slug: "pm-review",                  description: "Pre-landing PR review — analyzes diff against base for SQL safety / LLM trust / etc." },
-  { slug: "pm-rule-audit",              description: "Comprehensive rules/ health check via pm_rule_audit MCP" },
-  { slug: "pm-rule-memory-prune",       description: "Unified prune-candidate list combining pm_rule_audit (unused_rule_30d) + stale-memory findings for rule 26 substrate housekeeping" },
+  { slug: "pm-rule-audit",              description: "Comprehensive rules/ health check — audit | prune modes via palantir-mini MCP" },
   { slug: "pm-self-test",               description: "End-to-end smoke test of the plugin-only substrate — schema pin + codegen + harness + rule audit" },
   { slug: "pm-semantic-intent-gate",    description: "Maintain the FDE-to-contract front door — FDE meaning discovery, SIC boundary, DTC handoff" },
   { slug: "pm-ship",                    description: "Ship workflow — base detect/merge + tests + coverage + diff + version + commit + push + PR" },
@@ -76,8 +73,7 @@ const PLUGIN_SKILLS: ReadonlyArray<{
   { slug: "pm-understand",              description: "Run the 9-axis understand-phase (the harness heart) — surface a request's explicit + implicit intent across the 9 axes before any build" },
   { slug: "pm-value-audit",             description: "Substrate health dashboard for rule 26 valuable-data — T0-T4 distribution + 7-day trend + alarm thresholds" },
   { slug: "pm-verify",                  description: "Run palantir-mini validation pipeline — Design + Compile + Runtime + Post-Write phases" },
-  { slug: "pm-walk-analyze",            description: "Mode B (Project Analysis) — walk real production ontology code block by block" },
-  { slug: "pm-walk-build",              description: "Mode A (Small Block) — build ontology entities step by step using scene-based pedagogy" },
+  { slug: "pm-walk",                    description: "Ontology teaching — analyze real project code | build entities scene-by-scene modes" },
 ];
 
 /** User-scope skills — DELETED at v3.0.0 Phase 3 (user-scope cutover). Empty array. */
