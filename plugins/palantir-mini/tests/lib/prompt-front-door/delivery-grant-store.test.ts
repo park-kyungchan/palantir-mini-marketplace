@@ -18,12 +18,13 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
-  DELIVERY_GRANT_TTL_MS,
+  DELIVERY_GRANT_SAFETY_NET_TTL_MS,
   deliveryGrantStoreRootDir,
   isDeliveryGrantLive,
   issueDeliveryGrant,
   issueDeliveryGrantSync,
   readDeliveryGrant,
+  revokeDeliveryGrant,
 } from "../../../lib/prompt-front-door/delivery-grant-store";
 
 const tmpDirs: string[] = [];
@@ -100,7 +101,7 @@ describe("delivery-grant-store", () => {
     expect(read?.grantId).toBe(grant.grantId);
   });
 
-  test("expiresAt is issuedAt + DELIVERY_GRANT_TTL_MS (30 minutes)", async () => {
+  test("expiresAt is issuedAt + DELIVERY_GRANT_SAFETY_NET_TTL_MS (24 hours; session-standing until revoked or safety-net expiry)", async () => {
     const nowMs = Date.parse("2026-07-12T00:00:00.000Z");
     const grant = await issueDeliveryGrant({
       runtime: "claude",
@@ -110,11 +111,13 @@ describe("delivery-grant-store", () => {
       promptHash: "sha256:ttl",
       nowMs,
     });
-    expect(DELIVERY_GRANT_TTL_MS).toBe(30 * 60 * 1000);
-    expect(Date.parse(grant.expiresAt) - Date.parse(grant.issuedAt)).toBe(DELIVERY_GRANT_TTL_MS);
+    expect(DELIVERY_GRANT_SAFETY_NET_TTL_MS).toBe(24 * 60 * 60 * 1000);
+    expect(Date.parse(grant.expiresAt) - Date.parse(grant.issuedAt)).toBe(
+      DELIVERY_GRANT_SAFETY_NET_TTL_MS,
+    );
   });
 
-  test("TTL expiry is treated as a miss: readDeliveryGrant returns null past expiresAt", async () => {
+  test("safety-net expiry is treated as a miss: readDeliveryGrant returns null past expiresAt", async () => {
     const nowMs = Date.parse("2026-07-12T00:00:00.000Z");
     await issueDeliveryGrant({
       runtime: "claude",
@@ -129,7 +132,7 @@ describe("delivery-grant-store", () => {
     const stillLive = await readDeliveryGrant(
       "claude",
       "session-expiring",
-      nowMs + DELIVERY_GRANT_TTL_MS - 1,
+      nowMs + DELIVERY_GRANT_SAFETY_NET_TTL_MS - 1,
     );
     expect(stillLive).not.toBeNull();
 
@@ -137,7 +140,7 @@ describe("delivery-grant-store", () => {
     const expired = await readDeliveryGrant(
       "claude",
       "session-expiring",
-      nowMs + DELIVERY_GRANT_TTL_MS + 1,
+      nowMs + DELIVERY_GRANT_SAFETY_NET_TTL_MS + 1,
     );
     expect(expired).toBeNull();
   });
@@ -153,7 +156,7 @@ describe("delivery-grant-store", () => {
       nowMs,
     });
     expect(isDeliveryGrantLive(grant, nowMs)).toBe(true);
-    expect(isDeliveryGrantLive(grant, nowMs + DELIVERY_GRANT_TTL_MS + 1)).toBe(false);
+    expect(isDeliveryGrantLive(grant, nowMs + DELIVERY_GRANT_SAFETY_NET_TTL_MS + 1)).toBe(false);
   });
 
   test("upsert overwrites a prior grant for the same (runtime, sessionId)", async () => {
@@ -197,5 +200,49 @@ describe("delivery-grant-store", () => {
     const claudeGrant = await readDeliveryGrant("claude", "session-shared");
     expect(codexGrant?.projectRoot).toBe("/tmp/codex-project");
     expect(claudeGrant?.projectRoot).toBe("/tmp/claude-project");
+  });
+});
+
+describe("revokeDeliveryGrant", () => {
+  test("revoking an existing grant makes readDeliveryGrant return null immediately after (no TTL wait needed)", async () => {
+    await issueDeliveryGrant({
+      runtime: "claude",
+      sessionId: "session-revoke",
+      projectRoot: "/tmp/project-revoke",
+      promptId: "prompt-revoke",
+      promptHash: "sha256:revoke",
+    });
+    expect(await readDeliveryGrant("claude", "session-revoke")).not.toBeNull();
+
+    const revoked = await revokeDeliveryGrant("claude", "session-revoke");
+    expect(revoked).toBe(true);
+    expect(await readDeliveryGrant("claude", "session-revoke")).toBeNull();
+  });
+
+  test("revoking a non-existent grant returns false and does not throw", async () => {
+    const revoked = await revokeDeliveryGrant("claude", "session-never-granted");
+    expect(revoked).toBe(false);
+  });
+
+  test("revoking one (runtime, sessionId) does not affect a different session's grant", async () => {
+    await issueDeliveryGrant({
+      runtime: "claude",
+      sessionId: "session-untouched",
+      projectRoot: "/tmp/project-untouched",
+      promptId: "prompt-untouched",
+      promptHash: "sha256:untouched",
+    });
+    await issueDeliveryGrant({
+      runtime: "claude",
+      sessionId: "session-to-revoke",
+      projectRoot: "/tmp/project-to-revoke",
+      promptId: "prompt-to-revoke",
+      promptHash: "sha256:to-revoke",
+    });
+
+    await revokeDeliveryGrant("claude", "session-to-revoke");
+
+    expect(await readDeliveryGrant("claude", "session-to-revoke")).toBeNull();
+    expect(await readDeliveryGrant("claude", "session-untouched")).not.toBeNull();
   });
 });

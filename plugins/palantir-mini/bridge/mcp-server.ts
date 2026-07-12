@@ -467,15 +467,16 @@ const TOOLS: ToolSpec[] = [
   {
     name: "pm_authorize_delivery",
     description:
-      "pm authorization-flexibility slice 3 (G-DSN-E) — mint a SESSION-scoped delivery-authorization " +
-      "grant (30-min TTL) from a re-verified user-approval envelope, replacing the dead A2 native-tool " +
+      "pm authorization-flexibility slice 3 (G-DSN-E) — mint a SESSION-STANDING delivery-authorization " +
+      "grant from a re-verified user-approval envelope, replacing the dead A2 native-tool " +
       "tool_input re-issue lane (G-ENV-B: additionalProperties:false on native Bash/Edit/Write schemas " +
       "rejects the plugin-invented extra fields before hooks run) with a plugin-owned MCP surface. " +
       "Re-verifies userApprovalQuote/userApprovalPromptId/userApprovalPromptHash against the hook-captured " +
       "PromptEnvelope via verifyDeliveryApprovalAgainstEnvelope (fail-closed, unforgeable); on success the " +
       "grant authorizes subsequent merge/PR/commit/release/push tool calls in THIS session (any project " +
-      "root sharing the session, via the global cross-lane index) until TTL expiry. No grant is ever " +
-      "written on a failed verification; there is no revocation in v1 (TTL-only expiry).",
+      "root sharing the session, via the global cross-lane index). The grant persists session-standing " +
+      "until an explicit revoke phrase in a subsequent user-authored turn, OR a 24h cross-session " +
+      "safety-net expiry, whichever comes first. No grant is ever written on a failed verification.",
     inputSchema: {
       type: "object",
       additionalProperties: false,

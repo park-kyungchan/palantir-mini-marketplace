@@ -1167,8 +1167,9 @@ export type DriftRebindEnvelopeAdvancedEnvelope = EventEnvelopeBase & {
 // Emitted by the `pm_authorize_delivery` MCP handler on successful grant issuance:
 // a caller-supplied userApprovalQuote/promptId/promptHash was re-verified against
 // the hook-captured PromptEnvelope (verifyDeliveryApprovalAgainstEnvelope,
-// fail-closed, unforgeable) and a SESSION-scoped delivery-authorization grant (30-min
-// TTL) was minted. The grant carries forward the user's real approval turn, mirroring
+// fail-closed, unforgeable) and a SESSION-STANDING delivery-authorization grant
+// (persists until revoked or a 24h cross-session safety-net expiry — G-RPLY-M Fix 1b)
+// was minted. The grant carries forward the user's real approval turn, mirroring
 // the `drift_rebind_envelope_advanced` precedent's `byWhom.identity: "user"`
 // convention for a carried-forward approval. No event is emitted on a failed
 // verification (no grant is ever written on failure).
@@ -1189,7 +1190,7 @@ export interface DeliveryAuthorizationGrantedPayload {
   promptHash: string;
   /** ISO8601 issuance timestamp. */
   issuedAt: string;
-  /** ISO8601 absolute expiry (issuedAt + 30 min); TTL-only, no revocation in v1. */
+  /** ISO8601 cross-session safety-net expiry (issuedAt + 24h); the grant may also end earlier via explicit revocation. */
   expiresAt: string;
 }
 

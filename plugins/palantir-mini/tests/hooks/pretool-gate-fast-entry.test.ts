@@ -225,14 +225,36 @@ describe("pretool-gate-fast-entry: gate2 (prompt-dtc-enforcement-gate)", () => {
       tool_input: { file_path: path.join(projectDir, "src", "index.ts"), old_string: "a", new_string: "b" },
     };
 
+    // G-ADV-N made this slow path STATEFUL: the gate's advisory-boilerplate
+    // dedup (lib/prompt-front-door/advisory-shown-store.ts, GLOBAL
+    // (runtime, sessionId)-keyed) collapses the filler lines to a marker on the
+    // SECOND occurrence per session — so two back-to-back invocations with the
+    // identical payload no longer produce identical text unless each observes
+    // the same cache state. This differential test compares the entry
+    // subprocess vs the in-process impl for the SAME payload, so each
+    // invocation gets its OWN fresh empty store (first-occurrence on both
+    // sides), which also keeps the test from writing dedup state into the real
+    // user home (~/.palantir-mini).
+    const entryStateDir = freshNonProjectDir();
+    const implStateDir = freshNonProjectDir();
+
     const entryResult = runEntry(GATE2_ENTRY, payload, {
       PALANTIR_MINI_PROMPT_DTC_GATE_MODE: undefined,
       PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS: undefined,
+      PALANTIR_MINI_GLOBAL_STATE_DIR: entryStateDir,
     });
     expect(entryResult.exitCode).toBe(0);
 
     const impl = await import("../../hooks/gates/prompt-dtc-enforcement-gate.impl");
-    const implResult = await impl.runFromPayload(payload);
+    const savedStateDir = process.env.PALANTIR_MINI_GLOBAL_STATE_DIR;
+    process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = implStateDir;
+    let implResult: unknown;
+    try {
+      implResult = await impl.runFromPayload(payload);
+    } finally {
+      if (savedStateDir === undefined) delete process.env.PALANTIR_MINI_GLOBAL_STATE_DIR;
+      else process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = savedStateDir;
+    }
     const expectedStdout = `${JSON.stringify(implResult)}\n`;
 
     expect(entryResult.stdout).toBe(expectedStdout);

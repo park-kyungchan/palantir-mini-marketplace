@@ -118,8 +118,9 @@ export const EVENT_TYPE_NAMES = [
   "cartography_decision_mirrored",
   // pm authorization-flexibility slice 3 — G-DSN-E structured grant issuance. A
   // caller-supplied userApprovalQuote/promptId/promptHash was re-verified against
-  // the hook-captured PromptEnvelope (fail-closed, unforgeable) and a SESSION-scoped
-  // delivery-authorization grant (30-min TTL) was minted by pm_authorize_delivery.
+  // the hook-captured PromptEnvelope (fail-closed, unforgeable) and a SESSION-STANDING
+  // delivery-authorization grant (persists until revoked or a 24h cross-session
+  // safety-net expiry — G-RPLY-M Fix 1b) was minted by pm_authorize_delivery.
   "delivery_authorization_granted",
 ] as const;
 
@@ -574,7 +575,7 @@ export const EVENT_TYPE_REGISTRY: Readonly<Record<EventTypeName, EventTypeDeclar
   },
   delivery_authorization_granted: {
     name: "delivery_authorization_granted",
-    description: "pm authorization-flexibility slice 3 (G-DSN-E) — a SESSION-scoped delivery-authorization grant (30-min TTL) was minted by the pm_authorize_delivery MCP tool after re-verifying a caller-supplied userApprovalQuote/promptId/promptHash against the hook-captured PromptEnvelope (verifyDeliveryApprovalAgainstEnvelope, fail-closed, unforgeable). No event is emitted on a failed verification. Payload: { grantId, scope, sessionId, projectRoot, promptId, promptHash, issuedAt, expiresAt }.",
+    description: "pm authorization-flexibility slice 3 (G-DSN-E) — a SESSION-STANDING delivery-authorization grant (G-RPLY-M Fix 1b: persists until an explicit revoke phrase in a subsequent user-authored turn, or a 24h cross-session safety-net expiry, whichever comes first) was minted by the pm_authorize_delivery MCP tool after re-verifying a caller-supplied userApprovalQuote/promptId/promptHash against the hook-captured PromptEnvelope (verifyDeliveryApprovalAgainstEnvelope, fail-closed, unforgeable). No event is emitted on a failed verification. Payload: { grantId, scope, sessionId, projectRoot, promptId, promptHash, issuedAt, expiresAt }.",
     primaryDomain: "security",
   },
 });
