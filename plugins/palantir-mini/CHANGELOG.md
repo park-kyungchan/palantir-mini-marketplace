@@ -7,6 +7,18 @@ Versioning follows rule 08 (schema-versioning.md): MINOR for additions/fixes, MA
 
 ## [unreleased]
 
+## [7.49.0] - 2026-07-12 — grade-only CLI consult surface for the canonical rule-26 grader (pm unification S3)
+
+Grounds: `g12 de-2026-07-10-pm-unification-slice-plan-s1-shared` (P1 unification S3) — give the HOME side a subprocess-reachable consult surface for the canonical rule-26 5-axis grader, so the home g12 T0 gate can cross-check against pm's canonical grading without a static package dependency (LD1 subprocess-only design: the home tree never takes a static import of the marketplace schemas package).
+
+### Added
+
+- **`scripts/grade-cli.ts`** — new grade-only CLI, mirroring `scripts/emit-cli.ts`'s subprocess contract shape: reads ONE JSON `GradeableEnvelope`-shaped object from stdin, grades it via `autoGradeEnvelope` (imported verbatim from `#schemas/ontology/lineage/value-grade-grading` — never reimplemented), and writes `{"ok":true,"grade":"<T0..T4>"}` to stdout on success or `{"ok":false,"error":"..."}` to stderr on malformed input. Pure function of stdin — no filesystem writes, no `events.jsonl` append, no side effects. Consumer: home-side `tools/cartography/lib/decision-gate.ts` advisory cross-check (landing separately). New paired test `tests/scripts/grade-cli.test.ts` (golden T1 grade, T0 5-dim-incomplete, malformed-stdin rejection, no-side-effects assertion).
+
+### Fixed (doc-only, schemas-snapshot 1.97.0 -> 1.97.1)
+
+- Corrected the schemas-snapshot v1.96.0 changelog/description record, which overstated that "home-side cartography consumers import it via the new `./ontology/lineage/value-grade-grading` exports subpath" — that was aspirational at v1.96.0, not realized (zero home-side static imports existed on disk; S3 was unstarted). Realized home-side consumption is subprocess-only, via `scripts/grade-cli.ts` above. History is not rewritten; a new v1.97.1 entry documents the correction.
+
 ## [7.48.0] - 2026-07-12 — gh-pr diff ground-truth hardening: multi-invocation compound commands (G-GATE-J follow-up)
 
 Grounds: adversarial review of 7.47.0's `G-GATE-J` fix surfaced two blockers before landing.

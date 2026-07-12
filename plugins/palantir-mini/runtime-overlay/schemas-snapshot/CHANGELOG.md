@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.97.1 — 2026-07-12 (P1 unification S3 — record correction: home-side consumption is subprocess-only)
+
+Fix/cleanup PATCH (rule 08 — doc/record correction only; no primitive type, field, or export is added, removed, or retyped). Design authority: g12 `de-2026-07-12-h2-consumption-design-of-record-subprocess-only`.
+
+### Fixed (doc-only)
+
+- **v1.96.0's embedded description overstated home-side consumption**: that entry's wording ("home-side cartography consumers import it via the new `./ontology/lineage/value-grade-grading` exports subpath") described an ASPIRATIONAL S3 that had not yet landed — zero home-side static imports of this package existed on disk. The v1.96.0 entry text is left unedited (history is not rewritten); this entry corrects the record going forward: realized home-side consumption is **subprocess-only**, via the new plugin CLI `scripts/grade-cli.ts` (pm 7.49.0) — a stdin/stdout grade-only wrapper around `autoGradeEnvelope`, mirroring `scripts/emit-cli.ts`'s subprocess contract shape. This is the LD1 subprocess-only design of record (see `tools/cartography/lib/mirror-skip.ts`'s header on the home side): the home tree never takes a static dependency on this package.
+
 ## v1.97.0 — 2026-07-12 (pm authorization-flexibility slice 3 — G-DSN-E structured grant issuance: `delivery_authorization_granted` event type)
 
 Additive MINOR (rule 08 — one new event-type discriminator; no existing primitive field/export removed or retyped). Design authority: g12 `de-2026-07-11-authorization-flexibility-over-phrase-markers` + `de-2026-07-12-pm-flex-slices-2-3-policy-answers-locked` + `_workspace/2026-07-12-pmflex/context/design.json` slice 3.
