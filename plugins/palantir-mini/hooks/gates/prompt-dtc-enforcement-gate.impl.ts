@@ -18,7 +18,7 @@
 // FDE ontology-engineering session lookup, not raw payload.prompt text.
 
 import * as path from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { emit } from "../../scripts/log";
 import { findProjectRoot, isExcludedProjectRoot } from "../../lib/project/find-root";
 import { pathIsProjectOntologyClass } from "../../lib/project/ontology-path-class";
@@ -238,11 +238,19 @@ function protectedMutationClassForPromptGate(
     // inside one still classifies.
     const scanCommand = stripQuotedSegments(command);
     if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(scanCommand)) {
-      // bd-017: a `gh pr` whose ENTIRE pushed/PR RANGE is non-ontology drops from the
-      // `pull-request` floor (blocking) to `generic-mutation` (scoped floor). An
-      // empty / unresolvable / MIXED range stays `pull-request` (conservative,
-      // BLOCKING). The range — not the staged set — is the change being shipped.
-      return allPushRangePathsNonOntology(projectRoot) ? "generic-mutation" : "pull-request";
+      // bd-017 / G-GATE-J: a `gh pr` whose ENTIRE shipped change-set is non-ontology
+      // drops from the `pull-request` floor (blocking) to `generic-mutation` (scoped
+      // floor). An empty / unresolvable / MIXED change-set stays `pull-request`
+      // (conservative, BLOCKING). `create` has no existing PR yet, so the local push
+      // RANGE is that change-set; every OTHER subcommand (merge/close/reopen/edit/
+      // ready/review) operates on an EXISTING PR, whose change-set ground truth is
+      // the PR's OWN diff — the local push range is EMPTY (wrong object, over-blocks)
+      // whenever the calling session's HEAD is already synced with its upstream, the
+      // exact case a `gh pr merge` run from a synced main hits. Both branches share
+      // ONE helper (`ghPrChangeSetNonOntology`, also used by `isProvenNonOntologyDelivery`
+      // below) so they cannot drift. Fail-closed on any `gh` network failure — the
+      // cost is delivery-call-only latency, never a false non-ontology proof.
+      return ghPrChangeSetNonOntology(rawCommand, projectRoot) ? "generic-mutation" : "pull-request";
     }
     if (isGitSubcommand(command, "commit")) {
       // D-i: a `git commit` whose ENTIRE staged set is non-ontology drops from the
@@ -408,6 +416,26 @@ function scopedBlockingFileReason(filePath: string, projectRoot: string): string
 }
 
 /**
+ * R2 (G-DOCS-K, docs-class audit-after carve-out; USER directive 2026-07-12) —
+ * true IFF `rel` (already normalized/relative) is a documentation-class path: a
+ * lowercased `.md` suffix that is NOT an ontology schema surface
+ * (`schemas/ontology/`) and NOT under the live `.palantir-mini/` ontology-state
+ * dir. Markdown docs are audited AFTER the fact (git history + PR review), never
+ * a live ontology source, so a `.md` path is exempted from the A2 delivery-proof
+ * predicate (`isNonOntologyPath`) ONLY — `scopedBlockingFileReason` (the
+ * edit-time/advisory surface) is UNCHANGED, so a live Edit/Write on an
+ * ontology-adjacent `.md` path still advises/blocks per its existing rules.
+ */
+function isDocsClassAuditAfterPath(rel: string): boolean {
+  const lower = rel.toLowerCase();
+  return (
+    lower.endsWith(".md") &&
+    !lower.includes("schemas/ontology/") &&
+    !lower.startsWith(".palantir-mini/")
+  );
+}
+
+/**
  * D-i (second-brain P0) — a single path is exempt from the commit floor ONLY when
  * it is NOT a protected ontology/contract surface AND NOT under an ontology-state
  * dir. The guard is conservative: any `.palantir-mini/` path (live ontology state)
@@ -418,6 +446,13 @@ function isNonOntologyPath(filePath: string, projectRoot: string): boolean {
   const rel = normalizeSurfacePath(filePath, projectRoot);
   if (rel.startsWith(".palantir-mini/") || rel === ".palantir-mini") return false;
   if (rel.includes("schemas/ontology/")) return false;
+  // R2 (G-DOCS-K) — docs-class audit-after carve-out, checked AFTER the two hard
+  // floors above (so they still win) and BEFORE the ontology-path-class check
+  // below (so a doc literally named e.g. `ontology-notes.md` is not swept up by
+  // pathIsProjectOntologyClass's any-case `ontology/`-segment match). This carve
+  // applies ONLY to this delivery-proof predicate; scopedBlockingFileReason (the
+  // edit-time/advisory surface) is untouched.
+  if (isDocsClassAuditAfterPath(rel)) return true;
   // SECURITY (path-predicate unification) — defense-in-depth hard floor for the
   // CANONICAL project-ontology path-class family (case-insensitive). This is also
   // covered by scopedBlockingFileReason below, but pinning it here keeps the floor
@@ -619,6 +654,172 @@ function allPushRangePathsNonOntology(projectRoot: string): boolean {
   return paths.every((p) => isNonOntologyPath(p, projectRoot));
 }
 
+type GhPrInvocation =
+  | { kind: "create" }
+  | { kind: "existing"; selector: string | undefined; repoFlag: string | undefined };
+
+/**
+ * G-GATE-J (post-review hardening) — enumerate EVERY `gh pr <subcommand> ...`
+ * invocation in `rawCommand`, in order. The subcommand scan runs over the
+ * QUOTE-STRIPPED, lowercased view (`stripQuotedSegments` blanks quoted
+ * CONTENTS but preserves length/position) so a decoy match living inside
+ * quoted prose — a commit message, an `echo`, a `--title` value, e.g.
+ * `git commit -m "handle gh pr merge 1 conflicts" && gh pr merge 456` — is
+ * never mistaken for a real invocation; only the REAL, unquoted `gh pr merge
+ * 456` matches. Because `stripQuotedSegments` preserves length, each match's
+ * index/end lines up with the ORIGINAL `rawCommand`, which is what
+ * selector/repo tokens are sliced from (preserves original casing for
+ * branch-name selectors).
+ *
+ * Each invocation's token window is bounded to the text between its OWN match
+ * and the START of the NEXT `gh pr` match (or end of string), so a compound
+ * command mixing multiple `gh pr` calls resolves each invocation's OWN
+ * kind/selector — `gh pr merge 1 && gh pr close 2` yields two `existing`
+ * entries (selectors `1` and `2`), and `gh pr merge 456 --squash && gh pr
+ * create --fill` yields one `existing` (selector `456`) and one `create`
+ * entry, instead of the LATER `create` masking the EARLIER existing-PR
+ * subcommand.
+ */
+function findGhPrInvocations(rawCommand: string): GhPrInvocation[] {
+  const scanCommand = stripQuotedSegments(rawCommand.toLowerCase());
+  const re = /\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/g;
+  const matches: { kind: "create" | "existing"; start: number; end: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(scanCommand)) !== null) {
+    matches.push({
+      kind: m[1] === "create" ? "create" : "existing",
+      start: m.index,
+      end: m.index + m[0].length,
+    });
+  }
+  return matches.map((match, i) => {
+    if (match.kind === "create") return { kind: "create" };
+    const windowEnd = i + 1 < matches.length ? (matches[i + 1] as (typeof matches)[number]).start : rawCommand.length;
+    const restText = rawCommand.slice(match.end, windowEnd);
+    const tokens = restText.trim().length > 0 ? restText.trim().split(/\s+/) : [];
+
+    let selector: string | undefined;
+    let repoFlag: string | undefined;
+    for (let j = 0; j < tokens.length; j++) {
+      const tok = tokens[j];
+      if (tok === undefined) break;
+      if (/^(&&|\|\||;|\|)$/.test(tok)) break; // stop at a shell-operator boundary
+      if (tok === "-R" || tok === "--repo") {
+        repoFlag = tokens[j + 1];
+        j++;
+        continue;
+      }
+      if (tok.toLowerCase().startsWith("--repo=")) {
+        repoFlag = tok.slice("--repo=".length);
+        continue;
+      }
+      if (tok.startsWith("-")) continue; // skip other flags (best-effort)
+      if (selector === undefined) selector = tok;
+    }
+    return { kind: "existing", selector, repoFlag };
+  });
+}
+
+/**
+ * G-GATE-J — run `gh pr diff --name-only [selector] [-R <repo>]` for ONE
+ * already-parsed invocation and return its changed paths. `execFileSync`
+ * (argv array, no shell) is used deliberately: the selector/repo tokens are
+ * parsed out of the model-supplied command text, so building a shell string
+ * here would open a SECOND, hook-internal injection surface distinct from
+ * (and executed regardless of the outcome of) the real tool call this hook is
+ * gating. FAIL-CLOSED: a thrown `gh` invocation (missing binary, auth
+ * failure, network error) or EMPTY stdout both return `undefined` — the cost
+ * of a network failure here is delivery-call-only latency (the caller keeps
+ * the conservative floor), never a false non-ontology proof.
+ */
+function resolveGhPrDiffPathsForInvocation(
+  selector: string | undefined,
+  repoFlag: string | undefined,
+  projectRoot: string,
+): string[] | undefined {
+  const args = ["pr", "diff", "--name-only"];
+  if (selector) args.push(selector);
+  if (repoFlag) args.push("-R", repoFlag);
+
+  let raw: string;
+  try {
+    raw = execFileSync("gh", args, {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 15_000,
+      // Explicit `env` (vs the child_process default) so a live `process.env.PATH`
+      // mutation (e.g. a test's fake-`gh` PATH shim) is honored — some runtimes
+      // resolve the child's environment/executable at spawn-invocation time only
+      // when `env` is passed explicitly, not from bare inheritance.
+      env: process.env,
+    });
+  } catch {
+    return undefined;
+  }
+  const paths = raw.split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+  return paths.length > 0 ? paths : undefined;
+}
+
+/**
+ * G-GATE-J — parse the PR SELECTOR/repo out of the FIRST existing-PR
+ * (`merge|close|reopen|edit|ready|review`) invocation in `rawCommand` and
+ * resolve its `gh pr diff --name-only` paths. Retained (in addition to
+ * `ghPrChangeSetNonOntology` below, which enumerates ALL invocations) as the
+ * single-invocation entry point exercised directly by existing callers/tests.
+ * FAIL-CLOSED: no existing-PR subcommand match, or a `gh` resolution failure,
+ * returns `undefined`.
+ */
+function resolveGhPrDiffPaths(rawCommand: string, projectRoot: string): string[] | undefined {
+  const first = findGhPrInvocations(rawCommand).find((inv) => inv.kind === "existing");
+  if (!first || first.kind !== "existing") return undefined;
+  return resolveGhPrDiffPathsForInvocation(first.selector, first.repoFlag, projectRoot);
+}
+
+/**
+ * G-GATE-J — the ONE shared helper both call sites (mutation-class derivation in
+ * `protectedMutationClassForPromptGate` AND the A2 write-set proof in
+ * `isProvenNonOntologyDelivery`) use to determine whether a `gh pr` command's
+ * SHIPPED change-set is entirely non-ontology, so they cannot drift.
+ *
+ * bd-017 GAP (G-GATE-J) — `create` has no existing PR yet, so the local PUSH
+ * RANGE genuinely IS what it ships; a `create` invocation keeps the ORIGINAL
+ * `allPushRangePathsNonOntology` semantics, unchanged. Every OTHER subcommand
+ * (merge/close/reopen/edit/ready/review) operates on an EXISTING PR, whose
+ * change-set ground truth is the PR's OWN diff (`gh pr diff`), NOT the local
+ * push range — the push range measures what THIS session pushed, which is
+ * EMPTY (and thus conservatively `false`, over-blocking) whenever the calling
+ * session's HEAD is already synced with its upstream tracking branch (the exact
+ * case a `gh pr merge` run from a synced `main` hits — confirmed empirically:
+ * the range predicate returned `false` regardless of the PR's actual content).
+ *
+ * POST-REVIEW HARDENING — this now enumerates EVERY `gh pr` invocation
+ * (`findGhPrInvocations`) instead of gating on "does `create` appear ANYWHERE
+ * in the command", which let a LATER `gh pr create` in a compound command
+ * (`gh pr merge 456 --squash && gh pr create --fill`) mask an EARLIER
+ * existing-PR subcommand's real diff. ALL invocations found must independently
+ * prove non-ontology (AND, not first-match): every `existing` invocation is
+ * checked against its OWN `gh pr diff`, every `create` invocation against the
+ * local push range. FAIL-CLOSED throughout: no invocation found, an
+ * unresolvable selector/`gh` failure, or any MIXED (ontology-touching) result
+ * returns `false` — a network failure in the hook costs delivery-call-only
+ * latency, never a false non-ontology proof.
+ */
+function ghPrChangeSetNonOntology(rawCommand: string, projectRoot: string): boolean {
+  const invocations = findGhPrInvocations(rawCommand);
+  if (invocations.length === 0) return false;
+  for (const inv of invocations) {
+    if (inv.kind === "create") {
+      if (!allPushRangePathsNonOntology(projectRoot)) return false;
+      continue;
+    }
+    const paths = resolveGhPrDiffPathsForInvocation(inv.selector, inv.repoFlag, projectRoot);
+    if (paths === undefined) return false;
+    if (!paths.every((p) => isNonOntologyPath(p, projectRoot))) return false;
+  }
+  return true;
+}
+
 function looksOntologyAffecting(value: unknown): boolean {
   if (Array.isArray(value)) return value.some((entry) => looksOntologyAffecting(entry));
   if (typeof value !== "string") return false;
@@ -679,7 +880,10 @@ function isProvenNonOntologyDelivery(
     // see its comment for the `-c "…"` exec-a-quoted-script exception.
     const scanCommand = stripQuotedSegments(command);
     if (/\bgh\s+pr\s+(create|merge|close|reopen|edit|ready|review)\b/.test(scanCommand)) {
-      return allPushRangePathsNonOntology(projectRoot);
+      // G-GATE-J: SAME shared helper as protectedMutationClassForPromptGate's `gh pr`
+      // branch above — see its comment for why the local push range is the wrong
+      // ground-truth object for merge-class subcommands.
+      return ghPrChangeSetNonOntology(rawCommand, projectRoot);
     }
     if (isGitSubcommand(command, "commit")) {
       return allStagedPathsNonOntology(projectRoot, resolveGitTargetRepo(rawCommand, projectRoot));
@@ -1625,6 +1829,9 @@ export const __test__ = {
   resolveGitTargetRepo,
   isGitSubcommand,
   isNonOntologyPath,
+  isDocsClassAuditAfterPath,
+  resolveGhPrDiffPaths,
+  ghPrChangeSetNonOntology,
   isProvenNonOntologyDelivery,
   isCrossCuttingIntentRouter,
 };
