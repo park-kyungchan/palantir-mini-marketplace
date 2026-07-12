@@ -13,14 +13,14 @@ wrapper as a short discovery entrypoint.
 ## Why this subset exists (intent)
 
 The canonical `skills/` tree carries the **full** palantir-mini skill library
-(45 skills, excluding `_shared`). Codex does **not** default-inject that whole
+(39 skills, excluding `_shared`). Codex does **not** default-inject that whole
 tree: every entry under `skills` in `.codex-plugin/plugin.json` becomes a
-discoverable Codex default, so mirroring all 45 would flood the Codex skill
+discoverable Codex default, so mirroring all 39 would flood the Codex skill
 surface with maintenance, replay, retention, and triage helpers that a Codex
 operator rarely needs as a front door. This directory is therefore a curated
 **8-skill export subset** — the smallest set that covers the Codex operator's
 primary loop (state the intent, build, validate, release) plus the two runtime
-helpers Codex needs to recover and resume — while the remaining 37 canonical
+helpers Codex needs to recover and resume — while the remaining 31 canonical
 skills stay reachable on demand through `skills/`.
 
 ## How the subset maps to the full skill set
@@ -40,7 +40,7 @@ default surface and lives only in the canonical `skills/` tree, including:
 
 - diagnostics / self-test — e.g. `../skills/pm-self-test/`, `../skills/pm-investigate/`
 - replay & lineage — e.g. `../skills/pm-replay/`, `../skills/pm-lineage/`
-- retention / pruning — e.g. `../skills/pm-rule-memory-prune/`, `../skills/pm-value-audit/`
+- retention / pruning — e.g. `../skills/pm-rule-audit/` (`prune` mode), `../skills/pm-value-audit/`
 - dirty-state triage & DTC fill — e.g. `../skills/pm-dirty-classify/`, `../skills/pm-dtc-fill/`
 - research — e.g. `../skills/pm-research/`
 

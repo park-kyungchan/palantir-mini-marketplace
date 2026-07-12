@@ -11,7 +11,7 @@
  * BOUNDARY (SPEC #2 / DESIGN §2.1): this module DETECTS NOTHING and MUTATES NOTHING. It is a
  *   pure function from an `OntologyStalenessReport` to proposal objects. It MUST NOT call
  *   `elevate`'s register path, MUST NOT call `commit_edits`, and performs NO fs/git/IO.
- *   Persistence is the SKILL's job (skills/pm-ontology-drift-propose). The two-layer
+ *   Persistence is the SKILL's job (skills/pm-ontology-proposal, drift mode). The two-layer
  *   governance (no auto-apply, no proposal-spam) is enforced by the GATE below.
  *
  * GATE (SPEC #2, three guards): proposals are emitted ONLY when

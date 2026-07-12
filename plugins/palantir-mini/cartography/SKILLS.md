@@ -27,11 +27,8 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-lsp-audit | — | high | maintenance / public-core | Comprehensive codebase audit using LSP-powered TypeScript code analysis. Finds dead... |
 | pm-mcp-reload | — | medium | maintenance / public-core | Guide the user through MCP server module reload after a bridge handler edit —... |
 | pm-memory-map | — | low | research / public-core | 4-layer agentic memory balance audit (working / episodic / semantic / procedural). |
-| pm-ontology-branch-create | — | medium | core-workflow / public-core | Create an OntologyBranchDeclaration (Foundry Global Branching / AI FDE working... |
-| pm-ontology-drift-propose | — | medium | core-workflow / public-core | MANUAL drift propose-step — compose re-elevation GlobalBranchingProposals from a... |
 | pm-ontology-engineering-lead | — | medium | core-workflow / public-core | Docs-only Lead workflow for session-first ontology engineering. |
-| pm-ontology-proposal-create | — | medium | core-workflow / public-core | Create an OntologyProposalDeclaration (or GlobalBranchingProposal v1.40+) from a... |
-| pm-ontology-proposal-review | — | medium | core-workflow / public-core | Append review verdict to an existing OntologyProposal/GlobalBranchingProposal —... |
+| pm-ontology-proposal | — | medium | core-workflow / public-core | Ontology proposal lifecycle — create \| review \| branch \| drift modes |
 | pm-orchestrate | opus | high | core-workflow / public-core | Ontology-Driven work orchestration for complex multi-step tasks. Enforces a 6-phase... |
 | pm-pr-impact | — | low | maintenance / public-core | PR-scoped impact analysis — diffs current branch vs base, computes downstream blast... |
 | pm-project-onboard | — | medium | core-workflow / public-core | Scaffold the minimum palantir-mini ProjectOntologyIndex runtime for a project, then... |
@@ -40,8 +37,7 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-research | — | medium | research / public-core | Research-library lifecycle: diff \| refresh \| audit modes (drift, re-fetch, staleness). |
 | pm-retro | — | — | research / public-core | Engineering retrospective. Aggregates session metrics from the palantir-mini... |
 | pm-review | — | — | core-workflow / public-core | Pre-landing PR review. Analyzes diff against the base branch for SQL safety, LLM... |
-| pm-rule-audit | — | low | maintenance / public-core | Comprehensive rules/ health check via palantir-mini MCP. Detects T1/T2 bottleneck... |
-| pm-rule-memory-prune | — | medium | maintenance / public-core | Unified prune-candidate list combining pm_rule_audit (unused_rule_30d findings) +... |
+| pm-rule-audit | — | medium | maintenance / public-core | Comprehensive rules/ health check — audit \| prune modes via palantir-mini MCP |
 | pm-self-test | — | high | maintenance / public-core | End-to-end smoke test of the plugin-only substrate. Runs schema pin check, codegen... |
 | pm-semantic-intent-gate | — | medium | core-workflow / public-core | Maintain the FDE-to-contract front door: FDE meaning discovery, SIC boundary, DTC... |
 | pm-ship | — | — | core-workflow / public-core | Ship workflow — detect + merge base branch, run tests, audit coverage, review diff,... |
@@ -49,5 +45,4 @@ One row per `skills/<name>/SKILL.md`, parsed from frontmatter. See `CARTOGRAPHY.
 | pm-understand | — | medium | core-workflow / public-core | Run the 9-axis understand-phase (the harness heart): surface a request's explicit... |
 | pm-value-audit | — | high | maintenance / public-core | Substrate health dashboard (rule 26 valuable-data) + AIP no-slop Three Questions... |
 | pm-verify | — | high | core-workflow / public-core | Run the palantir-mini validation pipeline against a project — executes Design +... |
-| pm-walk-analyze | — | medium | research / public-core | Mode B (Project Analysis): Walk real production ontology code for any registered... |
-| pm-walk-build | — | medium | research / public-core | Mode A (Small Block): Build ontology entities step by step using scene-based... |
+| pm-walk | — | medium | research / public-core | Ontology teaching — analyze real project code \| build entities scene-by-scene modes |

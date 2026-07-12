@@ -8,6 +8,14 @@ Root-level aggregator. Each axis has its own CHANGELOG:
 
 ---
 
+## v1.97.3 — 2026-07-13 (skill-catalog merges G-SKILL-P slice B — self-model seed parity, pm 7.52.0)
+
+Fix/cleanup PATCH (rule 08 — seed-data correction only; no primitive type, field, or export is added, removed, or retyped). Grounds: USER slice-B approval 2026-07-13 in session 283c2b45, `~/projects/_workspace/2026-07-12-w10-closure/design-w5-token-diet.md` §Slice 4.
+
+### Fixed (seed-only)
+
+- **`ontology/seeds/skill-definitions.ts`'s `PLUGIN_SKILLS` and `ontology/self/skill.objecttype.ts`'s `SKILL_INSTANCES` drifted from the live `skills/` directory** after the palantir-mini plugin's pm 7.52.0 skill-catalog merges: `pm-ontology-proposal-create` + `pm-ontology-proposal-review` + `pm-ontology-branch-create` + `pm-ontology-drift-propose` consolidated into one mode-dispatch skill `pm-ontology-proposal` (modes `create | review | branch | drift`); `pm-walk-analyze` + `pm-walk-build` consolidated into `pm-walk` (modes `analyze | build`); `pm-rule-memory-prune` absorbed into `pm-rule-audit` as its new `prune` mode (name kept). Both seed arrays updated to the resulting 39-slug set (from 44); `tests/ontology/self/skill-registration.test.ts`'s `EXPECTED_SKILL_COUNT` moves 44 -> 39 (the paired drift guard that cross-checks the seed against the live `skills/` directory).
+
 ## v1.97.2 — 2026-07-12 (delivery-grant semantics correction: session-standing, not 30-min TTL)
 
 Fix/cleanup PATCH (rule 08 — doc/record correction only; no primitive type, field, or export is added, removed, or retyped). Grounds: g12 `de-2026-07-12-pm-flex-slices-2-3-policy-answers-locked` (the 30-min absolute-TTL ruling this entry supersedes) + the superseding USER directive `de-2026-07-12-authorization-friction-corrective-user-2026-07-12-recurring-per-delivery`.

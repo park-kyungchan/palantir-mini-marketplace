@@ -161,7 +161,7 @@ export function checkUnusedRules30d(findings: RuleAuditFinding[], projectRoot?: 
         kind: "unused_rule_30d",
         severity: "advisory",
         ruleId: r.ruleId,
-        detail: `rule ${r.ruleId} (${r.slug}) — 0 hook citations + 0 events.jsonl mentions over 30d window; lastModified ${ageDays} days ago. Retirement candidate (review via /palantir-mini:pm-rule-memory-prune).`,
+        detail: `rule ${r.ruleId} (${r.slug}) — 0 hook citations + 0 events.jsonl mentions over 30d window; lastModified ${ageDays} days ago. Retirement candidate (review via /palantir-mini:pm-rule-audit prune).`,
       });
     }
   }

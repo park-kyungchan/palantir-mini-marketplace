@@ -1,13 +1,27 @@
 ---
-name: pm-walk-analyze
+name: pm-walk
 category: research
 surfaceStatus: public-core
-description: "Mode B (Project Analysis): Walk real production ontology code for any registered..."
+description: "Ontology teaching — analyze real project code | build entities scene-by-scene modes"
 effort: medium
 disable-model-invocation: false
 ---
 
-# Palantir Walk Analyze — Mode B: Project Analysis (Real Code Walk)
+# pm-walk — Ontology teaching lifecycle (analyze | build)
+
+One skill, two modes selected by the first argument:
+
+| Mode | Trigger | Use when |
+|------|---------|----------|
+| `analyze` | `/palantir-mini:pm-walk analyze <project>` | Walk real production ontology code block by block (project analysis, compare, chain, improve, flow walk) |
+| `build` | `/palantir-mini:pm-walk build` | Build ontology entities step by step via scene-based SENSE → CHALLENGE → REVIEW → LEARN pedagogy |
+
+Common protocols (Entry Protocol, Navigation, Research Lookup) live in
+`../_shared/walk-reference.md` — load that first, regardless of mode.
+
+---
+
+## Mode: analyze — Project Analysis (Real Code Walk)
 
 Common protocols (Entry Protocol, Navigation, Research Lookup) live in
 `../_shared/walk-reference.md` — load that first.
@@ -16,7 +30,7 @@ Walk real production ontology code block by block. Each block shows the
 actual code, explains WHY it was designed that way, connects to research,
 and optionally compares across projects or identifies improvements.
 
-## Registered Projects
+### Registered Projects
 
 Projects are discovered at runtime from `.palantir-mini/project-scope.json` files under registered roots. The table below shows example entries — actual projects vary by workspace.
 
@@ -25,7 +39,7 @@ Projects are discovered at runtime from `.palantir-mini/project-scope.json` file
 | `~/projects/your-project/` | 7: data, logic, action, security, frontend, runtime, schema | Example domain + LEARN | Stage 5 |
 | `~/your-app/` | 8: data, logic, action, security, frontend, frontend-semantic-core, frontend-adapter, schema | Example app + 3D + LEARN | Stage 4 |
 
-## Entry: Project Overview
+### Entry: Project Overview
 
 When user says `/palantir-walk-analyze your-project` or `/palantir-walk-analyze your-app`:
 
@@ -50,7 +64,7 @@ Twin Maturity: Stage 5
  6. Flow Walk    — 특정 선언의 downstream 연결을 D→L→A→LEARN 순으로 추적
 ```
 
-## Sub-mode B1: Entity Walk
+### Sub-mode B1: Entity Walk
 
 Walk through entities in a project's data.ts one by one.
 
@@ -79,7 +93,7 @@ For each entity:
 After each block: `"다음 블록" for next entity, "비교" to compare with other
 project, "체인" to trace authority chain.`
 
-## Sub-mode B2: Domain Walk
+### Sub-mode B2: Domain Walk
 
 Walk an entire domain file (logic.ts, action.ts, security.ts, frontend.ts,
 runtime.ts) showing each construct sequentially.
@@ -103,7 +117,7 @@ runtime.ts) showing each construct sequentially.
 - Show atomicity decisions
 - Show LEARN closure (audit binding → hookEvent → evaluation → outcome)
 
-## Sub-mode B3: Cross-Project Compare
+### Sub-mode B3: Cross-Project Compare
 
 Compare the same concept across two registered projects (e.g. `your-project` vs `your-app`).
 
@@ -132,7 +146,7 @@ Good comparison targets:
 - Frontend views (surface kinds, bindings)
 - Runtime bindings (sourceBindings, writeTargets, auditBindings)
 
-## Sub-mode B4: Authority Chain Walk
+### Sub-mode B4: Authority Chain Walk
 
 Trace one concept through the full authority chain:
 
@@ -164,7 +178,7 @@ ForwardProp: [✅ connected / ⚠ gap at step N]
 BackwardProp: [✅ audit closure / ⚠ no LEARN path]
 ```
 
-## Sub-mode B5: Improvement Scan
+### Sub-mode B5: Improvement Scan
 
 Analyze a project's ontology for gaps and improvements.
 
@@ -193,7 +207,7 @@ Output format:
 - Critical items: [count]
 ```
 
-## Sub-mode B6: Flow Walk (Declaration-Driven Data Flow)
+### Sub-mode B6: Flow Walk (Declaration-Driven Data Flow)
 
 Trace structurally declared downstream connections from any ontology construct,
 following the D→L→A→LEARN semantic domain order. Unlike B1/B2 (linear file
@@ -261,7 +275,7 @@ Ordered: DATA → LOGIC → ACTION → LEARN → FRONTEND → RUNTIME
 
 ---
 
-## Navigation Commands — Mode B (B1-B5)
+### Navigation Commands — Mode B (B1-B5)
 
 - `"다음 블록"` / `"next block"` — next code block
 - `"비교"` / `"compare"` — compare current block across projects
@@ -270,7 +284,7 @@ Ordered: DATA → LOGIC → ACTION → LEARN → FRONTEND → RUNTIME
 - `"뒤로"` / `"back"` — previous block
 - `"목차"` / `"toc"` — file structure overview
 
-## Navigation Commands — Mode B6 (Flow Walk)
+### Navigation Commands — Mode B6 (Flow Walk)
 
 - `[number]` (e.g., `1`, `3`) — follow downstream connection N
 - `"지도"` / `"map"` — show full downstream tree from starting point
@@ -280,7 +294,7 @@ Ordered: DATA → LOGIC → ACTION → LEARN → FRONTEND → RUNTIME
 
 ---
 
-## Gotchas — Mode B
+### Gotchas — Mode B
 
 - **Mode B reads actual project files.** Always Read the real code — never
   generate from memory. The code IS the teaching material.
@@ -296,7 +310,7 @@ Ordered: DATA → LOGIC → ACTION → LEARN → FRONTEND → RUNTIME
 
 ---
 
-## When to Read More
+### When to Read More
 
 | Need | Read |
 |------|------|
@@ -304,5 +318,179 @@ Ordered: DATA → LOGIC → ACTION → LEARN → FRONTEND → RUNTIME
 | Full philosophy (WHY, DESIGN-authority) | `~/harness-upstream/ssot/palantir/ontology/decision-model.md` (scan `ssot/palantir/BROWSE.md` → smallest slice) |
 | Digital Twin loop | `~/harness-upstream/ssot/palantir/architecture-center/intent-to-build-flow.md` |
 | Flow Walk protocol (B6) | `references/flow-walk-guide.md` |
+| DH/HC constants | `~/.claude/schemas/ontology/semantics.ts` |
+| Shared protocols | `../_shared/walk-reference.md` |
+
+---
+
+## Mode: build — Small Block (Scene-Based Learning)
+
+Common protocols (Entry Protocol, Navigation, Research Lookup) live in
+`../_shared/walk-reference.md` — load that first.
+
+Each scene follows the SENSE → CHALLENGE → REVIEW → LEARN loop. The user
+learns by DOING, not reading.
+
+### Output Mode Detection
+
+| Signal | Mode | Format |
+|--------|------|--------|
+| "scene N", entity building | **Scene** | SENSE + CHALLENGE → (wait) → REVIEW + LEARN |
+| "review해줘", "작성했어" | **Review** | REVIEW + LEARN for current scene |
+| "19개 타입 알려줘", browsing | **Reference Walk** | Categorized list with NL |
+| "DH-DATA-01 알려줘", constant | **Block Walk** | Code block + NL + context |
+| "왜 LOGIC이야?", question | **Inline Answer** | 3-4 sentences + continue? |
+
+### Phase: SENSE
+
+Present ONE schema interface per scene.
+
+```
+## Scene N — "[Story sentence]"
+
+[1-2 sentences: reality framing + SH-01 domain classification]
+
+### Schema
+[Code block — ONE relevant interface/type from types.ts]
+
+### NL Translation
+[Line-by-line table — only NEW or FIRST-SEEN lines]
+```
+
+### Phase: CHALLENGE
+
+Generate a scaffold file at `exercises/scene-{N}-{name}.ts` with:
+- Correct `import type` with NL comments
+- Property blocks with empty values (`""`, `___`)
+- NL comments on every structural line
+- Candidate lists as comments
+- baseType reference table
+
+Then STOP. Wait for the user. Do NOT fill in the values.
+
+### Phase: REVIEW (triggered by user)
+
+1. Read `exercises/scene-{N}-{name}.ts` (user's code)
+2. Read `solutions/scene-{N}-{name}.solution.ts` (reference)
+3. Scan for user questions in `//` comments
+4. Structural check: interface compliance
+5. Semantic check: DH-* heuristics
+6. HC violations check
+7. Write `reviews/scene-{N}-review.md`
+8. Output LEARN feedback
+
+### Comment Q&A Detection
+
+Scan for `?`, `// Q:`, `// 질문:`, `// 왜`, `// TODO:` patterns.
+Answer each in context with line number and DH/HC citation.
+
+### Phase: LEARN
+
+```
+LEARN (Scene N)
+ ├─ [Check]: ✓ [correct]
+ ├─ [Check]: ✗ [wrong]
+ │   → [HC/DH-ID]: [rule]
+ └─ NEXT: [fix] → then "다음"
+```
+
+**CONVERGED** → advance. **RETRY** → user fixes.
+
+When CONVERGED: copy to `ontology/`, update `ontology/schema.ts`, show Tracker.
+
+### Scene Maps
+
+Read `references/scene-maps.md` for the 12-scene progression.
+Structure: DATA(2) → LOGIC(4) → ACTION(1) → VERIFY(1) → LEARN(3) → VERIFY(1).
+
+### Progressive Narrative
+
+1. **1 entity per scene.** Never 2+ in one turn.
+2. **Story-driven.** Narrative beat, not heading.
+3. **Incremental.** Only NEW explanations.
+4. **~60 lines of prose** per scene (excluding code).
+5. **User writes, Claude reviews.** Never generate FOR the user.
+
+### Triple Concept Budget
+
+Every SENSE ends with 3 concepts:
+
+| Track | Rule |
+|-------|------|
+| **TS** | `satisfies`, branded types, `as const`, discriminated unions |
+| **Bun** | `bun test`, ESM import, `Bun.file()` |
+| **Ontology** | BROWSE.md → Grep → restructure into teaching content |
+
+### Research Enrichment (internal)
+
+1. Map concept → file via BROWSE.md
+2. Grep specific marker (~500 tokens)
+3. Restructure into teaching content — learner NEVER sees `§` marker IDs
+
+### Compact Cycle Tracker
+
+```
+╔═ {Domain} ════════════════════════════════════╗
+║ Scene 3/12: LOGIC — first LinkType             ║
+║ DATA: E1 ✅ E2 ✅ | LOGIC: ▶                   ║
+║ Twin: Stage 1 (Snapshot)                        ║
+╚════════════════════════════════════════════════╝
+```
+
+### Difficulty Detection
+
+Perfect first attempt → deepen: "Since you nailed this, add a ValueConstraint
+to ensure price > 0? (DH-DATA-07)"
+
+---
+
+### Block Walk — Semantic Context
+
+For constant lookups (DH/HC), not in scene or project mode:
+
+1. **Code block** — constant definition with NL translation
+2. **Enforcement chain** — DH → HC → test
+3. **Cross-domain connections** — does this affect other domains?
+4. **Project impact** — "When building ontology, you'd encounter this when..."
+5. **3 connected blocks** — for learning progression
+
+### Reference Walk
+
+For list/browsing: categorized list with NL, no scene structure.
+
+### Inline Answer
+
+Quick concept questions: 3-4 sentences, then "계속 진행할까요?"
+
+---
+
+### Navigation Commands — Mode A
+
+- `"다음"` — next scene (after CONVERGED)
+- `"review해줘"` / `"검토해줘"` / `"작성했어"` — trigger REVIEW
+- `"검증"` / `"verify"` — jump to verification scene
+- `"뒤로"` / `"back"` — previous scene
+- `"힌트"` / `"hint"` — directional hint, no solution
+
+---
+
+### Gotchas — Mode A
+
+- **Never write exercise code FOR the user.** The CHALLENGE says "write it",
+  then STOP and WAIT.
+- **Review against BOTH interface AND DH/HC.** Structural compliance alone
+  is not enough.
+- **Difficulty detection**: Perfect first attempts get deepened, not
+  praised-and-moved-on.
+
+---
+
+### When to Read More
+
+| Need | Read |
+|------|------|
+| 12-scene progression | `references/scene-maps.md` |
+| Full philosophy (WHY, DESIGN-authority) | `~/harness-upstream/ssot/palantir/ontology/decision-model.md` (scan `ssot/palantir/BROWSE.md` → smallest slice) |
+| Digital Twin loop | `~/harness-upstream/ssot/palantir/architecture-center/intent-to-build-flow.md` |
 | DH/HC constants | `~/.claude/schemas/ontology/semantics.ts` |
 | Shared protocols | `../_shared/walk-reference.md` |
