@@ -33,6 +33,11 @@ import {
 import { readGlobalSessionPointer } from "../../lib/prompt-front-door/global-session-index";
 import { readDeliveryGrant } from "../../lib/prompt-front-door/delivery-grant-store";
 import {
+  hasAdvisoryBoilerplateBeenShown,
+  markAdvisoryBoilerplateShown,
+  type AdvisoryBoilerplateClass,
+} from "../../lib/prompt-front-door/advisory-shown-store";
+import {
   validateDigitalTwinChangeContract,
   validateSemanticIntentContract,
 } from "../../lib/lead-intent/contracts";
@@ -1568,6 +1573,31 @@ function runbookPointerForAssessment(assessment: GateAssessment): string {
   }
 }
 
+// G-ADV-N (pm auth-friction closure, slice 2) — advisory boilerplate token diet.
+// The byte-identical filler lines below (NOT assessment.reason, NOT the runbook
+// pointer, NOT the delivery-authorize paragraph — those stay full every call, see
+// the impl.ts header comment at each call site) collapse to this <=10-token
+// marker after the first occurrence per (runtime, sessionId, boilerplateClass)
+// this session. Token-cost optimization only — never a security control, so any
+// store-read failure fails OPEN (shows the full text again).
+const ADVISORY_BOILERPLATE_MARKER = "[boilerplate: see earlier this session]"; // ~9 tokens
+
+async function collapsibleBoilerplateLines(
+  cls: AdvisoryBoilerplateClass,
+  fullLines: readonly string[],
+  payload: HookPayload,
+): Promise<string> {
+  const sessionId = payload.session_id;
+  const runtime = detectRuntime(payload) ?? "unknown";
+  if (typeof sessionId === "string" && sessionId.length > 0) {
+    if (await hasAdvisoryBoilerplateBeenShown(runtime, sessionId, cls)) {
+      return ADVISORY_BOILERPLATE_MARKER;
+    }
+    await markAdvisoryBoilerplateShown(runtime, sessionId, cls);
+  }
+  return fullLines.join("\n");
+}
+
 function denyResult(reason: string): HookResult {
   return {
     message: "palantir-mini: prompt-DTC gate BLOCKED",
@@ -1687,8 +1717,14 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
           `Scoped blocking surface: ${scopedBlocking.reasons.join("; ")}.`,
           assessment.reason,
           "",
-          "Default selective-blocking gates ontology-affecting MCP tools; scoped file surfaces remain advisory unless scoped-blocking/blocking is explicitly enabled.",
-          "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables only this prompt-DTC gate.",
+          await collapsibleBoilerplateLines(
+            "scoped-advisory",
+            [
+              "Default selective-blocking gates ontology-affecting MCP tools; scoped file surfaces remain advisory unless scoped-blocking/blocking is explicitly enabled.",
+              "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables only this prompt-DTC gate.",
+            ],
+            p,
+          ),
         ].join("\n");
         return {
           message: "palantir-mini: prompt-DTC gate advisory",
@@ -1729,10 +1765,16 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
       `Tool is ontology-affecting and no SIC approval found within last 60 min.`,
       assessment.reason,
       "",
-      "Allowed while pending: read-only inspection, pm_semantic_intent_gate, contract approval/completion tools, and emit_event.",
-      "Pass condition: SemanticIntentContract approved within last 60 min OR current prompt envelope state digital_twin_approved + approved contract refs + promptHash continuity.",
+      await collapsibleBoilerplateLines(
+        "sic-miss",
+        [
+          "Allowed while pending: read-only inspection, pm_semantic_intent_gate, contract approval/completion tools, and emit_event.",
+          "Pass condition: SemanticIntentContract approved within last 60 min OR current prompt envelope state digital_twin_approved + approved contract refs + promptHash continuity.",
+          "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 bypasses this gate. PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables it entirely.",
+        ],
+        p,
+      ),
       runbookPointerForAssessment(assessment),
-      "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_BYPASS=1 bypasses this gate. PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables it entirely.",
     ].join("\n");
     return denyResult(reason);
   }
@@ -1764,13 +1806,39 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
   const escapeLine = isDeliveryClassBlocker
     ? "Authorize delivery: call the pm_authorize_delivery MCP tool with userApprovalQuote " +
       "(a verbatim substring of your approving turn — e.g. \"merge the PR\") + " +
-      "userApprovalPromptId/userApprovalPromptHash. On success it mints a 30-min SESSION-scoped " +
-      "delivery grant (re-verified fail-closed against the hook-captured prompt, honored across " +
-      "any project root sharing this session); a blunt MODE=off does NOT clear a delivery action. " +
-      "Runtimes without an MCP surface (e.g. Codex) can instead re-issue this tool call with the " +
-      "same userApprovalQuote/userApprovalPromptId/userApprovalPromptHash fields on tool_input " +
+      "userApprovalPromptId/userApprovalPromptHash. On success it mints a session-standing " +
+      "delivery grant (persists until you revoke it or a 24h safety-net expiry; re-verified " +
+      "fail-closed against the hook-captured prompt, honored across any project root sharing " +
+      "this session); a blunt MODE=off does NOT clear a delivery action. Runtimes without an " +
+      "MCP surface (e.g. Codex) can instead re-issue this tool call with the same " +
+      "userApprovalQuote/userApprovalPromptId/userApprovalPromptHash fields on tool_input " +
       "(15-min TTL, this turn only)."
     : "Escape: PALANTIR_MINI_PROMPT_DTC_GATE_MODE=off disables only this prompt-DTC gate.";
+  // G-ADV-N: the "Allowed while pending" / "Pass condition" lines are byte-identical
+  // on every call — collapse them (plus the plain-Escape variant, since it is
+  // equally byte-identical) once shown this session. The delivery-authorize
+  // paragraph (escapeLine when isDeliveryClassBlocker) is the ONLY place the
+  // unblocking mechanism is documented, so it is deliberately NOT folded into the
+  // collapsible call and stays full on every single occurrence (see the append
+  // below).
+  const collapsedBoilerplate = isDeliveryClassBlocker
+    ? await collapsibleBoilerplateLines(
+        "delivery-blocking",
+        [
+          "Allowed while pending: read-only inspection, pm_semantic_intent_gate, contract approval/completion tools, and emit_event.",
+          "Pass condition: current prompt envelope state digital_twin_approved + approved prompt-local contract refs + promptHash continuity.",
+        ],
+        p,
+      )
+    : await collapsibleBoilerplateLines(
+        "generic-blocking",
+        [
+          "Allowed while pending: read-only inspection, pm_semantic_intent_gate, contract approval/completion tools, and emit_event.",
+          "Pass condition: current prompt envelope state digital_twin_approved + approved prompt-local contract refs + promptHash continuity.",
+          escapeLine,
+        ],
+        p,
+      );
   const reason = [
     `Prompt-DTC gate ${mode.toUpperCase()} for ${toolName(p)} in ${projectRoot}.`,
     scopedBlocking.scoped
@@ -1778,10 +1846,9 @@ async function promptDtcEnforcementGateImpl(payload: unknown): Promise<HookResul
       : "Scoped blocking surface: none; advisory-only unless full blocking mode is enabled.",
     assessment.reason,
     "",
-    "Allowed while pending: read-only inspection, pm_semantic_intent_gate, contract approval/completion tools, and emit_event.",
-    "Pass condition: current prompt envelope state digital_twin_approved + approved prompt-local contract refs + promptHash continuity.",
+    collapsedBoilerplate,
     runbookPointerForAssessment(assessment),
-    escapeLine,
+    ...(isDeliveryClassBlocker ? [escapeLine] : []),
   ].join("\n");
 
   if (willDeny) return denyResult(reason);
