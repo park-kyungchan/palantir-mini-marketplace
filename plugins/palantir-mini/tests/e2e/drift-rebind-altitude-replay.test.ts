@@ -95,15 +95,27 @@ function gitHead(root: string): string {
   return git(root, "rev-parse", "HEAD");
 }
 
+function makeTmpGlobalStateDir(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-drift-rebind-e2e-global-"));
+  tmpRoots.push(dir);
+  return dir;
+}
+
 beforeEach(() => {
   savedEnv.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE;
   savedEnv.PALANTIR_MINI_HOST_RUNTIME = process.env.PALANTIR_MINI_HOST_RUNTIME;
+  savedEnv.PALANTIR_MINI_GLOBAL_STATE_DIR = process.env.PALANTIR_MINI_GLOBAL_STATE_DIR;
   delete process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE;
   delete process.env.PALANTIR_MINI_HOST_RUNTIME;
+  process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = makeTmpGlobalStateDir();
 });
 
 afterEach(() => {
-  for (const key of ["PALANTIR_MINI_PROMPT_DTC_GATE_MODE", "PALANTIR_MINI_HOST_RUNTIME"] as const) {
+  for (const key of [
+    "PALANTIR_MINI_PROMPT_DTC_GATE_MODE",
+    "PALANTIR_MINI_HOST_RUNTIME",
+    "PALANTIR_MINI_GLOBAL_STATE_DIR",
+  ] as const) {
     if (savedEnv[key] === undefined) delete process.env[key];
     else process.env[key] = savedEnv[key];
   }

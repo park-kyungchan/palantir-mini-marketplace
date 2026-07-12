@@ -1,6 +1,6 @@
 {
   "name": "palantir-mini",
-  "version": "7.50.0",
+  "version": "7.51.0",
   "private": true,
   "type": "module",
   "imports": {
@@ -21,7 +21,8 @@
     "skill:slim-frontmatter": "bun run scripts/slim-skill-frontmatter.ts",
     "promote:grades": "bun run scripts/replay-promote-grades.ts",
     "promote:grades:dry": "bun run scripts/replay-promote-grades.ts --dry-run",
-    "emit:lead-decision": "bun run lib/lead-intent/lead-decision-emit-cli.ts"
+    "emit:lead-decision": "bun run lib/lead-intent/lead-decision-emit-cli.ts",
+    "test:home-isolation-guard": "bun run scripts/verify-real-home-untouched.ts"
   },
   "dependencies": {
     "convex": "^1.27.3",

@@ -56,7 +56,7 @@ interface StrikeState {
 
 interface HookResult {
   message:  string;
-  decision?: "continue" | "block";
+  decision?: "block";
   reason?:   string;
   hookSpecificOutput?: {
     permissionDecision?:       "deny" | "allow";
@@ -216,7 +216,7 @@ async function main(): Promise<void> {
       p = JSON.parse(raw) as HookPayload;
     } catch {
       process.stderr.write("[write-scope-runtime-enforce] stdin not valid JSON — skipping\n");
-      process.stdout.write(JSON.stringify({ message: "write-scope-runtime-enforce: parse error — skipping", decision: "continue" }) + "\n");
+      process.stdout.write(JSON.stringify({ message: "write-scope-runtime-enforce: parse error — skipping" }) + "\n");
       process.exit(0);
       return;
     }
@@ -227,7 +227,7 @@ async function main(): Promise<void> {
     result = await handlePreToolUse(p);
   } catch (err) {
     process.stderr.write(`[write-scope-runtime-enforce] unhandled error: ${(err as Error).message}\n`);
-    result = { message: "write-scope-runtime-enforce: unhandled error — continuing", decision: "continue" };
+    result = { message: "write-scope-runtime-enforce: unhandled error — continuing" };
   }
 
   process.stdout.write(JSON.stringify(result) + "\n");
@@ -263,7 +263,6 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
     }).catch(() => {});
     return {
       message:  `write-scope-runtime-enforce: BYPASS (env, agent=${agentName})`,
-      decision: "continue",
     };
   }
 
@@ -272,7 +271,6 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
     const agentName = p.byWhom?.agentName ?? p.agent_name ?? "claude-code";
     return {
       message:  `write-scope-runtime-enforce: EXEMPT (Lead-direct, agent=${agentName})`,
-      decision: "continue",
     };
   }
 
@@ -284,7 +282,6 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
     // No project root → no writable-root constraint can be derived; pass-through.
     return {
       message:  `write-scope-runtime-enforce: SKIP (no project root from cwd=${cwd})`,
-      decision: "continue",
     };
   }
   // A stray `.palantir-mini` marker at $HOME or a temp dir must not make HOME/tmp
@@ -293,7 +290,6 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
   if (isExcludedProjectRoot(projectRoot)) {
     return {
       message:  `write-scope-runtime-enforce: SKIP (excluded project root ${projectRoot})`,
-      decision: "continue",
     };
   }
 
@@ -303,7 +299,6 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
     // No worktree path env and project-scope writableRoot is "." (unrestricted)
     return {
       message:  `write-scope-runtime-enforce: SKIP (no writable root constraint for agent=${agentName})`,
-      decision: "continue",
     };
   }
 
@@ -314,7 +309,6 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
   if (rawPaths.length === 0) {
     return {
       message:  `write-scope-runtime-enforce: SKIP (no target paths found in tool_input for ${toolName})`,
-      decision: "continue",
     };
   }
 
@@ -332,7 +326,6 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
   if (violations.length === 0) {
     return {
       message:  `write-scope-runtime-enforce: OK (agent=${agentName}, writableRoot=${writableRoot})`,
-      decision: "continue",
     };
   }
 
@@ -381,7 +374,6 @@ async function handlePreToolUse(p: HookPayload): Promise<HookResult> {
       message:
         `write-scope-runtime-enforce: advisory — write outside writableRoot ` +
         `(agent=${agentName}, strike=${strikeCount}/${ADVISORY_THRESHOLD})`,
-      decision: "continue",
       hookSpecificOutput: {
         additionalContext: [
           `write-scope-runtime-enforce: subagent "${agentName}" attempted to write outside its declared writable root.`,

@@ -86,7 +86,7 @@ interface HookPayload {
 
 interface HookResult {
   message:   string;
-  decision?: "block" | "continue";
+  decision?: "block";
   reason?:   string;
   hookSpecificOutput?: {
     permissionDecision?:       "deny" | "allow";
@@ -506,7 +506,6 @@ export default async function valueGradeAssigner(
   if (normalizePalantirMiniMcpToolName(toolName) !== EMIT_EVENT_TOOL) {
     return {
       message: `palantir-mini: value-grade-assigner skipped (tool=${toolName})`,
-      decision: "continue",
     };
   }
 
@@ -537,7 +536,6 @@ export default async function valueGradeAssigner(
     }).catch(() => {});
     return {
       message: "palantir-mini: value-grade-assigner BYPASS (env)",
-      decision: "continue",
     };
   }
 
@@ -546,7 +544,6 @@ export default async function valueGradeAssigner(
     // Malformed payload — let it through; handler will reject cleanly.
     return {
       message: "palantir-mini: value-grade-assigner skipped (no envelope)",
-      decision: "continue",
     };
   }
 
@@ -559,7 +556,6 @@ export default async function valueGradeAssigner(
   if (envelopePayload.errorClass === META_ERROR_CLASS || envelopePayload.metaEvent === true) {
     return {
       message: "palantir-mini: value-grade-assigner skipped (recursion guard)",
-      decision: "continue",
     };
   }
 
@@ -730,7 +726,6 @@ export default async function valueGradeAssigner(
 
   return {
     message: `palantir-mini: value-grade-assigner OK (grade=${effectiveGrade})`,
-    decision: "continue",
     hookSpecificOutput: {
       permissionDecision: "allow",
       additionalContext: `[rule 26] envelope grade=${effectiveGrade}${axisRelaxNote}${

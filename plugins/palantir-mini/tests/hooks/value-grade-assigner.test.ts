@@ -78,7 +78,7 @@ describe("valueGradeAssigner", () => {
       tool_name: "Bash",
       cwd: TMP,
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("skipped");
   });
 
@@ -102,7 +102,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.permissionDecision).toBe("allow");
     expect(result.hookSpecificOutput?.additionalContext).toContain("grade=T1");
   });
@@ -114,7 +114,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.permissionDecision).toBe("allow");
     expect(result.hookSpecificOutput?.additionalContext).toContain("grade=T1");
   });
@@ -129,7 +129,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.additionalContext).toMatch(/grade=T[234]/);
   });
 
@@ -152,7 +152,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.additionalContext).toContain("grade=T3");
   });
 
@@ -164,7 +164,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("BYPASS");
   });
 
@@ -193,7 +193,7 @@ describe("valueGradeAssigner", () => {
       tool_input: { project: TMP, envelope },
     });
     // Bypass path must return "continue" with "BYPASS" in message
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("BYPASS");
     expect(result.decision).not.toBe("block");
   });
@@ -226,13 +226,13 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.additionalContext).toContain("R5 advisory");
   });
 
   test("handles null payload gracefully", async () => {
     const result = await valueGradeAssigner(null);
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("skipped");
   });
 
@@ -242,7 +242,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP }, // no envelope
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("no envelope");
   });
 
@@ -260,7 +260,7 @@ describe("valueGradeAssigner", () => {
       tool_input: { project: TMP, envelope },
     });
     // Hook should allow the envelope AND signal that axis-E was inferred
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.permissionDecision).toBe("allow");
     // additionalContext should mention inferred layers
     expect(result.hookSpecificOutput?.additionalContext).toContain("axis-E inferred");
@@ -277,7 +277,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.additionalContext).toContain("episodic");
   });
 
@@ -291,7 +291,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.additionalContext).toMatch(/grade=T[1234]/);
     // Verify the hook reports "inferred" since baseEnvelope has no memoryLayers
     expect(result.hookSpecificOutput?.additionalContext).toContain("axis-E inferred");
@@ -330,7 +330,7 @@ describe("valueGradeAssigner", () => {
       tool_input: { project: TMP, envelope: metaEnvelope },
     });
     // Must skip all processing and return continue (not block)
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("recursion guard");
   });
 
@@ -348,7 +348,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     // additionalContext must report depth=4 inferred from identity
     expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=4");
     expect(result.hookSpecificOutput?.additionalContext).toContain("inferred");
@@ -374,7 +374,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=0");
     expect(result.hookSpecificOutput?.additionalContext).toContain("inferred");
   });
@@ -393,7 +393,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     // Must report depth=2 as caller-supplied (not inferred)
     expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=2");
     expect(result.hookSpecificOutput?.additionalContext).toContain("caller-supplied");
@@ -411,7 +411,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.additionalContext).toContain("propagationDepth=3");
   });
 
@@ -431,7 +431,7 @@ describe("valueGradeAssigner", () => {
       tool_input: { project: TMP, envelope },
     });
     const after = getCoverageCounters();
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     // totalInvocationsSeen incremented by 1
     expect(after.totalInvocationsSeen).toBe(before.totalInvocationsSeen + 1);
     // metaEventsEmitted incremented by 1 (meta-event was fired for T1 path)
@@ -459,7 +459,7 @@ describe("valueGradeAssigner", () => {
       tool_input: { project: TMP, envelope: metaFlagEnvelope },
     });
     // Must skip ALL processing: do not block, do not emit instrumentation, return continue
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("recursion guard");
     // Counter should NOT have incremented for the meta-event itself
     // (totalInvocationsSeen incremented, but metaEventsEmitted should NOT)
@@ -482,7 +482,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     // With axis-relax, additionalContext should use "RELAXED" label instead of plain "inferred"
     expect(result.hookSpecificOutput?.additionalContext).toContain("axis-E RELAXED");
     expect(result.hookSpecificOutput?.additionalContext).toContain("procedural");
@@ -541,7 +541,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     // Grade should be T3+ (A+E+B+C all met)
     expect(result.hookSpecificOutput?.additionalContext).toMatch(/grade=T[34]/);
     // Counter incremented for invocation and meta-event
@@ -560,7 +560,7 @@ describe("valueGradeAssigner", () => {
       cwd: TMP,
       tool_input: { project: TMP, envelope },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.permissionDecision).toBe("allow");
     expect(result.hookSpecificOutput?.additionalContext).toContain("reasoning advisory");
   });
@@ -596,7 +596,7 @@ describe("valueGradeAssigner", () => {
         cwd: TMP,
         tool_input: { project: TMP, envelope },
       });
-      expect(result.decision).toBe("continue");
+      expect(result.decision).toBeUndefined();
       expect(result.hookSpecificOutput?.additionalContext).not.toContain("reasoning advisory");
     } finally {
       if (savedReason !== undefined) process.env.PALANTIR_MINI_REASONING_ENFORCE = savedReason;

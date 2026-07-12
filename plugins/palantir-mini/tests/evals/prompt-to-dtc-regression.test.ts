@@ -47,6 +47,12 @@ function makeTmpProject(projectName?: string): string {
   return dir;
 }
 
+function makeTmpGlobalStateDir(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-prompt-dtc-eval-global-"));
+  tmpDirs.push(dir);
+  return dir;
+}
+
 async function createCapturedPrompt(project: string, rawPrompt: string) {
   const store = new PromptFrontDoorStore({ projectRoot: project });
   const envelope = createPromptEnvelope({
@@ -593,9 +599,11 @@ beforeEach(() => {
     process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE;
   savedEnv.PALANTIR_MINI_EVENTS_FILE = process.env.PALANTIR_MINI_EVENTS_FILE;
   savedEnv.PALANTIR_MINI_PROJECT = process.env.PALANTIR_MINI_PROJECT;
+  savedEnv.PALANTIR_MINI_GLOBAL_STATE_DIR = process.env.PALANTIR_MINI_GLOBAL_STATE_DIR;
   delete process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE;
   delete process.env.PALANTIR_MINI_EVENTS_FILE;
   delete process.env.PALANTIR_MINI_PROJECT;
+  process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = makeTmpGlobalStateDir();
 });
 
 afterEach(() => {
@@ -614,6 +622,11 @@ afterEach(() => {
     delete process.env.PALANTIR_MINI_PROJECT;
   } else {
     process.env.PALANTIR_MINI_PROJECT = savedEnv.PALANTIR_MINI_PROJECT;
+  }
+  if (savedEnv.PALANTIR_MINI_GLOBAL_STATE_DIR === undefined) {
+    delete process.env.PALANTIR_MINI_GLOBAL_STATE_DIR;
+  } else {
+    process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = savedEnv.PALANTIR_MINI_GLOBAL_STATE_DIR;
   }
   for (const dir of tmpDirs.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });

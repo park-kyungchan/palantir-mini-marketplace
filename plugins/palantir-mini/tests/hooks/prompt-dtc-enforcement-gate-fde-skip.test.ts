@@ -14,12 +14,15 @@ import type { FDEOntologyEngineeringSession } from "../../lib/fde-ontology-engin
 import { writeFDEOntologyEngineeringSessionSnapshot } from "../../lib/fde-ontology-engineering/session-store";
 
 let projectRoot: string;
+let globalStateDir: string;
 
 beforeEach(async () => {
   projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-fde-skip-"));
   fs.writeFileSync(path.join(projectRoot, "package.json"), "{\"name\":\"fde-skip-test\"}\n");
   process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE = "selective-blocking";
   delete process.env.PALANTIR_MINI_EVENTS_FILE;
+  globalStateDir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-dtc-fde-skip-global-"));
+  process.env.PALANTIR_MINI_GLOBAL_STATE_DIR = globalStateDir;
 
   const store = new PromptFrontDoorStore({ projectRoot });
   await store.saveEnvelope(
@@ -37,7 +40,9 @@ beforeEach(async () => {
 afterEach(() => {
   delete process.env.PALANTIR_MINI_PROMPT_DTC_GATE_MODE;
   delete process.env.PALANTIR_MINI_EVENTS_FILE;
+  delete process.env.PALANTIR_MINI_GLOBAL_STATE_DIR;
   fs.rmSync(projectRoot, { recursive: true, force: true });
+  fs.rmSync(globalStateDir, { recursive: true, force: true });
 });
 
 function writeFDESession(

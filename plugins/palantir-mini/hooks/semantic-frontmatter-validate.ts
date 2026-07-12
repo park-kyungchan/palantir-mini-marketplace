@@ -42,12 +42,12 @@ export default async function semanticFrontmatterValidate(payload: unknown): Pro
 
   const filePath = p.tool_input?.file_path ?? p.tool_input?.path ?? "";
   if (!filePath) {
-    return { message: "palantir-mini: semantic-frontmatter-validate skipped (no file_path)", decision: "continue" };
+    return { message: "palantir-mini: semantic-frontmatter-validate skipped (no file_path)" };
   }
 
   // Only enforce on .ts files under required paths
   if (!filePath.endsWith(".ts") || !isPathRequiringFrontmatter(filePath)) {
-    return { message: `palantir-mini: semantic-frontmatter-validate skipped (${path.basename(filePath)} not in scope)`, decision: "continue" };
+    return { message: `palantir-mini: semantic-frontmatter-validate skipped (${path.basename(filePath)} not in scope)` };
   }
 
   // For PostToolUse, read from disk; for PreToolUse, use tool_input content (pre-write)
@@ -57,7 +57,7 @@ export default async function semanticFrontmatterValidate(payload: unknown): Pro
     : toolContent;
 
   if (!content) {
-    return { message: "palantir-mini: semantic-frontmatter-validate skipped (no content available)", decision: "continue" };
+    return { message: "palantir-mini: semantic-frontmatter-validate skipped (no content available)" };
   }
 
   const result = validateSemanticFrontmatter(content);
@@ -90,7 +90,6 @@ export default async function semanticFrontmatterValidate(payload: unknown): Pro
       // Advisory only — do not block
       return {
         message:           `palantir-mini: semantic-frontmatter-validate (valid=false, advisory)`,
-        decision:          "continue",
         additionalContext: reason,
       };
     }
@@ -105,6 +104,5 @@ export default async function semanticFrontmatterValidate(payload: unknown): Pro
 
   return {
     message:  `palantir-mini: semantic-frontmatter-validate (valid=true, form=${result.form})`,
-    decision: "continue",
   };
 }

@@ -17,7 +17,7 @@ export interface FrontmatterValidationResult {
 
 export interface HookResult {
   message:            string;
-  decision?:          "block" | "continue";
+  decision?:          "block";
   reason?:            string;
   additionalContext?: string;
 }

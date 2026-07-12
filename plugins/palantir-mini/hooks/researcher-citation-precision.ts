@@ -51,7 +51,6 @@ interface HookPayload {
 
 interface HookResult {
   message:   string;
-  decision:  "continue";
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -122,7 +121,6 @@ async function main(): Promise<void> {
       process.stderr.write("[researcher-citation-precision] stdin is not valid JSON — skipping\n");
       const result: HookResult = {
         message:  "palantir-mini: researcher-citation-precision — parse error; skipping advisory",
-        decision: "continue",
       };
       process.stdout.write(JSON.stringify(result) + "\n");
       process.exit(0);
@@ -144,7 +142,6 @@ async function main(): Promise<void> {
   if (!isResearcher) {
     const result: HookResult = {
       message:  `palantir-mini: researcher-citation-precision — no-op (subagentType=${subagentType ?? "none"})`,
-      decision: "continue",
     };
     process.stdout.write(JSON.stringify(result) + "\n");
     process.exit(0);
@@ -155,7 +152,6 @@ async function main(): Promise<void> {
     // Citation pattern found → silent pass-through
     const result: HookResult = {
       message:  `palantir-mini: researcher-citation-precision — citation pattern present; no advisory`,
-      decision: "continue",
     };
     process.stdout.write(JSON.stringify(result) + "\n");
     process.exit(0);
@@ -209,7 +205,6 @@ async function main(): Promise<void> {
     message:
       `palantir-mini: researcher-citation-precision ADVISORY — ` +
       `'${subagentType}' spawned without citation-precision pattern (Opus 4.7 postmortem)`,
-    decision: "continue",
   };
   process.stdout.write(JSON.stringify(result) + "\n");
   process.exit(0);
@@ -223,7 +218,6 @@ if (import.meta.main) {
     process.stderr.write(`[researcher-citation-precision] unhandled error: ${(e as Error).message}\n`);
     const fallback: HookResult = {
       message:  "palantir-mini: researcher-citation-precision — unhandled error; continuing",
-      decision: "continue",
     };
     process.stdout.write(JSON.stringify(fallback) + "\n");
     process.exit(0);

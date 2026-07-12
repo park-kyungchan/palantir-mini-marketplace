@@ -173,7 +173,7 @@ describe("researcher-citation-precision hook", () => {
 
     // Must always return decision: "continue"
     expect(r.result).not.toBeNull();
-    expect(r.result?.decision).toBe("continue");
+    expect(r.result?.decision).toBeUndefined();
 
     // No advisory message in result — citation pattern was found
     expect(r.result?.message).toContain("citation pattern present");
@@ -208,7 +208,7 @@ describe("researcher-citation-precision hook", () => {
 
     // Must always return decision: "continue" (advisory, non-blocking)
     expect(r.result).not.toBeNull();
-    expect(r.result?.decision).toBe("continue");
+    expect(r.result?.decision).toBeUndefined();
 
     // Advisory message in result
     expect(r.result?.message).toContain("ADVISORY");
@@ -305,7 +305,7 @@ describe("researcher-citation-precision hook", () => {
       try {
         parsedResult = JSON.parse((proc.stdout ?? "").trim()) as Record<string, unknown>;
       } catch { /* */ }
-      expect(parsedResult?.decision).toBe("continue");
+      expect(parsedResult?.decision).toBeUndefined();
       expect(parsedResult?.message).toContain("no-op");
 
       fs.rmSync(subTmp, { recursive: true, force: true });
@@ -329,7 +329,7 @@ describe("researcher-citation-precision hook", () => {
 
     expect(r.exitCode).toBe(0);
     // Non-blocking: always continue
-    expect(r.result?.decision).toBe("continue");
+    expect(r.result?.decision).toBeUndefined();
 
     // Advisory fires for bare name too
     expect(r.result?.message).toContain("ADVISORY");

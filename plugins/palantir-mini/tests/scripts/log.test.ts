@@ -207,4 +207,54 @@ describe("scripts/log resolveEmitRoot resolution order", () => {
 
     expect(resolveEmitRoot(handlerProject)).toBe(envProject);
   });
+
+  // W5 review fix — resolveEmitRoot()'s "found root is excluded -> fall back
+  // to startDir" branch used to be a no-op whenever `startDir` WAS the
+  // excluded root itself (e.g. a handler-supplied cwd of the real HOME,
+  // satisfied by HOME's own genuine `.palantir-mini` marker): it fell back
+  // to `startDir`, which IS the same excluded dir, so callers with
+  // cwd === HOME silently leaked writes into the real `~/.palantir-mini`.
+  // Fixed by also checking `isExcludedProjectRoot(startDir)` in that
+  // fallback and routing to a dedicated `os.tmpdir()`-rooted scratch dir
+  // instead. This is unrelated to (and does not change) the "normal"
+  // registered/home resolution order asserted by the tests above — this
+  // branch only fires when `startDir` itself is one of the excluded roots.
+  test("excluded startDir (real HOME) does not resolve to HOME itself — routes to a tmpdir scratch dir", () => {
+    delete process.env.PALANTIR_MINI_PROJECT;
+    const home = os.homedir();
+
+    const resolved = resolveEmitRoot(home);
+
+    expect(resolved).not.toBe(home);
+    expect(resolved).toBe(path.join(os.tmpdir(), "palantir-mini-unrooted-emit"));
+  });
+
+  test("emit() with cwd=HOME writes under the tmpdir scratch root, never under the real ~/.palantir-mini (no write under real home)", async () => {
+    delete process.env.PALANTIR_MINI_PROJECT;
+    delete process.env.PALANTIR_MINI_EVENTS_FILE;
+    delete process.env.PALANTIR_MINI_EVENTS_FILE_FORCE;
+
+    const home = os.homedir();
+    const realEventsPath = path.join(home, ".palantir-mini", "session", "events.jsonl");
+    const beforeStat = fs.existsSync(realEventsPath) ? fs.statSync(realEventsPath) : null;
+
+    const scratchRoot = path.join(os.tmpdir(), "palantir-mini-unrooted-emit");
+    tmpDirs.push(scratchRoot); // shared production scratch path — afterEach sweeps it like any other tmp dir
+
+    await emit({
+      type: "session_started",
+      payload: { model: "test-model", effort: "low" },
+      toolName: "scripts/log.test",
+      cwd: home,
+      sessionId: "sess-log-test-excluded-root",
+      valueGrade: "T1",
+    });
+
+    const afterStat = fs.existsSync(realEventsPath) ? fs.statSync(realEventsPath) : null;
+    expect(afterStat?.size ?? null).toBe(beforeStat?.size ?? null);
+    expect(afterStat?.mtimeMs ?? null).toBe(beforeStat?.mtimeMs ?? null);
+
+    const scratchEventsPath = path.join(scratchRoot, ".palantir-mini", "session", "events.jsonl");
+    expect(fs.existsSync(scratchEventsPath)).toBe(true);
+  });
 });

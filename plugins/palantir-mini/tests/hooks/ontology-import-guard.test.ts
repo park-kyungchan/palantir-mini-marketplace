@@ -148,7 +148,7 @@ describe("collectNewContent", () => {
 describe("ontology-import-guard hook", () => {
   test("skips non-Edit tool", async () => {
     const result = await ontologyImportGuard({ tool_name: "Read", tool_input: {} });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("skipped");
   });
 
@@ -163,7 +163,7 @@ describe("ontology-import-guard hook", () => {
         new_string: `import { x } from "~/.claude/schemas/anywhere";`,
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("out-of-scope");
   });
 
@@ -178,7 +178,7 @@ describe("ontology-import-guard hook", () => {
         new_string: `import { Y } from "~/ontology/shared-core/primitives";`,
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("OK");
   });
 

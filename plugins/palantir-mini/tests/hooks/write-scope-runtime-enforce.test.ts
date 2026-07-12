@@ -206,7 +206,7 @@ describe("write-scope-runtime-enforce", () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(result?.decision).toBe("continue");
+    expect(result?.decision).toBeUndefined();
     expect(result?.message).toContain("EXEMPT");
     expect(
       (result?.hookSpecificOutput as Record<string, unknown> | undefined)?.permissionDecision,
@@ -222,7 +222,7 @@ describe("write-scope-runtime-enforce", () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(result?.decision).toBe("continue");
+    expect(result?.decision).toBeUndefined();
     expect(result?.message).toContain("OK");
     // No permissionDecision on OK path
     expect(
@@ -244,7 +244,7 @@ describe("write-scope-runtime-enforce", () => {
 
     expect(exitCode).toBe(0);
     // Advisory → decision is "continue" (not "block")
-    expect(result?.decision).toBe("continue");
+    expect(result?.decision).toBeUndefined();
     expect(result?.message).toContain("advisory");
     // No blocking permissionDecision on advisory
     expect(
@@ -275,7 +275,7 @@ describe("write-scope-runtime-enforce", () => {
     const { exitCode, result } = runHook(payload);
 
     expect(exitCode).toBe(0);
-    expect(result?.decision).toBe("continue");
+    expect(result?.decision).toBeUndefined();
     expect(result?.message).toContain("advisory");
     const additionalCtx = (
       result?.hookSpecificOutput as Record<string, unknown> | undefined
@@ -327,7 +327,7 @@ describe("write-scope-runtime-enforce", () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(result?.decision).toBe("continue");
+    expect(result?.decision).toBeUndefined();
     expect(result?.message).toContain("BYPASS");
     // No permissionDecision
     expect(
@@ -349,7 +349,7 @@ describe("write-scope-runtime-enforce", () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(result?.decision).toBe("continue");
+    expect(result?.decision).toBeUndefined();
     expect(result?.message).toContain("EXEMPT");
   });
 
@@ -366,7 +366,7 @@ describe("write-scope-runtime-enforce", () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(result?.decision).toBe("continue");
+    expect(result?.decision).toBeUndefined();
     expect(result?.message).toContain("advisory");
     const additionalCtx = (
       result?.hookSpecificOutput as Record<string, unknown> | undefined

@@ -927,7 +927,7 @@ describe("E2E Stage D — governed write-path (elevate + gate)", () => {
       tool_name: "Edit",
       tool_input: { file_path: protectedPath },
     });
-    expect(allowed.decision).toBe("continue");
+    expect(allowed.decision).toBeUndefined();
   });
 
   test("D2m-deny-event (OE-12 / Step 15): the OE-3 deny branch emits a 5-dim valuable-data event with the pinned governed errorClass", async () => {
@@ -1225,7 +1225,7 @@ describe("E2E Stage E — intentional escape-hatch (OP-2) + silent-edit caught",
       },
       { authorized: true, reason: verdict.reason ?? "re-verified against captured envelope" },
     );
-    expect(gate.decision).toBe("continue");
+    expect(gate.decision).toBeUndefined();
   });
 
   test("E2 (baseline): a SILENT no-signal edit is CAUGHT — no approval verb (HOLE-2) → authorized:false → gate DENIES (fails closed, never 'closed')", async () => {
@@ -1290,7 +1290,7 @@ describe("E2E Stage E — intentional escape-hatch (OP-2) + silent-edit caught",
       tool_name: "Edit",
       tool_input: { file_path: path.join(P, "projects/grading/ontology/object-type/submission.ts") },
     });
-    expect(allowed.decision).toBe("continue");
+    expect(allowed.decision).toBeUndefined();
   });
 });
 

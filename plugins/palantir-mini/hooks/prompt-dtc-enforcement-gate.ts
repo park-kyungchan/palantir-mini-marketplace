@@ -83,7 +83,6 @@ async function main(): Promise<void> {
       process.stdout.write(
         JSON.stringify({
           message: "palantir-mini: prompt-DTC gate skipped - malformed hook payload",
-          decision: "continue",
         }) + "\n",
       );
       return;

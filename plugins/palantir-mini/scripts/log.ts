@@ -7,6 +7,7 @@
 // Per-project session dir lookup: <project>/.palantir-mini/session/events.jsonl
 // Project root is determined by PALANTIR_MINI_PROJECT env var if set, else cwd.
 
+import * as os from "os";
 import * as path from "path";
 import { appendEventAtomic } from "../lib/event-log/append";
 import { findProjectRoot, isExcludedProjectRoot } from "../lib/project/find-root";
@@ -107,6 +108,13 @@ export function projectRoot(): string {
  *      ancestors (e.g. `/tmp/.palantir-mini`) must not make emit() latch
  *      onto it when walking up from a marker-less start dir underneath it —
  *      the start dir itself is used instead, same as the no-marker case.
+ *   5. That start-dir fallback is itself excluded when `startDir` IS ALREADY
+ *      one of the excluded dirs (e.g. `envCwd` is HOME itself, with HOME's
+ *      real `.palantir-mini` marker satisfying step 3's walk) — falling back
+ *      to `startDir` there would silently return the excluded dir anyway,
+ *      making step 4's exclusion a no-op. In that case, route to a dedicated
+ *      scratch dir under the OS temp root instead, so emit() never lands
+ *      events under a real HOME.
  */
 export function resolveEmitRoot(envCwd?: string): string {
   const envProject = process.env.PALANTIR_MINI_PROJECT;
@@ -117,6 +125,9 @@ export function resolveEmitRoot(envCwd?: string): string {
   const found = findProjectRoot(startDir);
   if (found !== null && !isExcludedProjectRoot(found)) {
     return found;
+  }
+  if (isExcludedProjectRoot(startDir)) {
+    return path.join(os.tmpdir(), "palantir-mini-unrooted-emit");
   }
   return startDir;
 }

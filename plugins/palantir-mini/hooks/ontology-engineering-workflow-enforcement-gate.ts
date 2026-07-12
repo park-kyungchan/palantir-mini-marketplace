@@ -40,7 +40,6 @@ async function main(): Promise<void> {
     } catch {
       process.stdout.write(JSON.stringify({
         message: "palantir-mini: ontology-engineering workflow gate skipped - malformed hook payload",
-        decision: "continue",
       }) + "\n");
       return;
     }
@@ -56,7 +55,6 @@ async function main(): Promise<void> {
     process.stdout.write(
       JSON.stringify({
         message: "palantir-mini: ontology-engineering workflow gate skipped",
-        decision: "continue",
       }) + "\n",
     );
     return;

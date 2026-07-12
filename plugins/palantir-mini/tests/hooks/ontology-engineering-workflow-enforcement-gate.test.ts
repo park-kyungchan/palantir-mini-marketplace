@@ -75,7 +75,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
     });
 
     // Advisory (suggest-only): detection still fires but the verdict CONTINUES.
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.permissionDecision).toBeUndefined();
     expect(result.message).toContain("ADVISORY");
     expect(result.additionalContext).toContain("Advisory");
@@ -91,7 +91,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
       },
     });
 
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("blocks Ontology Engineering SIC authoring before FDE workflow provenance exists", () => {
@@ -118,7 +118,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
       },
     });
 
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.additionalContext).toContain("palantir-mini user requirement prompt response requirements");
     expect(result.additionalContext).toContain("현재 workflow phase");
     expect(result.additionalContext).toContain("선택된 palantir-mini workflow 또는 workflow gap");
@@ -193,7 +193,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
       },
     });
 
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.additionalContext).toContain("mutationAuthorized=true");
     expect(result.additionalContext).toContain("palantir-mini user requirement prompt response requirements");
     expect(result.additionalContext).toContain("Codex");
@@ -214,7 +214,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
           "/ontology/object-type/foo.ts path; SemanticIntentContract DigitalTwinChangeContract palantir-mini/hooks/x.ts.",
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("RELAXATION: an out-of-tree workspace doc Write PASSES", () => {
@@ -226,7 +226,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
         content: "ontology engineering plan mentioning palantir-mini/hooks/ and semanticintentcontract",
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("RELAXATION: read-only Bash mentioning a protected path PASSES", () => {
@@ -235,7 +235,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
       tool_name: "Bash",
       tool_input: { command: "grep -rn 'palantir-mini/hooks' ." },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("RELAXATION: OE-marker in content with a plain .md target does NOT block", () => {
@@ -247,7 +247,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
         content: "ontology engineering semanticintentcontract digitaltwinchangecontract",
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("UNDER-BLOCK: genuine protected pm-source Write still hits provenance deny (no FDE)", () => {
@@ -397,7 +397,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
       tool_name: "Bash",
       tool_input: { command: "grep -rn palantir-mini/hooks ." },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("RELAXATION: read-only Bash `cat` of a protected path PASSES", () => {
@@ -406,7 +406,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
       tool_name: "Bash",
       tool_input: { command: "cat palantir-mini/hooks/foo.ts" },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("RELAXATION: Bash write whose target is NOT protected (mention in source) PASSES", () => {
@@ -415,7 +415,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
       tool_name: "Bash",
       tool_input: { command: `echo "see palantir-mini/hooks" > /tmp/note.txt` },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("UNDER-BLOCK: project /object-type/ path-class via Bash redirect (no marker) still blocks", () => {
@@ -484,7 +484,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
     writeWorkflowState(false);
     const pmRoot = makePmRoot({ withOptIn: true });
     const result = selfEngEdit(path.join(pmRoot, "hooks/second-brain-fold.ts"));
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("pm-self-engineering exemption");
   });
 
@@ -495,7 +495,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
     // path-class, so the gate never enters the mutation branch — it CONTINUES at the
     // early skip. The exemption is a no-op here; what matters is the edit PASSES.
     const result = selfEngEdit(path.join(pmRoot, "lib/event-log/read/fold-snapshot.ts"));
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("EXEMPT T3: MultiEdit bridge/handlers/emit-event.ts + scripts/log.ts PASSES (non-protected pm-source)", () => {
@@ -514,7 +514,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
         ],
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
   });
 
   test("EXEMPT T4: MultiEdit two non-ontology pm files PASSES", () => {
@@ -531,7 +531,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
         ],
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("pm-self-engineering exemption");
   });
 
@@ -544,7 +544,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
       tool_name: "Write",
       tool_input: { file_path: path.join(pmRoot, "hooks/hooks.json"), content: "{}" },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     expect(result.message).toContain("pm-self-engineering exemption");
   });
 
@@ -632,7 +632,7 @@ describe("ontology-engineering workflow enforcement hook", () => {
         file_path: path.join(projectRoot, ".claude/plugins/palantir-mini/hooks/hooks.json"),
       },
     });
-    expect(result.decision).toBe("continue");
+    expect(result.decision).toBeUndefined();
     // The normal mutationAuthorized path — NOT the self-engineering exemption.
     expect(result.additionalContext).toContain("mutationAuthorized=true");
     expect(result.message).not.toContain("pm-self-engineering exemption");
