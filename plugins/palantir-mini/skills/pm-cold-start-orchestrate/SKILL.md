@@ -2,7 +2,7 @@
 name: pm-cold-start-orchestrate
 category: core-workflow
 surfaceStatus: public-core
-description: "Manually invoked (or Lead-invoked) — deep-injects canonical research BROWSE+INDEX context..."
+description: "Manually invoked (or Lead-invoked) — deep-injects canonical research BROWSE+INDEX..."
 allowed-tools: mcp__palantir-mini__research_library_refresh mcp__palantir-mini__emit_event Read Bash
 effort: high
 disable-model-invocation: false

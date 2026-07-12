@@ -2,7 +2,7 @@
 name: pm-ontology-drift-propose
 category: core-workflow
 surfaceStatus: public-core
-description: "MANUAL drift propose-step — compose re-elevation GlobalBranchingProposals from a per-file-sha staleness report, gated, NO commit…"
+description: "MANUAL drift propose-step — compose re-elevation GlobalBranchingProposals from a..."
 allowed-tools: mcp__palantir-mini__apply_edit_function mcp__palantir-mini__commit_edits mcp__palantir-mini__emit_event Read Write Bash
 effort: medium
 disable-model-invocation: false

@@ -2,7 +2,7 @@
 name: pm-impact-quick
 category: maintenance
 surfaceStatus: public-core
-description: "1-call wrapper for impact_query + pm_substrate_query (mode workflow) targeting a single RID."
+description: "1-call wrapper for impact_query + pm_substrate_query (mode workflow) targeting a..."
 allowed-tools: mcp__palantir-mini__impact_query,mcp__palantir-mini__pm_substrate_query,mcp__palantir-mini__emit_event
 effort: low
 disable-model-invocation: false
