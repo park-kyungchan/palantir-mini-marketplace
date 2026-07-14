@@ -62,12 +62,15 @@ function loadSsotAuthority(): Record<string, unknown> {
 }
 
 // The runtime-boundary contract is an out-of-repo, machine-local artifact
-// (Lead-approved design: it STAYS out-of-repo). It will not exist on every
-// machine that checks out this repo. Existence-gate the two tests whose
-// assertions require reading its content; the third test (marker VALUES
-// only) always runs since it is fully machine-neutral.
-const runtimeBoundaryContractPresent = existsSync(resolvedRuntimeBoundaryContractPath());
-if (!runtimeBoundaryContractPresent) {
+// (Lead-approved design: it STAYS out-of-repo) that lives under the real
+// ~/.palantir-mini/** — one of the provider-home surfaces the default `bun
+// test` run must not read-depend on (a1-hermetic-plugin-tests). Gated behind
+// an explicit opt-in flag (not just existence) so a fresh clone/CI, or a
+// developer's ordinary `bun test`, never even stats the real path; the third
+// test (marker VALUES only) always runs since it is fully machine-neutral.
+const INSTALLED_CONFORMANCE_OPT_IN = process.env.PALANTIR_MINI_INSTALLED_CONFORMANCE === "1";
+const runtimeBoundaryContractPresent = INSTALLED_CONFORMANCE_OPT_IN && existsSync(resolvedRuntimeBoundaryContractPath());
+if (INSTALLED_CONFORMANCE_OPT_IN && !runtimeBoundaryContractPresent) {
   console.log(
     `[runtime-boundary.test] skipping contract-content assertions: ${resolvedRuntimeBoundaryContractPath()} is absent on this machine`,
   );

@@ -60,6 +60,14 @@ function readLines(filePath: string): string[] {
   return readFile(filePath).split("\n");
 }
 
+// Several checks below read the real ~/.codex/** and ~/AGENTS.md /
+// ~/.agents/** installed runtime files — gated behind an explicit opt-in (not
+// just existence) so a fresh clone/CI, or a developer's ordinary `bun test`,
+// never even stats those real paths (a1-hermetic-plugin-tests). The
+// PLUGIN_ROOT-relative checks in the same test are source-tree-internal and
+// stay unconditional.
+const INSTALLED_CONFORMANCE_OPT_IN = process.env.PALANTIR_MINI_INSTALLED_CONFORMANCE === "1";
+
 describe("source-root path sentinel", () => {
   test("active runtime loaders use the private marketplace source, not the removed local source tree", () => {
     for (const filePath of ACTIVE_RUNTIME_FILES) {
@@ -78,20 +86,22 @@ describe("source-root path sentinel", () => {
     expect(ssotMarker.authority).toBe(LOCAL_PLUGIN_SOURCE);
     expect(ssotMarker.upstreamAuthority).toBe(PRIVATE_MARKETPLACE_SOURCE);
 
-    expect(fs.existsSync(path.join(os.homedir(), ".agents/plugins/marketplace.json"))).toBe(false);
+    const runtimeFilesToInspect = [...ACTIVE_RUNTIME_FILES];
 
-    const presentRuntimeHomeFiles = ACTIVE_RUNTIME_HOME_FILES.filter((filePath) => fs.existsSync(filePath));
-    if (presentRuntimeHomeFiles.length < ACTIVE_RUNTIME_HOME_FILES.length) {
-      console.log(
-        `[source-root-path-sentinel] skipping ${ACTIVE_RUNTIME_HOME_FILES.length - presentRuntimeHomeFiles.length} absent ~/.codex runtime file(s) on this machine`,
+    if (INSTALLED_CONFORMANCE_OPT_IN) {
+      expect(fs.existsSync(path.join(os.homedir(), ".agents/plugins/marketplace.json"))).toBe(false);
+
+      const presentRuntimeHomeFiles = ACTIVE_RUNTIME_HOME_FILES.filter((filePath) => fs.existsSync(filePath));
+      if (presentRuntimeHomeFiles.length < ACTIVE_RUNTIME_HOME_FILES.length) {
+        console.log(
+          `[source-root-path-sentinel] skipping ${ACTIVE_RUNTIME_HOME_FILES.length - presentRuntimeHomeFiles.length} absent ~/.codex runtime file(s) on this machine`,
+        );
+      }
+      runtimeFilesToInspect.push(
+        ...presentRuntimeHomeFiles,
+        ...OPTIONAL_RUNTIME_FILES.filter((filePath) => fs.existsSync(filePath)),
       );
     }
-
-    const runtimeFilesToInspect = [
-      ...ACTIVE_RUNTIME_FILES,
-      ...presentRuntimeHomeFiles,
-      ...OPTIONAL_RUNTIME_FILES.filter((filePath) => fs.existsSync(filePath)),
-    ];
 
     for (const filePath of runtimeFilesToInspect) {
       const content = readFile(filePath);

@@ -4,157 +4,41 @@
 //
 // Purpose: verifies that the plugin-resident runtime-overlay acts as a
 // complete cold-start substitute when the external ~/.claude/rules/ and
-// ~/.claude/research/ directories are temporarily unavailable.
+// ~/.claude/research/ directories are unavailable.
 //
 // This test is the acceptance criterion for the Codex proposal §Migration
 // Acceptance Criteria: "plugin-only cold-start works without external
 // ~/.claude/rules/ being present."
 //
-// Scenario:
-//   1. Backup external ~/.claude/rules/ and ~/.claude/projects/-home-palantirkc/memory/
-//      to temp dirs to simulate a fresh machine (neither directory present).
-//   2. Invoke resolveRule(27) — asserts resolution via "plugin-overlay" source
-//      (not "external"), confirming the fallback is exercised.
-//   3. Invoke resolveResearchAnchor("harness species", "claude-code") — asserts
-//      source is "plugin-snapshot" by default.
-//   4. Restore both dirs and sha256-verify byte-identity.
-//
-// Safety: teardown is in try/finally so a mid-test failure never leaves
-// ~/.claude/rules/ in a broken state.
+// Scenario (rewritten under the a1-hermetic-plugin-tests slice — see git
+// history for the prior real-home-MOVING version): every "HOME absent" case
+// below runs against a disposable fake-HOME fixture (a fresh mkdtempSync()
+// directory that never had anything in it), so this file never renames,
+// moves, or otherwise mutates the developer's real ~/.claude/rules/ or
+// ~/.claude/projects/**/memory. Three of the five exercised behaviors need a
+// SEPARATE CHILD PROCESS rather than an in-process `process.env.HOME`
+// override, for two distinct reasons: (1) lib/runtime-overlay/resolve-rule.ts
+// and lib/runtime-overlay/research-core-select.ts each cache HOME as a
+// module-level constant at import time, so only a fresh process (spawned
+// with the fixture HOME already set) sees it resolve against the fixture —
+// see fresh-home-resolve-rule-subprocess.ts / fresh-home-research-anchor-
+// subprocess.ts; (2) resolveResearchAnchor() also performs unconditional
+// existsSync/readFileSync checks against <HOME>/.claude/research/<topic>/
+// before its forcePlugin gate is evaluated, so even a correct HOME override
+// must point at an empty fixture directory, never the real one.
 //
 // Authority: sprint-061 A.W7; plan ~/.claude/plans/inherited-discovering-quill.md §4.A.W7.
 // Cross-ref: lib/runtime-overlay/resolve-rule.ts, research-core-select.ts.
 
-import { test, expect, describe, afterAll } from "bun:test";
+import { test, expect, describe } from "bun:test";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import * as crypto from "crypto";
 
-import { resolveRule, OVERLAY_RULES_DIR } from "../../lib/runtime-overlay/resolve-rule";
-import { resolveResearchAnchor } from "../../lib/runtime-overlay/research-core-select";
+import { OVERLAY_RULES_DIR } from "../../lib/runtime-overlay/resolve-rule";
 import { resolveSchemaPath } from "../../lib/runtime-overlay/schema-resolve";
 import { resolveSharedCorePath } from "../../lib/runtime-overlay/shared-core-resolve";
 import { resolvePalantirMiniRoot } from "../../lib/config/root";
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const HOME = process.env.HOME ?? os.homedir();
-const EXTERNAL_RULES_DIR = path.join(HOME, ".claude", "rules");
-// Claude Code project-path slug: absolute path with every path separator
-// replaced by "-" (e.g. /home/palantirkc -> -home-palantirkc). Derived from
-// HOME rather than hardcoded so this test is portable across machines/sandboxes.
-// Mirrors bootstrap-home.sh's HOME_SLUG derivation and the slug logic in
-// hooks/session-start.ts / hooks/second-brain-fold.ts.
-const HOME_SLUG = path.resolve(HOME).split(path.sep).join("-");
-const MEMORY_DIR = path.join(HOME, ".claude", "projects", HOME_SLUG, "memory");
-
-/** Temporary backup dirs created during test — cleaned up in afterAll. */
-let backupRulesDir: string | null = null;
-let backupMemoryDir: string | null = null;
-let rulesWereRenamed = false;
-let memoryWereRenamed = false;
-/** Whether ~/.claude/rules/ existed before the test moved it away (captured pre-move). */
-let rulesDirExisted = false;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** sha256 of file contents; null if file does not exist. */
-function fileSha256(filePath: string): string | null {
-  try {
-    const content = fs.readFileSync(filePath);
-    return crypto.createHash("sha256").update(content).digest("hex");
-  } catch {
-    return null;
-  }
-}
-
-/** Hash every file in a directory tree (relative-path → sha256). */
-function hashDir(dir: string): Map<string, string> {
-  const result = new Map<string, string>();
-  if (!fs.existsSync(dir)) return result;
-
-  const recurse = (current: string, rel: string) => {
-    const entries = fs.readdirSync(current, { withFileTypes: true });
-    for (const entry of entries) {
-      const entryRel = rel ? `${rel}/${entry.name}` : entry.name;
-      const entryAbs = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        recurse(entryAbs, entryRel);
-      } else if (entry.isFile()) {
-        const hash = fileSha256(entryAbs);
-        if (hash !== null) result.set(entryRel, hash);
-      }
-    }
-  };
-  recurse(dir, "");
-  return result;
-}
-
-/**
- * Move (rename) a directory to a new path.
- * Falls back to copy+delete when rename crosses filesystems.
- */
-function moveDir(src: string, dest: string): void {
-  if (!fs.existsSync(src)) return;
-  // Try atomic rename first.
-  try {
-    fs.renameSync(src, dest);
-    return;
-  } catch {
-    // Cross-filesystem — fall through to manual copy.
-  }
-  // Manual recursive copy, then remove.
-  copyDirRecursive(src, dest);
-  fs.rmSync(src, { recursive: true, force: true });
-}
-
-function copyDirRecursive(src: string, dest: string): void {
-  if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
-  const entries = fs.readdirSync(src, { withFileTypes: true });
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDirRecursive(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
-}
-
-// ── Teardown guard ────────────────────────────────────────────────────────────
-// Runs after all tests — restores backed-up directories even if tests fail.
-
-afterAll(() => {
-  try {
-    if (rulesWereRenamed && backupRulesDir && fs.existsSync(backupRulesDir)) {
-      // Remove the (possibly empty) placeholder if rename created one.
-      if (fs.existsSync(EXTERNAL_RULES_DIR)) {
-        fs.rmSync(EXTERNAL_RULES_DIR, { recursive: true, force: true });
-      }
-      moveDir(backupRulesDir, EXTERNAL_RULES_DIR);
-      backupRulesDir = null;
-      rulesWereRenamed = false;
-    }
-    if (memoryWereRenamed && backupMemoryDir && fs.existsSync(backupMemoryDir)) {
-      if (fs.existsSync(MEMORY_DIR)) {
-        fs.rmSync(MEMORY_DIR, { recursive: true, force: true });
-      }
-      moveDir(backupMemoryDir, MEMORY_DIR);
-      backupMemoryDir = null;
-      memoryWereRenamed = false;
-    }
-  } catch (e) {
-    // Last-resort: print to stderr so the user can manually fix.
-    process.stderr.write(
-      `\nWARNING: fresh-home.test.ts afterAll teardown failed:\n${String(e)}\n` +
-      `If ~/.claude/rules/ is missing, restore from backup at:\n  ${backupRulesDir ?? "(already restored)"}\n`,
-    );
-  }
-});
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("fresh-home bootstrap: plugin overlay substitutes for missing external dirs", () => {
 
@@ -167,75 +51,59 @@ describe("fresh-home bootstrap: plugin overlay substitutes for missing external 
     expect(content).toMatch(/rule\s+\d+|Core Invariants/i);
   });
 
-  test("resolveRule(27) resolves to plugin-overlay when external rules are absent", async () => {
-    // ── Setup: hash external rules dir before rename ──────────────────────────
-    const preHashes = hashDir(EXTERNAL_RULES_DIR);
-
-    // Create temp backup directory.
-    backupRulesDir = fs.mkdtempSync(path.join(os.tmpdir(), "palantir-mini-rules-backup-"));
-    // Remove the empty temp dir so rename can occupy it.
-    fs.rmdirSync(backupRulesDir);
-
-    let restoreError: unknown = null;
-
-    // Capture existence BEFORE the move — moveDir() no-ops when src is
-    // absent, so rulesWereRenamed alone can't tell us whether there is
-    // anything to restore. Mirrors the memoryExists capture in the sibling
-    // memory-dir test below.
-    rulesDirExisted = fs.existsSync(EXTERNAL_RULES_DIR);
-
+  test("resolveRule(27) resolves to plugin-overlay when external rules are absent from HOME", () => {
+    // Fresh, EMPTY fake-HOME fixture — never the real ~/.claude/rules/. See the
+    // header comment on fresh-home-resolve-rule-subprocess.ts for why this must
+    // run in a genuinely separate process rather than an in-process
+    // process.env.HOME override.
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "pm-fresh-home-fake-"));
     try {
-      // ── Move external rules away ──────────────────────────────────────────
-      moveDir(EXTERNAL_RULES_DIR, backupRulesDir);
-      rulesWereRenamed = true;
-      expect(fs.existsSync(EXTERNAL_RULES_DIR)).toBe(false);
+      const helperPath = path.join(import.meta.dir, "fresh-home-resolve-rule-subprocess.ts");
+      const proc = Bun.spawnSync(["bun", "run", helperPath, "27"], {
+        env: { ...process.env, HOME: fakeHome },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
 
-      // ── Exercise: resolveRule should now use plugin-overlay ───────────────
-      const result = await resolveRule(27);
+      const stderr = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+      expect(proc.exitCode, `subprocess stderr: ${stderr}`).toBe(0);
+
+      const stdout = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
+      const result = JSON.parse(stdout) as { body: string; source: string; filePath?: string };
+
+      // fakeHome has no .claude/rules/ at all → external fallback misses, so
+      // resolution falls through to the plugin-resident overlay.
       expect(result.source).toBe("plugin-overlay");
       expect(result.body.trim().length).toBeGreaterThan(0);
-      // Rule 27 is cross-runtime-substrate; body should mention substrate
+      // Rule 27 is cross-runtime-substrate; body should mention substrate.
       expect(result.body).toContain("cross-runtime");
       expect(result.filePath).toBeDefined();
-
-    } catch (e) {
-      restoreError = e;
     } finally {
-      // ── Restore external rules ────────────────────────────────────────────
-      if (rulesWereRenamed && backupRulesDir && fs.existsSync(backupRulesDir)) {
-        if (fs.existsSync(EXTERNAL_RULES_DIR)) {
-          fs.rmSync(EXTERNAL_RULES_DIR, { recursive: true, force: true });
-        }
-        moveDir(backupRulesDir, EXTERNAL_RULES_DIR);
-        backupRulesDir = null;
-        rulesWereRenamed = false;
-      }
-    }
-
-    if (restoreError) throw restoreError;
-
-    // ── Verify byte-identity of restored dir ─────────────────────────────────
-    // Only meaningful if ~/.claude/rules/ existed before this test moved it
-    // away — on a machine without that dir (e.g. sandbox/CI fresh-home),
-    // moveDir() no-ops on the absent source and there is nothing to restore
-    // or verify. Mirrors the "didn't exist originally" branch in the sibling
-    // memory-dir test below.
-    if (rulesDirExisted) {
-      const postHashes = hashDir(EXTERNAL_RULES_DIR);
-      expect(postHashes.size).toBe(preHashes.size);
-      for (const [rel, hash] of preHashes) {
-        expect(postHashes.get(rel)).toBe(hash);
-      }
-      // Verify CORE.md specifically.
-      expect(fs.existsSync(path.join(EXTERNAL_RULES_DIR, "CORE.md"))).toBe(true);
+      fs.rmSync(fakeHome, { recursive: true, force: true });
     }
   });
 
-  test("resolveResearchAnchor can force plugin snapshot fallback", async () => {
-    const previous = process.env.PALANTIR_MINI_PREFER_PLUGIN_RESEARCH;
-    process.env.PALANTIR_MINI_PREFER_PLUGIN_RESEARCH = "1";
+  test("resolveResearchAnchor can force plugin snapshot fallback", () => {
+    // Fresh, EMPTY fake-HOME fixture — never the real ~/.claude/research/.
+    // See the header comment on fresh-home-research-anchor-subprocess.ts for
+    // why this must run in a genuinely separate process: research-core-select.ts
+    // caches HOME at module load, AND resolveResearchAnchor() unconditionally
+    // existsSync/readFileSync-checks <HOME>/.claude/research/<topic>/ before
+    // the forcePlugin gate is evaluated.
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "pm-fresh-home-fake-"));
     try {
-      const result = await resolveResearchAnchor("harness species", "claude-code");
+      const helperPath = path.join(import.meta.dir, "fresh-home-research-anchor-subprocess.ts");
+      const proc = Bun.spawnSync(["bun", "run", helperPath, "harness species", "claude-code"], {
+        env: { ...process.env, HOME: fakeHome, PALANTIR_MINI_PREFER_PLUGIN_RESEARCH: "1" },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      const stderr = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+      expect(proc.exitCode, `subprocess stderr: ${stderr}`).toBe(0);
+
+      const stdout = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
+      const result = JSON.parse(stdout) as { source: string; files: { path: string }[] };
 
       expect(result.source).toBe("plugin-snapshot");
       expect(result.files.length).toBeGreaterThan(0);
@@ -250,8 +118,7 @@ describe("fresh-home bootstrap: plugin overlay substitutes for missing external 
         expect(f.path.startsWith(pluginDir)).toBe(true);
       }
     } finally {
-      if (previous === undefined) delete process.env.PALANTIR_MINI_PREFER_PLUGIN_RESEARCH;
-      else process.env.PALANTIR_MINI_PREFER_PLUGIN_RESEARCH = previous;
+      fs.rmSync(fakeHome, { recursive: true, force: true });
     }
   });
 
@@ -267,82 +134,37 @@ describe("fresh-home bootstrap: plugin overlay substitutes for missing external 
     expect(fs.existsSync(path.join(sharedCore.resolvedPath, "index.ts"))).toBe(true);
   });
 
-  test("memory dir stub is created when absent and bootstrap-home.sh exits 0", async () => {
-    // ── Setup: backup memory dir ──────────────────────────────────────────────
-    const memoryExists = fs.existsSync(MEMORY_DIR);
-    backupMemoryDir = fs.mkdtempSync(path.join(os.tmpdir(), "palantir-mini-memory-backup-"));
-    fs.rmdirSync(backupMemoryDir);
-
-    let restoreError: unknown = null;
-
+  test("memory dir stub is created when absent and bootstrap-home.sh exits 0", () => {
+    // Fresh, EMPTY fake-HOME fixture. scripts/bootstrap-home.sh reads $HOME from
+    // its OWN process env (`HOME_DIR="${HOME:?HOME must be set}"`), so
+    // overriding `env.HOME` in the spawnSync call below redirects the whole
+    // check — including the per-project memory stub it creates — into the
+    // fixture; the real ~/.claude/projects/**/memory is never touched.
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "pm-fresh-home-fake-"));
     try {
-      if (memoryExists) {
-        moveDir(MEMORY_DIR, backupMemoryDir);
-        memoryWereRenamed = true;
-      }
-      expect(fs.existsSync(MEMORY_DIR)).toBe(false);
+      // Mirrors bootstrap-home.sh's own HOME_SLUG derivation (`tr '/' '-'`).
+      const fakeHomeSlug = path.resolve(fakeHome).split(path.sep).join("-");
+      const memoryDir = path.join(fakeHome, ".claude", "projects", fakeHomeSlug, "memory");
 
-      // Run bootstrap-home.sh; it should create the stub and exit 0.
-      const scriptPath = path.join(
-        resolvePalantirMiniRoot(),
-        "scripts",
-        "bootstrap-home.sh",
-      );
+      const scriptPath = path.join(resolvePalantirMiniRoot(), "scripts", "bootstrap-home.sh");
       expect(fs.existsSync(scriptPath)).toBe(true);
+      expect(fs.existsSync(memoryDir)).toBe(false);
 
       const proc = Bun.spawnSync(["sh", scriptPath], {
-        env: { ...process.env },
+        env: { ...process.env, HOME: fakeHome },
         stdout: "pipe",
         stderr: "pipe",
       });
 
       const stdout = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
-      expect(proc.exitCode).toBe(0);
+      const stderr = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+      expect(proc.exitCode, `stdout: ${stdout}\nstderr: ${stderr}`).toBe(0);
       expect(stdout).toContain("bootstrap-home OK");
-      // Stub should have been created.
-      expect(fs.existsSync(MEMORY_DIR)).toBe(true);
-
-    } catch (e) {
-      restoreError = e;
+      // Stub should have been created under the fake home.
+      expect(fs.existsSync(memoryDir)).toBe(true);
     } finally {
-      // Restore memory dir.
-      if (memoryWereRenamed && backupMemoryDir && fs.existsSync(backupMemoryDir)) {
-        if (fs.existsSync(MEMORY_DIR)) {
-          fs.rmSync(MEMORY_DIR, { recursive: true, force: true });
-        }
-        moveDir(backupMemoryDir, MEMORY_DIR);
-        backupMemoryDir = null;
-        memoryWereRenamed = false;
-      } else if (!memoryWereRenamed && backupMemoryDir) {
-        // Memory was not present originally; clean up stub if present.
-        if (fs.existsSync(MEMORY_DIR)) {
-          fs.rmSync(MEMORY_DIR, { recursive: true, force: true });
-        }
-        try { fs.rmdirSync(backupMemoryDir); } catch { /* empty dir may not exist */ }
-        backupMemoryDir = null;
-      }
+      fs.rmSync(fakeHome, { recursive: true, force: true });
     }
-
-    if (restoreError) throw restoreError;
-  });
-
-  test("CORE.md is intact after all test teardowns (wc -l check)", () => {
-    // Cross-verify that ~/.claude/rules/ was fully restored — but only if it
-    // existed before this suite touched it. On a machine without
-    // ~/.claude/rules/ to begin with (sandbox/CI fresh-home), there is
-    // nothing to restore, so this cross-check is not applicable. The real
-    // subject under test (resolveRule plugin-overlay fallback, asserted in
-    // the earlier test) is unconditional and unaffected by this gate.
-    if (!rulesDirExisted) return;
-
-    expect(fs.existsSync(EXTERNAL_RULES_DIR)).toBe(true);
-    const corePath = path.join(EXTERNAL_RULES_DIR, "CORE.md");
-    expect(fs.existsSync(corePath)).toBe(true);
-    const content = fs.readFileSync(corePath, "utf8");
-    const lineCount = content.split("\n").length;
-    // CORE.md is a T1 doc; rule 12 §Ceiling enforces ≤25 LOC.
-    expect(lineCount).toBeGreaterThan(0);
-    expect(lineCount).toBeLessThanOrEqual(30); // slight tolerance for trailing newline
   });
 
 });

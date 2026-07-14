@@ -22,7 +22,11 @@ const PALANTIR_MATH_PROJECT = path.join(
   "projects",
   "palantir-math",
 );
-const palantirMathPresent = existsSync(PALANTIR_MATH_PROJECT);
+// Reads a real sibling project under the operator's home — gated behind an
+// explicit opt-in (not just existence) so a fresh clone/CI, or a developer's
+// ordinary `bun test`, never even stats the real path (a1-hermetic-plugin-tests).
+const INSTALLED_CONFORMANCE_OPT_IN = process.env.PALANTIR_MINI_INSTALLED_CONFORMANCE === "1";
+const palantirMathPresent = INSTALLED_CONFORMANCE_OPT_IN && existsSync(PALANTIR_MATH_PROJECT);
 
 
 describe("semantic_drift_audit handler", () => {

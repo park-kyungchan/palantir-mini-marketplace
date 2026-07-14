@@ -317,7 +317,11 @@ describe("sync-codex-adapter.ts input validation", () => {
 // ────────────────────────────────────────────────────────────────────────────
 
 const DEPLOYED_SHIM_PATH = path.join(homedir(), ".codex", "hooks", "palantir-mini-codex-hook-adapter.ts");
-const deployedShimPresent = existsSync(DEPLOYED_SHIM_PATH);
+// Reads the real ~/.codex/** installed shim — gated behind an explicit opt-in
+// (not just existence) so a fresh clone/CI, or a developer's ordinary `bun
+// test`, never even stats the real path (a1-hermetic-plugin-tests).
+const INSTALLED_CONFORMANCE_OPT_IN = process.env.PALANTIR_MINI_INSTALLED_CONFORMANCE === "1";
+const deployedShimPresent = INSTALLED_CONFORMANCE_OPT_IN && existsSync(DEPLOYED_SHIM_PATH);
 
 describe("sync-codex-adapter.ts (Lane 2: deployed-shim drift, existence-gated)", () => {
   // Existence-gated per repo precedent: machine-specific fixtures are
