@@ -134,16 +134,22 @@ describe("rule-26 doc↔code conformance: body documents the LIVE taxonomy", () 
     expect(RULE_26_BODY).toMatch(/promoteT3ToT4/);
   });
 
-  test("rules-bodies slim stub is version-locked to 2.1.0 (lockstep)", () => {
-    // The external slim stub points at this overlay body; both must be 2.1.0.
-    const stubPath = path.join(
-      process.env.HOME ?? "/home/palantirkc",
-      ".claude/rules-bodies/2026-06-14/26-valuable-data-standard.md",
-    );
-    if (fs.existsSync(stubPath)) {
-      const stub = fs.readFileSync(stubPath, "utf8");
-      expect(stub).toMatch(/^version:\s*2\.1\.0\s*$/m);
-      expect(stub).not.toMatch(/Dropped for solo-dev/i);
-    }
-  });
+  // Reads the real ~/.claude/rules-bodies/** stub — gated behind an explicit
+  // opt-in (not just existence) so a fresh clone/CI, or a developer's ordinary
+  // `bun test`, never even stats the real path (a1-hermetic-plugin-tests).
+  test.skipIf(process.env.PALANTIR_MINI_INSTALLED_CONFORMANCE !== "1")(
+    "rules-bodies slim stub is version-locked to 2.1.0 (lockstep)",
+    () => {
+      // The external slim stub points at this overlay body; both must be 2.1.0.
+      const stubPath = path.join(
+        process.env.HOME ?? "/home/palantirkc",
+        ".claude/rules-bodies/2026-06-14/26-valuable-data-standard.md",
+      );
+      if (fs.existsSync(stubPath)) {
+        const stub = fs.readFileSync(stubPath, "utf8");
+        expect(stub).toMatch(/^version:\s*2\.1\.0\s*$/m);
+        expect(stub).not.toMatch(/Dropped for solo-dev/i);
+      }
+    },
+  );
 });

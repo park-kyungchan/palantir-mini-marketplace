@@ -7,7 +7,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { execSync } from "child_process";
-import sessionStart, {
+import {
   liveBranch,
   buildFoldTriggerContext,
   selectFoldTriggerContext,
@@ -62,10 +62,11 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     "PALANTIR_MINI_EVENTS_FILE",
     "PALANTIR_MINI_EVENTS_FILE_FORCE",
     "PALANTIR_MINI_SESSION_START_EAGER",
+    "HOME",
   ] as const;
   const saved: Record<string, string | undefined> = {};
   const dirs: string[] = [];
-  const transcripts: string[] = [];
+  const fakeHomeDirs: string[] = [];
 
   beforeEach(() => {
     for (const k of SAVE) saved[k] = process.env[k];
@@ -76,25 +77,37 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
       else process.env[k] = saved[k]!;
     }
     for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
-    for (const t of transcripts.splice(0)) { try { fs.rmSync(t, { force: true }); } catch { /* best-effort */ } }
+    for (const h of fakeHomeDirs.splice(0)) { try { fs.rmSync(h, { recursive: true, force: true }); } catch { /* best-effort */ } }
   });
 
-  /** Tracked project with stub engine + transcript on disk. Returns {root, sessionId}. */
-  function seed(): { root: string; sessionId: string } {
+  /**
+   * Tracked project with stub engine + transcript on disk. Returns
+   * {root, sessionId, fakeHome}. sessionStart()/the second-brain-fold hook
+   * resolve the transcript path via os.homedir(), which does NOT reflect an
+   * in-process `process.env.HOME = ...` reassignment in Bun (see
+   * session-start-subprocess.ts's header comment) — so this fixture never
+   * sets process.env.HOME itself; callers that need the hook to see the
+   * fixture pass the returned `fakeHome` explicitly as the `HOME` env var of
+   * a child-process invocation instead, and the real ~/.claude/projects/** is
+   * never touched.
+   */
+  function seed(): { root: string; sessionId: string; fakeHome: string } {
     const root = makeTmpDir("sbf");
     dirs.push(root);
     fs.mkdirSync(path.join(root, ".palantir-mini", "session"), { recursive: true });
     fs.mkdirSync(path.join(root, "second-brain", "scripts"), { recursive: true });
     fs.writeFileSync(path.join(root, "second-brain", "scripts", "fold.ts"), "// stub\n", "utf8");
 
+    const fakeHome = makeTmpDir("sbf-home");
+    fakeHomeDirs.push(fakeHome);
+
     const sessionId = `sess-st-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const slug = path.resolve(root).split(path.sep).join("-");
-    const projectsDir = path.join(os.homedir(), ".claude", "projects", slug);
+    const projectsDir = path.join(fakeHome, ".claude", "projects", slug);
     fs.mkdirSync(projectsDir, { recursive: true });
     const transcript = path.join(projectsDir, sessionId + ".jsonl");
     fs.writeFileSync(transcript, '{"type":"user"}\n', "utf8");
-    transcripts.push(transcript);
-    return { root, sessionId };
+    return { root, sessionId, fakeHome };
   }
 
   function setEnv(root: string): void {
@@ -131,12 +144,29 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     expect(line).not.toContain("(Agent tool)");
   });
 
-  test("eager + engine + unfolded transcript + pending bookmark → additionalContext names the session", async () => {
-    const { root, sessionId } = seed();
+  // sessionStart() resolves the transcript path via os.homedir(), which does
+  // NOT reflect an in-process `process.env.HOME = ...` reassignment in Bun —
+  // run it in a genuinely separate child process instead (see
+  // session-start-subprocess.ts's header comment).
+  function runSessionStartWithHome(payload: unknown, home: string): { hookSpecificOutput?: { hookEventName?: string; additionalContext?: string } } {
+    const helperPath = path.join(import.meta.dir, "session-start-subprocess.ts");
+    const proc = Bun.spawnSync(["bun", "run", helperPath, JSON.stringify(payload)], {
+      env: { ...process.env, HOME: home },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const stderr = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+    expect(proc.exitCode, `subprocess stderr: ${stderr}`).toBe(0);
+    const stdout = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
+    return JSON.parse(stdout);
+  }
+
+  test("eager + engine + unfolded transcript + pending bookmark → additionalContext names the session", () => {
+    const { root, sessionId, fakeHome } = seed();
     setEnv(root);
     markPending(root, { sessionId, transcriptPath: `/x/${sessionId}.jsonl`, bookmarkedAt: "x", runtime: "monitor" });
 
-    const result = await sessionStart({ cwd: root, session_id: "live-sess" });
+    const result = runSessionStartWithHome({ cwd: root, session_id: "live-sess" }, fakeHome);
     // FIX-FOLD-WIRING: the fold-trigger rides nested at
     // hookSpecificOutput.additionalContext (hookEventName "SessionStart"); a
     // top-level additionalContext would be silently dropped by Claude.
@@ -147,8 +177,8 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     expect(result.hookSpecificOutput?.additionalContext).toContain(root);
   });
 
-  test("fold trigger fires WITHOUT eager env (P1 eager-gate fix regression guard)", async () => {
-    const { root, sessionId } = seed();
+  test("fold trigger fires WITHOUT eager env (P1 eager-gate fix regression guard)", () => {
+    const { root, sessionId, fakeHome } = seed();
     // Set ONLY the events env — deliberately NOT PALANTIR_MINI_SESSION_START_EAGER.
     process.env.PALANTIR_MINI_PROJECT = root;
     process.env.PALANTIR_MINI_EVENTS_FILE = path.join(root, ".palantir-mini", "session", "events.jsonl");
@@ -156,15 +186,15 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
     delete process.env.PALANTIR_MINI_SESSION_START_EAGER;
     markPending(root, { sessionId, transcriptPath: `/x/${sessionId}.jsonl`, bookmarkedAt: "x", runtime: "monitor" });
 
-    const result = await sessionStart({ cwd: root, session_id: "live-sess" });
+    const result = runSessionStartWithHome({ cwd: root, session_id: "live-sess" }, fakeHome);
     expect(result.hookSpecificOutput?.hookEventName).toBe("SessionStart");
     expect(typeof result.hookSpecificOutput?.additionalContext).toBe("string");
     expect(result.hookSpecificOutput?.additionalContext).toContain("[second-brain]");
     expect(result.hookSpecificOutput?.additionalContext).toContain(sessionId);
   });
 
-  test("A2-prior line is pushed UNCONDITIONALLY (eager flag OFF) — Sink-1 READ", async () => {
-    const { root } = seed();
+  test("A2-prior line is pushed UNCONDITIONALLY (eager flag OFF) — Sink-1 READ", () => {
+    const { root, fakeHome } = seed();
     // Deliberately do NOT set PALANTIR_MINI_SESSION_START_EAGER — A2-prior must
     // still fire (mirrors the unconditional second-brain fold-detect push).
     process.env.PALANTIR_MINI_PROJECT = root;
@@ -190,14 +220,14 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
       "utf8",
     );
 
-    const result = await sessionStart({ cwd: root, session_id: "live-sess" });
+    const result = runSessionStartWithHome({ cwd: root, session_id: "live-sess" }, fakeHome);
     const ctx = result.hookSpecificOutput?.additionalContext ?? "";
     expect(ctx).toContain("[A2-prior]");
     expect(ctx).toContain("lead_decision");
   });
 
-  test("a session already in foldedSessions is NOT named (listPending exclusion)", async () => {
-    const { root, sessionId } = seed();
+  test("a session already in foldedSessions is NOT named (listPending exclusion)", () => {
+    const { root, sessionId, fakeHome } = seed();
     setEnv(root);
     markPending(root, { sessionId, transcriptPath: `/x/${sessionId}.jsonl`, bookmarkedAt: "x", runtime: "monitor" });
     // mark it folded in the engine manifest
@@ -207,24 +237,30 @@ describe("second-brain fold-trigger (P1-2 detect+inject)", () => {
       "utf8",
     );
 
-    const result = await sessionStart({ cwd: root, session_id: "live-sess" });
+    const result = runSessionStartWithHome({ cwd: root, session_id: "live-sess" }, fakeHome);
     const ctx = result.hookSpecificOutput?.additionalContext ?? "";
     expect(ctx).not.toContain(sessionId);
   });
 
-  test("no unfolded transcripts → no [second-brain] line", async () => {
+  test("no unfolded transcripts → no [second-brain] line", () => {
     const root = makeTmpDir("sbf-empty");
     dirs.push(root);
     fs.mkdirSync(path.join(root, ".palantir-mini", "session"), { recursive: true });
     fs.mkdirSync(path.join(root, "second-brain", "scripts"), { recursive: true });
     fs.writeFileSync(path.join(root, "second-brain", "scripts", "fold.ts"), "// stub\n", "utf8");
-    // ensure no leftover transcripts for this fresh slug
+    // ensure no leftover transcripts for this fresh slug, under a fake HOME
+    // fixture (never the real ~/.claude/projects/**) — resolved via a
+    // subprocess invocation (see session-start-subprocess.ts's header
+    // comment for why an in-process process.env.HOME reassignment does not
+    // work in Bun).
+    const fakeHome = makeTmpDir("sbf-empty-home");
+    fakeHomeDirs.push(fakeHome);
     const slug = path.resolve(root).split(path.sep).join("-");
-    const projectsDir = path.join(os.homedir(), ".claude", "projects", slug);
+    const projectsDir = path.join(fakeHome, ".claude", "projects", slug);
     fs.mkdirSync(projectsDir, { recursive: true });
     setEnv(root);
 
-    const result = await sessionStart({ cwd: root, session_id: "live-sess" });
+    const result = runSessionStartWithHome({ cwd: root, session_id: "live-sess" }, fakeHome);
     const ctx = result.hookSpecificOutput?.additionalContext ?? "";
     expect(ctx).not.toContain("[second-brain]");
   });

@@ -152,17 +152,30 @@ describe("ontology-drift-fold", () => {
   // FIX F2: a stray .palantir-mini marker AT $HOME must not make HOME the drift frame
   // (would detect drift + emit governed events under the wrong root). The marker passes
   // the .palantir-mini existence gate, so only isExcludedProjectRoot stops it.
-  test("T6: cwd resolves to an EXCLUDED root ($HOME stray marker) → skip, no drift emit", async () => {
+  test("T6: cwd resolves to an EXCLUDED root ($HOME stray marker) → skip, no drift emit", () => {
     delete process.env.PALANTIR_MINI_EVENTS_FILE;
-    const home = os.homedir();
-    const marker = path.join(home, ".palantir-mini");
-    const hadMarker = fs.existsSync(marker);
-    if (!hadMarker) fs.mkdirSync(marker, { recursive: true });
+    // Fake HOME fixture — NEVER touch the real $HOME. isExcludedProjectRoot()
+    // (lib/project/find-root.ts) reads os.homedir(), which does NOT reflect an
+    // in-process `process.env.HOME = ...` reassignment in Bun — only a
+    // genuinely separate child process spawned with HOME already set sees it
+    // (see ontology-drift-fold-subprocess.ts's header comment). This test runs
+    // the hook in such a subprocess instead, and never touches the real HOME.
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "pm-odf-fakehome-"));
     try {
-      const result = await ontologyDriftFold({ cwd: home, session_id: "test" });
+      const marker = path.join(fakeHome, ".palantir-mini");
+      fs.mkdirSync(marker, { recursive: true });
+      const helperPath = path.join(import.meta.dir, "ontology-drift-fold-subprocess.ts");
+      const proc = Bun.spawnSync(
+        ["bun", "run", helperPath, JSON.stringify({ cwd: fakeHome, session_id: "test" })],
+        { env: { ...process.env, HOME: fakeHome }, stdout: "pipe", stderr: "pipe" },
+      );
+      const stderr = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+      expect(proc.exitCode, `subprocess stderr: ${stderr}`).toBe(0);
+      const stdout = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
+      const result = JSON.parse(stdout) as { message: string };
       expect(result.message).toContain("excluded project root");
     } finally {
-      if (!hadMarker) { try { fs.rmSync(marker, { recursive: true, force: true }); } catch { /* best-effort */ } }
+      fs.rmSync(fakeHome, { recursive: true, force: true });
     }
   });
 });

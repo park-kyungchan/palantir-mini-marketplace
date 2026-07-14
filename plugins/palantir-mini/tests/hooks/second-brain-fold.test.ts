@@ -28,7 +28,7 @@ const originalEventsFile = process.env.PALANTIR_MINI_EVENTS_FILE;
 const originalEventsFileForce = process.env.PALANTIR_MINI_EVENTS_FILE_FORCE;
 const originalBypass = process.env[SECOND_BRAIN_FOLD_BYPASS];
 const tmpDirs: string[] = [];
-const tmpTranscripts: string[] = [];
+const fakeHomeDirs: string[] = [];
 
 function makeTmpProject(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pm-sbf-"));
@@ -38,24 +38,31 @@ function makeTmpProject(): string {
 
 /**
  * Make `root` a tracked project with a STUB engine file present + a transcript on
- * disk at the slug path the hook computes. Returns the sessionId. The transcript
- * lives under the real ~/.claude/projects/<slug>/ (the hook reads os.homedir());
- * it is tracked for cleanup.
+ * disk at the slug path the hook computes. Returns the sessionId and the fake
+ * HOME the transcript was written under. The hook resolves the transcript path
+ * via os.homedir(), which does NOT reflect an in-process
+ * `process.env.HOME = ...` reassignment in Bun (see
+ * second-brain-fold-subprocess.ts's header comment) — so the fixture never
+ * sets process.env.HOME itself; callers instead pass the returned `fakeHome`
+ * explicitly as the `HOME` env var of a child-process invocation of the hook,
+ * and the real ~/.claude/projects/** is never touched.
  */
-function seedTrackedProjectWithTranscript(root: string): string {
+function seedTrackedProjectWithTranscript(root: string): { sessionId: string; fakeHome: string } {
   fs.mkdirSync(path.join(root, ".palantir-mini", "session"), { recursive: true });
   fs.mkdirSync(path.join(root, "second-brain", "scripts"), { recursive: true });
   // stub engine: present but never executed by the bookmark path
   fs.writeFileSync(path.join(root, "second-brain", "scripts", "fold.ts"), "// stub engine\n", "utf8");
 
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "pm-sbf-fakehome-"));
+  fakeHomeDirs.push(fakeHome);
+
   const sessionId = `sess-bm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const slug = path.resolve(root).split(path.sep).join("-");
-  const projectsDir = path.join(os.homedir(), ".claude", "projects", slug);
+  const projectsDir = path.join(fakeHome, ".claude", "projects", slug);
   fs.mkdirSync(projectsDir, { recursive: true });
   const transcript = path.join(projectsDir, sessionId + ".jsonl");
   fs.writeFileSync(transcript, '{"type":"user"}\n', "utf8");
-  tmpTranscripts.push(transcript);
-  return sessionId;
+  return { sessionId, fakeHome };
 }
 
 function restoreEnv(): void {
@@ -72,8 +79,8 @@ function restoreEnv(): void {
 afterEach(() => {
   restoreEnv();
   for (const dir of tmpDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
-  for (const t of tmpTranscripts.splice(0)) {
-    try { fs.rmSync(t, { force: true }); } catch { /* best-effort */ }
+  for (const h of fakeHomeDirs.splice(0)) {
+    try { fs.rmSync(h, { recursive: true, force: true }); } catch { /* best-effort */ }
   }
 });
 
@@ -149,29 +156,51 @@ describe("second-brain-fold — shim fail-safe", () => {
   // FIX F2: a stray .palantir-mini marker AT $HOME must not make HOME the fold target
   // (would write graph.json + emit governed lineage under the wrong root). The marker
   // satisfies the .palantir-mini existence gate, so only isExcludedProjectRoot stops it.
-  test("skips when cwd resolves to an EXCLUDED root ($HOME with a stray .palantir-mini marker)", async () => {
+  test("skips when cwd resolves to an EXCLUDED root ($HOME with a stray .palantir-mini marker)", () => {
     delete process.env.PALANTIR_MINI_EVENTS_FILE;
-    const home = os.homedir();
-    const marker = path.join(home, ".palantir-mini");
-    const hadMarker = fs.existsSync(marker);
-    if (!hadMarker) fs.mkdirSync(marker, { recursive: true });
-    try {
-      const result = await secondBrainFold({ cwd: home, session_id: "sess-sbf-test" });
-      expect(result.message).toContain("excluded project root");
-    } finally {
-      if (!hadMarker) { try { fs.rmSync(marker, { recursive: true, force: true }); } catch { /* best-effort */ } }
-    }
+    // Fake HOME fixture — never touch the real $HOME (removed via
+    // fakeHomeDirs/afterEach). isExcludedProjectRoot() reads os.homedir(),
+    // which does NOT reflect an in-process `process.env.HOME = ...`
+    // reassignment in Bun — only a genuinely separate child process spawned
+    // with HOME already set sees it (see second-brain-fold-subprocess.ts's
+    // header comment). This test runs the hook in such a subprocess instead.
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "pm-sbf-fakehome-"));
+    fakeHomeDirs.push(fakeHome);
+    const marker = path.join(fakeHome, ".palantir-mini");
+    fs.mkdirSync(marker, { recursive: true });
+    const helperPath = path.join(import.meta.dir, "second-brain-fold-subprocess.ts");
+    const proc = Bun.spawnSync(
+      ["bun", "run", helperPath, JSON.stringify({ cwd: fakeHome, session_id: "sess-sbf-test" })],
+      { env: { ...process.env, HOME: fakeHome }, stdout: "pipe", stderr: "pipe" },
+    );
+    const stderr = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+    expect(proc.exitCode, `subprocess stderr: ${stderr}`).toBe(0);
+    const stdout = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
+    const result = JSON.parse(stdout) as { message: string };
+    expect(result.message).toContain("excluded project root");
   });
 });
 
 describe("second-brain-fold — deterministic bookmark (W3 single manifest authority)", () => {
-  test("with a stub engine + transcript, writes status:\"pending\" into manifest.json.foldedSessions and does NOT spawn the engine", async () => {
+  test("with a stub engine + transcript, writes status:\"pending\" into manifest.json.foldedSessions and does NOT spawn the engine", () => {
     const tmpRoot = makeTmpProject();
     process.env.PALANTIR_MINI_EVENTS_FILE = path.join(tmpRoot, ".palantir-mini", "session", "events.jsonl");
     delete process.env[SECOND_BRAIN_FOLD_BYPASS];
-    const sessionId = seedTrackedProjectWithTranscript(tmpRoot);
+    const { sessionId, fakeHome } = seedTrackedProjectWithTranscript(tmpRoot);
 
-    const result = await secondBrainFold({ cwd: tmpRoot, session_id: sessionId });
+    // secondBrainFold() resolves the transcript path via os.homedir(), which
+    // does NOT reflect an in-process `process.env.HOME = ...` reassignment in
+    // Bun — run it in a genuinely separate child process instead (see
+    // second-brain-fold-subprocess.ts's header comment).
+    const helperPath = path.join(import.meta.dir, "second-brain-fold-subprocess.ts");
+    const proc = Bun.spawnSync(
+      ["bun", "run", helperPath, JSON.stringify({ cwd: tmpRoot, session_id: sessionId })],
+      { env: { ...process.env, HOME: fakeHome }, stdout: "pipe", stderr: "pipe" },
+    );
+    const stderr = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+    expect(proc.exitCode, `subprocess stderr: ${stderr}`).toBe(0);
+    const stdout = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
+    const result = JSON.parse(stdout) as { message: string };
 
     expect(result.message).toContain("bookmarked");
     // bookmark written directly into manifest.json.foldedSessions (no separate pending-fold.json)
@@ -193,7 +222,7 @@ describe("second-brain-fold — bypass", () => {
     process.env.PALANTIR_MINI_EVENTS_FILE = eventsFile;
     process.env.PALANTIR_MINI_EVENTS_FILE_FORCE = "1";
     process.env[SECOND_BRAIN_FOLD_BYPASS] = "1";
-    const sessionId = seedTrackedProjectWithTranscript(tmpRoot);
+    const { sessionId } = seedTrackedProjectWithTranscript(tmpRoot);
 
     const result = await secondBrainFold({ cwd: tmpRoot, session_id: sessionId });
 

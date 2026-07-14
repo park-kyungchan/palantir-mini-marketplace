@@ -75,16 +75,30 @@ describe("isTargetedFile", () => {
   });
 
   test("does NOT target a .ts sitting DIRECTLY in $HOME even with a HOME .palantir-mini marker (FIX 2)", () => {
-    const home = os.homedir();
-    const marker = path.join(home, ".palantir-mini");
-    const hadMarker = fs.existsSync(marker);
-    if (!hadMarker) fs.mkdirSync(marker, { recursive: true });
+    // Fake HOME fixture — NEVER touch the real $HOME. isExcludedProjectRoot()
+    // (lib/project/find-root.ts, via isTargetedFile) reads os.homedir(), which
+    // does NOT reflect an in-process `process.env.HOME = ...` reassignment in
+    // Bun — only a genuinely separate child process spawned with HOME already
+    // set sees it (see ontology-import-guard-subprocess.ts's header comment).
+    // This test runs isTargetedFile in such a subprocess instead.
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "pm-oig-fakehome-"));
     try {
+      const marker = path.join(fakeHome, ".palantir-mini");
+      fs.mkdirSync(marker, { recursive: true });
+      const helperPath = path.join(import.meta.dir, "ontology-import-guard-subprocess.ts");
+      const targetPath = path.join(fakeHome, "some-stray-file.ts");
+      const proc = Bun.spawnSync(["bun", "run", helperPath, targetPath], {
+        env: { ...process.env, HOME: fakeHome },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const stderr = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+      expect(proc.exitCode, `subprocess stderr: ${stderr}`).toBe(0);
+      const stdout = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
       // A file directly in HOME resolves its root to HOME (excluded) → not targeted.
-      expect(isTargetedFile(path.join(home, "some-stray-file.ts"))).toBe(false);
+      expect(JSON.parse(stdout)).toBe(false);
     } finally {
-      // Only remove the marker if WE created it (never delete a real HOME marker).
-      if (!hadMarker) { try { fs.rmSync(marker, { recursive: true, force: true }); } catch { /* best-effort */ } }
+      fs.rmSync(fakeHome, { recursive: true, force: true });
     }
   });
 
