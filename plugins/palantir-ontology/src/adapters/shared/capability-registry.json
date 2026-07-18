@@ -1,0 +1,234 @@
+{
+  "schemaVersion": "1.0.0",
+  "sourceOfRecord": "outputs/r210-runtime-capability-matrix.md",
+  "sourceCitationNote": "Every verdict/citation/url/notes field below is carried forward verbatim from outputs/r210-runtime-capability-matrix.md's 'Capability Matrix (8 areas x 3 runtimes)' section and its fenced machine-consumable YAML block, which itself cites outputs/r060-runtime-refresh.md (source_sha256 63f9f17e800317868849dfb1033ce6c5ac44260e0e524088596b4734ac1e2fd1, retrieval_time_r060 2026-07-17T20:20:59+09:00, retrieval_time_r210_fresh 2026-07-18T09:51:10+09:00, both Asia/Seoul). No cell below is inferred or upgraded from R210's own verdict; unknown/unsupported cells are preserved as unknown/unsupported (UNKNOWN-is-not-PASS).",
+  "profiles": {
+    "codex": {
+      "runtimeId": "codex",
+      "provider": {
+        "runtimeId": "codex",
+        "displayName": "Codex",
+        "manifestPath": ".codex-plugin/plugin.json",
+        "transports": ["stdio", "streamable-http"],
+        "configPaths": ["~/.codex/config.toml", "<project>/.codex/config.toml"]
+      },
+      "capabilities": {
+        "packagingManifest": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 1 (Packaging/manifest), Codex row; R060:Codex#1",
+          "url": "https://learn.chatgpt.com/docs/build-plugins#plugin-structure",
+          "notes": "Manifest is .codex-plugin/plugin.json; directory may point to skills/, hooks/, .mcp.json, .app.json, assets.",
+          "facts": { "manifestPath": ".codex-plugin/plugin.json" }
+        },
+        "mcpRegistration": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 2 (MCP registration and transport), Codex row; R060:Codex#2",
+          "url": "https://learn.chatgpt.com/docs/extend/mcp#supported-mcp-features",
+          "notes": "Local STDIO and remote Streamable HTTP; host config ~/.codex/config.toml or trusted project .codex/config.toml; plugins may bundle .mcp.json.",
+          "facts": { "transports": ["stdio", "streamable-http"], "configPaths": ["~/.codex/config.toml", "<project>/.codex/config.toml"] }
+        },
+        "hooks": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 3 (Lifecycle hooks), Codex row + unsupported-facts row; R060:Codex#3",
+          "url": "https://learn.chatgpt.com/docs/hooks#where-codex-looks-for-hooks",
+          "notes": "User/trusted-project hooks.json or inline config; plugins may bundle hooks. Async command hooks and prompt/agent handlers are unsupported (parsed but skipped).",
+          "facts": {
+            "events": ["SessionStart", "PreToolUse", "PermissionRequest", "PostToolUse", "PreCompact", "PostCompact", "UserPromptSubmit", "SubagentStart", "SubagentStop", "Stop"],
+            "unsupportedHandlerTypes": ["async-command", "prompt", "agent"]
+          }
+        },
+        "skillsCommands": {
+          "verdicts": { "skills": "supported", "commands": "unknown" },
+          "citation": "R210 area 4 (Skills/commands), Codex row; R060:Codex#4 (skills); this task's fresh fetch (commands)",
+          "url": "https://learn.chatgpt.com/docs/build-skills#where-to-save-skills",
+          "notes": "SKILL.md skills at repository/user/admin/system/plugin scope; plugins are the installable distribution unit. The documented Codex plugin structure has no separate commands/slash-command component or manifest field (only skills, mcpServers, apps, hooks) — recorded unknown, not guessed absent or present.",
+          "facts": {
+            "skillScopes": ["repository", "user", "admin", "system", "plugin"],
+            "commandsCitationUrl": "https://learn.chatgpt.com/docs/build-plugins#plugin-structure",
+            "commandsRetrievalTime": "2026-07-18T09:51:10+09:00"
+          }
+        },
+        "subagents": {
+          "verdicts": { "standalone": "supported", "pluginBundled": "unknown" },
+          "citation": "R210 area 5 (Subagents), Codex row; R060:Codex#5 / R060:Codex#6",
+          "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agents",
+          "notes": "Standalone TOML custom agents supported under ~/.codex/agents/ and project .codex/agents/. Plugin-bundled agents component/manifest field is unknown (not documented in the targeted plugin-structure page).",
+          "facts": { "standalonePaths": ["~/.codex/agents/", "<project>/.codex/agents/"] }
+        },
+        "reloadInstall": {
+          "verdicts": { "primary": "supported", "ideExtension": "unsupported" },
+          "citation": "R210 area 6 (Reload/install mechanics), Codex row; R060:Codex#8",
+          "url": "https://learn.chatgpt.com/docs/plugins#plugin-browser-in-codex-cli",
+          "notes": "Install via in-session /plugins browser; bundled skills/tools available in a new chat or CLI session. IDE-extension plugin support is unsupported.",
+          "facts": { "mechanism": "in-session /plugins browser; new chat/CLI session required" }
+        },
+        "schemaFlatLimits": {
+          "verdicts": { "officialRule": "unknown" },
+          "citation": "R210 area 7 (Schema/flat-schema limits), Codex row; R060:Codex#9 and source-conflicts/unsupported-facts rows",
+          "url": "https://learn.chatgpt.com/docs/extend/mcp#supported-mcp-features",
+          "notes": "No current public Codex-specific rule found requiring flat schemas or rejecting anyOf/oneOf/allOf/not. The campaign's flat-schema, no-combinator validator is retained as local generation policy, not attributed to official Codex support (ADR-007: apply the conservative posture regardless of the unknown verdict).",
+          "facts": { "localPolicyRetained": true }
+        },
+        "configSurfaces": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 8 (Config surfaces), Codex row; R060:Codex#2 and R060:Codex#7",
+          "url": "https://learn.chatgpt.com/docs/build-plugins#install-a-local-plugin-manually",
+          "notes": "Host MCP config in ~/.codex/config.toml or trusted project .codex/config.toml. Repo marketplaces: $REPO_ROOT/.agents/plugins/marketplace.json; personal marketplaces: ~/.agents/plugins/marketplace.json.",
+          "facts": { "marketplacePaths": ["$REPO_ROOT/.agents/plugins/marketplace.json", "~/.agents/plugins/marketplace.json"] }
+        }
+      },
+      "unsupportedFeatures": ["async-command-hooks", "prompt-agent-hook-handlers", "ide-extension-plugin-support"],
+      "unknownFeatures": ["plugin-bundled-custom-agents", "official-flat-schema-combinator-rule", "standalone-commands-plugin-component"]
+    },
+    "claude": {
+      "runtimeId": "claude",
+      "provider": {
+        "runtimeId": "claude",
+        "displayName": "Claude Code",
+        "manifestPath": ".claude-plugin/plugin.json",
+        "transports": ["stdio", "http"],
+        "configPaths": [".claude/settings.json", ".claude/settings.local.json"]
+      },
+      "capabilities": {
+        "packagingManifest": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 1 (Packaging/manifest), Claude Code row; R060:Claude#1",
+          "url": "https://code.claude.com/docs/en/plugins-reference#plugin-manifest-schema",
+          "notes": "Manifest is .claude-plugin/plugin.json; components include skills, agents, hooks, MCP servers, LSP servers, monitors.",
+          "facts": { "manifestPath": ".claude-plugin/plugin.json" }
+        },
+        "mcpRegistration": {
+          "verdicts": { "primary": "supported", "sseNewRegistration": "unsupported" },
+          "citation": "R210 area 2 (MCP registration and transport), Claude Code row; R060:Claude#2",
+          "url": "https://code.claude.com/docs/en/mcp#add-mcp-servers",
+          "notes": "Local STDIO, remote HTTP; legacy remote SSE unsupported for new registrations (deprecated in favor of HTTP). Scope: local, project .mcp.json, or user; plugins may bundle .mcp.json or inline mcpServers.",
+          "facts": { "transports": ["stdio", "http"], "scope": ["local", "project", "user"] }
+        },
+        "hooks": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 3 (Lifecycle hooks), Claude Code row; R060:Claude#3",
+          "url": "https://code.claude.com/docs/en/hooks#hook-events",
+          "notes": "Session, prompt, tool, permission, subagent, task, compaction, worktree, MCP elicitation, config, file, and session-end events; plugins may carry hooks/hooks.json or inline hooks.",
+          "facts": { "eventFamilies": ["session", "prompt", "tool", "permission", "subagent", "task", "compaction", "worktree", "mcp-elicitation", "config", "file", "session-end"] }
+        },
+        "skillsCommands": {
+          "verdicts": { "skills": "supported", "commands": "supported" },
+          "citation": "R210 area 4 (Skills/commands), Claude Code row; R060:Claude#4 (skills); this task's fresh fetch (commands)",
+          "url": "https://code.claude.com/docs/en/skills#where-skills-live",
+          "notes": "SKILL.md skills at managed/personal (~/.claude/skills)/project (.claude/skills)/plugin scopes. Plugins additionally document a distinct commands/ directory of flat .md files (default) and a manifest commands field, separate from SKILL.md skill directories.",
+          "facts": {
+            "skillScopes": ["managed", "personal", "project", "plugin"],
+            "commandsDir": "commands/",
+            "commandsCitationUrl": "https://code.claude.com/docs/en/plugins-reference",
+            "commandsRetrievalTime": "2026-07-18T09:51:10+09:00"
+          }
+        },
+        "subagents": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 5 (Subagents), Claude Code row; R060:Claude#5",
+          "url": "https://code.claude.com/docs/en/sub-agents#choose-the-subagent-scope",
+          "notes": "Personal (~/.claude/agents/) and project (.claude/agents/) subagents; plugins can distribute namespaced agents under agents/. Plugin-shipped agents unsupported for hooks, mcpServers, permissionMode frontmatter.",
+          "facts": { "paths": ["~/.claude/agents/", "<project>/.claude/agents/", "<plugin>/agents/"], "pluginAgentUnsupportedFields": ["hooks", "mcpServers", "permissionMode"] }
+        },
+        "reloadInstall": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 6 (Reload/install mechanics), Claude Code row; R060:Claude#7",
+          "url": "https://code.claude.com/docs/en/commands",
+          "notes": "/reload-plugins reloads active plugins (skills, agents, hooks, MCP, LSP) without restart; /reload-skills rescans standalone skills; MCP-changing reloads may need --force (invalidates prompt cache).",
+          "facts": { "mechanism": "/reload-plugins (no restart); /reload-skills; --force may be needed for MCP changes" }
+        },
+        "schemaFlatLimits": {
+          "verdicts": { "officialRule": "unknown" },
+          "citation": "R210 area 7 (Schema/flat-schema limits), Claude Code row; R060:Claude#9",
+          "url": "https://code.claude.com/docs/en/mcp#add-mcp-servers",
+          "notes": "No Claude-specific flat-schema or combinator restriction found in the targeted official MCP/plugin pages. Generate valid MCP JSON Schema and the neutral cross-runtime subset; do not import the Codex local rule as a Claude capability claim.",
+          "facts": {}
+        },
+        "configSurfaces": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 8 (Config surfaces), Claude Code row; R060:Claude#6",
+          "url": "https://code.claude.com/docs/en/plugins-reference#plugin-installation-scopes",
+          "notes": "Installation scopes: user, project, local, and managed. Project scope recorded in .claude/settings.json; local scope in .claude/settings.local.json (kept out of source authority).",
+          "facts": { "scopes": ["user", "project", "local", "managed"], "projectConfig": ".claude/settings.json", "localConfig": ".claude/settings.local.json" }
+        }
+      },
+      "unsupportedFeatures": ["plugin-agent-hooks-mcpServers-permissionMode-fields", "new-remote-sse-mcp-registration"],
+      "unknownFeatures": ["runtime-specific-flat-schema-combinator-rule"]
+    },
+    "gemini": {
+      "runtimeId": "gemini",
+      "provider": {
+        "runtimeId": "gemini",
+        "displayName": "Gemini CLI",
+        "manifestPath": "gemini-extension.json",
+        "installRoot": "<home>/.gemini/extensions",
+        "transports": ["stdio", "sse", "streamable-http"],
+        "configPaths": ["user settings.json", "project settings.json", "extension mcpServers"],
+        "availabilityNote": "Native packaging is documented supported, but current docs direct unpaid/Google One cohorts to Antigravity CLI after June 18 — an availability limitation, not a packaging-support gap."
+      },
+      "capabilities": {
+        "packagingManifest": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 1 (Packaging/manifest), Gemini CLI row; R060:Gemini#1 and R060:Gemini#10",
+          "url": "https://geminicli.com/docs/extensions/reference#extension-format",
+          "notes": "Manifest is gemini-extension.json under <home>/.gemini/extensions. Native packaging is documented supported, but current docs direct unpaid/Google One cohorts to Antigravity CLI after June 18 — recorded as a separate availability limitation, not a packaging-support gap.",
+          "facts": { "availabilityLimited": true, "installRoot": "<home>/.gemini/extensions", "availabilityCitation": "R060:Gemini#10", "availabilityUrl": "https://geminicli.com/docs" }
+        },
+        "mcpRegistration": {
+          "verdicts": { "primary": "supported", "trustField": "unsupported" },
+          "citation": "R210 area 2 (MCP registration and transport), Gemini CLI row; R060:Gemini#2",
+          "url": "https://geminicli.com/docs/tools/mcp-server#transport-mechanisms",
+          "notes": "STDIO, SSE, and Streamable HTTP; configured in user/project settings.json or extension mcpServers. The extension MCP server trust setting is unsupported.",
+          "facts": { "transports": ["stdio", "sse", "streamable-http"], "configPaths": ["user settings.json", "project settings.json", "extension mcpServers"] }
+        },
+        "hooks": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 3 (Lifecycle hooks), Gemini CLI row + unsupported-facts row; R060:Gemini#3",
+          "url": "https://geminicli.com/docs/hooks#hook-events",
+          "notes": "Events: SessionStart, SessionEnd, BeforeAgent, AfterAgent, BeforeModel, AfterModel, BeforeToolSelection, BeforeTool, AfterTool, PreCompress, Notification; extension hooks live in hooks/hooks.json, not the manifest. Only the command execution type is supported; other handler types are unsupported.",
+          "facts": {
+            "events": ["SessionStart", "SessionEnd", "BeforeAgent", "AfterAgent", "BeforeModel", "AfterModel", "BeforeToolSelection", "BeforeTool", "AfterTool", "PreCompress", "Notification"],
+            "supportedHandlerTypes": ["command"]
+          }
+        },
+        "skillsCommands": {
+          "verdicts": { "skills": "supported", "commands": "supported" },
+          "citation": "R210 area 4 (Skills/commands), Gemini CLI row; R060:Gemini#4 and R060:Gemini#1",
+          "url": "https://geminicli.com/docs/cli/skills#discovery-tiers",
+          "notes": "Agent Skills discovered from built-ins, extensions, user (~/.gemini/skills or ~/.agents/skills), and workspace (.gemini/skills or .agents/skills) paths. Extensions can additionally package commands alongside MCP, hooks, skills, and subagents.",
+          "facts": { "skillPaths": ["~/.gemini/skills", "~/.agents/skills", ".gemini/skills", ".agents/skills"] }
+        },
+        "subagents": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 5 (Subagents), Gemini CLI row; R060:Gemini#5",
+          "url": "https://geminicli.com/docs/core/subagents#creating-custom-subagents",
+          "notes": "Markdown/YAML custom subagents at user/workspace and extension agents/, but the official extension reference marks extension subagents preview — recorded unsupported for stable/release-critical dependence (see unsupportedFeatures).",
+          "facts": { "preview": true, "paths": ["user", "workspace", "extension agents/"] }
+        },
+        "reloadInstall": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 6 (Reload/install mechanics), Gemini CLI row; R060:Gemini#7",
+          "url": "https://geminicli.com/docs/cli/cli-reference",
+          "notes": "Interactive /extensions reload, /skills reload, /agents reload, /commands reload, /mcp reload; terminal-performed management applies on next CLI session unless reloaded interactively.",
+          "facts": { "mechanism": "/extensions reload, /skills reload, /agents reload, /commands reload, /mcp reload; or new session after terminal management" }
+        },
+        "schemaFlatLimits": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 7 (Schema/flat-schema limits), Gemini CLI row; R060:Gemini#8",
+          "url": "https://geminicli.com/docs/tools/mcp-server#discovery-process-deep-dive",
+          "notes": "Gemini CLI validates and sanitizes discovered tool declarations: removes $schema and additionalProperties, strips anyOf defaults (Vertex AI compatibility), restricts tool names to documented characters and 63 characters, applied recursively.",
+          "facts": { "sanitizer": ["strip-$schema", "strip-additionalProperties", "strip-anyOf-defaults", "name-charset-and-63-char-limit"] }
+        },
+        "configSurfaces": {
+          "verdicts": { "primary": "supported" },
+          "citation": "R210 area 8 (Config surfaces), Gemini CLI row; R060:Gemini#6",
+          "url": "https://geminicli.com/docs/extensions/reference#install-an-extension",
+          "notes": "Installation copies an extension into the user's home extension store; enabled globally by default, can be enabled/disabled at user or workspace scope. This is activation scope, not a separate project-owned installed-extension directory equivalent to Claude's project scope.",
+          "facts": { "scopeKind": "activation-only", "scopes": ["user", "workspace"] }
+        }
+      },
+      "unsupportedFeatures": ["extension-mcp-trust-field", "non-command-hook-handler-types", "stable-release-critical-extension-subagents", "universal-unpaid-google-one-availability"],
+      "unknownFeatures": []
+    }
+  }
+}

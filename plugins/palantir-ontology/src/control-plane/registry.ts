@@ -131,35 +131,93 @@ export const CONTROL_PLANE_CATALOG: readonly ControlPlaneNode[] = [
     disposition: { source: "self", row: "P340", note: "derives from contracts/reason-code-registry.json." },
   },
 
-  // --- planned adapter surfaces (kind: adapter, status: planned; ADR-007,
-  // Wave 6 rows A610-A640 — src/adapters/ is empty at P450) ---
+  // --- A610 neutral adapter capability source + generator (kind: tool /
+  // generated-binding / adapter, Wave 6, ADR-007) ---
   {
-    nodeId: "adapter-codex-planned",
+    nodeId: "tool-generator-capability-index",
+    kind: "tool",
+    sourcePath: "scripts/generators/capability-index.ts",
+    runtimeScope: "all",
+    status: "active",
+    disposition: { source: "self", row: "A610", note: "run via npm script generate:all; produces scripts/generated/capability-index.generated.ts from src/adapters/shared/capability-registry.json." },
+  },
+  {
+    nodeId: "generated-binding-capability-index",
+    kind: "generated-binding",
+    sourcePath: "scripts/generated/capability-index.generated.ts",
+    runtimeScope: "all",
+    status: "active",
+    disposition: { source: "self", row: "A610", note: "derives from src/adapters/shared/capability-registry.json; deterministic, byte-stable, wired into generated:check." },
+  },
+  {
+    nodeId: "adapter-shared",
+    kind: "adapter",
+    sourcePath: "src/adapters/shared/",
+    runtimeScope: "all",
+    status: "active",
+    disposition: { source: "self", row: "A610", note: "neutral capability registry + shared metadata types (types.ts, capability-registry.json, registry-loader.ts, index.ts); the SOLE authority A620/A630/A640 generate their per-runtime bindings from — directory-level registration, same convention as the 3 'planned' adapter entries below." },
+  },
+
+  // --- A620 generated Codex runtime binding (kind: adapter, Wave 6,
+  // ADR-007) — directory-level registration, same convention as
+  // `adapter-shared` above: `generator.ts`/`generate.ts`/
+  // `binding.generated.ts`/`drift-check.ts`/`flat-schema.ts`/`index.ts`/
+  // `README.md` plus their colocated `*.test.ts` files all live under this
+  // one `src/adapters/codex/` slot (scanControlPlaneCompleteness accepts
+  // directory-level registration for src/adapters/**) ---
+  {
+    nodeId: "adapter-codex",
     kind: "adapter",
     sourcePath: "src/adapters/codex/",
     runtimeScope: "codex",
-    status: "planned",
+    status: "active",
     disposition: {
       source: "self",
-      row: "ADR-007 (Wave 6, A620)",
-      note: "Generated Codex runtime binding, not yet built; registered ahead of construction so Wave 6 lands into a pre-declared catalog slot.",
+      row: "A620",
+      note: "Generated Codex runtime binding: manifest + flat MCP tool-schema skeleton, generated from A610's src/adapters/shared/capability-registry.json via generator.ts/generate.ts (never hand-derived); drift-check.ts + colocated generated-check.test.ts detect a hand-edit locally (scripts/generated-check.ts is outside A620's write set, per decisions/w6-write-set-adjudication.md).",
     },
   },
+
+  // --- A630 generated Claude runtime binding (kind: adapter, Wave 6,
+  // ADR-007) — directory-level registration, same convention as
+  // `adapter-shared`/`adapter-codex` above: `generator.ts`/`generate.ts`/
+  // `binding.generated.ts`/`drift-check.ts`/`flat-schema.ts`/
+  // `mechanism-classification.ts`/`index.ts`/`README.md` plus their
+  // colocated `*.test.ts` files all live under this one
+  // `src/adapters/claude/` slot (scanControlPlaneCompleteness accepts
+  // directory-level registration for src/adapters/**) ---
   {
-    nodeId: "adapter-claude-planned",
+    nodeId: "adapter-claude",
     kind: "adapter",
     sourcePath: "src/adapters/claude/",
     runtimeScope: "claude",
-    status: "planned",
-    disposition: { source: "self", row: "ADR-007 (Wave 6, A630)", note: "Generated Claude runtime binding, not yet built." },
+    status: "active",
+    disposition: {
+      source: "self",
+      row: "A630",
+      note: "Generated Claude runtime binding: manifest + flat MCP tool-schema skeleton, generated from A610's src/adapters/shared/capability-registry.json via generator.ts/generate.ts (never hand-derived); drift-check.ts + colocated generated-check.test.ts detect a hand-edit locally (scripts/generated-check.ts is outside A630's write set, per decisions/w6-write-set-adjudication.md). mechanism-classification.ts + its colocated test additionally prove Claude's hooks/skillsCommands/subagents mechanisms classify under ControlPlaneNodeKind (hook/skill/agent), never as mutation-authority or a product primitive.",
+    },
   },
+
+  // --- A640 generated Gemini runtime binding (kind: adapter, Wave 6,
+  // ADR-007) — directory-level registration, same convention as
+  // `adapter-shared`/`adapter-codex`/`adapter-claude` above: `generator.ts`/
+  // `generate.ts`/`binding.generated.ts`/`drift-check.ts`/`flat-schema.ts`/
+  // `mechanism-classification.ts`/`index.ts`/`README.md` plus their
+  // colocated `*.test.ts` files all live under this one
+  // `src/adapters/gemini/` slot (scanControlPlaneCompleteness accepts
+  // directory-level registration for src/adapters/**) ---
   {
-    nodeId: "adapter-gemini-planned",
+    nodeId: "adapter-gemini",
     kind: "adapter",
     sourcePath: "src/adapters/gemini/",
     runtimeScope: "gemini",
-    status: "planned",
-    disposition: { source: "self", row: "ADR-007 (Wave 6, A640)", note: "Generated Gemini runtime binding, not yet built; A640 must mark native packaging unsupported and provide a neutral MCP/CLI transport if no native plugin package exists at generation time." },
+    status: "active",
+    disposition: {
+      source: "self",
+      row: "A640",
+      note: "Generated Gemini runtime binding: manifest + flat MCP tool-schema skeleton, generated from A610's src/adapters/shared/capability-registry.json via generator.ts/generate.ts (never hand-derived); drift-check.ts + colocated generated-check.test.ts detect a hand-edit locally (scripts/generated-check.ts is outside A640's write set, per decisions/w6-write-set-adjudication.md). mechanism-classification.ts + its colocated test additionally prove Gemini's hooks/skillsCommands/subagents mechanisms classify under ControlPlaneNodeKind (hook/skill/agent), never as mutation-authority or a product primitive. manifest.nativePackaging records this marketplace's native Gemini extension packaging as unsupported (no gemini-extension.json/.gemini-plugin/ convention exists here at generation time) and this binding ships a neutral MCP/CLI transport instead — never a fabricated native-support claim (execution-plan §9 row A640).",
+    },
   },
 ];
 
