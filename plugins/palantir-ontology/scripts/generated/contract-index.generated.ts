@@ -43,8 +43,8 @@ export const CONTRACT_INDEX: readonly ContractIndexEntry[] = [
     file: "memory-item.contract.json",
     id: "https://palantir-ontology.internal/contracts/memory-item.contract.json",
     title: "Memory Item Contract",
-    requiredFieldCount: 7,
-    sha256: "1b9d4b1784335e0ab66b9a42261135ed898ac16145f5ccaebae04e503dd41318",
+    requiredFieldCount: 8,
+    sha256: "b7a0ef157929c5f280780c7c477c5e00581b631586bb35713a1eb196bac7349f",
   },
   {
     file: "migration-manifest.contract.json",
@@ -66,6 +66,20 @@ export const CONTRACT_INDEX: readonly ContractIndexEntry[] = [
     title: "Ontology Binding Contract",
     requiredFieldCount: 8,
     sha256: "6abf15001e5a9b3bd2d5672a2d4705568ce3eb361a76ee94e3092427ad31ef96",
+  },
+  {
+    file: "second-brain-graph.contract.json",
+    id: "https://palantir-ontology.internal/contracts/second-brain-graph.contract.json",
+    title: "SecondBrain Governing Graph Document",
+    requiredFieldCount: 6,
+    sha256: "d4866f6ec4f56cb77f7e0b82863bace2cec9940382a11b0e24a606da30f0f1a9",
+  },
+  {
+    file: "second-brain-interchange.contract.json",
+    id: "https://palantir-ontology.internal/contracts/second-brain-interchange.contract.json",
+    title: "SecondBrain Fold Interchange Line",
+    requiredFieldCount: 5,
+    sha256: "5fcf98f15e59e50d3a003224844dc41adb5895e434e986a7f47b1de696e9c2ff",
   },
   {
     file: "semantic-intent.contract.json",

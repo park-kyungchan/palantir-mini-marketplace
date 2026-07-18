@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "itemId": "mem-0003",
+  "layer": "working",
+  "authority": {
+    "writer": "src/memory/memory-item.ts",
+    "sessionScope": "session-2026-07-18-001"
+  },
+  "retention": {
+    "policy": "ephemeral",
+    "maxAgeSeconds": 900
+  },
+  "content": {
+    "note": "current-turn scratch state, discarded at session end"
+  },
+  "createdAt": "2026-07-18T09:24:00Z",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  },
+  "provenance": {
+    "source": "session-2026-07-18-001",
+    "session": "session-2026-07-18-001",
+    "actor": "agent:claude-sonnet-5",
+    "transformation": "current-turn-scratch-write",
+    "governingContract": "adr:ADR-006",
+    "priorState": "genesis"
+  }
+}

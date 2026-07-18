@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "summary",
+  "sessionId": "session-2026-07-18-p520",
+  "totalBatches": 1,
+  "summary": {
+    "nodeCount": 2,
+    "edgeCount": 1,
+    "sessionId": "session-2026-07-18-p520",
+    "graphRef": "second-brain-graph:session-2026-07-18-p520"
+  },
+  "emittedAt": "2026-07-18T10:00:05Z",
+  "byWhom": { "identity": "second-brain-fold:worker", "role": "extractor" }
+}

@@ -49,6 +49,12 @@ export const RC_STATE_SKIPPED_TRANSITION: ReasonCode = "RC-STATE-SKIPPED-TRANSIT
 export const RC_STATE_EVIDENCE_MISSING: ReasonCode = "RC-STATE-EVIDENCE-MISSING";
 export const RC_STATE_STALE_FINGERPRINT: ReasonCode = "RC-STATE-STALE-FINGERPRINT";
 export const RC_SCHEMA_VALIDATION_FAILED: ReasonCode = "RC-SCHEMA-VALIDATION-FAILED";
+// P540 addition: named export for the already-registered
+// RC-SCHEMA-VERSION-UNSUPPORTED code, bound for
+// src/lineage/upcaster-chain.ts's unregistered-envelopeRev-gap denial
+// (ADR-006 "fail loud on an unregistered rev gap", translated into this
+// codebase's typed-denial idiom -- see that file's module doc).
+export const RC_SCHEMA_VERSION_UNSUPPORTED: ReasonCode = "RC-SCHEMA-VERSION-UNSUPPORTED";
 
 // P420 staged-construction codes (ledger row P420, docs/architecture.md
 // ADR-003/ADR-004): DATA/LOGIC/ACTION evidence-class separation and the
@@ -61,3 +67,9 @@ export const RC_CONSTRUCTION_UNREGISTERED_PRIMITIVE_KIND: ReasonCode = "RC-CONST
 // P450 control-plane boundary code (docs/architecture.md ADR-003). See
 // src/control-plane/boundary-validator.ts.
 export const RC_CONTROL_PLANE_PRODUCT_PRIMITIVE_COLLISION: ReasonCode = "RC-CONTROL-PLANE-PRODUCT-PRIMITIVE-COLLISION";
+
+// P530 archive-before-remove retention code (docs/architecture.md ADR-006,
+// MEM-008). Already registered by P510's contract delta; this named export
+// binds the literal for src/lineage/retention.ts. See
+// src/lineage/retention.ts and src/memory/memory-item.ts.
+export const RC_MEMORY_RETENTION_VIOLATION: ReasonCode = "RC-MEMORY-RETENTION-VIOLATION";

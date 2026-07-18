@@ -59,4 +59,4 @@ export const REASON_CODE_INDEX: readonly ReasonCodeCategorySummary[] = [
 ];
 
 export const REASON_CODE_TOTAL_COUNT = 25;
-export const REASON_CODE_REGISTRY_SHA256 = "5d7f4a6e9578c550ce82331849aa5efb2a8b63e48534b596eeeeddbe24e0283c";
+export const REASON_CODE_REGISTRY_SHA256 = "ddc90667e768c96873764400e7c4d8ee18e9e8d2f1e37f707de3bececc73ae60";

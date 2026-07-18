@@ -12,6 +12,8 @@ import ontologyBindingSchema from "../../contracts/ontology-binding.contract.jso
 import memoryItemSchema from "../../contracts/memory-item.contract.json";
 import eventEnvelopeSchema from "../../contracts/event-envelope.contract.json";
 import migrationManifestSchema from "../../contracts/migration-manifest.contract.json";
+import secondBrainInterchangeSchema from "../../contracts/second-brain-interchange.contract.json";
+import secondBrainGraphSchema from "../../contracts/second-brain-graph.contract.json";
 import { runContractSuite } from "../support/contract-suite";
 
 runContractSuite("fde-session", fdeSessionSchema);
@@ -22,3 +24,5 @@ runContractSuite("ontology-binding", ontologyBindingSchema);
 runContractSuite("memory-item", memoryItemSchema);
 runContractSuite("event-envelope", eventEnvelopeSchema);
 runContractSuite("migration-manifest", migrationManifestSchema);
+runContractSuite("second-brain-interchange", secondBrainInterchangeSchema);
+runContractSuite("second-brain-graph", secondBrainGraphSchema);

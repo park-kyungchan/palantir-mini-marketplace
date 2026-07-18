@@ -107,7 +107,7 @@
       "meaning": "A payload failed validation against its bound contracts/*.contract.json schema (missing or malformed load-bearing field).",
       "retryable": true,
       "category": "schema",
-      "appliesTo": ["fde-session", "semantic-intent", "digital-twin-change", "mutation-authority", "ontology-binding", "memory-item", "event-envelope", "migration-manifest"]
+      "appliesTo": ["fde-session", "semantic-intent", "digital-twin-change", "mutation-authority", "ontology-binding", "memory-item", "event-envelope", "migration-manifest", "second-brain-interchange", "second-brain-graph"]
     },
     {
       "code": "RC-SCHEMA-VERSION-UNSUPPORTED",
@@ -115,7 +115,7 @@
       "meaning": "The payload's schemaVersion is not recognized by the current successor build.",
       "retryable": false,
       "category": "schema",
-      "appliesTo": ["fde-session", "semantic-intent", "digital-twin-change", "mutation-authority", "ontology-binding", "memory-item", "event-envelope", "migration-manifest"]
+      "appliesTo": ["fde-session", "semantic-intent", "digital-twin-change", "mutation-authority", "ontology-binding", "memory-item", "event-envelope", "migration-manifest", "second-brain-interchange", "second-brain-graph"]
     },
     {
       "code": "RC-BINDING-CONSUMER-UNKNOWN",

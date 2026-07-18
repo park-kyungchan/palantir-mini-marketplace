@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "sessionId": "session-2026-07-18-p520",
+  "nodes": [
+    { "nodeId": "node-decision-000", "kind": "decision", "label": "adopt ADR-006 storage authority" },
+    { "nodeId": "node-decision-001", "kind": "decision", "label": "P520 governed SecondBrain order" }
+  ],
+  "edges": [
+    { "edgeId": "edge-derives-001", "from": "node-decision-001", "to": "node-decision-000", "kind": "derivesFrom" }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1
+}

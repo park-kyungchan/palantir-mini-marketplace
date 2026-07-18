@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0.0",
+  "itemId": "mem-bad-3",
+  "layer": "working",
+  "authority": {
+    "writer": "src/memory/memory-item.ts",
+    "sessionScope": "session-2026-07-18-001",
+    "notARegisteredAuthorityField": "bypass-attempt"
+  },
+  "retention": {
+    "policy": "ephemeral",
+    "maxAgeSeconds": 900
+  },
+  "createdAt": "2026-07-18T09:24:00Z",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  }
+}

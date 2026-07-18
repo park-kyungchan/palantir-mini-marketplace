@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://palantir-ontology.internal/contracts/memory-item.contract.json",
   "title": "Memory Item Contract",
-  "description": "Typed working/episodic/semantic/procedural memory item shape with distinct authority and retention fields (execution-plan.md Definition of Done item 8 'Four typed memory forms'; layer taxonomy grounded in P230 section 3.3 and the legacy AgenticMemoryLayer union, redesigned neutral per ADR — not copied verbatim). Runtime-neutral. Real content P330.",
+  "description": "Typed working/episodic/semantic/procedural memory item shape with distinct authority and retention fields (execution-plan.md Definition of Done item 8 'Four typed memory forms'; layer taxonomy grounded in P230 section 3.3 and the legacy AgenticMemoryLayer union, redesigned neutral per ADR — not copied verbatim). Runtime-neutral. Envelope shape P330; the four layer-specific authority/retention fields below (governingDecisionRef/eventRef/sessionScope/playbookRef, maxAgeSeconds/sequenceOrdinal) are an ADDITIVE P510 extension per ADR-006 — src/memory/memory-item.ts is the layer-conditional enforcement point this schema alone cannot express (no oneOf/if-then in the successor's minimal schema-validator subset).",
   "type": "object",
-  "required": ["schemaVersion", "itemId", "layer", "authority", "retention", "createdAt", "byWhom"],
+  "required": ["schemaVersion", "itemId", "layer", "authority", "retention", "createdAt", "byWhom", "provenance"],
   "properties": {
     "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
     "itemId": { "type": "string", "minLength": 1 },
@@ -22,7 +22,27 @@
           "minLength": 1,
           "description": "The single code path holding this item's write lock (ADR-006 single-writer mutation-authority per store)."
         },
-        "owner": { "type": "string" }
+        "owner": { "type": "string" },
+        "governingDecisionRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "P510 additive, semantic-layer-only: the governed decision that authorizes durable promotion to semantic memory (mission bullet 'semantic promotion requires a governing decision'). src/memory/memory-item.ts rejects this field on any non-semantic item and requires it on every semantic item — this schema only declares the field, it does not enforce the layer condition."
+        },
+        "eventRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "P510 additive, episodic-layer-only: the anchoring event this episode item is derived from."
+        },
+        "sessionScope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "P510 additive, working-layer-only: the session this ephemeral item is bounded to. Never a governing-decision reference — working memory mints no authority (mission bullet 'working does not mint authority')."
+        },
+        "playbookRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "P510 additive, procedural-layer-only: the governed playbook/procedure this item records."
+        }
       },
       "additionalProperties": false
     },
@@ -35,7 +55,17 @@
           "enum": ["ephemeral", "retained", "archived"],
           "description": "archived requires archive-before-remove ordering under the shared manifest lock (ADR-006)."
         },
-        "archiveRef": { "type": "string" }
+        "archiveRef": { "type": "string" },
+        "maxAgeSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "P510 additive, working-layer-only: explicit bound on how long an ephemeral working-memory item may live (MEM-001 'explicit bounded ... representation')."
+        },
+        "sequenceOrdinal": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "P510 additive, episodic-layer-only: position in the anchoring event's replayable ordering (MEM-002 'replayable ordering')."
+        }
       },
       "additionalProperties": false
     },
@@ -56,12 +86,15 @@
     },
     "provenance": {
       "type": "object",
+      "description": "P530 additive requirement (MEM-007), replacing the prior optional sourceRef/lineageRefs placeholder P510 left unenforced: item-level provenance, required and complete on EVERY memory item regardless of layer (unlike authority/retention's layer-conditional fields). src/memory/memory-item.ts's isWellFormedMemoryItemBase enforces this same six-field completeness at the TypeScript layer (MemoryProvenance is non-optional on every MemoryItem variant) -- a value missing any one field fails both this schema and that runtime guard the same way.",
+      "required": ["source", "session", "actor", "transformation", "governingContract", "priorState"],
       "properties": {
-        "sourceRef": { "type": "string" },
-        "lineageRefs": {
-          "type": "array",
-          "items": { "type": "string", "minLength": 1 }
-        }
+        "source": { "type": "string", "minLength": 1, "description": "The upstream origin this item was derived from (e.g. a SIC id, an event id, a raw transcript reference)." },
+        "session": { "type": "string", "minLength": 1, "description": "The session that produced this item." },
+        "actor": { "type": "string", "minLength": 1, "description": "The identity of the acting agent/user for THIS write -- may differ from byWhom.identity on a delegated-write path." },
+        "transformation": { "type": "string", "minLength": 1, "description": "The named operation that derived this item (e.g. \"second-brain-fold\", \"manual-authorship\", \"sic-approval-extract\")." },
+        "governingContract": { "type": "string", "minLength": 1, "description": "The decision/ADR/contract that authorized persisting this item." },
+        "priorState": { "type": "string", "minLength": 1, "description": "This item's own state immediately before this write, or the literal sentinel \"genesis\" for a first-ever write -- never absent." }
       },
       "additionalProperties": false
     }
