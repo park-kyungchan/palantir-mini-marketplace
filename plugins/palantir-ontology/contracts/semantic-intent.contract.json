@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/semantic-intent.contract.json",
+  "title": "Semantic Intent Contract (SIC)",
+  "description": "Approved SIC body, fingerprinted, gating DTC proposal. Independently versioned from DTC per ADR-004 (a gap-report format change does not force a build-session format bump). Runtime-neutral. Real content P330.",
+  "type": "object",
+  "required": ["schemaVersion", "sicId", "status", "bodyFingerprint", "proposedAt", "byWhom"],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "sicId": { "type": "string", "minLength": 1 },
+    "fdeSessionId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Pointer to the originating fde-session.contract.json aggregate."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "approved", "superseded"],
+      "description": "Matches P230's confirmed legacy status union, carried forward (outputs/p230-state-migration-census.md section 3.1)."
+    },
+    "bodyFingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "sha256 content hash of the exact approved SIC body — a canonical fingerprint, not a mutable pointer to \"the current SIC\" (ADR-004)."
+    },
+    "proposedAt": { "type": "string", "format": "date-time" },
+    "approvedAt": { "type": "string", "format": "date-time" },
+    "byWhom": {
+      "type": "object",
+      "required": ["identity"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "reasonCode": {
+      "type": "string",
+      "pattern": "^RC-[A-Z0-9-]+$",
+      "description": "Stable code from contracts/reason-code-registry.json explaining an approval or a superseded/denied disposition."
+    }
+  },
+  "additionalProperties": false
+}

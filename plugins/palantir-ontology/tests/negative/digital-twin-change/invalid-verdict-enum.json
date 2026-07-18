@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "dtcId": "dtc-bad-2",
+  "sicFingerprint": "53b9d0db6c3aef2f1e9dda2693214f73b042dfa88389cb62aff0fffb7c501b11",
+  "status": "approved",
+  "bodyFingerprint": "61a896b5b7edb1df2c0cbbcb568112e6781d1481926776f6bc02c1bb60944c6a",
+  "verdict": "dtc-maybe",
+  "proposedAt": "2026-07-18T09:30:00Z",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  }
+}

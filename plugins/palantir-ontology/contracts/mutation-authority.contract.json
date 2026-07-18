@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/mutation-authority.contract.json",
+  "title": "Mutation Authority Envelope",
+  "description": "The typed envelope (execution-plan.md section 6.4, ADR-005) every protected writer must accept or resolve via an opaque handle. No handler, hook, script, adapter, or library may call the underlying writer directly. Carries the 14 execution-plan section 6.4 fields plus an optional terminal `result` (commit outcome / structured denial), both bound to contracts/reason-code-registry.json. Runtime-neutral. Real content P330.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "sicFingerprint",
+    "dtcFingerprint",
+    "userDecisionEvidence",
+    "consumerOntology",
+    "targetIdentities",
+    "allowedAction",
+    "writeScope",
+    "permissionDecisionRef",
+    "submissionCriteriaResult",
+    "issuingActor",
+    "issuingDecision",
+    "issuedAt",
+    "expiresAt",
+    "nonce",
+    "dryRunFingerprint",
+    "expectedPriorState"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "sicFingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Exact approved SIC body fingerprint (§6.4 field 1)."
+    },
+    "dtcFingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Exact approved DTC body fingerprint (§6.4 field 2)."
+    },
+    "userDecisionEvidence": {
+      "type": "object",
+      "required": ["evidenceRef", "verifiedAt", "verifiedBy"],
+      "properties": {
+        "evidenceRef": { "type": "string", "minLength": 1 },
+        "verifiedAt": { "type": "string", "format": "date-time" },
+        "verifiedBy": {
+          "type": "object",
+          "required": ["identity"],
+          "properties": {
+            "identity": { "type": "string", "minLength": 1 },
+            "role": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "description": "Independently verified user-decision evidence (§6.4 field 3) — not tool success, not a free-text reference."
+    },
+    "consumerOntology": {
+      "type": "object",
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+      },
+      "additionalProperties": false,
+      "description": "Consumer Ontology identity and version (§6.4 field 4)."
+    },
+    "targetIdentities": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Target primitive or object identities (§6.4 field 5)."
+    },
+    "allowedAction": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Allowed action (§6.4 field 6, action half)."
+    },
+    "writeScope": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Allowed write scope (§6.4 field 6, scope half)."
+    },
+    "permissionDecisionRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Permission/security decision reference (§6.4 field 7)."
+    },
+    "submissionCriteriaResult": {
+      "type": "object",
+      "required": ["passed", "evaluatedAt"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "evaluatedAt": { "type": "string", "format": "date-time" },
+        "detail": { "type": "string" }
+      },
+      "additionalProperties": false,
+      "description": "Submission-criteria result, kept separate from the permission decision (§6.4 field 8). Mandatory, not an optional caller-supplied list that silently passes when omitted (closes P220 section 8.4's vacuous-when-omitted gap)."
+    },
+    "issuingActor": {
+      "type": "object",
+      "required": ["identity"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false,
+      "description": "Issuing actor (§6.4 field 9, actor half)."
+    },
+    "issuingDecision": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Issuing decision reference (§6.4 field 9, decision half)."
+    },
+    "issuedAt": { "type": "string", "format": "date-time", "description": "§6.4 field 10, issuance half." },
+    "expiresAt": { "type": "string", "format": "date-time", "description": "§6.4 field 10, expiration half." },
+    "nonce": {
+      "type": "string",
+      "minLength": 8,
+      "description": "One-time or bounded-use nonce (§6.4 field 11)."
+    },
+    "dryRunFingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Dry-run fingerprint (§6.4 field 12)."
+    },
+    "expectedPriorState": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Expected prior state or concurrency token (§6.4 field 13)."
+    },
+    "result": {
+      "type": "object",
+      "required": ["outcome", "reasonCode", "recordedAt"],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": ["committed", "denied", "error"],
+          "description": "Commit result or structured-failure outcome, stamped once the single commit gate resolves this envelope."
+        },
+        "reasonCode": {
+          "type": "string",
+          "pattern": "^RC-[A-Z0-9-]+$",
+          "description": "Stable denial/outcome reason code (§6.4 field 14), from contracts/reason-code-registry.json."
+        },
+        "recordedAt": { "type": "string", "format": "date-time" },
+        "detail": { "type": "string" }
+      },
+      "additionalProperties": false,
+      "description": "Absent while the envelope is still pending resolution; present and required-complete once the gate has resolved it, either as a commit result or a structured denial/error."
+    }
+  },
+  "additionalProperties": false
+}

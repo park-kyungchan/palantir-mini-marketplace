@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/memory-item.contract.json",
+  "title": "Memory Item Contract",
+  "description": "Typed working/episodic/semantic/procedural memory item shape with distinct authority and retention fields (execution-plan.md Definition of Done item 8 'Four typed memory forms'; layer taxonomy grounded in P230 section 3.3 and the legacy AgenticMemoryLayer union, redesigned neutral per ADR — not copied verbatim). Runtime-neutral. Real content P330.",
+  "type": "object",
+  "required": ["schemaVersion", "itemId", "layer", "authority", "retention", "createdAt", "byWhom"],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "itemId": { "type": "string", "minLength": 1 },
+    "layer": {
+      "type": "string",
+      "enum": ["working", "episodic", "semantic", "procedural"],
+      "description": "The four canonical agentic memory layers (execution-plan.md section 1.5/5.8)."
+    },
+    "authority": {
+      "type": "object",
+      "required": ["writer"],
+      "properties": {
+        "writer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The single code path holding this item's write lock (ADR-006 single-writer mutation-authority per store)."
+        },
+        "owner": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "retention": {
+      "type": "object",
+      "required": ["policy"],
+      "properties": {
+        "policy": {
+          "type": "string",
+          "enum": ["ephemeral", "retained", "archived"],
+          "description": "archived requires archive-before-remove ordering under the shared manifest lock (ADR-006)."
+        },
+        "archiveRef": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Opaque, layer-specific payload. Left open by design: memory content is consumer/task-specific and this contract governs the envelope, not the payload shape."
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "byWhom": {
+      "type": "object",
+      "required": ["identity"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "sourceRef": { "type": "string" },
+        "lineageRefs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

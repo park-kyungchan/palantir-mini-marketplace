@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/reason-code-registry.json",
+  "title": "Reason Code Registry",
+  "description": "Stable identifiers for every state-transition denial, mutation-authority denial/outcome, schema-validation failure, ontology-binding denial, memory-retention violation, and migration-reconciliation failure the successor's contracts reference by `reasonCode`. Every code is `code`/`owner`/`meaning`/`retryable`, matching execution-plan.md section 6.3's 'Every transition must be an explicit decision with stable reason codes' and section 6.4's 'stable denial and outcome reason codes'. Codes are never renumbered or reused; a superseded code is retired, not deleted (see tests/contracts/reason-code-registry.test.ts for the uniqueness + stability test this registry must pass). Runtime-neutral. Real content P330.",
+  "schemaVersion": "1.0.0",
+  "codes": [
+    {
+      "code": "RC-STATE-SKIPPED-TRANSITION",
+      "owner": "governance",
+      "meaning": "A state-advancing transition attempted to skip an intermediate state in the FDE/SIC/DTC or Altitude-2 operation state machine (execution-plan.md section 6.3), e.g. DTC_PROPOSED -> COMMITTED directly.",
+      "retryable": false,
+      "category": "state-transition",
+      "appliesTo": ["fde-session", "semantic-intent", "digital-twin-change"]
+    },
+    {
+      "code": "RC-STATE-EVIDENCE-MISSING",
+      "owner": "governance",
+      "meaning": "A state-advancing transition was attempted without independently verified user-decision evidence (not tool success, not a free-text reference).",
+      "retryable": true,
+      "category": "state-transition",
+      "appliesTo": ["fde-session", "semantic-intent", "digital-twin-change"]
+    },
+    {
+      "code": "RC-STATE-STALE-FINGERPRINT",
+      "owner": "governance",
+      "meaning": "The SIC or DTC fingerprint presented at a transition no longer matches the currently-approved body.",
+      "retryable": false,
+      "category": "state-transition",
+      "appliesTo": ["semantic-intent", "digital-twin-change"]
+    },
+    {
+      "code": "RC-AUTH-EXPIRED",
+      "owner": "governance",
+      "meaning": "The mutation-authority envelope's expiresAt has passed before the commit gate resolved it.",
+      "retryable": true,
+      "category": "mutation-authority",
+      "appliesTo": ["mutation-authority"]
+    },
+    {
+      "code": "RC-AUTH-NONCE-REUSED",
+      "owner": "governance",
+      "meaning": "The envelope's one-time or bounded-use nonce has already been consumed by a prior commit attempt.",
+      "retryable": false,
+      "category": "mutation-authority",
+      "appliesTo": ["mutation-authority"]
+    },
+    {
+      "code": "RC-AUTH-FINGERPRINT-MISMATCH",
+      "owner": "governance",
+      "meaning": "The envelope's sicFingerprint or dtcFingerprint does not match the currently-approved SIC/DTC body at resolution time.",
+      "retryable": false,
+      "category": "mutation-authority",
+      "appliesTo": ["mutation-authority"]
+    },
+    {
+      "code": "RC-AUTH-SUBMISSION-CRITERIA-FAILED",
+      "owner": "governance",
+      "meaning": "submissionCriteriaResult.passed was false at resolution time (closes P220 section 8.4's vacuous-when-omitted gap: this field is mandatory, never optional).",
+      "retryable": true,
+      "category": "mutation-authority",
+      "appliesTo": ["mutation-authority"]
+    },
+    {
+      "code": "RC-AUTH-PERMISSION-DENIED",
+      "owner": "security",
+      "meaning": "permissionDecisionRef resolved to a deny at commit-gate resolution time.",
+      "retryable": false,
+      "category": "mutation-authority",
+      "appliesTo": ["mutation-authority"]
+    },
+    {
+      "code": "RC-AUTH-CONCURRENCY-CONFLICT",
+      "owner": "governance",
+      "meaning": "expectedPriorState (the concurrency token) no longer matches the target's actual prior state at commit time.",
+      "retryable": true,
+      "category": "mutation-authority",
+      "appliesTo": ["mutation-authority"]
+    },
+    {
+      "code": "RC-AUTH-SCOPE-VIOLATION",
+      "owner": "governance",
+      "meaning": "A target identity fell outside the envelope's declared allowedAction/writeScope.",
+      "retryable": false,
+      "category": "mutation-authority",
+      "appliesTo": ["mutation-authority"]
+    },
+    {
+      "code": "RC-AUTH-DRY-RUN-MISMATCH",
+      "owner": "governance",
+      "meaning": "The dry-run fingerprint captured at issuance no longer matches the actual write plan at commit time.",
+      "retryable": false,
+      "category": "mutation-authority",
+      "appliesTo": ["mutation-authority"]
+    },
+    {
+      "code": "RC-COMMIT-SUCCEEDED",
+      "owner": "governance",
+      "meaning": "The single commit gate resolved the envelope and the write completed. Terminal success outcome.",
+      "retryable": false,
+      "category": "mutation-authority",
+      "appliesTo": ["mutation-authority"]
+    },
+    {
+      "code": "RC-SCHEMA-VALIDATION-FAILED",
+      "owner": "contracts",
+      "meaning": "A payload failed validation against its bound contracts/*.contract.json schema (missing or malformed load-bearing field).",
+      "retryable": true,
+      "category": "schema",
+      "appliesTo": ["fde-session", "semantic-intent", "digital-twin-change", "mutation-authority", "ontology-binding", "memory-item", "event-envelope", "migration-manifest"]
+    },
+    {
+      "code": "RC-SCHEMA-VERSION-UNSUPPORTED",
+      "owner": "contracts",
+      "meaning": "The payload's schemaVersion is not recognized by the current successor build.",
+      "retryable": false,
+      "category": "schema",
+      "appliesTo": ["fde-session", "semantic-intent", "digital-twin-change", "mutation-authority", "ontology-binding", "memory-item", "event-envelope", "migration-manifest"]
+    },
+    {
+      "code": "RC-BINDING-CONSUMER-UNKNOWN",
+      "owner": "altitude2",
+      "meaning": "consumerProjectId or consumerOntologyId on an ontology-binding does not resolve to a registered consumer project.",
+      "retryable": false,
+      "category": "binding",
+      "appliesTo": ["ontology-binding"]
+    },
+    {
+      "code": "RC-BINDING-SCOPE-INSUFFICIENT",
+      "owner": "altitude2",
+      "meaning": "The attempted Altitude-2 operation exceeds the ontology-binding's bindingScope (e.g. a commit attempted under a read-only or proposal-only binding).",
+      "retryable": false,
+      "category": "binding",
+      "appliesTo": ["ontology-binding"]
+    },
+    {
+      "code": "RC-MEMORY-RETENTION-VIOLATION",
+      "owner": "memory",
+      "meaning": "An attempted read or write on a memory item conflicts with its declared retention.policy (e.g. writing to an archived item outside the archive-before-remove path).",
+      "retryable": false,
+      "category": "memory",
+      "appliesTo": ["memory-item"]
+    },
+    {
+      "code": "RC-MIGRATION-HASH-MISMATCH",
+      "owner": "migration",
+      "meaning": "reconciliation.actualHash does not equal reconciliation.expectedHash for a migration manifest.",
+      "retryable": false,
+      "category": "migration",
+      "appliesTo": ["migration-manifest"]
+    },
+    {
+      "code": "RC-MIGRATION-COUNT-MISMATCH",
+      "owner": "migration",
+      "meaning": "reconciliation.actualCount does not equal reconciliation.expectedCount for a migration manifest.",
+      "retryable": false,
+      "category": "migration",
+      "appliesTo": ["migration-manifest"]
+    },
+    {
+      "code": "RC-MIGRATION-ROLLBACK-REQUIRED",
+      "owner": "migration",
+      "meaning": "A checkpoint reached status:\"failed\" and rollback.available must be exercised before the migration can proceed.",
+      "retryable": false,
+      "category": "migration",
+      "appliesTo": ["migration-manifest"]
+    }
+  ]
+}

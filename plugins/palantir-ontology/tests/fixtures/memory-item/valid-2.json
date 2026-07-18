@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "itemId": "mem-0002",
+  "layer": "procedural",
+  "authority": {
+    "writer": "src/memory/procedural-writer.ts",
+    "owner": "successor:governance"
+  },
+  "retention": {
+    "policy": "archived",
+    "archiveRef": "archive/2026-07/mem-0002.json"
+  },
+  "createdAt": "2026-07-18T09:26:00Z",
+  "byWhom": {
+    "identity": "user:palantirkc"
+  },
+  "provenance": {
+    "sourceRef": "sic-0002",
+    "lineageRefs": [
+      "evt-0044"
+    ]
+  }
+}

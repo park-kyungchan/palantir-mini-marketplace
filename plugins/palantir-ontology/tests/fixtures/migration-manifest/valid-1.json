@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-0001",
+  "sourceStore": "plugins/palantir-mini/.palantir-mini/session/events.jsonl",
+  "targetStore": "plugins/palantir-ontology/.palantir-ontology/session/events.jsonl",
+  "idMap": [
+    {
+      "legacyId": "legacy-evt-1",
+      "successorId": "evt-0001"
+    }
+  ],
+  "reconciliation": {
+    "expectedCount": 1,
+    "actualCount": 1,
+    "expectedHash": "7f3a453af46caf9e7a891560333a52dc90c63b1b180f0942d87fa34abb4e0cb2",
+    "actualHash": "7f3a453af46caf9e7a891560333a52dc90c63b1b180f0942d87fa34abb4e0cb2"
+  },
+  "checkpoints": [
+    {
+      "checkpointId": "chk-1",
+      "at": "2026-07-18T10:00:00Z",
+      "status": "passed"
+    }
+  ],
+  "rollback": {
+    "available": true,
+    "procedureRef": "docs/migration.md#rollback"
+  },
+  "status": "completed",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "sicId": "sic-bad-2",
+  "status": "draft",
+  "bodyFingerprint": "not-a-sha256-hash",
+  "proposedAt": "2026-07-18T09:20:00Z",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  }
+}

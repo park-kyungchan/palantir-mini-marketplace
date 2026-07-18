@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "sicId": "sic-0002",
+  "fdeSessionId": "fde-sess-0002",
+  "status": "approved",
+  "bodyFingerprint": "53b9d0db6c3aef2f1e9dda2693214f73b042dfa88389cb62aff0fffb7c501b11",
+  "proposedAt": "2026-07-18T09:20:00Z",
+  "approvedAt": "2026-07-18T09:25:00Z",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  },
+  "reasonCode": "RC-COMMIT-SUCCEEDED"
+}

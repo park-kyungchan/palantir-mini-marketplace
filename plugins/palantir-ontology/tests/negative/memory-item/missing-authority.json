@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "itemId": "mem-bad-1",
+  "layer": "working",
+  "retention": {
+    "policy": "ephemeral"
+  },
+  "createdAt": "2026-07-18T09:25:00Z",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  }
+}

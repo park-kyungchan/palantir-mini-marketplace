@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0.0",
+  "sessionId": "fde-sess-0002",
+  "status": "COMMITTED",
+  "consumerOntologyId": "consumer:example-project",
+  "openedAt": "2026-07-18T09:00:00Z",
+  "byWhom": { "identity": "agent:claude-sonnet-5", "role": "worker" },
+  "turns": [
+    {
+      "turnId": "turn-1",
+      "recordedAt": "2026-07-18T09:05:00Z",
+      "byWhom": { "identity": "agent:claude-sonnet-5", "role": "worker" },
+      "hypothesis": "Model X as a new ObjectType",
+      "rejected": true,
+      "reasonCode": "RC-STATE-EVIDENCE-MISSING"
+    },
+    {
+      "turnId": "turn-2",
+      "recordedAt": "2026-07-18T09:10:00Z",
+      "byWhom": { "identity": "agent:claude-sonnet-5", "role": "worker" },
+      "hypothesis": "Model X as a ControlPlaneNodeKind entry",
+      "rejected": false
+    }
+  ]
+}

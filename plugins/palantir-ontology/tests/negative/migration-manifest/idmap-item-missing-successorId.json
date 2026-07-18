@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-bad-2",
+  "sourceStore": "a",
+  "targetStore": "b",
+  "idMap": [
+    {
+      "legacyId": "legacy-evt-1"
+    }
+  ],
+  "reconciliation": {
+    "expectedCount": 1,
+    "actualCount": 1,
+    "expectedHash": "7f3a453af46caf9e7a891560333a52dc90c63b1b180f0942d87fa34abb4e0cb2",
+    "actualHash": "7f3a453af46caf9e7a891560333a52dc90c63b1b180f0942d87fa34abb4e0cb2"
+  },
+  "rollback": {
+    "available": false
+  },
+  "status": "pending"
+}
