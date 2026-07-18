@@ -17,6 +17,16 @@
         "name": "palantirKC"
       },
       "category": "development"
+    },
+    {
+      "name": "palantir-ontology",
+      "source": "./plugins/palantir-ontology",
+      "description": "Successor Ontology-First runtime for the ~/projects fleet — the governed semantic + kinetic digital twin (Data+Logic+Action+Security decisions) that every consumer project binds to instead of re-deriving; replaces palantir-mini.",
+      "version": "0.1.0",
+      "author": {
+        "name": "palantirKC"
+      },
+      "category": "development"
     }
   ],
   "version": "7.52.0"

@@ -1,0 +1,23 @@
+{
+  "name": "palantir-ontology-marketplace",
+  "owner": {
+    "name": "palantirKC"
+  },
+  "metadata": {
+    "description": "Successor Ontology-First runtime for the ~/projects fleet — the governed semantic + kinetic digital twin (Data+Logic+Action+Security decisions) that every consumer project binds to instead of re-deriving; replaces palantir-mini.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "palantir-ontology",
+      "source": "./",
+      "description": "Successor Ontology-First runtime for the ~/projects fleet — the governed semantic + kinetic digital twin (Data+Logic+Action+Security decisions) that every consumer project binds to instead of re-deriving; replaces palantir-mini.",
+      "version": "0.1.0",
+      "author": {
+        "name": "palantirKC"
+      },
+      "category": "ontology-tooling"
+    }
+  ],
+  "version": "0.1.0"
+}

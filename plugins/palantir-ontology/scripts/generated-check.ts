@@ -14,10 +14,12 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { generateContractIndex, HEADER as CONTRACT_INDEX_HEADER } from "./generators/contract-index";
 import { generateReasonCodeIndex, HEADER as REASON_CODE_INDEX_HEADER } from "./generators/reason-code-index";
+import { generateCapabilityIndex, HEADER as CAPABILITY_INDEX_HEADER } from "./generators/capability-index";
 
 const PACKAGE_ROOT = resolve(import.meta.dir, "..");
 const CONTRACTS_DIR = join(PACKAGE_ROOT, "contracts");
 const GENERATED_DIR = join(PACKAGE_ROOT, "scripts", "generated");
+const ADAPTERS_SHARED_DIR = join(PACKAGE_ROOT, "src", "adapters", "shared");
 
 interface GeneratedArtifact {
   readonly name: string;
@@ -38,6 +40,12 @@ const ARTIFACTS: GeneratedArtifact[] = [
     outputPath: join(GENERATED_DIR, "reason-code-index.generated.ts"),
     header: REASON_CODE_INDEX_HEADER,
     regenerate: () => generateReasonCodeIndex(join(CONTRACTS_DIR, "reason-code-registry.json")),
+  },
+  {
+    name: "capability-index",
+    outputPath: join(GENERATED_DIR, "capability-index.generated.ts"),
+    header: CAPABILITY_INDEX_HEADER,
+    regenerate: () => generateCapabilityIndex(join(ADAPTERS_SHARED_DIR, "capability-registry.json")),
   },
 ];
 

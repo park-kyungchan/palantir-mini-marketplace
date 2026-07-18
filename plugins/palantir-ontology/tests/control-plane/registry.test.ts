@@ -38,8 +38,8 @@ describe("CONTROL_PLANE_CATALOG", () => {
     for (const entry of CONTROL_PLANE_CATALOG) expect(isPrimitiveKind(entry.kind)).toBe(false);
   });
 
-  test("carries exactly 15 entries (7 checkers + 3 generators + 2 generated artifacts + 3 planned adapters)", () => {
-    expect(CONTROL_PLANE_CATALOG.length).toBe(15);
+  test("carries exactly 18 entries (7 checkers + 4 generators + 3 generated artifacts + 4 active adapters, 0 planned)", () => {
+    expect(CONTROL_PLANE_CATALOG.length).toBe(18);
   });
 
   test("no duplicate nodeId or sourcePath", () => {
@@ -49,13 +49,27 @@ describe("CONTROL_PLANE_CATALOG", () => {
 
   test("findByKind returns only matching entries", () => {
     const adapters = findByKind(CONTROL_PLANE_CATALOG, "adapter");
-    expect(adapters.length).toBe(3);
+    expect(adapters.length).toBe(4);
     for (const entry of adapters) expect(entry.kind).toBe("adapter");
   });
 
-  test("every planned entry's runtimeScope is one of codex/claude/gemini (never 'all' for a per-runtime adapter)", () => {
+  test("every planned entry's runtimeScope is one of codex/claude/gemini (never 'all' for a per-runtime adapter) — vacuously true now that no entry remains planned", () => {
     const planned = CONTROL_PLANE_CATALOG.filter((e) => e.status === "planned");
-    expect(planned.length).toBe(3);
+    expect(planned.length).toBe(0);
     for (const entry of planned) expect(["codex", "claude", "gemini"]).toContain(entry.runtimeScope);
+  });
+
+  test("adapter-codex, adapter-claude, and adapter-gemini are all active (A620/A630/A640 built src/adapters/{codex,claude,gemini}/); no adapter remains planned", () => {
+    const codex = CONTROL_PLANE_CATALOG.find((e) => e.nodeId === "adapter-codex");
+    expect(codex?.status).toBe("active");
+    expect(codex?.runtimeScope).toBe("codex");
+    const claude = CONTROL_PLANE_CATALOG.find((e) => e.nodeId === "adapter-claude");
+    expect(claude?.status).toBe("active");
+    expect(claude?.runtimeScope).toBe("claude");
+    const gemini = CONTROL_PLANE_CATALOG.find((e) => e.nodeId === "adapter-gemini");
+    expect(gemini?.status).toBe("active");
+    expect(gemini?.runtimeScope).toBe("gemini");
+    const planned = CONTROL_PLANE_CATALOG.filter((e) => e.status === "planned");
+    expect(planned).toEqual([]);
   });
 });
