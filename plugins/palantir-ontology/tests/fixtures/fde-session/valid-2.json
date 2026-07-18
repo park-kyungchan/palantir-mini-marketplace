@@ -4,22 +4,29 @@
   "status": "COMMITTED",
   "consumerOntologyId": "consumer:example-project",
   "openedAt": "2026-07-18T09:00:00Z",
+  "userFacingSummary": "Model the concept as a ControlPlaneNodeKind catalog entry, not a product ObjectType.",
   "byWhom": { "identity": "agent:claude-sonnet-5", "role": "worker" },
   "turns": [
     {
       "turnId": "turn-1",
       "recordedAt": "2026-07-18T09:05:00Z",
       "byWhom": { "identity": "agent:claude-sonnet-5", "role": "worker" },
+      "phase": "FDE_OPEN",
       "hypothesis": "Model X as a new ObjectType",
       "rejected": true,
-      "reasonCode": "RC-STATE-EVIDENCE-MISSING"
+      "reasonCode": "RC-STATE-EVIDENCE-MISSING",
+      "boundedSummary": "Rejected: X looks like control-plane metadata, not a domain primitive."
     },
     {
       "turnId": "turn-2",
       "recordedAt": "2026-07-18T09:10:00Z",
       "byWhom": { "identity": "agent:claude-sonnet-5", "role": "worker" },
+      "phase": "FDE_OPEN",
       "hypothesis": "Model X as a ControlPlaneNodeKind entry",
-      "rejected": false
+      "rejected": false,
+      "boundedSummary": "Accepted: X is runtime/control metadata per ADR-003.",
+      "candidatePrimitives": ["control-plane:x-entry"],
+      "evidenceRefs": ["evidence:p210-section-8d"]
     }
   ]
 }

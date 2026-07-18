@@ -25,11 +25,17 @@ const ALLOWED_CATEGORIES = new Set([
   "binding",
   "memory",
   "migration",
+  "construction-staging",
+  "control-plane",
 ]);
 
 // Stable snapshot of every code this registry is expected to carry, sorted.
 // Adding, renaming, or removing a code is a deliberate registry change — this
-// list must be updated in the same change, not silently drift.
+// list must be updated in the same change, not silently drift. The
+// RC-CONSTRUCTION-* group was added by ledger row P420 (staged
+// construction's DATA/LOGIC/ACTION evidence separation).
+// RC-CONTROL-PLANE-PRODUCT-PRIMITIVE-COLLISION was added by ledger row P450
+// (the ADR-003 control-plane/product-primitive boundary validator).
 const EXPECTED_CODES_SORTED = [
   "RC-AUTH-CONCURRENCY-CONFLICT",
   "RC-AUTH-DRY-RUN-MISMATCH",
@@ -42,6 +48,11 @@ const EXPECTED_CODES_SORTED = [
   "RC-BINDING-CONSUMER-UNKNOWN",
   "RC-BINDING-SCOPE-INSUFFICIENT",
   "RC-COMMIT-SUCCEEDED",
+  "RC-CONSTRUCTION-EVIDENCE-CLASS-CONTAMINATION",
+  "RC-CONSTRUCTION-EVIDENCE-CLASS-MISSING",
+  "RC-CONSTRUCTION-PREMATURE-VALIDATION",
+  "RC-CONSTRUCTION-UNREGISTERED-PRIMITIVE-KIND",
+  "RC-CONTROL-PLANE-PRODUCT-PRIMITIVE-COLLISION",
   "RC-MEMORY-RETENTION-VIOLATION",
   "RC-MIGRATION-COUNT-MISMATCH",
   "RC-MIGRATION-HASH-MISMATCH",

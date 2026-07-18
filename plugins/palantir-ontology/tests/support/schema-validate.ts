@@ -8,8 +8,10 @@
 // package.json). Supports exactly the keyword subset the eight
 // contracts/*.contract.json schemas use: type, enum, const, required,
 // properties, additionalProperties (boolean), items, minItems, minLength,
-// minimum, pattern, format:"date-time". No $ref (contracts are deliberately
-// self-contained per ADR-004's independent-versioning rationale).
+// maxLength, minimum, pattern, format:"date-time". No $ref (contracts are
+// deliberately self-contained per ADR-004's independent-versioning
+// rationale). `maxLength` added P410 (fde-session.contract.json's bounded
+// turn-summary field) — additive, no prior schema declared it.
 
 export interface ValidationResult {
   valid: boolean;
@@ -58,6 +60,9 @@ function validateNode(schema: any, data: unknown, path: string, errors: string[]
   if (typeof data === "string") {
     if (schema.minLength !== undefined && data.length < schema.minLength) {
       errors.push(`${path}: string length ${data.length} < minLength ${schema.minLength}`);
+    }
+    if (schema.maxLength !== undefined && data.length > schema.maxLength) {
+      errors.push(`${path}: string length ${data.length} > maxLength ${schema.maxLength}`);
     }
     if (schema.pattern !== undefined && !new RegExp(schema.pattern).test(data)) {
       errors.push(`${path}: value ${JSON.stringify(data)} does not match pattern ${schema.pattern}`);

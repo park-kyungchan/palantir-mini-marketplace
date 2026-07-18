@@ -9,6 +9,7 @@
     "test:contracts": "bun test tests/contracts",
     "contract:check": "bun test tests/contracts",
     "boundary:check": "bun run scripts/boundary-check.ts",
+    "control-plane:check": "bun run scripts/control-plane-check.ts",
     "generated:check": "bun run scripts/generated-check.ts",
     "parity:check": "bun run scripts/parity-check.ts",
     "migration:check": "bun run scripts/migration-check.ts",

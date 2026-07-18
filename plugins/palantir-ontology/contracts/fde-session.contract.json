@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://palantir-ontology.internal/contracts/fde-session.contract.json",
   "title": "FDE Session Contract",
-  "description": "Versioned Field-Driven-Elicitation (Facilitated Discovery Engine) build-session aggregate (Altitude-1). Runtime-neutral: carries no runtime-specific field; adapters translate at the boundary (ADR-007). Stable reason codes reference contracts/reason-code-registry.json. Real content P330 (execution-plan.md Wave 3 row P330); state vocabulary fixed by docs/architecture.md ADR-004 and execution-plan.md section 6.3.",
+  "description": "Versioned Field-Driven-Elicitation (Facilitated Discovery Engine) build-session aggregate (Altitude-1). Runtime-neutral: carries no runtime-specific field; adapters translate at the boundary (ADR-007). Stable reason codes reference contracts/reason-code-registry.json. Real content P330 (execution-plan.md Wave 3 row P330); state vocabulary fixed by docs/architecture.md ADR-004 and execution-plan.md section 6.3. Turn fields extended P410 (w7-requirements.md A1-001: phase, candidate primitives, unresolved questions, evidence refs, and bounded turn summaries). Pre-release tightening, NOT fully backward-compatible: turn items now REQUIRE phase and boundedSummary, so P330-era documents that carry turns do not validate unchanged; top-level additions (userFacingSummary) are optional. No persisted instances exist before Wave 8; legacy imports map through the migration manifests, never by assumed compatibility.",
   "type": "object",
   "required": ["schemaVersion", "sessionId", "status", "openedAt", "byWhom", "turns"],
   "properties": {
@@ -42,12 +42,18 @@
       },
       "additionalProperties": false
     },
+    "userFacingSummary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "P410, A1-001: current cumulative user-facing summary of business meaning elicited so far. Absent while status is FDE_OPEN with no turns yet; a durable, structured field — never a substitute for raw transcript text."
+    },
     "turns": {
       "type": "array",
       "minItems": 0,
       "items": {
         "type": "object",
-        "required": ["turnId", "recordedAt", "byWhom"],
+        "required": ["turnId", "recordedAt", "byWhom", "phase", "boundedSummary"],
         "properties": {
           "turnId": { "type": "string", "minLength": 1 },
           "recordedAt": { "type": "string", "format": "date-time" },
@@ -60,6 +66,21 @@
             },
             "additionalProperties": false
           },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "FDE_OPEN",
+              "SIC_PROPOSED",
+              "SIC_APPROVED",
+              "DTC_PROPOSED",
+              "DTC_APPROVED",
+              "CONSTRUCTION_STAGED",
+              "VALIDATED",
+              "MUTATION_AUTHORITY_ISSUED",
+              "COMMITTED"
+            ],
+            "description": "P410, A1-001: the construction-lane state the session was in when this turn was recorded. Same registered enum as the session-level `status` (execution-plan.md section 6.3) — never a free-text phase label."
+          },
           "hypothesis": { "type": "string" },
           "rejected": {
             "type": "boolean",
@@ -69,6 +90,33 @@
             "type": "string",
             "pattern": "^RC-[A-Z0-9-]+$",
             "description": "Stable code from contracts/reason-code-registry.json; expected context on any rejected:true turn."
+          },
+          "candidatePrimitives": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9:_./-]{0,199}$"
+            },
+            "description": "P410, A1-001: candidate primitive names/refs proposed in this turn. Typed pointer tokens (identifier-shaped, no whitespace) — never a raw-transcript sentence."
+          },
+          "unresolvedQuestions": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 300 },
+            "description": "P410, A1-001: open questions this turn raised, still unresolved."
+          },
+          "evidenceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9:_./-]{0,199}$"
+            },
+            "description": "P410, A1-001/A1-003: typed pointers to evidence (session ids, decision-log ids, prompt-provenance ids). Identifier-shaped, no whitespace — raw transcript text can never satisfy this pattern, so it structurally cannot be treated as authority here."
+          },
+          "boundedSummary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "P410, A1-001: bounded turn summary — a short, structured summary of this turn, never the raw transcript."
           }
         },
         "additionalProperties": false

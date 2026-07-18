@@ -37,7 +37,7 @@ export const CONTRACT_INDEX: readonly ContractIndexEntry[] = [
     id: "https://palantir-ontology.internal/contracts/fde-session.contract.json",
     title: "FDE Session Contract",
     requiredFieldCount: 6,
-    sha256: "f194ac4eba3ace644561d03f95736bacde2e3ae7a7c576c556840d61257c541e",
+    sha256: "7c78a1a5a2370c4baf649c4f4392fa922208b3501d8c6050e78c69ae406fdbf1",
   },
   {
     file: "memory-item.contract.json",
