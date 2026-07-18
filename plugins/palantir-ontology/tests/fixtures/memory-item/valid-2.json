@@ -15,9 +15,11 @@
     "identity": "user:palantirkc"
   },
   "provenance": {
-    "sourceRef": "sic-0002",
-    "lineageRefs": [
-      "evt-0044"
-    ]
+    "source": "sic-0002",
+    "session": "session-2026-07-18-002",
+    "actor": "user:palantirkc",
+    "transformation": "manual-authorship",
+    "governingContract": "playbook:p510-typed-memory",
+    "priorState": "evt-0044"
   }
 }

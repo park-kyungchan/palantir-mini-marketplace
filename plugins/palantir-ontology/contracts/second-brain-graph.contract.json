@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/second-brain-graph.contract.json",
+  "title": "SecondBrain Governing Graph Document",
+  "description": "The governing node/edge graph document a SecondBrain fold's `summary` interchange line (second-brain-interchange.contract.json) commits (ledger row P520, ADR-006). This is the successor's OWN in-tree, versioned schema for the graph shape that authority holds once governed emit succeeds — not a reference to, or dependency on, the out-of-repo SecondBrain fold engine (math-KG-excluded). Envelope-level shape only: `nodeCount`/`edgeCount` matching `nodes.length`/`edges.length`, and every edge's `from`/`to` resolving to a declared node, are cross-field checks the successor's minimal schema-validator subset cannot express (no `oneOf`/`if`-`then`, no array-length-vs-integer-field comparison) — src/memory/second-brain-validate.ts enforces both. Runtime-neutral.",
+  "type": "object",
+  "required": ["schemaVersion", "sessionId", "nodes", "edges", "nodeCount", "edgeCount"],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "sessionId": { "type": "string", "minLength": 1 },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nodeId", "kind"],
+        "properties": {
+          "nodeId": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 },
+          "label": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edgeId", "from", "to", "kind"],
+        "properties": {
+          "edgeId": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "nodeCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Must equal nodes.length (src/memory/second-brain-validate.ts, not expressible in this schema's minimal subset)."
+    },
+    "edgeCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Must equal edges.length (src/memory/second-brain-validate.ts, not expressible in this schema's minimal subset)."
+    }
+  },
+  "additionalProperties": false
+}

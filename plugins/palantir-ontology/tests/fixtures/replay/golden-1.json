@@ -1,0 +1,75 @@
+{
+  "description": "P540 golden replay fixture: 3 well-formed rev-0 rows + 1 malformed row (missing byWhom, quarantined and excluded from sequencing) fed through readEvents (structural validate + versioned upcast) then replayToState at cutSequence 1 (state) alongside 3 episodic memory items (one beyond the cut, excluded).",
+  "rawRows": [
+    {
+      "schemaVersion": "1.0.0",
+      "envelopeRev": 0,
+      "type": "fde_turn_recorded",
+      "when": "2026-07-18T09:00:00Z",
+      "atopWhich": "fde-session:s1",
+      "throughWhich": "src/altitude1/turn-engine.ts",
+      "byWhom": { "identity": "agent:claude-sonnet-5", "role": "worker" },
+      "withWhat": { "turnId": "turn-1" }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "envelopeRev": 0,
+      "type": "sic_approved",
+      "when": "2026-07-18T09:05:00Z",
+      "atopWhich": "sic:sic-1",
+      "throughWhich": "src/altitude1/sic-gate.ts",
+      "byWhom": { "identity": "user:palantirkc", "role": "approver" },
+      "withWhat": { "sicId": "sic-1" }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "envelopeRev": 0,
+      "type": "fde_turn_recorded",
+      "when": "2026-07-18T09:03:00Z",
+      "atopWhich": "fde-session:s1",
+      "throughWhich": "src/altitude1/turn-engine.ts",
+      "withWhat": { "turnId": "turn-1b" }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "envelopeRev": 0,
+      "type": "fde_turn_advanced",
+      "when": "2026-07-18T09:10:00Z",
+      "atopWhich": "fde-session:s1",
+      "throughWhich": "src/altitude1/turn-engine.ts",
+      "byWhom": { "identity": "agent:claude-sonnet-5", "role": "worker" },
+      "withWhat": { "turnId": "turn-2" }
+    }
+  ],
+  "episodes": [
+    { "itemId": "mem-e-1", "sequenceOrdinal": 0, "outcome": "turn recorded" },
+    { "itemId": "mem-e-2", "sequenceOrdinal": 1, "outcome": "sic approved", "summary": "sic-1 approved by user" },
+    { "itemId": "mem-e-3", "sequenceOrdinal": 5, "outcome": "later event, beyond the cut" }
+  ],
+  "cutSequence": 1,
+  "expected": {
+    "malformedRawIndex": 2,
+    "malformedReasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+    "result": {
+      "asOfSequence": 1,
+      "stateByTarget": {
+        "fde-session:s1": {
+          "lastType": "fde_turn_recorded",
+          "lastWhen": "2026-07-18T09:00:00Z",
+          "lastSequence": 0,
+          "lastWithWhat": { "replayCursor": 0, "turnId": "turn-1" }
+        },
+        "sic:sic-1": {
+          "lastType": "sic_approved",
+          "lastWhen": "2026-07-18T09:05:00Z",
+          "lastSequence": 1,
+          "lastWithWhat": { "replayCursor": 0, "sicId": "sic-1" }
+        }
+      },
+      "episodicTimeline": [
+        { "itemId": "mem-e-1", "sequenceOrdinal": 0, "outcome": "turn recorded" },
+        { "itemId": "mem-e-2", "sequenceOrdinal": 1, "outcome": "sic approved", "summary": "sic-1 approved by user" }
+      ]
+    }
+  }
+}

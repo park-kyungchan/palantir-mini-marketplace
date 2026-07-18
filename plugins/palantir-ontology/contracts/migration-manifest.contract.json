@@ -68,6 +68,11 @@
         "role": { "type": "string" }
       },
       "additionalProperties": false
+    },
+    "stateFamily": {
+      "type": "string",
+      "enum": ["sessions", "sic-dtc", "events", "memory", "consumer-bindings", "retention", "projections"],
+      "description": "Which of ADR-006's successor-owned state families (P550, execution-plan.md Wave 5 row P550) this manifest migrates. Optional: a manifest predating this field, or one covering a store outside these seven, is still schema-valid."
     }
   },
   "additionalProperties": false

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-0005",
+  "sourceStore": "plugins/palantir-mini/.palantir-mini/session/registered-projects.json",
+  "targetStore": "plugins/palantir-ontology/.palantir-ontology/consumer-bindings/manifest.json",
+  "idMap": [
+    {
+      "legacyId": "project-legacy-001",
+      "successorId": "binding-0001"
+    }
+  ],
+  "reconciliation": {
+    "expectedCount": 1,
+    "actualCount": 1,
+    "expectedHash": "549f90667ff4ca30af2432b0f0fc20ab76be2f2400036f3d1bcde21fae33b86b",
+    "actualHash": "549f90667ff4ca30af2432b0f0fc20ab76be2f2400036f3d1bcde21fae33b86b"
+  },
+  "checkpoints": [
+    {
+      "checkpointId": "chk-1",
+      "at": "2026-07-18T10:10:00Z",
+      "status": "pending"
+    }
+  ],
+  "rollback": {
+    "available": false
+  },
+  "status": "in-progress",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  },
+  "stateFamily": "consumer-bindings"
+}

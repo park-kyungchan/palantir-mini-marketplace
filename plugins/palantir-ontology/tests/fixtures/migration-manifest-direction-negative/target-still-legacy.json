@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-bad-reversed-2",
+  "sourceStore": "plugins/palantir-mini/.palantir-mini/session/events.jsonl",
+  "targetStore": "plugins/palantir-mini/.palantir-mini/session/events-backup.jsonl",
+  "idMap": [],
+  "reconciliation": {
+    "expectedCount": 0,
+    "actualCount": 0,
+    "expectedHash": "f93f2db8f6bcdb0df125739f6a4a2cd5b12c283c41e35d3f902e4bb856747c43",
+    "actualHash": "f93f2db8f6bcdb0df125739f6a4a2cd5b12c283c41e35d3f902e4bb856747c43"
+  },
+  "rollback": {
+    "available": false
+  },
+  "status": "pending",
+  "stateFamily": "events"
+}

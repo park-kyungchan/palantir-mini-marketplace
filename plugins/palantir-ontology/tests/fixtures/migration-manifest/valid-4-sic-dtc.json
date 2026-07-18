@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-0004",
+  "sourceStore": "plugins/palantir-mini/.palantir-mini/session/ontology-context-approvals/dtc-legacy-001.json",
+  "targetStore": "plugins/palantir-ontology/.palantir-ontology/session/sic-dtc/dtc-legacy-001.json",
+  "idMap": [
+    {
+      "legacyId": "dtc-legacy-001",
+      "successorId": "dtc-0001"
+    }
+  ],
+  "reconciliation": {
+    "expectedCount": 1,
+    "actualCount": 1,
+    "expectedHash": "f93f2db8f6bcdb0df125739f6a4a2cd5b12c283c41e35d3f902e4bb856747c43",
+    "actualHash": "f93f2db8f6bcdb0df125739f6a4a2cd5b12c283c41e35d3f902e4bb856747c43"
+  },
+  "checkpoints": [
+    {
+      "checkpointId": "chk-1",
+      "at": "2026-07-18T10:05:00Z",
+      "status": "passed"
+    }
+  ],
+  "rollback": {
+    "available": true,
+    "procedureRef": "docs/migration.md#rollback"
+  },
+  "status": "completed",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  },
+  "stateFamily": "sic-dtc"
+}

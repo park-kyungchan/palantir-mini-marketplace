@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/second-brain-interchange.contract.json",
+  "title": "SecondBrain Fold Interchange Line",
+  "description": "One NDJSON line of the SecondBrain fold's governed interchange (ledger row P520, docs/architecture.md ADR-006, execution-plan.md section 9 row P520 'Bring SecondBrain interchange, validation, and governing graph schema under successor source authority'). Two kinds share this one envelope: a mid-fold `batch` line (a bounded set of graph verdicts) and the terminal `summary` line (the fold's committed totals). This contract deliberately stays a single open envelope — the successor's minimal schema-validator subset has no `oneOf`/`if`-`then` (memory-item.contract.json precedent) — so it cannot express 'verdicts is required only when kind=batch' or 'summary is required only when kind=summary'; `src/memory/second-brain-validate.ts` is the layer-conditional enforcement point this schema alone cannot express. In-tree, versioned, and independent of the out-of-repo SecondBrain fold engine (math-KG-excluded; no engine source was read or depended on to write this contract). Runtime-neutral.",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "sessionId", "emittedAt", "byWhom"],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "kind": {
+      "type": "string",
+      "enum": ["batch", "summary"],
+      "description": "Discriminator. src/memory/second-brain-validate.ts dispatches on this field and rejects a batch-shaped line carrying `summary`, or a summary-shaped line carrying `verdicts`/`batchIndex`."
+    },
+    "sessionId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The fold session this line belongs to."
+    },
+    "batchIndex": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "kind=batch only: this batch's zero-based position within the fold."
+    },
+    "verdicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["ADD", "UPDATE", "DELETE", "NONE"],
+            "description": "The graph-mutation verdict kind."
+          },
+          "nodeId": { "type": "string", "minLength": 1 },
+          "edgeId": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      },
+      "description": "kind=batch only: the bounded set of graph verdicts this batch carries. May be empty (a batch may legitimately resolve zero verdicts)."
+    },
+    "summary": {
+      "type": "object",
+      "required": ["nodeCount", "edgeCount", "sessionId", "graphRef"],
+      "properties": {
+        "nodeCount": { "type": "integer", "minimum": 0 },
+        "edgeCount": { "type": "integer", "minimum": 0 },
+        "sessionId": { "type": "string", "minLength": 1 },
+        "graphRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pointer to the second-brain-graph.contract.json document this summary commits."
+        }
+      },
+      "additionalProperties": false,
+      "description": "kind=summary only: the fold's committed totals for the referenced governing graph document."
+    },
+    "totalBatches": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "kind=summary only: total number of batch lines that preceded this summary."
+    },
+    "emittedAt": { "type": "string", "format": "date-time" },
+    "byWhom": {
+      "type": "object",
+      "required": ["identity"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

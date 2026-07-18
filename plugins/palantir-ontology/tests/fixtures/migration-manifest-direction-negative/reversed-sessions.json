@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-bad-reversed-1",
+  "sourceStore": "plugins/palantir-ontology/.palantir-ontology/session/fde-ontology-engineering/sess-0001.json",
+  "targetStore": "plugins/palantir-mini/.palantir-mini/session/fde-ontology-engineering/sess-0001.json",
+  "idMap": [
+    {
+      "legacyId": "sess-0001",
+      "successorId": "fde-0001"
+    }
+  ],
+  "reconciliation": {
+    "expectedCount": 1,
+    "actualCount": 1,
+    "expectedHash": "78957207ef9f0b92509e951ffbca5e2d44aa50d46e7d56d7047b2e8e48b53f97",
+    "actualHash": "78957207ef9f0b92509e951ffbca5e2d44aa50d46e7d56d7047b2e8e48b53f97"
+  },
+  "rollback": {
+    "available": false
+  },
+  "status": "pending",
+  "stateFamily": "sessions"
+}

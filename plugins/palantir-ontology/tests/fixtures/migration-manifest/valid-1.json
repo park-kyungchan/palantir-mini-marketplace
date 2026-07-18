@@ -30,5 +30,6 @@
   "byWhom": {
     "identity": "agent:claude-sonnet-5",
     "role": "worker"
-  }
+  },
+  "stateFamily": "events"
 }

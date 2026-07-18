@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "itemId": "mem-0004",
+  "layer": "semantic",
+  "authority": {
+    "writer": "src/memory/memory-item.ts",
+    "governingDecisionRef": "adr:ADR-006"
+  },
+  "retention": {
+    "policy": "archived",
+    "archiveRef": "archive/2026-07/mem-0004.json"
+  },
+  "content": {
+    "concept": "single-writer mutation-authority per store",
+    "relations": [
+      { "predicate": "governedBy", "target": "adr:ADR-006" }
+    ]
+  },
+  "createdAt": "2026-07-18T09:27:00Z",
+  "byWhom": {
+    "identity": "user:palantirkc"
+  },
+  "provenance": {
+    "source": "sic-0002",
+    "session": "session-2026-07-18-002",
+    "actor": "user:palantirkc",
+    "transformation": "semantic-promotion",
+    "governingContract": "adr:ADR-006",
+    "priorState": "genesis"
+  }
+}
