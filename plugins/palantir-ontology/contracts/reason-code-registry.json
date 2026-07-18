@@ -164,6 +164,46 @@
       "retryable": false,
       "category": "migration",
       "appliesTo": ["migration-manifest"]
+    },
+    {
+      "code": "RC-CONSTRUCTION-EVIDENCE-CLASS-MISSING",
+      "owner": "altitude1",
+      "meaning": "A staged primitive's readiness evaluation for one DATA/LOGIC/ACTION evidence class found no matching evidence item in that class's own collection; readiness for that class can never be satisfied by evidence recorded under another class (execution-plan.md section 9 row P420).",
+      "retryable": true,
+      "category": "construction-staging",
+      "appliesTo": ["staged-construction"]
+    },
+    {
+      "code": "RC-CONSTRUCTION-EVIDENCE-CLASS-CONTAMINATION",
+      "owner": "altitude1",
+      "meaning": "An evidence item's own declared evidenceClass does not match the DATA/LOGIC/ACTION collection it was submitted under (e.g. a LOGIC-declared item placed in the DATA evidence collection).",
+      "retryable": true,
+      "category": "construction-staging",
+      "appliesTo": ["staged-construction"]
+    },
+    {
+      "code": "RC-CONSTRUCTION-PREMATURE-VALIDATION",
+      "owner": "altitude1",
+      "meaning": "Construction validation (CONSTRUCTION_STAGED -> VALIDATED) was attempted while the staged primitive's DATA/LOGIC/ACTION readiness was not confirmed for all three evidence classes; this is never inferred or auto-promoted.",
+      "retryable": true,
+      "category": "construction-staging",
+      "appliesTo": ["staged-construction"]
+    },
+    {
+      "code": "RC-CONSTRUCTION-UNREGISTERED-PRIMITIVE-KIND",
+      "owner": "altitude1",
+      "meaning": "A staged primitive's kind is not one of the seven registered product-primitive kinds (Object Type, Property, Shared Property Type, Link, Interface, Action, Function). ADR-003's ControlPlaneNodeKind surfaces are never a valid value here.",
+      "retryable": false,
+      "category": "construction-staging",
+      "appliesTo": ["staged-construction"]
+    },
+    {
+      "code": "RC-CONTROL-PLANE-PRODUCT-PRIMITIVE-COLLISION",
+      "owner": "control-plane",
+      "meaning": "A ControlPlaneNodeKind catalog entry's kind matches one of the seven registered product-primitive kinds (ADR-001/ADR-003 boundary): a control-plane node may never be registered as, or collide with, a product Ontology primitive, and vice versa.",
+      "retryable": false,
+      "category": "control-plane",
+      "appliesTo": ["control-plane-catalog"]
     }
   ]
 }

@@ -509,6 +509,37 @@ as risks the successor is permitted to reproduce.
   the envelope's own field is mandatory, not an optional caller-supplied
   list that silently passes when empty.
 
+**Known residual — accepted, documented threat-model boundary (P460 v3-v5,
+`decisions/pm2-gate-threat-model-escalation.md`).** `scripts/boundary-check.ts`
+statically bans every LITERAL route to the writer/oracle/gate-factory
+primitives (deep import, computed `import()`/`require()` argument, bare
+`require`/`import` aliasing/indirect-call/property-access shapes such as
+`const req = require; req("literal")`, and — as of v5 — the whole
+enumerable CommonJS module-loader-handle family: `module.X`/`module[...]`
+(covering `module.require`, `module.createRequire`, and the sixth finding
+`module["require"]`), a static/dynamic import of the `module`/`node:module`
+built-in, the bare identifier `createRequire`, `require.main`/
+`require.cache`, and `process.mainModule`). The irreducible residual after
+v5 is GENUINE dynamic-code-execution reflection —
+`Function("return require")()`, `eval(...)`, `globalThis[computedName]`,
+`Reflect.get`, or any specifier/identifier built only from runtime string
+concatenation. No static or AST scanner can resolve a value only known at
+runtime, so this is unambiguous arbitrary in-process code execution —
+outside the in-process commit gate's threat model by construction (the same
+actor could reach `atomic-write.ts` directly the same way, bypassing the
+gate entirely, regardless of any oracle/factory hardening; after v5,
+`atomic-write.ts` is itself reachable ONLY by that same eval-class
+reflection, since every enumerable module-loader-handle route to it is now
+statically banned). This limitation is shared by every module in the
+marketplace, including the legacy plugin, whose own writer is equally
+reflection-reachable. True defense against a genuine-reflection actor
+requires process/worker/capability isolation of the writer — recorded as a
+Wave-11 runtime-activation / future-architecture item, not a `P460` gap; see
+`decisions/pm2-gate-threat-model-escalation.md` "User Ruling and Lead
+Selection — Option 1+", "Fifth Finding (aliased require)", and "Sixth
+Finding (module[\"require\"]) — Lead Adjudication + v5" for the full
+adjudication.
+
 **Alternatives rejected.**
 - *Keep the legacy plugin's two-choke reserved-provenance-guard pattern*
   (P220 §3.4/§8.5: the guard runs at `emit-event.ts` and `scripts/log.ts`'s

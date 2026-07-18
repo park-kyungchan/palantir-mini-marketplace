@@ -22,6 +22,16 @@ export const REASON_CODE_INDEX: readonly ReasonCodeCategorySummary[] = [
     codes: ["RC-BINDING-CONSUMER-UNKNOWN", "RC-BINDING-SCOPE-INSUFFICIENT"],
   },
   {
+    category: "construction-staging",
+    count: 4,
+    codes: ["RC-CONSTRUCTION-EVIDENCE-CLASS-CONTAMINATION", "RC-CONSTRUCTION-EVIDENCE-CLASS-MISSING", "RC-CONSTRUCTION-PREMATURE-VALIDATION", "RC-CONSTRUCTION-UNREGISTERED-PRIMITIVE-KIND"],
+  },
+  {
+    category: "control-plane",
+    count: 1,
+    codes: ["RC-CONTROL-PLANE-PRODUCT-PRIMITIVE-COLLISION"],
+  },
+  {
     category: "memory",
     count: 1,
     codes: ["RC-MEMORY-RETENTION-VIOLATION"],
@@ -48,5 +58,5 @@ export const REASON_CODE_INDEX: readonly ReasonCodeCategorySummary[] = [
   },
 ];
 
-export const REASON_CODE_TOTAL_COUNT = 20;
-export const REASON_CODE_REGISTRY_SHA256 = "1d88297294a07767614a617dfbc3d6d6f84ed7fea643fcee4dafc8753dd00f3b";
+export const REASON_CODE_TOTAL_COUNT = 25;
+export const REASON_CODE_REGISTRY_SHA256 = "5d7f4a6e9578c550ce82331849aa5efb2a8b63e48534b596eeeeddbe24e0283c";
