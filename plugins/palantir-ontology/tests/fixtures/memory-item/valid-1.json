@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0.0",
+  "itemId": "mem-0001",
+  "layer": "episodic",
+  "authority": {
+    "writer": "src/lineage/event-appender.ts"
+  },
+  "retention": {
+    "policy": "retained"
+  },
+  "content": {
+    "summary": "SIC turn-9 approved by user"
+  },
+  "createdAt": "2026-07-18T09:25:00Z",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  }
+}

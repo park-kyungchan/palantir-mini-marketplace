@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/digital-twin-change.contract.json",
+  "title": "Digital Twin Change Contract (DTC)",
+  "description": "Approved DTC body, fingerprinted, the sole write-back gate input. Independently versioned from SIC per ADR-004. A genuine 3-verdict terminal state machine (P230 section 3.1), not a binary pass/fail. Runtime-neutral. Real content P330.",
+  "type": "object",
+  "required": ["schemaVersion", "dtcId", "sicFingerprint", "status", "bodyFingerprint", "proposedAt", "byWhom"],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "dtcId": { "type": "string", "minLength": 1 },
+    "sicFingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "The exact approved SIC body fingerprint this DTC was proposed against (binds DTC to SIC by fingerprint, not by a mutable pointer)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "approved", "superseded"],
+      "description": "Matches P230's confirmed legacy status union, carried forward."
+    },
+    "bodyFingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "sha256 content hash of the exact approved DTC body."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["dtc-filled", "dtc-rejected", "dtc-aborted"],
+      "description": "3-verdict terminal outcome (P230 section 3.1: 'digital_twin_contract_finalized' verdict union); present once finalized."
+    },
+    "proposedAt": { "type": "string", "format": "date-time" },
+    "finalizedAt": { "type": "string", "format": "date-time" },
+    "byWhom": {
+      "type": "object",
+      "required": ["identity"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "reasonCode": {
+      "type": "string",
+      "pattern": "^RC-[A-Z0-9-]+$",
+      "description": "Stable code from contracts/reason-code-registry.json; required context on a dtc-rejected or dtc-aborted verdict."
+    }
+  },
+  "additionalProperties": false
+}

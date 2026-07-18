@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { findSemanticRootForks } from "../plugins/palantir-mini/scripts/verify-no-semantic-root-fork";
+import { findUnauthorizedSemanticRootForks } from "./verify-no-semantic-root-fork";
 import { CANONICAL, TARGETS, getAtPath } from "./marketplace-version-fields";
 
 const REPOSITORY_ROOT = resolve(import.meta.dir, "..");
@@ -37,7 +37,7 @@ function main(): void {
     );
   }
 
-  for (const finding of findSemanticRootForks(REPOSITORY_ROOT)) {
+  for (const finding of findUnauthorizedSemanticRootForks(REPOSITORY_ROOT)) {
     errors.push(`${finding.path}: ${finding.message}`);
   }
 

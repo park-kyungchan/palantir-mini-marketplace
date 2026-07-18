@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "envelopeRev": 0,
+  "type": "sic_approved",
+  "when": "2026-07-18T09:25:00Z",
+  "atopWhich": "sic:sic-0002",
+  "throughWhich": "src/altitude1/sic-gate.ts",
+  "withWhat": {
+    "sicId": "sic-0002"
+  }
+}

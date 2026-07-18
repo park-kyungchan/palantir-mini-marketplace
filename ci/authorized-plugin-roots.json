@@ -1,0 +1,13 @@
+{
+  "$schemaNote": "Repository-level registry of authorized plugins/* semantic roots. Consumed by ci/verify-no-semantic-root-fork.ts to filter the unmodified legacy plugin_source_fork findings from plugins/palantir-mini/scripts/verify-no-semantic-root-fork.ts. Root-entry findings and any third fork not listed here still fail — see decisions/pm1-ci-gate-adjudication.md.",
+  "authorizedPluginRoots": [
+    {
+      "path": "plugins/palantir-mini",
+      "grounds": "Canonical legacy semantic root; protected byte-untouched under the standing protected set until the I1195 retirement adjudication (decisions/pm1-ci-gate-adjudication.md)."
+    },
+    {
+      "path": "plugins/palantir-ontology",
+      "grounds": "Successor semantic root authorized by the campaign Goal of record (2026-07-18, item 2: plugins/palantir-ontology/ must reach marketplace origin/main through merged PM-1..PM-5 with green CI); authorization is scoped to CI topology only and does not adjudicate legacy retirement, which remains reserved for I1195 (decisions/pm1-ci-gate-adjudication.md)."
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-bad-1",
+  "sourceStore": "a",
+  "targetStore": "b",
+  "idMap": [],
+  "rollback": {
+    "available": false
+  },
+  "status": "pending"
+}

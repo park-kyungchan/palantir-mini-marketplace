@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-0002",
+  "sourceStore": "plugins/palantir-mini/.palantir-mini/second-brain/manifest.json",
+  "targetStore": "plugins/palantir-ontology/.palantir-ontology/memory/manifest.json",
+  "idMap": [],
+  "reconciliation": {
+    "expectedCount": 0,
+    "actualCount": 0,
+    "expectedHash": "79d52d75fcb6013be51d76554890fcd2d43ec1b77a95c5e61f4dd4002c235fe1",
+    "actualHash": "79d52d75fcb6013be51d76554890fcd2d43ec1b77a95c5e61f4dd4002c235fe1"
+  },
+  "rollback": {
+    "available": false
+  },
+  "status": "pending"
+}

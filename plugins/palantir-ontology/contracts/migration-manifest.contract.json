@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/migration-manifest.contract.json",
+  "title": "Migration Manifest Contract",
+  "description": "Copy-only migration manifest shape: ID maps, hash/count reconciliation, checkpoints, rollback (execution-plan.md Wave 5 P550; ADR-006's 32 store-family baseline). Runtime-neutral. Real content P330.",
+  "type": "object",
+  "required": ["schemaVersion", "migrationId", "sourceStore", "targetStore", "idMap", "reconciliation", "rollback", "status"],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "migrationId": { "type": "string", "minLength": 1 },
+    "sourceStore": { "type": "string", "minLength": 1 },
+    "targetStore": { "type": "string", "minLength": 1 },
+    "idMap": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "required": ["legacyId", "successorId"],
+        "properties": {
+          "legacyId": { "type": "string", "minLength": 1 },
+          "successorId": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "reconciliation": {
+      "type": "object",
+      "required": ["expectedCount", "actualCount", "expectedHash", "actualHash"],
+      "properties": {
+        "expectedCount": { "type": "integer", "minimum": 0 },
+        "actualCount": { "type": "integer", "minimum": 0 },
+        "expectedHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "actualHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "checkpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["checkpointId", "at", "status"],
+        "properties": {
+          "checkpointId": { "type": "string", "minLength": 1 },
+          "at": { "type": "string", "format": "date-time" },
+          "status": { "type": "string", "enum": ["pending", "passed", "failed"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "required": ["available"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "procedureRef": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "in-progress", "completed", "rolled-back"]
+    },
+    "byWhom": {
+      "type": "object",
+      "required": ["identity"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

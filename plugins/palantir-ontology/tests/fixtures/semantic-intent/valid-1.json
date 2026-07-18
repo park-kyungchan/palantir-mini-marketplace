@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0.0",
+  "sicId": "sic-0001",
+  "fdeSessionId": "fde-sess-0002",
+  "status": "draft",
+  "bodyFingerprint": "af91cf9fe0d66182f416685ffa86b62e4e5e44c80764b6e95c96c616d197ef5d",
+  "proposedAt": "2026-07-18T09:20:00Z",
+  "byWhom": { "identity": "agent:claude-sonnet-5", "role": "worker" }
+}

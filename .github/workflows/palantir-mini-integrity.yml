@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - name: Verify semantic root boundary
-        run: bun run plugins/palantir-mini/scripts/verify-no-semantic-root-fork.ts
+        run: bun run ci/verify-no-semantic-root-fork.ts
       - name: Verify marketplace integrity
         run: bun run ci/verify-marketplace-integrity.ts
       - name: Typecheck
@@ -21,4 +21,6 @@ jobs:
       - name: Check cartography drift
         run: cd plugins/palantir-mini && bun run check:cartography
       - name: Test
-        run: cd plugins/palantir-mini && bun test
+        run: bun run ci/run-legacy-baseline.ts
+      - name: Repo guard tests
+        run: bun test ci/tests

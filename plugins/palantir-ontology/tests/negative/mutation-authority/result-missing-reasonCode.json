@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "sicFingerprint": "53b9d0db6c3aef2f1e9dda2693214f73b042dfa88389cb62aff0fffb7c501b11",
+  "dtcFingerprint": "61a896b5b7edb1df2c0cbbcb568112e6781d1481926776f6bc02c1bb60944c6a",
+  "userDecisionEvidence": {
+    "evidenceRef": "transcript:2026-07-18-approval-turn-9",
+    "verifiedAt": "2026-07-18T09:45:00Z",
+    "verifiedBy": {
+      "identity": "user:palantirkc"
+    }
+  },
+  "consumerOntology": {
+    "id": "consumer:example-project",
+    "version": "2.1.0"
+  },
+  "targetIdentities": [
+    "ObjectType:Widget"
+  ],
+  "allowedAction": "create-object-type",
+  "writeScope": [
+    "ontology/object-types/widget.objecttype.ts"
+  ],
+  "permissionDecisionRef": "rbac:l2:allow:2026-07-18T09:45:05Z",
+  "submissionCriteriaResult": {
+    "passed": true,
+    "evaluatedAt": "2026-07-18T09:45:10Z"
+  },
+  "issuingActor": {
+    "identity": "successor:governance-gate"
+  },
+  "issuingDecision": "gate-decision:2026-07-18T09:45:15Z",
+  "issuedAt": "2026-07-18T09:45:15Z",
+  "expiresAt": "2026-07-18T09:50:15Z",
+  "nonce": "nonce-8f2c1a4e0004",
+  "dryRunFingerprint": "d1bf202a3398c83aa6b85e2f387e102470176dd13cba3cec892a6951241ca2ca",
+  "expectedPriorState": "concurrency-token:widget:rev-3",
+  "result": {
+    "outcome": "denied",
+    "recordedAt": "2026-07-18T09:50:00Z"
+  }
+}

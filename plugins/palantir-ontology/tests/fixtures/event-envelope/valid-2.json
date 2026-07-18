@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0.0",
+  "envelopeRev": 0,
+  "type": "fde_turn_recorded",
+  "when": "2026-07-18T09:05:00Z",
+  "atopWhich": "fde-session:fde-sess-0002",
+  "throughWhich": "src/altitude1/turn-engine.ts",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  },
+  "withWhat": {
+    "turnId": "turn-1"
+  }
+}

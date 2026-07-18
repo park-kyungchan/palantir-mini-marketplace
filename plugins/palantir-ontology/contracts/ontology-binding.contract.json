@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/ontology-binding.contract.json",
+  "title": "Ontology Binding Contract",
+  "description": "Consumer Ontology identity/version binding for Altitude-2 read/proposal/commit routing (execution-plan.md section 6.3 Operation state machine, BOUND_CONSUMER_ONTOLOGY). Runtime-neutral; never carries consumer domain definitions (consumer-domain-ownership, ADR-001) — identity and version only. Real content P330.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "consumerProjectId",
+    "consumerOntologyId",
+    "consumerOntologyVersion",
+    "successorVersion",
+    "bindingScope",
+    "boundAt",
+    "byWhom"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "consumerProjectId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The owning ~/projects/<project> repository identity (ADR-001/ADR-006 per-project storage authority)."
+    },
+    "consumerOntologyId": { "type": "string", "minLength": 1 },
+    "consumerOntologyVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "successorVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "The palantir-ontology successor version this binding was formed against."
+    },
+    "bindingScope": {
+      "type": "string",
+      "enum": ["read", "proposal", "commit"],
+      "description": "The maximum Altitude-2 operation-state-machine step this binding authorizes (READ_OR_QUERY / PROPOSAL / up to and including COMMIT). Never grants commit authority by itself — that is the separate mutation-authority envelope (ADR-005)."
+    },
+    "boundAt": { "type": "string", "format": "date-time" },
+    "byWhom": {
+      "type": "object",
+      "required": ["identity"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

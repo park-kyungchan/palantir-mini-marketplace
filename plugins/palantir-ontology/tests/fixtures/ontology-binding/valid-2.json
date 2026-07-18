@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "consumerProjectId": "projects/example-project",
+  "consumerOntologyId": "consumer:example-project",
+  "consumerOntologyVersion": "2.1.0",
+  "successorVersion": "0.1.0",
+  "bindingScope": "commit",
+  "boundAt": "2026-07-18T08:10:00Z",
+  "byWhom": {
+    "identity": "user:palantirkc"
+  }
+}

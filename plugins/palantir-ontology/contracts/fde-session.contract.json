@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palantir-ontology.internal/contracts/fde-session.contract.json",
+  "title": "FDE Session Contract",
+  "description": "Versioned Field-Driven-Elicitation (Facilitated Discovery Engine) build-session aggregate (Altitude-1). Runtime-neutral: carries no runtime-specific field; adapters translate at the boundary (ADR-007). Stable reason codes reference contracts/reason-code-registry.json. Real content P330 (execution-plan.md Wave 3 row P330); state vocabulary fixed by docs/architecture.md ADR-004 and execution-plan.md section 6.3.",
+  "type": "object",
+  "required": ["schemaVersion", "sessionId", "status", "openedAt", "byWhom", "turns"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Independently versioned per ADR-004; a SIC/DTC format change does not force this to bump."
+    },
+    "sessionId": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": [
+        "FDE_OPEN",
+        "SIC_PROPOSED",
+        "SIC_APPROVED",
+        "DTC_PROPOSED",
+        "DTC_APPROVED",
+        "CONSTRUCTION_STAGED",
+        "VALIDATED",
+        "MUTATION_AUTHORITY_ISSUED",
+        "COMMITTED"
+      ],
+      "description": "execution-plan.md section 6.3 construction state machine, verbatim order. No state may be inferred from tool success or a free-text reference."
+    },
+    "consumerOntologyId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Present once the session has bound a target consumer Ontology; may be absent while status is FDE_OPEN and unbound."
+    },
+    "openedAt": { "type": "string", "format": "date-time" },
+    "byWhom": {
+      "type": "object",
+      "required": ["identity"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "turns": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "required": ["turnId", "recordedAt", "byWhom"],
+        "properties": {
+          "turnId": { "type": "string", "minLength": 1 },
+          "recordedAt": { "type": "string", "format": "date-time" },
+          "byWhom": {
+            "type": "object",
+            "required": ["identity"],
+            "properties": {
+              "identity": { "type": "string", "minLength": 1 },
+              "role": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          "hypothesis": { "type": "string" },
+          "rejected": {
+            "type": "boolean",
+            "description": "Rejected/deferred hypotheses are preserved with provenance (ADR-004 Consequences), never deleted."
+          },
+          "reasonCode": {
+            "type": "string",
+            "pattern": "^RC-[A-Z0-9-]+$",
+            "description": "Stable code from contracts/reason-code-registry.json; expected context on any rejected:true turn."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
