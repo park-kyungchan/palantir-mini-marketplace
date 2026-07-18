@@ -21,9 +21,9 @@ src/migration -> application-service validators -> src/adapters/*
 memory/lineage/migration directories) may not import anything from
 `src/adapters/**`. `src/adapters/**` may import public contracts under
 `contracts/` and public semantic-core exports, never the reverse. A boundary
-validator enforcing this import direction is scaffolded by `P340`
-(`bun run boundary:check`, execution-plan.md section 11.2) — until then this
-rule is enforced by review, not tooling.
+validator enforcing this import direction is implemented by `P340`
+(`bun run boundary:check`, execution-plan.md section 11.2,
+`scripts/boundary-check.ts`) and re-verified read-only by `P345`.
 
 ## 2. `ControlPlaneNodeKind` is metadata, never a product primitive (ADR-003)
 

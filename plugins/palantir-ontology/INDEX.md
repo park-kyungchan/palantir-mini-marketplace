@@ -1,6 +1,6 @@
 # palantir-ontology — File Index
 
-Index as of ledger row `P330`. Lists every path that exists on disk.
+Index as of ledger row `P340`. Lists every path that exists on disk.
 Question-shaped routing lives in `BROWSE.md`.
 
 ## Root
@@ -11,7 +11,7 @@ Question-shaped routing lives in `BROWSE.md`.
 | `AGENT-CONTRACT.md` | Read/write/mutation-authority contract for workers |
 | `BROWSE.md` | Question router |
 | `INDEX.md` | This file |
-| `package.json` | Package definition (`typecheck`, `test`, `test:contracts` scripts) |
+| `package.json` | Package definition (`typecheck`, `test`, `contract:check`, `boundary:check`, `generated:check`, `parity:check`, `migration:check`, `test:home-isolation-guard`, `docs:check-english`, `generate:all` scripts) |
 | `tsconfig.json` | TypeScript config (strict, `src/`+`scripts/`+`tests/` included) |
 
 ## `contracts/` — versioned neutral contract schemas + reason-code registry (real content `P330`)
@@ -51,20 +51,39 @@ independent version bump on one contract never forces a bump on another
 | `src/adapters/claude/` | Claude generated bindings |
 | `src/adapters/gemini/` | Gemini generated bindings |
 
-## `scripts/` — empty; deterministic generators/checkers land in `P340`
+## `scripts/` — deterministic generators/checkers, real content `P340`
 
-## `tests/` — contract fixtures and suites real content `P330`; `parity`/`migration` still empty
+| Path | Owns |
+|---|---|
+| `scripts/lib/fs-walk.ts` | Shared recursive file-walk + directory-snapshot/diff helpers |
+| `scripts/lib/hash.ts` | Shared SHA-256 helper (`node:crypto`, no new dependency) |
+| `scripts/boundary-check.ts` | `boundary:check` — ADR-002 one-way dependency direction + no runtime-identity literals outside `src/adapters/**` |
+| `scripts/parity-check.ts` | `parity:check` — ADR-002/007 cross-runtime adapter file-path parity |
+| `scripts/migration-check.ts` | `migration:check` — migration-manifest schema conformance + ADR-008 copy-only direction |
+| `scripts/english-docs-check.ts` | `docs:check-english` — non-Latin-script scan over every `.md` file in this plugin |
+| `scripts/home-isolation-guard.ts` | `test:home-isolation-guard` — snapshots real `~/.palantir-ontology` + `~/.palantir-mini` around a full `bun test` run |
+| `scripts/generated-check.ts` | `generated:check` — header + byte-drift check for every registered generated artifact |
+| `scripts/generators/contract-index.ts` | Generator: `contracts/*.contract.json` -> `scripts/generated/contract-index.generated.ts` |
+| `scripts/generators/reason-code-index.ts` | Generator: `contracts/reason-code-registry.json` -> `scripts/generated/reason-code-index.generated.ts` |
+| `scripts/generators/run-all.ts` | `generate:all` — writes both generated artifacts to disk |
+| `scripts/generated/contract-index.generated.ts` | Generated (do not hand-edit) |
+| `scripts/generated/reason-code-index.generated.ts` | Generated (do not hand-edit) |
+
+## `tests/` — contract fixtures and suites real content `P330`; checker regression tests real content `P340`; `parity`/`migration` fixtures still empty (Wave 5-6)
 
 | Path | Owns |
 |---|---|
 | `tests/fixtures/<contract-slug>/` | 2 positive fixtures per contract (16 total) |
 | `tests/negative/<contract-slug>/` | Malformed + missing-load-bearing-field fixtures per contract (17 total) |
-| `tests/support/schema-validate.ts` | Test-only minimal JSON Schema (draft 2020-12 subset) validator — not the production P340/P430 validator |
+| `tests/support/schema-validate.ts` | Test-only minimal JSON Schema (draft 2020-12 subset) validator — reused by `scripts/migration-check.ts`, not the production P430 validator |
 | `tests/support/fixture-loader.ts` | Reads a fixtures directory into `{file, data}` pairs |
 | `tests/support/contract-suite.ts` | Shared `runContractSuite(slug, schema)` bun:test registrar |
 | `tests/contracts/contracts.test.ts` | Positive-accepts / negative-rejects suite for all 8 contracts |
 | `tests/contracts/reason-code-registry.test.ts` | Uniqueness + stability + fixture cross-reference test for the reason-code registry |
 | `tests/contracts/neutrality.test.ts` | Automated regression for the runtime-neutrality grep proof |
+| `tests/scripts/boundary-check.test.ts` | Permanent regression for `boundary-check.ts`'s pure detection logic |
+| `tests/scripts/english-docs-check.test.ts` | Permanent regression for `english-docs-check.ts`'s pure detection logic |
+| `tests/scripts/migration-check.test.ts` | Permanent regression for `migration-check.ts`'s copy-only direction predicate |
 | `tests/parity/` | Cross-runtime decision-parity fixtures (DoD #9); empty, Wave 6 |
 | `tests/migration/` | Migration/rollback fixtures; empty, Wave 5 |
 

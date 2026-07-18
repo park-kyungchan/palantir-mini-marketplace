@@ -6,7 +6,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "test:contracts": "bun test tests/contracts"
+    "test:contracts": "bun test tests/contracts",
+    "contract:check": "bun test tests/contracts",
+    "boundary:check": "bun run scripts/boundary-check.ts",
+    "generated:check": "bun run scripts/generated-check.ts",
+    "parity:check": "bun run scripts/parity-check.ts",
+    "migration:check": "bun run scripts/migration-check.ts",
+    "test:home-isolation-guard": "bun run scripts/home-isolation-guard.ts",
+    "docs:check-english": "bun run scripts/english-docs-check.ts",
+    "generate:all": "bun run scripts/generators/run-all.ts"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
