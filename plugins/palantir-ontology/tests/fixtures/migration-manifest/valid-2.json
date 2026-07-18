@@ -13,5 +13,6 @@
   "rollback": {
     "available": false
   },
-  "status": "pending"
+  "status": "pending",
+  "stateFamily": "memory"
 }

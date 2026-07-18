@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-0007",
+  "sourceStore": "plugins/palantir-mini/.palantir-mini/session/snapshots/manifest.json",
+  "targetStore": "plugins/palantir-ontology/.palantir-ontology/projections/manifest.json",
+  "idMap": [
+    {
+      "legacyId": "snapshot-legacy-001",
+      "successorId": "projection-0001"
+    },
+    {
+      "legacyId": "snapshot-legacy-002",
+      "successorId": "projection-0002"
+    }
+  ],
+  "reconciliation": {
+    "expectedCount": 2,
+    "actualCount": 1,
+    "expectedHash": "bffab932aa7e7b063df54f1e75fde76007b323c707cc345092cbe3fd0297137f",
+    "actualHash": "78957207ef9f0b92509e951ffbca5e2d44aa50d46e7d56d7047b2e8e48b53f97"
+  },
+  "checkpoints": [
+    {
+      "checkpointId": "chk-1",
+      "at": "2026-07-18T10:20:00Z",
+      "status": "passed"
+    },
+    {
+      "checkpointId": "chk-2",
+      "at": "2026-07-18T10:21:00Z",
+      "status": "failed"
+    }
+  ],
+  "rollback": {
+    "available": true,
+    "procedureRef": "docs/migration.md#rollback"
+  },
+  "status": "in-progress",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  },
+  "stateFamily": "projections"
+}

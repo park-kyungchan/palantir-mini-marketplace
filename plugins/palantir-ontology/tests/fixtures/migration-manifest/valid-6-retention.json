@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-0006",
+  "sourceStore": "plugins/palantir-mini/.palantir-mini/session/retention/manifest.json",
+  "targetStore": "plugins/palantir-ontology/.palantir-ontology/retention/manifest.json",
+  "idMap": [
+    {
+      "legacyId": "retention-legacy-001",
+      "successorId": "retention-0001"
+    }
+  ],
+  "reconciliation": {
+    "expectedCount": 1,
+    "actualCount": 1,
+    "expectedHash": "d66eb1b74e4b98964b7a4dc1eb624ed9e0f2f13c0e5ad53089b432d8eea577f0",
+    "actualHash": "d66eb1b74e4b98964b7a4dc1eb624ed9e0f2f13c0e5ad53089b432d8eea577f0"
+  },
+  "checkpoints": [
+    {
+      "checkpointId": "chk-1",
+      "at": "2026-07-18T10:15:00Z",
+      "status": "passed"
+    }
+  ],
+  "rollback": {
+    "available": true,
+    "procedureRef": "docs/migration.md#rollback"
+  },
+  "status": "completed",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  },
+  "stateFamily": "retention"
+}

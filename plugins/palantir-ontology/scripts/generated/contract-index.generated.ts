@@ -51,7 +51,7 @@ export const CONTRACT_INDEX: readonly ContractIndexEntry[] = [
     id: "https://palantir-ontology.internal/contracts/migration-manifest.contract.json",
     title: "Migration Manifest Contract",
     requiredFieldCount: 8,
-    sha256: "395f21b710dde630eb25c0f8c2d201c4120b87769d8961fc4ba35cb176da5ab1",
+    sha256: "fe5eb46fa5073f5ef7cf2e10db9a8541bc6787b4388ed83691adf4917de4290a",
   },
   {
     file: "mutation-authority.contract.json",

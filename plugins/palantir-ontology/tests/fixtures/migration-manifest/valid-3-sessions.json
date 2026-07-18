@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "migrationId": "mig-0003",
+  "sourceStore": "plugins/palantir-mini/.palantir-mini/session/fde-ontology-engineering/sess-legacy-001.json",
+  "targetStore": "plugins/palantir-ontology/.palantir-ontology/session/fde-ontology-engineering/sess-legacy-001.json",
+  "idMap": [
+    {
+      "legacyId": "sess-legacy-001",
+      "successorId": "fde-0001"
+    }
+  ],
+  "reconciliation": {
+    "expectedCount": 1,
+    "actualCount": 1,
+    "expectedHash": "78957207ef9f0b92509e951ffbca5e2d44aa50d46e7d56d7047b2e8e48b53f97",
+    "actualHash": "78957207ef9f0b92509e951ffbca5e2d44aa50d46e7d56d7047b2e8e48b53f97"
+  },
+  "checkpoints": [
+    {
+      "checkpointId": "chk-1",
+      "at": "2026-07-18T10:00:00Z",
+      "status": "passed"
+    }
+  ],
+  "rollback": {
+    "available": true,
+    "procedureRef": "docs/migration.md#rollback"
+  },
+  "status": "completed",
+  "byWhom": {
+    "identity": "agent:claude-sonnet-5",
+    "role": "worker"
+  },
+  "stateFamily": "sessions"
+}

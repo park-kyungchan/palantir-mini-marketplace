@@ -73,3 +73,12 @@ export const RC_CONTROL_PLANE_PRODUCT_PRIMITIVE_COLLISION: ReasonCode = "RC-CONT
 // binds the literal for src/lineage/retention.ts. See
 // src/lineage/retention.ts and src/memory/memory-item.ts.
 export const RC_MEMORY_RETENTION_VIOLATION: ReasonCode = "RC-MEMORY-RETENTION-VIOLATION";
+
+// P550 copy-only migration manifest codes (docs/architecture.md ADR-006/
+// ADR-008, A1-012, MEM-012, X-010). Already registered in
+// contracts/reason-code-registry.json's `migration` category; these named
+// exports bind the literals for src/migration/reconciliation.ts and
+// src/migration/rollback.ts.
+export const RC_MIGRATION_HASH_MISMATCH: ReasonCode = "RC-MIGRATION-HASH-MISMATCH";
+export const RC_MIGRATION_COUNT_MISMATCH: ReasonCode = "RC-MIGRATION-COUNT-MISMATCH";
+export const RC_MIGRATION_ROLLBACK_REQUIRED: ReasonCode = "RC-MIGRATION-ROLLBACK-REQUIRED";
