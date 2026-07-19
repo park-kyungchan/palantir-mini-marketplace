@@ -7,16 +7,22 @@ every consumer project BINDS to instead of re-deriving. Replaces
 `context/execution-plan.md` (harness-upstream workspace
 `_workspace/2026-07-17-palantir-ontology-successor/`).
 
-Status: **contracts real, semantic core still scaffold** (ledger row `P330`).
-The eight `contracts/*.contract.json` schemas, the `reason-code-registry.json`
-(20 stable codes), and their fixture/test suite (`tests/{fixtures,negative,
-contracts,support}/`) are real content as of `P330`. No `src/semantic-core`,
+Status: **SOURCE/BUILD phase complete, merged, and validated; RUNTIME dormant.**
+Every subsystem this README's layer diagram names below — `src/semantic-core`,
 `src/altitude1/2`, `src/governance`, `src/control-plane`, `src/memory`,
-`src/lineage`, `src/migration`, or generated-adapter logic exists yet — those
-land Wave 4 onward per `BROWSE.md`. Nothing under `plugins/palantir-ontology/`
-is copied from `plugins/palantir-mini/`; see `docs/compatibility-matrix.md`
-for the record of which legacy surfaces intentionally do not port forward,
-and why.
+`src/lineage`, `src/migration`, and the generated-adapter logic — is real,
+tested code, not scaffold. But the runtime is NOT activated:
+`.claude-plugin/plugin.json` declares 0 mcpServers / 0 hooks / 0 skills,
+there is no `mcp-server.ts` anywhere, and Wave-11 runtime activation reached
+the `retain-legacy-with-rationale` terminal (no cutover) — legacy
+`plugins/palantir-mini` remains the only plugin with an actual runtime
+surface (currently disabled, demand-driven). For the evidence behind this
+status (acceptance results, gate outcomes, test counts) read
+`harness-upstream/_workspace/2026-07-17-palantir-ontology-successor/decisions/final-completion-report.md`
+directly rather than a restated summary here. Nothing under
+`plugins/palantir-ontology/` is copied from `plugins/palantir-mini/`; see
+`docs/compatibility-matrix.md` for the record of which legacy surfaces
+intentionally do not port forward, and why.
 
 ## Layers (one-way dependency direction)
 

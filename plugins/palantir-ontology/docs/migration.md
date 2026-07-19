@@ -1,19 +1,25 @@
-# Migration — Pointer (scaffold stage)
+# Migration — Built, Not Yet Wired to the Live Store
 
-Status: no migration logic exists yet. This is a placeholder naming where
-the real content lands, per "Durable Docs: Reference, Don't Pin" — the
-actual manifests, mappings, and reconciliation counts are volatile and will
-be authored where the code lives, not duplicated into prose here ahead of
-time.
+Status: the migration machinery is BUILT and verified copy-only-SAFE
+(fail-closed, legacy byte-identical) — this is not a placeholder. But it is
+NOT yet wired to the real live store: per the campaign's **Gap C**, the
+migration `STATE_FAMILY_DEFINITIONS` point at repo-relative paths rather than
+the real `~/.palantir-mini` store, and the machinery is verified
+copy-only-SAFE (fail-closed) rather than migration-ready. The specific
+family-path mappings and reconciliation/bijection results are volatile and
+authored where the code lives — see
+`harness-upstream/_workspace/2026-07-17-palantir-ontology-successor/decisions/final-completion-report.md`
+(Gap C), not duplicated here, per "Durable Docs: Reference, Don't Pin."
 
-## What will live here (from `P550` onward)
+## What lives here
 
 Copy-only migration manifests for sessions, SIC/DTC, events, memory,
 consumer bindings, retention state, and projections — implemented in
-`src/migration/`, schema-shaped by `contracts/migration-manifest.contract.json`
-(stub at scaffold time). Required properties per execution-plan.md's Wave 5
-row `P550`: ID maps, hash/count reconciliation, checkpoints, rollback, and
-**no source-store rewriting** (copy-only).
+`src/migration/`, schema-shaped by `contracts/migration-manifest.contract.json`.
+Required properties per execution-plan.md's Wave 5 row `P550`: ID maps,
+hash/count reconciliation, checkpoints, rollback, and **no source-store
+rewriting** (copy-only) — all built and verified copy-only-SAFE, subject to
+the Gap-C caveat above.
 
 ## Current state-migration evidence
 
