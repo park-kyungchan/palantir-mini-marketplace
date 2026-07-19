@@ -121,8 +121,32 @@ export interface DirectionViolation {
 }
 
 interface ManifestLike {
+  schemaVersion?: unknown;
   sourceStore?: unknown;
   targetStore?: unknown;
+}
+
+export const CURRENT_MIGRATION_MANIFEST_SCHEMA_VERSION = "1.0.0";
+
+export interface MigrationManifestSemanticViolation {
+  readonly file: string;
+  readonly reason: string;
+}
+
+export function validateMigrationManifestSchemaVersion(file: string, data: ManifestLike): MigrationManifestSemanticViolation | null {
+  if (data.schemaVersion !== CURRENT_MIGRATION_MANIFEST_SCHEMA_VERSION) {
+    return {
+      file,
+      reason: `schemaVersion ${JSON.stringify(data.schemaVersion)} is not the current migration manifest schema version "${CURRENT_MIGRATION_MANIFEST_SCHEMA_VERSION}"`,
+    };
+  }
+  return null;
+}
+
+export function validateMigrationManifestSemantics(file: string, data: ManifestLike): MigrationManifestSemanticViolation | null {
+  const versionViolation = validateMigrationManifestSchemaVersion(file, data);
+  if (versionViolation !== null) return versionViolation;
+  return checkCopyOnlyDirection(file, data);
 }
 
 /**

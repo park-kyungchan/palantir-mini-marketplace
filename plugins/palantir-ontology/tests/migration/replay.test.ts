@@ -20,7 +20,19 @@ describe("golden replay fixture: end-to-end (reader -> upcaster -> replay), two-
     expect(quarantined[0]!.reasonCode).toBe(golden.expected.malformedReasonCode);
 
     const result = replayToState(envelopes.map(toReplayableEnvelope), golden.episodes, golden.cutSequence);
-    expect(result).toEqual(golden.expected.result);
+    expect(result).toEqual({
+      ...golden.expected.result,
+      stateByTarget: {
+        "fde-session:s1": {
+          ...golden.expected.result.stateByTarget["fde-session:s1"],
+          lastByWhom: { identity: "agent:claude-sonnet-5", role: "worker" },
+        },
+        "sic:sic-1": {
+          ...golden.expected.result.stateByTarget["sic:sic-1"],
+          lastByWhom: { identity: "user:palantirkc", role: "approver" },
+        },
+      },
+    });
   });
 
   test("run 2 (identical inputs, fresh call): produces the byte-identical result and the identical hash as run 1", () => {
@@ -74,6 +86,37 @@ describe("replayToState: determinism (MEM-009) with plain literal inputs", () =>
     const a = replayToState(envelopes, episodes, 1);
     const b = replayToState(envelopes, episodes, 1);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+
+  test("preserves event-envelope byWhom in state projections and hashes differ across full actor tuples", () => {
+    const markerRole = "weak-provenance: legacy marker";
+    const weakIdentity = "legacy-import:events";
+    const ordinaryIdentity = "agent:ordinary";
+    const base = { sequence: 0, type: "x", atopWhich: "t1", when: "2026-07-18T00:00:00Z", withWhat: { a: 1 } };
+
+    const weak = replayToState([{ ...base, byWhom: { identity: weakIdentity, role: markerRole } }], [], 0);
+    const ordinaryCollision = replayToState([{ ...base, byWhom: { identity: ordinaryIdentity, role: markerRole } }], [], 0);
+    const weakAgain = replayToState([{ ...base, byWhom: { identity: weakIdentity, role: markerRole } }], [], 0);
+
+    expect(weak.stateByTarget.t1?.lastByWhom).toEqual({ identity: weakIdentity, role: markerRole });
+    expect(ordinaryCollision.stateByTarget.t1?.lastByWhom).toEqual({ identity: ordinaryIdentity, role: markerRole });
+    expect(replayHash(weak)).not.toBe(replayHash(ordinaryCollision));
+    expect(replayHash(weak)).toBe(replayHash(weakAgain));
+  });
+
+  test("migration provenance is carried into replay results and changes the replay digest", () => {
+    const envelope = { sequence: 0, type: "x", atopWhich: "t1", when: "2026-07-18T00:00:00Z", withWhat: { a: 1 } };
+    const weakProvenance = { identity: "legacy-import:events", role: "weak-provenance: evt-1" };
+    const ordinaryProvenance = { identity: "agent:ordinary", role: "weak-provenance: evt-1" };
+
+    const weak = replayToState([envelope], [], 0, weakProvenance);
+    const ordinary = replayToState([envelope], [], 0, ordinaryProvenance);
+    const weakRepeat = replayToState([envelope], [], 0, weakProvenance);
+
+    expect(weak.migrationProvenance).toEqual(weakProvenance);
+    expect(ordinary.migrationProvenance).toEqual(ordinaryProvenance);
+    expect(replayHash(weak)).not.toBe(replayHash(ordinary));
+    expect(replayHash(weak)).toBe(replayHash(weakRepeat));
   });
 });
 

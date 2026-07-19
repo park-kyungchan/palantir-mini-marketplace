@@ -61,6 +61,7 @@ import {
   type MigrationStatus,
   MIGRATION_STATE_FAMILIES,
   type RollbackDescriptor,
+  validateMigrationManifestSchemaVersion,
 } from "./manifest";
 import { computeReconciliation } from "./reconciliation";
 
@@ -161,6 +162,14 @@ export interface BuildFamilyManifestParams {
  */
 export function buildFamilyManifest(params: BuildFamilyManifestParams): AggregateResult<MigrationManifest> {
   const def = stateFamilyDefinition(params.family);
+
+  const schemaVersionViolation = validateMigrationManifestSchemaVersion(params.migrationId, { schemaVersion: params.schemaVersion });
+  if (schemaVersionViolation !== null) {
+    return denied(
+      RC_SCHEMA_VALIDATION_FAILED,
+      `state-family manifest for "${params.family}" violates the migration manifest semantic version rule: ${schemaVersionViolation.reason}`,
+    );
+  }
 
   const idMapResult = buildIdMap(params.idMapPairs);
   if (!idMapResult.ok) return idMapResult;

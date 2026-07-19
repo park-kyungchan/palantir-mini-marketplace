@@ -1,0 +1,370 @@
+{
+  "generatedFromFamilies": [
+    "sessions",
+    "sic-dtc",
+    "events",
+    "memory",
+    "consumer-bindings",
+    "retention",
+    "projections"
+  ],
+  "perFamily": [
+    {
+      "family": "sessions",
+      "recordOutcomes": [
+        {
+          "legacyId": "sess-strong",
+          "successorId": "fde-0001",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "fde-session",
+            "result": {
+              "ok": true,
+              "value": null
+            }
+          },
+          "divergence": null
+        },
+        {
+          "legacyId": "sess-weak",
+          "successorId": "fde-0002",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "fde-session",
+            "result": {
+              "ok": false,
+              "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+              "detail": "missing required field(s) for fde-session: schemaVersion, sessionId, status, openedAt, byWhom, turns"
+            }
+          },
+          "divergence": {
+            "kind": "explained-safe-denial",
+            "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+            "note": "legacy allowed legacyId=\"sess-weak\" through (the legacy store is schema-free ad hoc JSON with no contract gate) but the successor's fde-session contract denies it -- missing required field(s) for fde-session: schemaVersion, sessionId, status, openedAt, byWhom, turns"
+          }
+        }
+      ],
+      "replay": {
+        "applicable": false,
+        "legacyLastByTarget": {},
+        "successorLastByTarget": {},
+        "orderMatches": true,
+        "replayHash": null,
+        "replayHashStableAcrossRepeat": true
+      },
+      "summary": {
+        "total": 2,
+        "parity": 1,
+        "explainedSafeDenials": 1,
+        "unexplainedDefects": 0,
+        "noSuccessorContract": 0
+      }
+    },
+    {
+      "family": "sic-dtc",
+      "recordOutcomes": [
+        {
+          "legacyId": "sic-strong",
+          "successorId": "dtc-0001",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "semantic-intent",
+            "result": {
+              "ok": true,
+              "value": null
+            }
+          },
+          "divergence": null
+        },
+        {
+          "legacyId": "sic-weak",
+          "successorId": "dtc-0002",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "semantic-intent",
+            "result": {
+              "ok": false,
+              "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+              "detail": "missing required field(s) for semantic-intent: schemaVersion, sicId, status, bodyFingerprint, proposedAt, byWhom"
+            }
+          },
+          "divergence": {
+            "kind": "explained-safe-denial",
+            "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+            "note": "legacy allowed legacyId=\"sic-weak\" through (the legacy store is schema-free ad hoc JSON with no contract gate) but the successor's semantic-intent contract denies it -- missing required field(s) for semantic-intent: schemaVersion, sicId, status, bodyFingerprint, proposedAt, byWhom"
+          }
+        }
+      ],
+      "replay": {
+        "applicable": false,
+        "legacyLastByTarget": {},
+        "successorLastByTarget": {},
+        "orderMatches": true,
+        "replayHash": null,
+        "replayHashStableAcrossRepeat": true
+      },
+      "summary": {
+        "total": 2,
+        "parity": 1,
+        "explainedSafeDenials": 1,
+        "unexplainedDefects": 0,
+        "noSuccessorContract": 0
+      }
+    },
+    {
+      "family": "events",
+      "recordOutcomes": [
+        {
+          "legacyId": "evt-strong",
+          "successorId": "evt-0001",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "event-envelope",
+            "result": {
+              "ok": false,
+              "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+              "detail": "$: unexpected additional property \"eventId\"; $.throughWhich: expected type string, got object; $: unexpected additional property \"sequence\""
+            }
+          },
+          "divergence": {
+            "kind": "explained-safe-denial",
+            "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+            "note": "legacy allowed legacyId=\"evt-strong\" through (the legacy store is schema-free ad hoc JSON with no contract gate) but the successor's event-envelope contract denies it -- $: unexpected additional property \"eventId\"; $.throughWhich: expected type string, got object; $: unexpected additional property \"sequence\""
+          }
+        },
+        {
+          "legacyId": "evt-weak",
+          "successorId": "evt-0002",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "event-envelope",
+            "result": {
+              "ok": false,
+              "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+              "detail": "$: missing required field \"schemaVersion\"; $: missing required field \"envelopeRev\"; $: missing required field \"type\"; $: missing required field \"when\"; $: missing required field \"atopWhich\"; $: missing required field \"throughWhich\"; $: missing required field \"withWhat\"; $: unexpected additional property \"eventId\""
+            }
+          },
+          "divergence": {
+            "kind": "explained-safe-denial",
+            "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+            "note": "legacy allowed legacyId=\"evt-weak\" through (the legacy store is schema-free ad hoc JSON with no contract gate) but the successor's event-envelope contract denies it -- $: missing required field \"schemaVersion\"; $: missing required field \"envelopeRev\"; $: missing required field \"type\"; $: missing required field \"when\"; $: missing required field \"atopWhich\"; $: missing required field \"throughWhich\"; $: missing required field \"withWhat\"; $: unexpected additional property \"eventId\""
+          }
+        }
+      ],
+      "replay": {
+        "applicable": true,
+        "legacyLastByTarget": {
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
+            "atArrayIndex": 0,
+            "lastType": "shadow_test_event"
+          }
+        },
+        "successorLastByTarget": {
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
+            "lastSequence": 1,
+            "lastType": "shadow_test_event"
+          }
+        },
+        "orderMatches": true,
+        "replayHash": "f80f3de3161eda86c163b01200a8a28cefb9dd30fc78b4edc3a4c8f334461439",
+        "replayHashStableAcrossRepeat": true
+      },
+      "summary": {
+        "total": 2,
+        "parity": 0,
+        "explainedSafeDenials": 2,
+        "unexplainedDefects": 0,
+        "noSuccessorContract": 0
+      }
+    },
+    {
+      "family": "memory",
+      "recordOutcomes": [
+        {
+          "legacyId": "mem-strong",
+          "successorId": "memory-0001",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "memory-item",
+            "result": {
+              "ok": true,
+              "value": null
+            }
+          },
+          "divergence": null
+        },
+        {
+          "legacyId": "mem-weak",
+          "successorId": "memory-0002",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "memory-item",
+            "result": {
+              "ok": false,
+              "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+              "detail": "missing required field(s) for memory-item: schemaVersion, itemId, layer, authority, retention, createdAt, byWhom, provenance"
+            }
+          },
+          "divergence": {
+            "kind": "explained-safe-denial",
+            "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+            "note": "legacy allowed legacyId=\"mem-weak\" through (the legacy store is schema-free ad hoc JSON with no contract gate) but the successor's memory-item contract denies it -- missing required field(s) for memory-item: schemaVersion, itemId, layer, authority, retention, createdAt, byWhom, provenance"
+          }
+        }
+      ],
+      "replay": {
+        "applicable": false,
+        "legacyLastByTarget": {},
+        "successorLastByTarget": {},
+        "orderMatches": true,
+        "replayHash": null,
+        "replayHashStableAcrossRepeat": true
+      },
+      "summary": {
+        "total": 2,
+        "parity": 1,
+        "explainedSafeDenials": 1,
+        "unexplainedDefects": 0,
+        "noSuccessorContract": 0
+      }
+    },
+    {
+      "family": "consumer-bindings",
+      "recordOutcomes": [
+        {
+          "legacyId": "binding-strong",
+          "successorId": "binding-0001",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "ontology-binding",
+            "result": {
+              "ok": true,
+              "value": null
+            }
+          },
+          "divergence": null
+        },
+        {
+          "legacyId": "binding-weak",
+          "successorId": "binding-0002",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "gated",
+            "aggregateSlug": "ontology-binding",
+            "result": {
+              "ok": false,
+              "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+              "detail": "missing required field(s) for ontology-binding: schemaVersion, consumerProjectId, consumerOntologyId, consumerOntologyVersion, successorVersion, bindingScope, boundAt, byWhom"
+            }
+          },
+          "divergence": {
+            "kind": "explained-safe-denial",
+            "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
+            "note": "legacy allowed legacyId=\"binding-weak\" through (the legacy store is schema-free ad hoc JSON with no contract gate) but the successor's ontology-binding contract denies it -- missing required field(s) for ontology-binding: schemaVersion, consumerProjectId, consumerOntologyId, consumerOntologyVersion, successorVersion, bindingScope, boundAt, byWhom"
+          }
+        }
+      ],
+      "replay": {
+        "applicable": false,
+        "legacyLastByTarget": {},
+        "successorLastByTarget": {},
+        "orderMatches": true,
+        "replayHash": null,
+        "replayHashStableAcrossRepeat": true
+      },
+      "summary": {
+        "total": 2,
+        "parity": 1,
+        "explainedSafeDenials": 1,
+        "unexplainedDefects": 0,
+        "noSuccessorContract": 0
+      }
+    },
+    {
+      "family": "retention",
+      "recordOutcomes": [
+        {
+          "legacyId": "retention-strong",
+          "successorId": "retention-0001",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "no-successor-contract"
+          },
+          "divergence": null
+        },
+        {
+          "legacyId": "retention-weak",
+          "successorId": "retention-0002",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "no-successor-contract"
+          },
+          "divergence": null
+        }
+      ],
+      "replay": {
+        "applicable": false,
+        "legacyLastByTarget": {},
+        "successorLastByTarget": {},
+        "orderMatches": true,
+        "replayHash": null,
+        "replayHashStableAcrossRepeat": true
+      },
+      "summary": {
+        "total": 2,
+        "parity": 2,
+        "explainedSafeDenials": 0,
+        "unexplainedDefects": 0,
+        "noSuccessorContract": 2
+      }
+    },
+    {
+      "family": "projections",
+      "recordOutcomes": [
+        {
+          "legacyId": "snap-strong",
+          "successorId": "projection-0001",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "no-successor-contract"
+          },
+          "divergence": null
+        },
+        {
+          "legacyId": "projection-weak",
+          "successorId": "projection-0002",
+          "legacyOutcome": "legacy-read-ok",
+          "successorGate": {
+            "kind": "no-successor-contract"
+          },
+          "divergence": null
+        }
+      ],
+      "replay": {
+        "applicable": false,
+        "legacyLastByTarget": {},
+        "successorLastByTarget": {},
+        "orderMatches": true,
+        "replayHash": null,
+        "replayHashStableAcrossRepeat": true
+      },
+      "summary": {
+        "total": 2,
+        "parity": 2,
+        "explainedSafeDenials": 0,
+        "unexplainedDefects": 0,
+        "noSuccessorContract": 2
+      }
+    }
+  ],
+  "totalUnexplainedDefects": 0
+}
