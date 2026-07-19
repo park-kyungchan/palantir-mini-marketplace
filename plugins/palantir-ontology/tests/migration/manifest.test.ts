@@ -2,7 +2,15 @@
 // (`src/migration/manifest.ts`). A1-012/MEM-012/X-010.
 
 import { describe, expect, test } from "bun:test";
-import { checkCopyOnlyDirection, isMigrationStateFamily, MIGRATION_STATE_FAMILIES } from "../../src/migration/manifest";
+import migrationManifestSchema from "../../contracts/migration-manifest.contract.json";
+import {
+  checkCopyOnlyDirection,
+  CURRENT_MIGRATION_MANIFEST_SCHEMA_VERSION,
+  isMigrationStateFamily,
+  MIGRATION_STATE_FAMILIES,
+  validateMigrationManifestSemantics,
+} from "../../src/migration/manifest";
+import { validateContract } from "../support/schema-validate";
 
 describe("MIGRATION_STATE_FAMILIES", () => {
   test("names exactly the mission's seven state families", () => {
@@ -50,5 +58,36 @@ describe("checkCopyOnlyDirection", () => {
   test("a source that is not a string (missing/malformed) is rejected", () => {
     const violation = checkCopyOnlyDirection("bad3.json", { sourceStore: 42, targetStore: "plugins/palantir-ontology/.palantir-ontology/x" });
     expect(violation).not.toBeNull();
+  });
+});
+
+describe("validateMigrationManifestSemantics", () => {
+  const manifest = {
+    schemaVersion: CURRENT_MIGRATION_MANIFEST_SCHEMA_VERSION,
+    migrationId: "mig-m850-version",
+    sourceStore: "plugins/palantir-mini/.palantir-mini/session/events.jsonl",
+    targetStore: "plugins/palantir-ontology/.palantir-ontology/session/events.jsonl",
+    idMap: [],
+    reconciliation: {
+      expectedCount: 0,
+      actualCount: 0,
+      expectedHash: "0".repeat(64),
+      actualHash: "0".repeat(64),
+    },
+    rollback: { available: false },
+    status: "pending",
+  };
+
+  test("current 1.0.0 manifest passes the source semantic version gate", () => {
+    expect(validateContract(migrationManifestSchema, manifest).valid).toBe(true);
+    expect(validateMigrationManifestSemantics("current.json", manifest)).toBeNull();
+  });
+
+  test("stale semver-shaped 0.0.1 remains schema-valid but is semantically denied", () => {
+    const stale = { ...manifest, schemaVersion: "0.0.1" };
+    expect(validateContract(migrationManifestSchema, stale).valid).toBe(true);
+    const violation = validateMigrationManifestSemantics("stale.json", stale);
+    expect(violation).not.toBeNull();
+    expect(violation?.reason).toContain("current migration manifest schema version");
   });
 });

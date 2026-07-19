@@ -118,3 +118,136 @@ implementation. Every row above cites P210's disposition and a condensed
 version of P210's own stated rationale — no new classification judgment is
 made here, and no legacy source file was opened while writing this document
 beyond what P210 itself already read and cited.
+
+## Public-Tool Compatibility v1 (M810)
+
+Different axis from the section above. That section (P210 scaffold-absence
+census) records *why a legacy surface was intentionally not ported*
+(`port`/`merge`/`externalize`/`deprecate`/`remove`/`retain-legacy-only`/
+`UNKNOWN`). This section answers a different question — *for someone who
+calls a legacy public MCP tool today, what is its forward-compatibility
+disposition against the successor* — using a five-way axis:
+`retain`/`alias`/`deprecate`/`deny`/`omit`. It covers **all 24** legacy
+public tools (port-dispositioned and non-port alike), not only the
+non-port 50 above.
+
+### Scope: what counts as a "public tool"
+
+Ground truth, read at execution time from the legacy plugin's own
+registration surface at worktree `claude/palantir-ontology-pm5` head
+`5318b64`:
+
+- `plugins/palantir-mini/.claude-plugin/plugin.json` registers exactly one
+  MCP server (`palantir-mini`, `stdio` transport, env
+  `PALANTIR_MINI_MCP_PROFILE=altitude-2`) — no separate literal tool list;
+  the plugin manifest names the *server*, not individual tools.
+- `plugins/palantir-mini/.codex-plugin/plugin.json` mirrors the same
+  single-server registration for the Codex host.
+- `plugins/palantir-mini/bridge/mcp-server.ts`'s `TOOLS: ToolSpec[]` array
+  (line 82) is the actual public-tool registration surface: **24 entries**,
+  1:1 with `HANDLER_MODULES`, cross-checked against generated
+  `cartography/TOOLS.md` — this matches P210 §3 exactly ("24 tools
+  censused").
+- `bridge/handlers/**` (66 `.ts` files total) = the 24 tool handlers (§3)
+  plus 42 non-tool support modules (P210 §4, title: "non-tool
+  `bridge/handlers/*.ts`"). P210 §4 states explicitly these 42 are "not
+  directly reachable via `TOOLS[]`" — they back *modes* of the aggregator
+  tools `pm_substrate_query`, `pm_health_audit`, `pm_plugin_self_check`
+  (already counted among the 24), not independent public tool names. They
+  are cited here only as traceability grounding for handler-file paths
+  named in the caller-evidence column below; they are not themselves rows
+  in this matrix, per P210 §4's own "non-tool" framing.
+
+**Public-tool surface = 24, exhaustive, no unclassified surface remains.**
+(consumer-domain-ownership: this census enumerates only the legacy
+plugin's own registration surface and in-repo callers — no
+`~/projects/**` consumer content, and math-KG-excluded — `curriculum-kg`
+was never opened.)
+
+### The five-way axis (M810's operational definitions)
+
+No prior document in this campaign defines `retain`/`alias`/`deprecate`/
+`deny`/`omit` precisely; the ledger row and this prompt name the terms but
+not their test. M810 adopts these operational definitions, applied
+identically to all 24 rows, each backed by a concrete evidence check
+against `src/adapters/**` and `src/control-plane/registry.ts` (the Wave
+6/PM-4 successor-side surfaces named in this task's mission) rather than
+invented judgment:
+
+| Term | Test applied |
+|---|---|
+| `retain` | The legacy tool's exact name/shape is intended to keep working, unchanged, as a **legacy-plugin-only** capability forever — no successor equivalent is planned at all (1:1 with P210's own `retain-legacy-only` disposition for that same tool). Checked against `src/adapters/**` + `src/control-plane/registry.ts`: absent, confirming no successor path exists or is intended. |
+| `alias` | A concretely named successor surface exists **today**, traceable in `src/adapters/**` or `src/control-plane/registry.ts`, that supplies the same capability under a different name. |
+| `deprecate` | The legacy tool has zero evidenced production callers anywhere in-repo (dead), so no successor equivalent is needed. |
+| `deny` | The legacy tool's disposition is `externalize` (P210 §3): the capability is architecturally excluded from the successor's semantic core by the one-way dependency rule (`execution-plan.md` §6.1, DoD #2) — Lead-orchestration/adapter routing and Harness-Engineering-library concerns may never be imported by the semantic core. This is a standing structural refusal, not a temporal gap: building an equivalent successor **tool** for this capability would itself violate the boundary. |
+| `omit` | The legacy tool's disposition is `port` (P210 §3): the capability is in-scope for the successor's target architecture, but as of `5318b64` **no successor public-tool surface implements it yet** — checked and confirmed absent from both `src/adapters/**` (only 8 `queryCapability_<area>` tools per runtime: `packagingManifest`, `mcpRegistration`, `hooks`, `skillsCommands`, `subagents`, `reloadInstall`, `schemaFlatLimits`, `configSurfaces` — none is a semantic-core operation) and `src/control-plane/registry.ts` (18 `ControlPlaneNodeKind` catalog entries — 7 `tool` script/checker entries, 3 generator `tool` entries, 4 `adapter` entries, 4 `generated-binding` entries — every one of them is the successor's *own* build/generation/adapter tooling, none is a re-exposure of an Ontology semantic-core capability such as `emit_event`/`commit_edits`/`get_ontology`). Underlying library modules with related concepts may already exist (e.g. `src/governance/commit-gate.ts`, `src/governance/mint-ledger.ts`, `src/lineage/event-reader.ts`, `src/altitude1/digital-twin-change.ts`) but are not wired as a callable public tool — that gap is a future-wave construction task, out of M810's docs-only write set. |
+
+No `UNKNOWN` bucket exists in this axis and none is used — every one of
+the 24 rows below carries exactly one of the five values
+(UNKNOWN-is-not-PASS: this section leaves nothing unresolved to a sixth
+bucket).
+
+### Classification table (all 24 legacy public tools)
+
+Caller-evidence column reproduces P210 §3's own "Skill callers" grep count
+(skills/**/SKILL.md + codex-skills/**/SKILL.md `allowed-tools` references)
+— cited, not re-derived. Replacement-evidence column states the specific
+`src/adapters/**` / `src/control-plane/registry.ts` check result per the
+axis test above.
+
+| Legacy tool (`bridge/handlers/`) | P210 §3 disposition | Skill callers | M810 disposition | Replacement / no-replacement evidence |
+|---|---|---|---|---|
+| `emit_event` (`emit-event.ts`) | port | 29 | **omit** | No successor tool; closest library locus `src/governance/atomic-write.ts` + `src/lineage/*` (not tool-wired). |
+| `get_ontology` (`get-ontology.ts`) | port | 8 | **omit** | No successor tool; closest locus `src/lineage/event-reader.ts` (not tool-wired). |
+| `ontology_schema_get` (`ontology-schema-get.ts`) | port | 3 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
+| `impact_query` (`impact-query.ts`) | port | 6 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
+| `pre_edit_impact` (`pre-edit-impact.ts`) | port | 1 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
+| `pm_pre_mutation_governance` (`pm-pre-mutation-governance.ts`) | port | 1 | **omit** | mutation-authority gate; closest locus `src/governance/commit-gate.ts` + `src/governance/mint-ledger.ts` (not tool-wired). |
+| `apply_edit_function` (`apply-edit-function.ts`) | port | 5 | **omit** | No successor tool; closest locus `src/altitude1/staged-construction.ts` (not tool-wired). |
+| `pm_ontology_engineering_workflow` (`pm-ontology-engineering-workflow.ts`) | port | 2 | **omit** | No successor tool; closest locus `src/altitude1/{fde-session,semantic-intent,digital-twin-change}.ts` (not tool-wired). |
+| `commit_edits` (`commit-edits.ts`) | port | 6 | **omit** | mutation-authority gate; closest locus `src/governance/commit-gate.ts` (not tool-wired). |
+| `grade_outcome_with_rubric` (`grade-outcome-with-rubric.ts`) | port | 1 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
+| `pm_grader_dispatch` (`pm-grader-dispatch.ts`) | port | 1 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
+| `pm_semantic_intent_gate` (`pm-semantic-intent-gate.ts`) | port | 8 | **omit** | No successor tool; closest locus `src/altitude1/semantic-intent.ts` (not tool-wired). |
+| `pm_intent_router` (`pm-intent-router.ts`) | externalize | 4 | **deny** | Lead-orchestration/adapter dispatch; one-way dependency rule (§6.1) forbids the semantic core from ever exposing this as a public tool. |
+| `pm_health_audit` (`pm-health-audit.ts`) | port | 11 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
+| `pm_substrate_query` (`pm-substrate-query.ts`) | port | 18 | **omit** | Aggregates the 42 §4 support-handler modes; no successor tool yet in `src/adapters/**`/registry. |
+| `research_context_select` (`research-context-select.ts`) | externalize | 2 | **deny** | Claude injection-budget heuristic; Harness-Engineering/adapter concern, forbidden from the semantic core by the same one-way rule. |
+| `events_log_rotate` (`events-log-rotate.ts`) | port | 1 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
+| `research_library_refresh` (`research-library-refresh.ts`) | externalize | 2 | **deny** | Harness-Engineering corpus-refresh concern, not consumer-facing Ontology core; same one-way-rule exclusion. |
+| `pm_plugin_self_check` (`pm-plugin-self-check.ts`) | retain-legacy-only | 5 | **retain** | Aggregates checks over the legacy plugin's own substrate; permanently legacy-scoped. Absent from `src/adapters/**`/registry (confirmed) — the successor may build its *own*, differently-shaped self-check later (P210's own rationale), but that would be a new, not-yet-built tool, never this literal one. |
+| `pm_rule_query` (`pm-rule-query.ts`) | retain-legacy-only | 1 | **retain** | Looks up `~/.claude/rules/**`, a Claude-runtime-specific corpus path; absent from `src/adapters/**`/registry (confirmed), permanently legacy/Claude-scoped. |
+| `pm_rule_audit` (`pm-rule-audit.ts`) | retain-legacy-only | 2 | **retain** | Same `~/.claude/rules/**` binding as `pm_rule_query`; absent from `src/adapters/**`/registry (confirmed). |
+| `ontology_context_query` (`ontology-context-query.ts`) | port | 7 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
+| `structured_output` (`structured-output.ts`) | port | 0 | **omit** | 0 skill-frontmatter references is not zero total callers (runtime-agnostic anti-stall validator, invoked ad hoc); still no successor tool in `src/adapters/**`/registry. |
+| `pm_authorize_delivery` (`pm-authorize-delivery.ts`) | port | 0 | **omit** | mutation-authority grant minter; closest locus `src/governance/mint-ledger.ts` (not tool-wired); 0 skill-frontmatter references, same caveat as above. |
+
+### Counts (must sum to 24, the full §3 tool surface)
+
+`retain` = 3 (`pm_plugin_self_check`, `pm_rule_query`, `pm_rule_audit`) —
+1:1 with P210 §3's 3 `retain-legacy-only` tools.
+`alias` = 0 — no legacy tool name has a concretely named successor
+equivalent under a different name in `src/adapters/**` or
+`src/control-plane/registry.ts` as of `5318b64`.
+`deprecate` = 0 — P210 §3 itself recorded `deprecate=0` for the 24-tool
+family (no zero-total-caller tool found); this section does not manufacture
+one.
+`deny` = 3 (`pm_intent_router`, `research_context_select`,
+`research_library_refresh`) — 1:1 with P210 §3's 3 `externalize` tools.
+`omit` = 18 — 1:1 with P210 §3's 18 `port` tools.
+
+**3 + 0 + 0 + 3 + 18 = 24.** Matches the full §3 census total exactly; no
+legacy public tool is left unclassified.
+
+### Non-scope note (M810)
+
+This section classifies forward-compatibility disposition only; it does
+not itself port, alias, deny, or omit anything — no code changed under
+`src/**`, `contracts/**`, `src/control-plane/registry.ts`, or
+`src/adapters/**` to produce this table, and the legacy
+`plugins/palantir-mini/**` was read, never written (zero diff, verified
+before and after — see `outputs/m810-compatibility.md`). Any future wave
+that builds a public-tool surface for an `omit`-classified capability, or
+revisits a `deny`/`retain` call with new evidence, appends a **new**
+versioned block below this one (e.g. `## Public-Tool Compatibility v2`) —
+this v1 block is never silently rewritten.

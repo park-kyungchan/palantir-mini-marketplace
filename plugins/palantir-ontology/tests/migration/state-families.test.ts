@@ -71,6 +71,15 @@ describe("buildFamilyManifest", () => {
     if (!result.ok) expect(result.reasonCode).toBe("RC-SCHEMA-VALIDATION-FAILED");
   });
 
+  test("denies stale semver-shaped migration manifest schema versions during construction", () => {
+    const result = buildFamilyManifest({ ...baseParams("events"), schemaVersion: "0.0.1" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reasonCode).toBe("RC-SCHEMA-VALIDATION-FAILED");
+      expect(result.detail).toContain("semantic version");
+    }
+  });
+
   test("still builds a schema-valid manifest when reconciliation does not (yet) balance -- reconciliation failure is a content check the caller runs separately via reconciliation.ts, not a build-time throw", () => {
     const params = baseParams("memory");
     const result = buildFamilyManifest({ ...params, sourceItems: [{ id: "a" }, { id: "b" }], targetItems: [{ id: "a" }], status: "in-progress" });

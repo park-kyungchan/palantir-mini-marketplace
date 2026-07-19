@@ -83,6 +83,7 @@
 
 import { fingerprintBody, type Fingerprint } from "../semantic-core/fingerprint";
 import type { CanonicalizableValue } from "../semantic-core/canonical-json";
+import type { MigrationByWhom } from "./manifest";
 
 /** Minimal structural shape `replayToState` needs from an upcasted event envelope -- `SequencedEnvelope.envelope` (event-reader.ts) structurally satisfies this without an import. */
 export interface ReplayableEnvelope {
@@ -91,6 +92,7 @@ export interface ReplayableEnvelope {
   readonly atopWhich: string;
   readonly when: string;
   readonly withWhat: Record<string, unknown>;
+  readonly byWhom?: MigrationByWhom;
 }
 
 /** Minimal structural shape `replayToState` needs from an episodic memory item -- `EpisodicMemoryItem` (memory-item.ts) structurally satisfies this without an import. */
@@ -106,6 +108,7 @@ export interface StateProjectionEntry {
   readonly lastWhen: string;
   readonly lastSequence: number;
   readonly lastWithWhat: Record<string, unknown>;
+  readonly lastByWhom?: MigrationByWhom;
 }
 
 export interface EpisodeProjectionEntry {
@@ -119,6 +122,7 @@ export interface ReplayResult {
   readonly asOfSequence: number;
   readonly stateByTarget: Readonly<Record<string, StateProjectionEntry>>;
   readonly episodicTimeline: readonly EpisodeProjectionEntry[];
+  readonly migrationProvenance?: MigrationByWhom;
 }
 
 function isReplayableEnvelope(value: unknown): value is ReplayableEnvelope {
@@ -129,6 +133,12 @@ function isReplayableEnvelope(value: unknown): value is ReplayableEnvelope {
   if (typeof v.atopWhich !== "string" || v.atopWhich.length === 0) return false;
   if (typeof v.when !== "string" || v.when.length === 0) return false;
   if (v.withWhat === null || typeof v.withWhat !== "object" || Array.isArray(v.withWhat)) return false;
+  if (v.byWhom !== undefined) {
+    if (v.byWhom === null || typeof v.byWhom !== "object" || Array.isArray(v.byWhom)) return false;
+    const byWhom = v.byWhom as Record<string, unknown>;
+    if (typeof byWhom.identity !== "string" || byWhom.identity.length === 0) return false;
+    if (byWhom.role !== undefined && typeof byWhom.role !== "string") return false;
+  }
   return true;
 }
 
@@ -147,7 +157,7 @@ function isReplayableEpisode(value: unknown): value is ReplayableEpisode {
  * episodic memory timeline as of `cutSequence` (inclusive). Malformed
  * entries in either input are excluded, never thrown on (MEM-011).
  */
-export function replayToState(envelopes: readonly unknown[], episodes: readonly unknown[], cutSequence: number): ReplayResult {
+export function replayToState(envelopes: readonly unknown[], episodes: readonly unknown[], cutSequence: number, migrationProvenance?: MigrationByWhom): ReplayResult {
   const stateByTarget: Record<string, StateProjectionEntry> = {};
 
   const validEnvelopes = envelopes.filter(isReplayableEnvelope).filter((e) => e.sequence <= cutSequence);
@@ -158,6 +168,7 @@ export function replayToState(envelopes: readonly unknown[], episodes: readonly 
       lastWhen: envelope.when,
       lastSequence: envelope.sequence,
       lastWithWhat: envelope.withWhat,
+      ...(envelope.byWhom !== undefined ? { lastByWhom: { ...envelope.byWhom } } : {}),
     };
   }
 
@@ -170,7 +181,12 @@ export function replayToState(envelopes: readonly unknown[], episodes: readonly 
     ...(e.summary !== undefined ? { summary: e.summary } : {}),
   }));
 
-  return { asOfSequence: cutSequence, stateByTarget, episodicTimeline };
+  return {
+    asOfSequence: cutSequence,
+    stateByTarget,
+    episodicTimeline,
+    ...(migrationProvenance !== undefined ? { migrationProvenance: { ...migrationProvenance } } : {}),
+  };
 }
 
 /** sha256(canonicalize(result)) -- reuses ADR-004's fingerprint primitive; identical `ReplayResult` content always produces the identical digest, regardless of object key insertion order. */
