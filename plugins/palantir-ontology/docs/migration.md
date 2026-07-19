@@ -2,17 +2,14 @@
 
 Status: the migration machinery is BUILT and verified copy-only-SAFE
 (fail-closed, legacy byte-identical) — this is not a placeholder. But it is
-NOT yet wired to the real live store: **Gap C** — `STATE_FAMILY_DEFINITIONS`
-point at repo-relative paths, not `~/.palantir-mini`; 5 of 7 family paths are
-absent from the real store; the 2 that are present (sessions, events) were
-correctly REFUSED by the successor's own bijection check, due to legitimate
-duplicate ids the machinery isn't adapted to yet. For the evidence behind
-this status, read
+NOT yet wired to the real live store: per the campaign's **Gap C**, the
+migration `STATE_FAMILY_DEFINITIONS` point at repo-relative paths rather than
+the real `~/.palantir-mini` store, and the machinery is verified
+copy-only-SAFE (fail-closed) rather than migration-ready. The specific
+family-path mappings and reconciliation/bijection results are volatile and
+authored where the code lives — see
 `harness-upstream/_workspace/2026-07-17-palantir-ontology-successor/decisions/final-completion-report.md`
-directly rather than a restated summary here — the actual manifests,
-mappings, and reconciliation counts are volatile and are authored where the
-code lives, not duplicated into prose here, per "Durable Docs: Reference,
-Don't Pin."
+(Gap C), not duplicated here, per "Durable Docs: Reference, Don't Pin."
 
 ## What lives here
 
