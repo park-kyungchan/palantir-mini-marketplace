@@ -1,19 +1,28 @@
-# Migration — Pointer (scaffold stage)
+# Migration — Built, Not Yet Wired to the Live Store
 
-Status: no migration logic exists yet. This is a placeholder naming where
-the real content lands, per "Durable Docs: Reference, Don't Pin" — the
-actual manifests, mappings, and reconciliation counts are volatile and will
-be authored where the code lives, not duplicated into prose here ahead of
-time.
+Status: the migration machinery is BUILT and verified copy-only-SAFE
+(fail-closed, legacy byte-identical) — this is not a placeholder. But it is
+NOT yet wired to the real live store: **Gap C** — `STATE_FAMILY_DEFINITIONS`
+point at repo-relative paths, not `~/.palantir-mini`; 5 of 7 family paths are
+absent from the real store; the 2 that are present (sessions, events) were
+correctly REFUSED by the successor's own bijection check, due to legitimate
+duplicate ids the machinery isn't adapted to yet. For the evidence behind
+this status, read
+`harness-upstream/_workspace/2026-07-17-palantir-ontology-successor/decisions/final-completion-report.md`
+directly rather than a restated summary here — the actual manifests,
+mappings, and reconciliation counts are volatile and are authored where the
+code lives, not duplicated into prose here, per "Durable Docs: Reference,
+Don't Pin."
 
-## What will live here (from `P550` onward)
+## What lives here
 
 Copy-only migration manifests for sessions, SIC/DTC, events, memory,
 consumer bindings, retention state, and projections — implemented in
-`src/migration/`, schema-shaped by `contracts/migration-manifest.contract.json`
-(stub at scaffold time). Required properties per execution-plan.md's Wave 5
-row `P550`: ID maps, hash/count reconciliation, checkpoints, rollback, and
-**no source-store rewriting** (copy-only).
+`src/migration/`, schema-shaped by `contracts/migration-manifest.contract.json`.
+Required properties per execution-plan.md's Wave 5 row `P550`: ID maps,
+hash/count reconciliation, checkpoints, rollback, and **no source-store
+rewriting** (copy-only) — all built and verified copy-only-SAFE, subject to
+the Gap-C caveat above.
 
 ## Current state-migration evidence
 

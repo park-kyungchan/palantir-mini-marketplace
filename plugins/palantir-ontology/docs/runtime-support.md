@@ -1,12 +1,21 @@
-# Runtime Support — Pointer (scaffold stage)
+# Runtime Support — Adapters Built, Not Wired to Run
 
-Status: no generated runtime adapter exists yet. This is a placeholder
-naming where the real content lands, per "Durable Docs: Reference, Don't
-Pin" — current per-runtime capability facts are refresh-first and volatile;
-this document points at the sourced-and-dated matrix rather than
-duplicating specific version numbers or feature claims that will drift.
+Status: adapter-generation code and bindings for all three runtimes ARE
+built and parity-tested (Wave 6 complete; 3-adapter semantic parity verified
+in Wave-9 acceptance) — this is not a placeholder. But: (a) only Claude has
+a native install manifest (`.claude-plugin/plugin.json`); `.codex-plugin/
+plugin.json` is absent (**Gap A**) and Gemini is by-design a neutral
+fallback; (b) the plugin still declares **0 mcpServers / 0 hooks / 0
+skills** and there is no `mcp-server.ts` (**Gap B**) — so even the
+built/tested Claude adapter code is NOT wired into anything that runs. For
+the evidence behind this status, read
+`harness-upstream/_workspace/2026-07-17-palantir-ontology-successor/decisions/final-completion-report.md`
+directly rather than a restated summary here — current per-runtime
+capability facts are refresh-first and volatile; this document points at
+the sourced-and-dated matrix rather than duplicating specific version
+numbers or feature claims that will drift.
 
-## What will live here (Wave 6 onward)
+## What lives here
 
 The compatibility matrix for `src/adapters/{shared,codex,claude,gemini}/`:
 which generated-adapter surface exists per runtime, current known-unsupported
