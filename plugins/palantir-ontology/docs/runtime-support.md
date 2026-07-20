@@ -19,6 +19,39 @@ capability facts are refresh-first and volatile; this document points at
 the sourced-and-dated matrix rather than duplicating specific version
 numbers or feature claims that will drift.
 
+## Install-level packaging status (Gap A)
+
+Three runtimes, two native manifests, one **deliberate** neutral fallback:
+
+| runtime | native install manifest | transport |
+|---|---|---|
+| Claude | `.claude-plugin/plugin.json` — inline `mcpServers` object | stdio, `bridge/mcp-server.ts` |
+| Codex | `.codex-plugin/plugin.json` — `mcpServers` as a **path string** to `./.mcp.json` | stdio, `bridge/mcp-server.ts` |
+| Gemini | **none, by design** — see below | neutral MCP/CLI via `.mcp.json` |
+
+**Gemini's absent manifest is a decision, not a gap.** `src/adapters/gemini/`
+exports `NATIVE_PACKAGING_STATUS = {supported: false, transportMode:
+"neutral-mcp-cli"}` — a deliberately hand-authored constant, not a
+registry-derived one, asserted by `tests/.../generator.test.ts`. Gemini ships no
+`gemini-extension.json` / `.gemini-plugin/` packaging convention, so per campaign
+decision A640 the successor provides a neutral MCP/CLI transport and **marks
+native packaging unsupported rather than fabricating native support**
+(`context/execution-plan.md`: *"If no native package exists, provide a neutral
+MCP/CLI transport, mark native packaging unsupported, and test that claim."*).
+`decisions/i1110-codex-manifest-gap.md` records the same conclusion: Gemini's
+missing manifest is *"by-design … not a gap"*, whereas the Codex manifest *"was
+never created and is not a generated artifact"* — hence it is hand-authored here.
+
+Both manifests are **hand-written, not generated**: `CodexManifestSkeleton` in
+`src/adapters/codex/types.ts` carries capability *facts* (`runtimeId`,
+`transports`, `configPaths`, …), not packaging fields, and no generator emits a
+`plugin.json`. Do not "regenerate" these.
+
+**Declared capability is `Read` only** — deliberately narrower than
+palantir-mini's `["Read","Write"]`. The exposed MCP surface is the 8 generated
+`queryCapability_*` read-only tools; declaring `Write` would overstate what this
+plugin can do and contradict the consumer-surface boundary.
+
 ## What lives here
 
 The compatibility matrix for `src/adapters/{shared,codex,claude,gemini}/`:

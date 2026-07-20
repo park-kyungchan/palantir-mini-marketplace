@@ -1,0 +1,32 @@
+{
+  "name": "palantir-ontology",
+  "version": "0.1.0",
+  "description": "Successor Ontology-First runtime for the ~/projects fleet — the governed semantic + kinetic digital twin (Data+Logic+Action+Security decisions) that every consumer project binds to instead of re-deriving; replaces palantir-mini.",
+  "author": {
+    "name": "palantirKC"
+  },
+  "keywords": [
+    "ontology",
+    "ontology-first",
+    "palantir",
+    "digital-twin",
+    "governance",
+    "multi-harness",
+    "llm-agnostic"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Palantir Ontology",
+    "shortDescription": "Successor Ontology-First runtime: governed semantic + kinetic digital twin for the ~/projects fleet.",
+    "longDescription": "Successor Ontology-First runtime for the ~/projects fleet — the governed semantic + kinetic digital twin (Data+Logic+Action+Security decisions) that every consumer project binds to instead of re-deriving; replaces palantir-mini. The currently exposed MCP surface is read-only capability introspection.",
+    "developerName": "palantirKC",
+    "category": "Coding",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Query palantir-ontology for per-runtime capability facts sourced from the neutral capability registry."
+    ],
+    "brandColor": "#0F6FFF"
+  }
+}
