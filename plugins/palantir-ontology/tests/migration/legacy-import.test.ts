@@ -201,8 +201,29 @@ describe("importFamily — real legacy store", () => {
     }
   });
 
-  test("the real `events` legacy store is non-empty right now — a genuine non-trivial real-data read, not just an absent-path pass (refresh-first: no fixed count asserted)", () => {
+  test("the real `events` legacy store is non-empty when present — a genuine non-trivial real-data read, not just an absent-path pass; and a loud RC3 denial when absent (refresh-first: no fixed count asserted)", () => {
+    // The real `.palantir-mini` tree is gitignored with zero tracked files
+    // (RC4), so it is present in a developer worktree and ABSENT on a clean
+    // checkout such as CI. Both are legitimate states and each has its own
+    // correct assertion — but they are NOT the same assertion, and asserting
+    // only the "present" one made this test fail on any clean checkout.
+    // Found by running the suite in a throwaway `git worktree`, which is the
+    // only way this class of environment-dependence surfaces before CI does it.
+    const legacyAbsPath = resolve(MARKETPLACE_ROOT, stateFamilyDefinition("events").legacyStore);
     const result = importFamily({ family: "events", marketplaceRoot: MARKETPLACE_ROOT, schemaVersion: "1.0.0", migrationId: "mig-m820-events-nonempty", priorMigrationIds: [] });
+
+    if (!existsSync(legacyAbsPath)) {
+      // RC3: absence must fail loud. This is the assertion that actually
+      // protects the invariant on CI — a silent {records:[]} pass here is
+      // exactly the UNKNOWN-as-PASS defect the Gap-C fix removed.
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reasonCode).toBe("RC-SCHEMA-VALIDATION-FAILED");
+        expect(result.detail).toContain("does not exist");
+      }
+      return;
+    }
+
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.recordCount).toBeGreaterThan(0);
   });
