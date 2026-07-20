@@ -1,6 +1,15 @@
 // palantir-ontology — stdio MCP server (raw JSON-RPC 2.0, zero-dep)
-// Domain: LOGIC (Ontology capability-registry read surface — Gap B: give the
+// Domain: CONTEXT (runtime-capability introspection — Gap B: give the
 // validated-source plugin a non-zero, enumerable runtime surface over stdio).
+//
+// This surface serves runtime-capability FACTS (what Claude/Codex/Gemini
+// support), sourced from the neutral capability registry. It exposes ZERO
+// Ontology primitives, so its 9-axis home is CONTEXT — the analog of
+// `list_platform_sdk_apis`, not `query_ontology_objects` (DATA+LOGIC).
+// An earlier revision of this header said LOGIC; that was a category error.
+// Per the design authority, MCP server registration and tool-manifest presence
+// are explicitly NOT ontology authority — and `mcpRegistration` is literally
+// one of the eight capability areas served here.
 //
 // Implements the Model Context Protocol (MCP) over stdio. The live surface is
 // declared by the TOOLS registry below and dispatched lazily via HANDLER_MODULES.
