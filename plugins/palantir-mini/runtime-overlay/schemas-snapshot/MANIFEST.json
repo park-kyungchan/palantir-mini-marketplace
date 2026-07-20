@@ -1,15 +1,15 @@
 {
   "version": "2.0.0",
-  "snapshotAt": "2026-07-12T15:37:19.059Z",
+  "snapshotAt": "2026-07-20T00:19:25.536Z",
   "sourcePath": "~/.claude/schemas/",
   "purpose": "Plugin-owned portable @palantirKC/claude-schemas snapshot. Runtime imports resolve through #schemas/* by default. Upstream test files and runtime session state are intentionally excluded from the plugin substrate snapshot.",
   "packageVersion": "1.97.3",
   "totalFiles": 249,
-  "totalBytes": 2344949,
+  "totalBytes": 2345497,
   "fileSha256Index": {
     ".manifest.json": "fb6f06026e356fd2487f59a15816dcb2b6ccaa2adae052568944630d33863ec7",
     "BROWSE.md": "f0189425017dd329e683a513032d4fcd206620a9458280891b09f34670bc952e",
-    "CANONICAL.md": "7bef2331a1f076dc62eda08f9bb3e94543fca75e3e5b24b7fc01fc71ad8c40e9",
+    "CANONICAL.md": "a37a93ef9f04e72e9d27e89dad4c9857b71705d472406c497196ded9be5cf068",
     "CHANGELOG.md": "b409da3f8bf55e1c903900ff803e367c33550a376858e9ef856f01e2f909a32e",
     "INDEX.md": "43dc263aec15a8076b61a8e51bbf797990a50a9253d89aa104ae1fa422437fbd",
     "MIGRATION.md": "75351fdd6c2bfa05c96f213897f4b21117afbdfea8390f69f0cf58d280f06d5c",
