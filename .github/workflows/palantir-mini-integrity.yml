@@ -24,3 +24,28 @@ jobs:
         run: bun run ci/run-legacy-baseline.ts
       - name: Repo guard tests
         run: bun test ci/tests
+
+      # --- plugins/palantir-ontology -------------------------------------
+      # Until now this workflow only covered plugins/palantir-mini, so the
+      # successor plugin shipped entirely ungated. These steps close that.
+      #
+      # `bun test` is deliberately NOT run here yet. The migration suite reads
+      # plugins/palantir-mini/.palantir-mini/, which is gitignored and has zero
+      # tracked files, so on a fresh checkout it is absent — which both hides the
+      # real Gap-C failures (a missing path currently returns {records:[]} and
+      # passes) and fails `legacy-import.test.ts`'s `recordCount > 0` assertion
+      # for the events family. Adding `bun test` before the Gap-C fix would
+      # import a guaranteed-red gate that proves nothing. It is added in a
+      # follow-up slice, together with a tracked fixture and an absent-path
+      # assertion. Every gate below is store-independent and green today.
+      - name: Ontology install + typecheck
+        run: cd plugins/palantir-ontology && (bun install --frozen-lockfile || bun install) && bun run typecheck
+      - name: Ontology static gates
+        run: |
+          cd plugins/palantir-ontology
+          bun run generated:check
+          bun run parity:check
+          bun run control-plane:check
+          bun run contract:check
+          bun run migration:check
+          bun run boundary:check
