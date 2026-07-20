@@ -119,7 +119,7 @@
       "family": "events",
       "recordOutcomes": [
         {
-          "legacyId": "evt-strong",
+          "legacyId": "evt-strong#1",
           "successorId": "evt-0001",
           "legacyOutcome": "legacy-read-ok",
           "successorGate": {
@@ -134,7 +134,7 @@
           "divergence": {
             "kind": "explained-safe-denial",
             "reasonCode": "RC-SCHEMA-VALIDATION-FAILED",
-            "note": "legacy allowed legacyId=\"evt-strong\" through (the legacy store is schema-free ad hoc JSON with no contract gate) but the successor's event-envelope contract denies it -- $: unexpected additional property \"eventId\"; $.throughWhich: expected type string, got object; $: unexpected additional property \"sequence\""
+            "note": "legacy allowed legacyId=\"evt-strong#1\" through (the legacy store is schema-free ad hoc JSON with no contract gate) but the successor's event-envelope contract denies it -- $: unexpected additional property \"eventId\"; $.throughWhich: expected type string, got object; $: unexpected additional property \"sequence\""
           }
         },
         {

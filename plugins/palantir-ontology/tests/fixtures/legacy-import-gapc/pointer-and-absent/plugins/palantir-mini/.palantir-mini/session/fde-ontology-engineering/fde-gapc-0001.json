@@ -1,0 +1,7 @@
+{
+  "sessionId": "fde-gapc-0001",
+  "byWhom": { "identity": "agent:gapc-fixture" },
+  "at": "2026-07-18T09:00:00.000Z",
+  "atopWhich": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "note": "RC1 fixture: current.json (pointer) carries the SAME sessionId as this record file -- reading the pointer as a second record would collide with this one."
+}

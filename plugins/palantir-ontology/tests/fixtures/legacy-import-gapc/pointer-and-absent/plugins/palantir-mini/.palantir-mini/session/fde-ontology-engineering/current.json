@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "palantir-mini/fde-ontology-engineering-current/v1",
+  "sessionId": "fde-gapc-0001",
+  "sessionRef": "fde-ontology-engineering://session/fde-gapc-0001",
+  "projectRoot": "/fixtures/legacy-import-gapc/pointer-and-absent",
+  "updatedAt": "2026-07-18T09:00:00.000Z"
+}
