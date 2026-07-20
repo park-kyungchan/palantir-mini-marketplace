@@ -16,6 +16,10 @@ jobs:
         run: bun run ci/verify-no-semantic-root-fork.ts
       - name: Verify marketplace integrity
         run: bun run ci/verify-marketplace-integrity.ts
+      - name: Verify workspace citations
+        run: bun run ci/verify-workspace-citations.ts
+      - name: Verify plugin CI coverage
+        run: bun run ci/verify-plugin-ci-coverage.ts
       - name: Typecheck
         run: cd plugins/palantir-mini && (bun install --frozen-lockfile || bun install) && bun run typecheck
       - name: Check cartography drift
