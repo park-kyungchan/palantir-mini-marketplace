@@ -20,7 +20,8 @@
   "include": [
     "src/**/*.ts",
     "scripts/**/*.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "bridge/**/*.ts"
   ],
   "exclude": [
     "node_modules",
