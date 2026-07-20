@@ -6,6 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
+    "mcp-server": "bun run bridge/mcp-server.ts",
     "test:contracts": "bun test tests/contracts",
     "contract:check": "bun test tests/contracts",
     "boundary:check": "bun run scripts/boundary-check.ts",

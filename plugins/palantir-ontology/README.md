@@ -12,11 +12,15 @@ Every subsystem this README's layer diagram names below — `src/semantic-core`,
 `src/altitude1/2`, `src/governance`, `src/control-plane`, `src/memory`,
 `src/lineage`, `src/migration`, and the generated-adapter logic — is real,
 tested code, not scaffold. But the runtime is NOT activated:
-`.claude-plugin/plugin.json` declares 0 mcpServers / 0 hooks / 0 skills,
-there is no `mcp-server.ts` anywhere, and Wave-11 runtime activation reached
-the `retain-legacy-with-rationale` terminal (no cutover) — legacy
-`plugins/palantir-mini` remains the only plugin with an actual runtime
-surface (currently disabled, demand-driven). For the evidence behind this
+`.claude-plugin/plugin.json` now declares an `mcpServers` entry served by
+`bridge/mcp-server.ts`, but that surface exposes only the 8 generated
+`queryCapability_*` capability-introspection tools — the Ontology read/act
+surface in `src/altitude2/` is not reachable from any tool call, and no
+Action can be executed through this plugin. Wave-11 runtime activation
+reached the `retain-legacy-with-rationale` terminal (no cutover); legacy
+`plugins/palantir-mini` remains the plugin with the substantive runtime
+surface (currently disabled, demand-driven). Both plugins are disabled, and
+this plugin is **not** `load-bearing`. For the evidence behind this
 status (acceptance results, gate outcomes, test counts) read
 `harness-upstream/_workspace/2026-07-17-palantir-ontology-successor/decisions/final-completion-report.md`
 directly rather than a restated summary here. Nothing under

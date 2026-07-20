@@ -5,9 +5,13 @@ built and parity-tested (Wave 6 complete; 3-adapter semantic parity verified
 in Wave-9 acceptance) — this is not a placeholder. But: (a) only Claude has
 a native install manifest (`.claude-plugin/plugin.json`); `.codex-plugin/
 plugin.json` is absent (**Gap A**) and Gemini is by-design a neutral
-fallback; (b) the plugin still declares **0 mcpServers / 0 hooks / 0
-skills** and there is no `mcp-server.ts` (**Gap B**) — so even the
-built/tested Claude adapter code is NOT wired into anything that runs. For
+fallback; (b) the plugin now declares an `mcpServers` entry and ships
+`bridge/mcp-server.ts`, so the Claude adapter IS wired to a running stdio
+surface — but that surface is currently the 8 generated `queryCapability_*`
+tools only, which are runtime-capability introspection, **not** Ontology
+reads or Actions (**Gap B: transport closed, semantic surface still open**).
+The Ontology read/act surface in `src/altitude2/` remains unreachable from
+any tool call. Both plugins also remain disabled. For
 the evidence behind this status, read
 `harness-upstream/_workspace/2026-07-17-palantir-ontology-successor/decisions/final-completion-report.md`
 directly rather than a restated summary here — current per-runtime

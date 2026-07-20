@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "palantir-ontology": {
+      "command": "bun",
+      "args": [
+        "run",
+        "./bridge/mcp-server.ts"
+      ],
+      "cwd": ".",
+      "env": {
+        "PALANTIR_ONTOLOGY_HOST_RUNTIME": "codex"
+      }
+    }
+  }
+}
