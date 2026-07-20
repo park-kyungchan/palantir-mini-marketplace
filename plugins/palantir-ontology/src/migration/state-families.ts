@@ -7,7 +7,7 @@
 // `STATE_FAMILY_DEFINITIONS` fixes the exact legacy/successor store path
 // for each of the seven families, grounded in real evidence, not invented
 // paths -- every `legacyStore` cites the exact
-// `outputs/p230-legacy-surface-census.md` row it comes from:
+// `outputs/p230-state-migration-census.md` row it comes from:
 //
 //   - sessions: "FDE ontology-engineering session" row --
 //     `<root>/.palantir-mini/session/fde-ontology-engineering/<sessionId>.json`.
@@ -83,19 +83,19 @@ export const STATE_FAMILY_DEFINITIONS: readonly StateFamilyDefinition[] = [
     family: "sessions",
     legacyStore: "plugins/palantir-mini/.palantir-mini/session/fde-ontology-engineering/",
     successorStore: "plugins/palantir-ontology/.palantir-ontology/session/fde-ontology-engineering/",
-    legacyEvidence: "outputs/p230-legacy-surface-census.md: 'FDE ontology-engineering session' row",
+    legacyEvidence: "outputs/p230-state-migration-census.md: 'FDE ontology-engineering session' row",
   },
   {
     family: "sic-dtc",
     legacyStore: "plugins/palantir-mini/.palantir-mini/session/ontology-context-approvals/",
     successorStore: "plugins/palantir-ontology/.palantir-ontology/session/sic-dtc/",
-    legacyEvidence: "outputs/p230-legacy-surface-census.md: 'DTC / ontology-context approvals' row (paired with 'SIC front-door state')",
+    legacyEvidence: "outputs/p230-state-migration-census.md: 'DTC / ontology-context approvals' row (paired with 'SIC front-door state')",
   },
   {
     family: "events",
     legacyStore: "plugins/palantir-mini/.palantir-mini/session/events.jsonl",
     successorStore: "plugins/palantir-ontology/.palantir-ontology/session/events.jsonl",
-    legacyEvidence: "outputs/p230-legacy-surface-census.md: 'Canonical event log' row (matches P330 valid-1.json fixture)",
+    legacyEvidence: "outputs/p230-state-migration-census.md: 'Canonical event log' row (matches P330 valid-1.json fixture)",
   },
   {
     family: "memory",
@@ -107,19 +107,19 @@ export const STATE_FAMILY_DEFINITIONS: readonly StateFamilyDefinition[] = [
     family: "consumer-bindings",
     legacyStore: "plugins/palantir-mini/.palantir-mini/session/registered-projects.json",
     successorStore: "plugins/palantir-ontology/.palantir-ontology/consumer-bindings/manifest.json",
-    legacyEvidence: "outputs/p230-legacy-surface-census.md: 'Registered-projects registry [global]' row",
+    legacyEvidence: "outputs/p230-state-migration-census.md: 'Registered-projects registry [global]' row",
   },
   {
     family: "retention",
     legacyStore: "plugins/palantir-mini/.palantir-mini/session/retention/manifest.json",
     successorStore: "plugins/palantir-ontology/.palantir-ontology/retention/manifest.json",
-    legacyEvidence: "outputs/p230-legacy-surface-census.md: 'Per-session retention manifest' row",
+    legacyEvidence: "outputs/p230-state-migration-census.md: 'Per-session retention manifest' row",
   },
   {
     family: "projections",
     legacyStore: "plugins/palantir-mini/.palantir-mini/session/snapshots/manifest.json",
     successorStore: "plugins/palantir-ontology/.palantir-ontology/projections/manifest.json",
-    legacyEvidence: "outputs/p230-legacy-surface-census.md: 'Snapshot (fold cache)' row",
+    legacyEvidence: "outputs/p230-state-migration-census.md: 'Snapshot (fold cache)' row",
   },
 ];
 

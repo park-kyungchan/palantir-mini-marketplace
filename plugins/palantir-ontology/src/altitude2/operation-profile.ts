@@ -6,7 +6,7 @@
 // pins the EXACT set of capability names `src/altitude2/index.ts` exports
 // as the everyday operator surface. This is a direct structural fix for
 // the legacy finding this task's mission text is written against
-// (`outputs/w7-altitude2.md` A2-001/A2-002: the legacy `altitude-2` MCP
+// (`outputs/p440-altitude2-operation.md` A2-001/A2-002: the legacy `altitude-2` MCP
 // profile inherited `studio-core`, including construction tools
 // `pm_ontology_engineering_workflow`/`pm_semantic_intent_gate`/
 // `pm_intent_router` and the grant-minting `pm_authorize_delivery`) — the
