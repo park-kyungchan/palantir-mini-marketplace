@@ -325,10 +325,21 @@ describe("shadow comparison — golden results fixture + report generator (S3)",
     expect(report).toContain("TOTAL unexplained-defects across all families: 0");
 
     const fixturePath = join(PACKAGE_ROOT, "tests/migration/fixtures/shadow-golden-results.json");
-    mkdirSync(dirname(fixturePath), { recursive: true });
-    writeFileSync(fixturePath, `${JSON.stringify(golden, null, 2)}\n`);
+
+    // The golden file is a FIXED contract, not a scratch pad. Writing it and
+    // then asserting the read-back matches what was just written is a
+    // tautology: it proves JSON round-trips, never that the computed result is
+    // still correct. Observed during negative-testing -- with the RC2
+    // amendment-identity fix removed, this test silently rewrote its own
+    // expectation from `evt-strong#1` to `evt-strong` and PASSED, so it could
+    // not catch a regression in the very legacyId format Gap C established.
+    // Regeneration is therefore explicit and opt-in; the default path ASSERTS.
+    if (process.env["UPDATE_SHADOW_GOLDEN"] === "1") {
+      mkdirSync(dirname(fixturePath), { recursive: true });
+      writeFileSync(fixturePath, `${JSON.stringify(golden, null, 2)}\n`);
+    }
 
     const persisted = JSON.parse(readFileSync(fixturePath, "utf8"));
-    expect(persisted).toEqual(JSON.parse(JSON.stringify(golden)));
+    expect(JSON.parse(JSON.stringify(golden))).toEqual(persisted);
   });
 });
