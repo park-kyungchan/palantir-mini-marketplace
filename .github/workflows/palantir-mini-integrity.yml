@@ -54,3 +54,16 @@ jobs:
           bun run boundary:check
       - name: Ontology tests
         run: cd plugins/palantir-ontology && bun test
+      # A test that quietly rewrites a tracked file it is meant to assert against
+      # reports PASS while verifying nothing. That is how a "golden results"
+      # fixture silently rewrote its own expectation (legacyId evt-strong#1 ->
+      # evt-strong) and passed straight through a real regression; the only
+      # symptom was a dirty tree, which nothing inspected. Fixed as an instance
+      # in #240 -- this closes the class.
+      - name: Test run must not mutate tracked files
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::the test run modified tracked files -- a test is writing to the repo instead of a temp dir"
+            git diff --stat
+            exit 1
+          fi
