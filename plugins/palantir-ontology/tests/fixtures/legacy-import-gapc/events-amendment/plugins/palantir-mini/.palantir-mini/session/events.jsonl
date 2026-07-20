@@ -1,0 +1,2 @@
+{"eventId":"evt-gapc-amend","sequence":1,"schemaVersion":"1.0.0","envelopeRev":1,"type":"created","when":"2026-07-18T10:00:00.000Z","atopWhich":"gapc-target","throughWhich":{"sessionId":"gapc"},"byWhom":{"identity":"agent:gapc-fixture"},"withWhat":{}}
+{"eventId":"evt-gapc-amend","sequence":2,"schemaVersion":"1.0.0","envelopeRev":1,"type":"grade-promoted","when":"2026-07-18T11:00:00.000Z","atopWhich":"gapc-target","throughWhich":{"sessionId":"gapc"},"byWhom":{"identity":"grade-promotion-job"},"withWhat":{}}

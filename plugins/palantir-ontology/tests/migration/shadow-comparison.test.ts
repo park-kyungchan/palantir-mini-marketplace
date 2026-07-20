@@ -18,7 +18,7 @@
 // writes into, or reads a write target from, `plugins/palantir-mini/**` --
 // every write in this file targets its own `mkdtempSync` root.
 
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, test } from "bun:test";
@@ -282,11 +282,25 @@ describe("shadow comparison — replay outcome (mission's fifth outcome category
 describe("shadow comparison — real marketplace root (refresh-first: verify against the actual real tree, not a description from memory)", () => {
   test("running the shadow comparison against the real, live legacy store for all seven families never throws and every family is well-formed", () => {
     for (const family of MIGRATION_STATE_FAMILIES) {
-      const importResult = importFamily({ family, marketplaceRoot: MARKETPLACE_ROOT, schemaVersion: "1.0.0", migrationId: `mig-m830-real-${family}`, priorMigrationIds: [] });
-      expect(importResult.ok).toBe(true);
-      if (!importResult.ok) continue;
       const def = stateFamilyDefinition(family);
       const legacyAbsPath = resolve(MARKETPLACE_ROOT, def.legacyStore);
+      // refresh-first: query the REAL tree at test-run time -- this repo's
+      // `.palantir-mini` tree is gitignored/untracked (RC4), so which of
+      // the seven paths exist varies by worktree/environment.
+      const pathExistsNow = existsSync(legacyAbsPath);
+
+      const importResult = importFamily({ family, marketplaceRoot: MARKETPLACE_ROOT, schemaVersion: "1.0.0", migrationId: `mig-m830-real-${family}`, priorMigrationIds: [] });
+
+      if (!pathExistsNow) {
+        // RC3: an absent legacy store path must FAIL LOUD -- never silently
+        // treated as an empty-but-well-formed family.
+        expect(importResult.ok).toBe(false);
+        if (!importResult.ok) expect(importResult.reasonCode).toBe("RC-SCHEMA-VALIDATION-FAILED");
+        continue;
+      }
+
+      expect(importResult.ok).toBe(true);
+      if (!importResult.ok) continue;
       const readResult = readLegacyFamilySource(legacyAbsPath);
       const result = runFamilyShadowComparison(family, readResult.records, importResult.value.manifest.idMap);
       expect(result.recordOutcomes.length).toBe(readResult.records.length);

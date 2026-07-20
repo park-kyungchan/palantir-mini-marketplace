@@ -132,6 +132,18 @@ export interface LegacyReadResult {
   readonly unparseableLegacyIds: readonly string[];
   /** Parsed entries with no stable source identity -- named separately, never promoted to generated legacy ids. */
   readonly unidentifiableLegacyIds: readonly string[];
+  /**
+   * Whether `legacyStoreAbsPath` existed on disk at read time. `false` is
+   * NOT the same outcome as "path present, zero records" -- collapsing both
+   * into an empty `records: []` is exactly how an absent legacy store
+   * (wrong root, never-run migration precondition) silently reports as a
+   * pass. Callers that treat an import as successful (`importFamily`) MUST
+   * fail loud on `pathExisted: false`; `readLegacyFamilySource` itself stays
+   * non-throwing either way (this field is the honest signal, not an
+   * exception) -- a legitimately empty family (e.g. a freshly-registered
+   * project's empty retention manifest) still has `pathExisted: true`.
+   */
+  readonly pathExisted: boolean;
 }
 
 /**
@@ -151,7 +163,7 @@ export interface LegacyReadResult {
  *     (`memory`, `consumer-bindings`, `retention`, `projections`).
  */
 export function readLegacyFamilySource(legacyStoreAbsPath: string): LegacyReadResult {
-  if (!existsSync(legacyStoreAbsPath)) return { records: [], unparseableLegacyIds: [], unidentifiableLegacyIds: [] };
+  if (!existsSync(legacyStoreAbsPath)) return { records: [], unparseableLegacyIds: [], unidentifiableLegacyIds: [], pathExisted: false };
 
   const stat = statSync(legacyStoreAbsPath);
   const records: LegacyRecord[] = [];
@@ -160,7 +172,17 @@ export function readLegacyFamilySource(legacyStoreAbsPath: string): LegacyReadRe
 
   if (stat.isDirectory()) {
     const names = readdirSync(legacyStoreAbsPath)
-      .filter((f) => f.endsWith(".json"))
+      // "current.json" is an active-session POINTER, not a record -- the
+      // legacy pm plugin's own writer already treats it as a distinct
+      // artifact from a session's own `<sessionId>.json` record file (see
+      // `fdeOntologyEngineeringCurrentPath`/`writeFDEOntologyEngineeringSessionSnapshot`
+      // in plugins/palantir-mini/lib/fde-ontology-engineering/session-store.ts:
+      // it writes `sessionPath` and `currentPath` as two SEPARATE files, the
+      // pointer carrying the SAME `sessionId` as the record it points at).
+      // Counting the pointer as a second record would collide with its own
+      // target session's legacyId -- reading it as a record is simply wrong,
+      // not a bijection defect for `id-map.ts` to catch.
+      .filter((f) => f.endsWith(".json") && f !== "current.json")
       .sort();
     for (const name of names) {
       const fallbackId = basename(name, extname(name));
@@ -172,7 +194,7 @@ export function readLegacyFamilySource(legacyStoreAbsPath: string): LegacyReadRe
         unparseableLegacyIds.push(fallbackId);
       }
     }
-    return { records, unparseableLegacyIds, unidentifiableLegacyIds };
+    return { records, unparseableLegacyIds, unidentifiableLegacyIds, pathExisted: true };
   }
 
   if (legacyStoreAbsPath.endsWith(".jsonl")) {
@@ -184,7 +206,13 @@ export function readLegacyFamilySource(legacyStoreAbsPath: string): LegacyReadRe
       const fallbackId = `line-${i + 1}`;
       try {
         const parsed = JSON.parse(line) as CanonicalizableValue;
-        const legacyId = pickId(parsed);
+        // Append-only (.jsonl) families are amendment-qualified: a
+        // real-world append-only log can carry more than one row for the
+        // same `eventId` (e.g. a T3->T4 grade-promotion amendment) --
+        // `{ appendOnly: true }` makes `pickId` fold in `sequence` so each
+        // row keeps its own distinct legacy identity instead of colliding
+        // with its own prior amendment.
+        const legacyId = pickId(parsed, { appendOnly: true });
         if (legacyId === undefined) {
           unidentifiableLegacyIds.push(fallbackId);
         } else {
@@ -194,7 +222,7 @@ export function readLegacyFamilySource(legacyStoreAbsPath: string): LegacyReadRe
         unparseableLegacyIds.push(fallbackId);
       }
     });
-    return { records, unparseableLegacyIds, unidentifiableLegacyIds };
+    return { records, unparseableLegacyIds, unidentifiableLegacyIds, pathExisted: true };
   }
 
   // Single JSON file (memory / consumer-bindings / retention / projections).
@@ -221,11 +249,30 @@ export function readLegacyFamilySource(legacyStoreAbsPath: string): LegacyReadRe
   } catch {
     unparseableLegacyIds.push(basename(legacyStoreAbsPath));
   }
-  return { records, unparseableLegacyIds, unidentifiableLegacyIds };
+  return { records, unparseableLegacyIds, unidentifiableLegacyIds, pathExisted: true };
 }
 
-function pickId(value: unknown): string | undefined {
+/**
+ * `{ appendOnly: true }` (jsonl families only) folds `sequence` into the
+ * picked identity as `` `${eventId}#${sequence}` `` -- NOT a relaxation of
+ * `id-map.ts`'s bijection guard (never touched by this file): a genuine
+ * duplicate row (same `eventId` AND same `sequence`) still picks the exact
+ * same composite string and is still denied as a collision. Only a real
+ * amendment (same `eventId`, a DIFFERENT `sequence`) now keeps its own
+ * distinct legacy identity instead of colliding with its own prior
+ * amendment. Falls through to the plain, shape-blind lookup when `sequence`
+ * isn't a number (e.g. a malformed or pre-existing hand-authored fixture
+ * row) so non-amendment shapes are unaffected.
+ */
+function pickId(value: unknown, options?: { readonly appendOnly?: boolean }): string | undefined {
   if (!isPlainObject(value)) return undefined;
+  if (options?.appendOnly) {
+    const eventId = value["eventId"];
+    const sequence = value["sequence"];
+    if (typeof eventId === "string" && eventId.length > 0 && typeof sequence === "number") {
+      return `${eventId}#${sequence}`;
+    }
+  }
   for (const key of ["eventId", "sessionId", "sicId", "itemId", "snapshotId", "id", "migrationId"]) {
     const v = value[key];
     if (typeof v === "string" && v.length > 0) return v;
@@ -294,7 +341,21 @@ export function importFamily(params: ImportFamilyParams): AggregateResult<Import
   const def = stateFamilyDefinition(params.family);
   const legacyAbsPath = resolve(params.marketplaceRoot, def.legacyStore);
 
-  const { records, unparseableLegacyIds, unidentifiableLegacyIds } = readLegacyFamilySource(legacyAbsPath);
+  const { records, unparseableLegacyIds, unidentifiableLegacyIds, pathExisted } = readLegacyFamilySource(legacyAbsPath);
+  if (!pathExisted) {
+    // RC3: an absent legacy store path is never a legitimate "zero
+    // records" pass -- collapsing it into the same `{records:[]}` shape a
+    // genuinely empty (but present) family produces is exactly how a wrong
+    // root, or a family whose legacy store was never created, silently
+    // reports UNKNOWN as PASS. A present-but-empty family (e.g. a
+    // freshly-registered project's empty retention manifest) still reaches
+    // the `records.length > 0 ? "completed" : "pending"` branch below
+    // unaffected -- only a missing path denies here.
+    return denied(
+      RC_SCHEMA_VALIDATION_FAILED,
+      `importFamily refuses to report a pass for family "${params.family}" because its legacy store path "${legacyAbsPath}" does not exist -- an absent path is never a legitimate "zero records" outcome`,
+    );
+  }
   if (unparseableLegacyIds.length > 0 || unidentifiableLegacyIds.length > 0) {
     const parts = [
       ...(unparseableLegacyIds.length > 0 ? [`unparseable source entr${unparseableLegacyIds.length === 1 ? "y" : "ies"}: ${unparseableLegacyIds.join(", ")}`] : []),

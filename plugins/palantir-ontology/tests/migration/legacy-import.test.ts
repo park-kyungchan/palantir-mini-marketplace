@@ -25,7 +25,7 @@
 // `plugins/palantir-mini/**` -- every write in this file targets its own
 // `mkdtempSync` root, never the real legacy tree.
 
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "bun:test";
@@ -51,11 +51,12 @@ function makeTempMarketplaceRoot(): string {
 }
 
 describe("readLegacyFamilySource", () => {
-  test("an absent legacy path returns zero records, not an error", () => {
+  test("an absent legacy path returns zero records, not an error — but is marked pathExisted:false (RC3) so a caller can still fail loud on it", () => {
     const result = readLegacyFamilySource(join(makeTempMarketplaceRoot(), "does-not-exist"));
     expect(result.records).toEqual([]);
     expect(result.unparseableLegacyIds).toEqual([]);
     expect(result.unidentifiableLegacyIds).toEqual([]);
+    expect(result.pathExisted).toBe(false);
   });
 
   test("reads a directory of one-record-per-file JSON (sessions/sic-dtc shape)", () => {
@@ -69,6 +70,7 @@ describe("readLegacyFamilySource", () => {
     writeFileSync(join(dir, "sess-weak.json"), JSON.stringify({ note: "no byWhom, no hash, no timestamp here" }));
 
     const result = readLegacyFamilySource(dir);
+    expect(result.pathExisted).toBe(true);
     expect(result.unparseableLegacyIds).toEqual([]);
     expect(result.records.length).toBe(2);
     const strong = result.records.find((r) => r.legacyId === "sess-strong");
@@ -148,8 +150,16 @@ describe("readLegacyFamilySource", () => {
 });
 
 describe("importFamily — real legacy store", () => {
-  test("every one of the seven families reads the real legacyStore path and produces a contract-valid, copy-only manifest", () => {
+  test("every one of the seven families reads the real legacyStore path and produces a contract-valid, copy-only manifest when the path exists — and fails loud (RC3), never a silent pass, when it does not", () => {
     for (const family of MIGRATION_STATE_FAMILIES) {
+      const def = stateFamilyDefinition(family);
+      const legacyAbsPath = resolve(MARKETPLACE_ROOT, def.legacyStore);
+      // refresh-first: query the REAL tree at test-run time for whether this
+      // family's legacyStore path exists right now, rather than assuming --
+      // this repo's `.palantir-mini` tree is gitignored/untracked (RC4) so
+      // which of the seven paths exist varies by worktree/environment.
+      const pathExistsNow = existsSync(legacyAbsPath);
+
       const result = importFamily({
         family,
         marketplaceRoot: MARKETPLACE_ROOT,
@@ -157,6 +167,20 @@ describe("importFamily — real legacy store", () => {
         migrationId: `mig-m820-${family}`,
         priorMigrationIds: [],
       });
+
+      if (!pathExistsNow) {
+        // RC3: an absent legacy store path must FAIL LOUD -- never the
+        // silent "records: []" pass that let 5 of 7 families report UNKNOWN
+        // as PASS before this fix.
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+          expect(result.reasonCode).toBe("RC-SCHEMA-VALIDATION-FAILED");
+          expect(result.detail).toContain(legacyAbsPath);
+          expect(result.detail).toContain("does not exist");
+        }
+        continue;
+      }
+
       expect(result.ok).toBe(true);
       if (!result.ok) continue;
 
@@ -165,8 +189,8 @@ describe("importFamily — real legacy store", () => {
       expect(validation.valid).toBe(true);
 
       expect(checkCopyOnlyDirection(family, result.value.manifest)).toBeNull();
-      expect(result.value.manifest.sourceStore).toBe(stateFamilyDefinition(family).legacyStore);
-      expect(result.value.manifest.targetStore).toBe(stateFamilyDefinition(family).successorStore);
+      expect(result.value.manifest.sourceStore).toBe(def.legacyStore);
+      expect(result.value.manifest.targetStore).toBe(def.successorStore);
       expect(result.value.recordCount).toBeGreaterThanOrEqual(0);
       expect(result.value.unparseableLegacyIds).toEqual([]);
 
