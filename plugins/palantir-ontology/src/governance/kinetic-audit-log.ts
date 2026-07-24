@@ -19,10 +19,19 @@
 //
 // Citation: de-2026-07-24-s19-kinetic-adr006-scope-of-record (build-only
 // ADR-006 scoping row of record).
+//
+// Unit E closes a V2 defect named in the design doc's own gap analysis: "No
+// idempotency-key column exists on ActionAuditLogModel or elsewhere, so
+// retried side effects ... would have no dedup mechanism defined." This
+// module (which owns the file-layout knowledge) adds
+// `findOutcomeByIdempotencyKey` — a pure read over the existing
+// `idempotency_key` record field (no schema change) that lets
+// `kinetic-write-executor.ts`'s Unit E idempotent-replay path deduplicate a
+// retried `applyAction` call without scanning audit files itself.
 
 import { canonicalize, type CanonicalizableValue } from "../semantic-core/canonical-json";
 import { assertWithinAllowedRoots, atomicWriteFile } from "./atomic-write";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export type KineticAuditStatus = "PENDING" | "SUCCESS" | "FAILED";
@@ -62,6 +71,13 @@ export interface KineticAuditLog {
   appendOutcome(record: KineticAuditRecord): void;
   /** Returns the precedence-resolved record for `log_id` (success > failed > pending), or `null` if no file for `log_id` exists. */
   readAuditState(log_id: string): KineticAuditRecord | null;
+  /**
+   * Returns the precedence-resolved (success > failed) outcome record whose
+   * `idempotency_key` matches, or `null` if none. Scans only outcome files
+   * (`.success.json`/`.failed.json`) — never pending-only records, so an
+   * in-flight (never-completed) attempt never satisfies a replay lookup.
+   */
+  findOutcomeByIdempotencyKey(idempotency_key: string): KineticAuditRecord | null;
 }
 
 function statusFileName(logId: string, status: KineticAuditStatus): string {
@@ -111,6 +127,22 @@ export function createKineticAuditLog({ auditDir }: { auditDir: string }): Kinet
         const targetPath = join(auditDir, statusFileName(log_id, status));
         if (existsSync(targetPath)) {
           return JSON.parse(readFileSync(targetPath, "utf8")) as KineticAuditRecord;
+        }
+      }
+      return null;
+    },
+
+    findOutcomeByIdempotencyKey(idempotency_key: string): KineticAuditRecord | null {
+      const files = readdirSync(auditDir);
+      // Precedence: success > failed. Pending-only files are never
+      // considered — an in-flight attempt has no dedup-able outcome yet.
+      for (const suffix of [".success.json", ".failed.json"] as const) {
+        for (const file of files) {
+          if (!file.endsWith(suffix)) continue;
+          const record = JSON.parse(readFileSync(join(auditDir, file), "utf8")) as KineticAuditRecord;
+          if (record.idempotency_key === idempotency_key) {
+            return record;
+          }
         }
       }
       return null;

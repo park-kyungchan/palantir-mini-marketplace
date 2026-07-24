@@ -169,6 +169,61 @@ describe("createKineticAuditLog: readAuditState precedence", () => {
   });
 });
 
+describe("createKineticAuditLog: findOutcomeByIdempotencyKey", () => {
+  test("returns null when no record for the idempotency_key exists", () => {
+    const auditDir = makeTempOutcomeDir();
+    const log = createKineticAuditLog({ auditDir });
+    expect(log.findOutcomeByIdempotencyKey("idem-none")).toBeNull();
+  });
+
+  test("returns the SUCCESS outcome matching idempotency_key", () => {
+    const auditDir = makeTempOutcomeDir();
+    const log = createKineticAuditLog({ auditDir });
+    const pending = pendingRecord({ log_id: "log-idem-1", idempotency_key: "idem-1" });
+    log.appendPending(pending);
+    log.appendOutcome({ ...pending, status: "SUCCESS", post_state: { name: "Widget" } });
+
+    const found = log.findOutcomeByIdempotencyKey("idem-1");
+    expect(found?.status).toBe("SUCCESS");
+    expect(found?.log_id).toBe("log-idem-1");
+  });
+
+  test("returns the FAILED outcome matching idempotency_key when no SUCCESS exists", () => {
+    const auditDir = makeTempOutcomeDir();
+    const log = createKineticAuditLog({ auditDir });
+    const pending = pendingRecord({ log_id: "log-idem-2", idempotency_key: "idem-2" });
+    log.appendPending(pending);
+    log.appendOutcome({ ...pending, status: "FAILED", error_message: "boom" });
+
+    const found = log.findOutcomeByIdempotencyKey("idem-2");
+    expect(found?.status).toBe("FAILED");
+    expect(found?.log_id).toBe("log-idem-2");
+  });
+
+  test("SUCCESS takes precedence over a FAILED outcome sharing the same idempotency_key from a different log_id", () => {
+    const auditDir = makeTempOutcomeDir();
+    const log = createKineticAuditLog({ auditDir });
+    const failedAttempt = pendingRecord({ log_id: "log-idem-3a", idempotency_key: "idem-3" });
+    log.appendPending(failedAttempt);
+    log.appendOutcome({ ...failedAttempt, status: "FAILED", error_message: "first attempt failed" });
+
+    const succeededRetry = pendingRecord({ log_id: "log-idem-3b", idempotency_key: "idem-3" });
+    log.appendPending(succeededRetry);
+    log.appendOutcome({ ...succeededRetry, status: "SUCCESS", post_state: { name: "Widget" } });
+
+    const found = log.findOutcomeByIdempotencyKey("idem-3");
+    expect(found?.status).toBe("SUCCESS");
+    expect(found?.log_id).toBe("log-idem-3b");
+  });
+
+  test("a pending-only record (no outcome yet) is never returned", () => {
+    const auditDir = makeTempOutcomeDir();
+    const log = createKineticAuditLog({ auditDir });
+    log.appendPending(pendingRecord({ log_id: "log-idem-4", idempotency_key: "idem-4" }));
+    expect(log.findOutcomeByIdempotencyKey("idem-4")).toBeNull();
+  });
+});
+
 describe("createKineticAuditLog: fail-closed root guard", () => {
   test("a write whose computed target escapes auditDir (path traversal in log_id) is rejected, not silently written outside the root", () => {
     const auditDir = makeTempOutcomeDir();
