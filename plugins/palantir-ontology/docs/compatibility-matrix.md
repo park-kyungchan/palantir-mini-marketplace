@@ -202,10 +202,10 @@ axis test above.
 | `ontology_schema_get` (`ontology-schema-get.ts`) | port | 3 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
 | `impact_query` (`impact-query.ts`) | port | 6 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
 | `pre_edit_impact` (`pre-edit-impact.ts`) | port | 1 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
-| `pm_pre_mutation_governance` (`pm-pre-mutation-governance.ts`) | port | 1 | **omit** | mutation-authority gate; closest locus `src/governance/commit-gate.ts` + `src/governance/mint-ledger.ts` (not tool-wired). |
-| `apply_edit_function` (`apply-edit-function.ts`) | port | 5 | **omit** | No successor tool; closest locus `src/altitude1/staged-construction.ts` (not tool-wired). |
+| `pm_pre_mutation_governance` (`pm-pre-mutation-governance.ts`) | port | 1 | **omit** | mutation-authority gate; closest locus `src/governance/commit-gate.ts` + `src/governance/mint-ledger.ts` (not tool-wired). **ADR-006 update (2026-07-24):** pre-mutation validation evaluator now exists at `src/governance/kinetic-validation.ts` (criteria tree bound to governance reason codes, PR #243); still not tool-wired (de-2026-07-24-s19-kinetic-adr006-scope-of-record). |
+| `apply_edit_function` (`apply-edit-function.ts`) | port | 5 | **omit** | No successor tool; closest locus `src/altitude1/staged-construction.ts` (not tool-wired). **ADR-006 update (2026-07-24):** mutation application path now exists at `src/governance/kinetic-write-executor.ts` `applyAction` (PR #244), with link-mutation cardinality enforcement at `src/altitude2/link-mutation-validate.ts` (PR #246); still not tool-wired (de-2026-07-24-s19-kinetic-adr006-scope-of-record). |
 | `pm_ontology_engineering_workflow` (`pm-ontology-engineering-workflow.ts`) | port | 2 | **omit** | No successor tool; closest locus `src/altitude1/{fde-session,semantic-intent,digital-twin-change}.ts` (not tool-wired). |
-| `commit_edits` (`commit-edits.ts`) | port | 6 | **omit** | mutation-authority gate; closest locus `src/governance/commit-gate.ts` (not tool-wired). |
+| `commit_edits` (`commit-edits.ts`) | port | 6 | **omit** | mutation-authority gate; closest locus `src/governance/commit-gate.ts` (not tool-wired). **ADR-006 update (2026-07-24):** library-level mutation capability now exists at `src/governance/kinetic-write-executor.ts` (audit-gated apply sequence, PRs #242-#245); still not tool-wired — activation remains gated (de-2026-07-24-s19-kinetic-adr006-scope-of-record). |
 | `grade_outcome_with_rubric` (`grade-outcome-with-rubric.ts`) | port | 1 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
 | `pm_grader_dispatch` (`pm-grader-dispatch.ts`) | port | 1 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
 | `pm_semantic_intent_gate` (`pm-semantic-intent-gate.ts`) | port | 8 | **omit** | No successor tool; closest locus `src/altitude1/semantic-intent.ts` (not tool-wired). |
@@ -220,7 +220,7 @@ axis test above.
 | `pm_rule_audit` (`pm-rule-audit.ts`) | retain-legacy-only | 2 | **retain** | Same `~/.claude/rules/**` binding as `pm_rule_query`; absent from `src/adapters/**`/registry (confirmed). |
 | `ontology_context_query` (`ontology-context-query.ts`) | port | 7 | **omit** | No successor tool; no `src/adapters/**`/registry match. |
 | `structured_output` (`structured-output.ts`) | port | 0 | **omit** | 0 skill-frontmatter references is not zero total callers (runtime-agnostic anti-stall validator, invoked ad hoc); still no successor tool in `src/adapters/**`/registry. |
-| `pm_authorize_delivery` (`pm-authorize-delivery.ts`) | port | 0 | **omit** | mutation-authority grant minter; closest locus `src/governance/mint-ledger.ts` (not tool-wired); 0 skill-frontmatter references, same caveat as above. |
+| `pm_authorize_delivery` (`pm-authorize-delivery.ts`) | port | 0 | **omit** | mutation-authority grant minter; closest locus `src/governance/mint-ledger.ts` (not tool-wired); 0 skill-frontmatter references, same caveat as above. **ADR-006 update (2026-07-24):** the execution-side kinetic path this grant class would authorize now exists (`src/governance/kinetic-write-executor.ts`); grant minting itself remains at `src/governance/mint-ledger.ts`, unchanged this wave; still not tool-wired (de-2026-07-24-s19-kinetic-adr006-scope-of-record). |
 
 ### Counts (must sum to 24, the full §3 tool surface)
 
