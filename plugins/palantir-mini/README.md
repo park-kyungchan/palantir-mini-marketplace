@@ -1,5 +1,7 @@
 # palantir-mini
 
+> **[RETIRED 2026-07-24]** palantir-mini is retired in place — **superseded by [palantir-ontology](../palantir-ontology/)**, the single survivor per the consolidation decision of record (g12 `de-2026-07-24-s19-consolidation-c-a-kinetic-first-of-record`; retirement form per `de-2026-07-24-s20-palantir-mini-retirement-approval-of-record`). The tree is preserved as a design-precedent source (OE session engine, rid-map registration, mutationMode typing — cited by the s20 OE supersession row); nothing here is active, and no new work lands here.
+
 > Cross-project Ontology-First control-plane plugin — runtime-neutral, packaged for native LLM runtimes (Codex and Claude are active adapters; Gemini contract-only). One governed pm meaning; each runtime is a swappable adapter over a generated, governed binding.
 > Current release and per-release surface notes: see [CHANGELOG.md](./CHANGELOG.md) (single source of truth — never pin a version in this header).
 > Release inventory is checked by `pm_plugin_self_check mode=release`; do not copy volatile MCP/hook/skill/agent counts into this header.
