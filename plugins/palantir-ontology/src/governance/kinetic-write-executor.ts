@@ -15,7 +15,8 @@
 //   (5) on any error raised inside step 4 (including a concurrency
 //       mismatch or a `store.put` throw): `audit.appendOutcome` FAILED with
 //       the SAME `log_id`, `post_state: null`, `error_message` set to the
-//       caught error's message, then rethrow the ORIGINAL error unwrapped.
+//       caught error's message, then throw a `KineticExecutionError` (Unit
+//       E) carrying that SAME `log_id` and the original error as `cause`.
 //
 // V2 §3's architecture diagram labels this component "2PC"; §3's own body
 // never uses that term and implements only a single audited commit (a
@@ -63,6 +64,40 @@
 //
 // Citation: de-2026-07-24-s19-kinetic-adr006-scope-of-record (build-only
 // ADR-006 scoping row of record, home-repo PR #1101).
+//
+// Unit E closes two V2 defects left open by Unit A:
+//
+//   (1) FAILURE CORRELATION (V2 lines 320-335): V2's `except` handler writes
+//       a NEW `fail_log` row (its own fresh `log_id`, since `self.db.rollback()`
+//       discards the original PENDING row) and raises
+//       `RuntimeError(f"...{str(e)}")` — the exception carries only the error
+//       message, never the `fail_log.log_id`, so a caller cannot correlate
+//       the failure back to an audit row. This module does not reproduce
+//       that gap: every error surfacing after `appendPending` (i.e. from
+//       inside the audited attempt) is wrapped in the exported
+//       `KineticExecutionError`, which carries the SAME `log_id` written to
+//       `<log_id>.pending.json`/`<log_id>.failed.json` plus `cause` (the
+//       original, unwrapped error) — a caller can always open the matching
+//       audit file. Pre-audit structural errors (`KineticValidationError`,
+//       `KineticMissingExpectedVersionError`, `KineticUnexpectedExpectedVersionError`)
+//       have no audit row yet and remain unwrapped.
+//
+//   (2) IDEMPOTENCY (V2 §3 gap analysis: "No idempotency-key column exists
+//       on ActionAuditLogModel or elsewhere, so retried side effects ...
+//       would have no dedup mechanism defined."): `applyAction` now accepts
+//       an optional `idempotency_key`, threaded into both the pending and
+//       outcome audit records. When a caller supplies `idempotency_key` and
+//       `kinetic-audit-log.ts`'s `findOutcomeByIdempotencyKey` finds a prior
+//       SUCCESS for that key, the retry short-circuits: the recorded result
+//       is returned WITHOUT re-running criteria/concurrency checks and
+//       WITHOUT any new audit file. A prior FAILED outcome does NOT block a
+//       retry — the retry proceeds as a fresh attempt with its own
+//       caller-supplied `log_id`. (Reconstructing `new_version` for a replay
+//       reads the already-committed instance's version off `deps.store` —
+//       a read only, never a `store.put` — since the audit record's
+//       `post_state` carries merged business properties, not the object's
+//       version; the REQUIRED-TESTS bar for this unit is "no store
+//       mutation", which this satisfies.)
 
 import { evaluateKineticCriteria, type KineticCriteriaFailure, type KineticCriteriaNode } from "./kinetic-validation";
 import type { KineticAuditLog, KineticAuditRecord } from "./kinetic-audit-log";
@@ -141,6 +176,26 @@ export class KineticConcurrencyError extends Error {
   }
 }
 
+/**
+ * Thrown for any error surfacing AFTER `appendPending` (i.e. inside the
+ * audited attempt) — closes the V2 lines 320-335 defect where the raised
+ * `RuntimeError` never carried the audit row's `log_id`. `log_id` matches
+ * the `<log_id>.pending.json`/`<log_id>.failed.json` audit pair on disk;
+ * `cause` (native `Error` cause chaining) preserves the original,
+ * unwrapped error. Pre-audit structural errors (`KineticValidationError`,
+ * `KineticMissingExpectedVersionError`, `KineticUnexpectedExpectedVersionError`)
+ * have no audit row to correlate and are never wrapped in this.
+ */
+export class KineticExecutionError extends Error {
+  constructor(public readonly log_id: string, cause: unknown) {
+    super(
+      `kinetic-write-executor: applyAction(log_id="${log_id}") failed after the audit row was opened — see "${log_id}.failed.json" for the recorded failure detail`,
+      { cause },
+    );
+    this.name = "KineticExecutionError";
+  }
+}
+
 /** `applyAction` request fields, aligned to the V2 `apply_action` model. No clock/RNG calls inside this module: `timestamp` and `log_id` are always caller-supplied. */
 export interface ApplyActionRequest {
   readonly log_id: string;
@@ -151,6 +206,15 @@ export interface ApplyActionRequest {
   readonly mutation_properties: Record<string, unknown>;
   readonly expected_version?: number;
   readonly timestamp: string;
+  /**
+   * Optional idempotency key for retry deduplication. When supplied and a
+   * SUCCESS outcome already exists for this key (per
+   * `KineticAuditLog.findOutcomeByIdempotencyKey`), `applyAction`
+   * short-circuits and returns the recorded result instead of re-running
+   * the mutation. A prior FAILED outcome for the same key does NOT block a
+   * retry.
+   */
+  readonly idempotency_key?: string;
 }
 
 export interface ApplyActionResult {
@@ -178,6 +242,32 @@ export interface KineticWriteExecutor {
 export function createKineticWriteExecutor(deps: KineticWriteExecutorDeps): KineticWriteExecutor {
   return {
     applyAction(request: ApplyActionRequest): ApplyActionResult {
+      // (0) IDEMPOTENT REPLAY: short-circuits BEFORE criteria evaluation,
+      // BEFORE the structural guards, and BEFORE any new audit file — a
+      // recorded SUCCESS for this idempotency_key means the mutation
+      // already happened; a FAILED outcome does NOT short-circuit (the
+      // retry falls through to a fresh attempt with its own log_id below).
+      if (request.idempotency_key !== undefined) {
+        const priorOutcome = deps.audit.findOutcomeByIdempotencyKey(request.idempotency_key);
+        if (priorOutcome !== null && priorOutcome.status === "SUCCESS") {
+          // Reconstruct new_version from the already-committed instance's
+          // version — a store.get READ only, never a store.put; the audit
+          // record's post_state carries merged business properties, not
+          // the object's version field.
+          const committedInstance = deps.store.get(priorOutcome.target_object_id);
+          if (committedInstance === null) {
+            throw new Error(
+              `kinetic-write-executor: idempotent replay for idempotency_key "${request.idempotency_key}" found a recorded SUCCESS (log_id "${priorOutcome.log_id}") but target instance "${priorOutcome.target_object_id}" no longer exists in the store`,
+            );
+          }
+          return {
+            log_id: priorOutcome.log_id,
+            target_object_id: priorOutcome.target_object_id,
+            new_version: committedInstance.version,
+          };
+        }
+      }
+
       // (1) Pre-mutation submission-criteria validation — before any audit
       // file exists and before any store access.
       if (deps.criteria !== undefined) {
@@ -213,6 +303,7 @@ export function createKineticWriteExecutor(deps: KineticWriteExecutorDeps): Kine
         status: "PENDING",
         error_message: null,
         timestamp: request.timestamp,
+        ...(request.idempotency_key !== undefined ? { idempotency_key: request.idempotency_key } : {}),
       };
       deps.audit.appendPending(pendingRecord);
 
@@ -264,7 +355,10 @@ export function createKineticWriteExecutor(deps: KineticWriteExecutorDeps): Kine
           post_state: null,
           error_message: message,
         });
-        throw err;
+        // TYPED FAILURE CORRELATION (closes V2 lines 320-335): wrap in
+        // KineticExecutionError carrying the SAME log_id as the just-written
+        // "<log_id>.failed.json", and the original error as `cause`.
+        throw new KineticExecutionError(request.log_id, err);
       }
     },
   };

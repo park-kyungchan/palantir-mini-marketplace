@@ -15,6 +15,7 @@ import {
   createInMemoryObjectStore,
   createKineticWriteExecutor,
   KineticConcurrencyError,
+  KineticExecutionError,
   KineticMissingExpectedVersionError,
   KineticValidationError,
   type ApplyActionRequest,
@@ -105,14 +106,23 @@ describe("createKineticWriteExecutor: anti-bypass concurrency guard", () => {
 });
 
 describe("createKineticWriteExecutor: concurrency mismatch", () => {
-  test("a present-but-wrong expected_version throws KineticConcurrencyError AND writes a pending+failed audit pair sharing the same log_id", () => {
+  test("a present-but-wrong expected_version throws KineticExecutionError (cause: KineticConcurrencyError) AND writes a pending+failed audit pair sharing the same log_id", () => {
     const auditDir = makeTempOutcomeDir();
     const audit = createKineticAuditLog({ auditDir });
     const store = createInMemoryObjectStore();
     store.put({ instance_id: "Widget:widget-1", object_type_id: "ObjectType:Widget", properties: { name: "Old" }, version: 5 });
     const executor = createKineticWriteExecutor({ store, audit });
 
-    expect(() => executor.applyAction(baseRequest({ log_id: "log-4", expected_version: 2 }))).toThrow(KineticConcurrencyError);
+    expect(() => executor.applyAction(baseRequest({ log_id: "log-4", expected_version: 2 }))).toThrow(KineticExecutionError);
+    let thrown: unknown;
+    try {
+      executor.applyAction(baseRequest({ log_id: "log-4b", expected_version: 2 }));
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).toBeInstanceOf(KineticExecutionError);
+    expect((thrown as KineticExecutionError).log_id).toBe("log-4b");
+    expect((thrown as KineticExecutionError).cause).toBeInstanceOf(KineticConcurrencyError);
 
     const pending = JSON.parse(readFileSync(join(auditDir, "log-4.pending.json"), "utf8"));
     expect(pending.status).toBe("PENDING");
@@ -159,18 +169,27 @@ describe("createKineticWriteExecutor: submission-criteria validation", () => {
 });
 
 describe("createKineticWriteExecutor: store.put failure path", () => {
-  test("a store.put throw writes a FAILED outcome with the same log_id and rethrows the original error", () => {
+  test("a store.put throw writes a FAILED outcome with the same log_id and throws KineticExecutionError whose log_id matches the on-disk failed record and whose cause is the original error", () => {
     const auditDir = makeTempOutcomeDir();
     const audit = createKineticAuditLog({ auditDir });
+    const originalError = new Error("disk full");
     const throwingStore: ObjectInstanceStore = {
       get: () => null,
       put: () => {
-        throw new Error("disk full");
+        throw originalError;
       },
     };
     const executor = createKineticWriteExecutor({ store: throwingStore, audit });
 
-    expect(() => executor.applyAction(baseRequest({ log_id: "log-7" }))).toThrow("disk full");
+    let thrown: unknown;
+    try {
+      executor.applyAction(baseRequest({ log_id: "log-7" }));
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).toBeInstanceOf(KineticExecutionError);
+    expect((thrown as KineticExecutionError).log_id).toBe("log-7");
+    expect((thrown as KineticExecutionError).cause).toBe(originalError);
 
     const pending = JSON.parse(readFileSync(join(auditDir, "log-7.pending.json"), "utf8"));
     expect(pending.status).toBe("PENDING");
@@ -179,6 +198,83 @@ describe("createKineticWriteExecutor: store.put failure path", () => {
     expect(failed.log_id).toBe("log-7");
     expect(failed.error_message).toBe("disk full");
     expect(failed.post_state).toBeNull();
+  });
+});
+
+describe("createKineticWriteExecutor: pre-audit errors remain unwrapped (negative test)", () => {
+  test("KineticMissingExpectedVersionError is NOT wrapped in KineticExecutionError — no audit row exists to correlate", () => {
+    const auditDir = makeTempOutcomeDir();
+    const audit = createKineticAuditLog({ auditDir });
+    const store = createInMemoryObjectStore();
+    store.put({ instance_id: "Widget:widget-1", object_type_id: "ObjectType:Widget", properties: { name: "Old" }, version: 1 });
+    const executor = createKineticWriteExecutor({ store, audit });
+
+    let thrown: unknown;
+    try {
+      executor.applyAction(baseRequest({ log_id: "log-9" }));
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).toBeInstanceOf(KineticMissingExpectedVersionError);
+    expect(thrown).not.toBeInstanceOf(KineticExecutionError);
+    expect(readdirSync(auditDir)).toEqual([]);
+  });
+});
+
+describe("createKineticWriteExecutor: idempotent replay", () => {
+  test("a repeated idempotency_key with a recorded SUCCESS returns the recorded result without touching the store or writing a new audit file", () => {
+    const auditDir = makeTempOutcomeDir();
+    const audit = createKineticAuditLog({ auditDir });
+    const store = createInMemoryObjectStore();
+    const executor = createKineticWriteExecutor({ store, audit });
+
+    const first = executor.applyAction(baseRequest({ log_id: "log-10", idempotency_key: "idem-a" }));
+    expect(first).toEqual({ log_id: "log-10", target_object_id: "Widget:widget-1", new_version: 1 });
+
+    const filesAfterFirst = readdirSync(auditDir).sort();
+
+    // A retry with a DIFFERENT log_id but the SAME idempotency_key must
+    // return the ORIGINAL recorded result, untouched.
+    const retry = executor.applyAction(
+      baseRequest({ log_id: "log-10-retry", idempotency_key: "idem-a", mutation_properties: { name: "Should Not Apply" } }),
+    );
+    expect(retry).toEqual({ log_id: "log-10", target_object_id: "Widget:widget-1", new_version: 1 });
+
+    // No new audit file was written for the replay.
+    expect(readdirSync(auditDir).sort()).toEqual(filesAfterFirst);
+    // No store mutation happened on replay — properties are still the original.
+    expect(store.get("Widget:widget-1")?.properties).toEqual({ name: "Widget One" });
+    expect(store.get("Widget:widget-1")?.version).toBe(1);
+
+    // Both the pending and success records carry the idempotency_key.
+    const pending = JSON.parse(readFileSync(join(auditDir, "log-10.pending.json"), "utf8"));
+    expect(pending.idempotency_key).toBe("idem-a");
+    const success = JSON.parse(readFileSync(join(auditDir, "log-10.success.json"), "utf8"));
+    expect(success.idempotency_key).toBe("idem-a");
+  });
+
+  test("a FAILED prior outcome for the same idempotency_key does NOT block a retry — the retry proceeds as a fresh attempt", () => {
+    const auditDir = makeTempOutcomeDir();
+    const audit = createKineticAuditLog({ auditDir });
+    const store = createInMemoryObjectStore();
+    store.put({ instance_id: "Widget:widget-1", object_type_id: "ObjectType:Widget", properties: { name: "Old" }, version: 5 });
+    const executor = createKineticWriteExecutor({ store, audit });
+
+    // First attempt fails on a concurrency conflict, recorded under idem-b.
+    expect(() =>
+      executor.applyAction(baseRequest({ log_id: "log-11", expected_version: 2, idempotency_key: "idem-b" })),
+    ).toThrow(KineticExecutionError);
+    const failed = JSON.parse(readFileSync(join(auditDir, "log-11.failed.json"), "utf8"));
+    expect(failed.idempotency_key).toBe("idem-b");
+
+    // Retry with the same idempotency_key and the CORRECT expected_version
+    // must proceed as a fresh attempt (not short-circuited by the FAILED
+    // outcome) and succeed, using its own caller-supplied log_id.
+    const retryResult = executor.applyAction(
+      baseRequest({ log_id: "log-11-retry", expected_version: 5, idempotency_key: "idem-b" }),
+    );
+    expect(retryResult).toEqual({ log_id: "log-11-retry", target_object_id: "Widget:widget-1", new_version: 6 });
+    expect(store.get("Widget:widget-1")?.version).toBe(6);
   });
 });
 
